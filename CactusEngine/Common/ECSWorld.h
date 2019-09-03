@@ -1,0 +1,67 @@
+#pragma once
+#include "IEntity.h"
+#include "IComponent.h"
+#include "ISystem.h"
+#include <unordered_map>
+#include <memory>
+#include <assert.h>
+
+namespace Engine
+{
+	typedef std::unordered_map<uint32_t, std::shared_ptr<IEntity>> EntityList;
+	typedef std::unordered_map<uint32_t, std::shared_ptr<ISystem>> SystemList;
+
+	class ECSWorld : std::enable_shared_from_this<ECSWorld>
+	{
+	public:
+		ECSWorld();
+		virtual ~ECSWorld() = default;
+
+		void Initialize();
+		void ShutDown();
+
+		void Tick();
+
+		template<typename T>
+		inline std::shared_ptr<T> CreateEntity()
+		{
+			auto pEntity = std::make_shared<T>();
+			pEntity->SetEntityID(GetNewECSID(eECS_Entity));
+			m_entityList.emplace(pEntity->GetEntityID(), pEntity);
+			return pEntity;
+		}
+
+		template<typename T>
+		inline std::shared_ptr<T> CreateComponent()
+		{
+			auto pComponent = std::make_shared<T>();
+			pComponent->SetComponentID(GetNewECSID(eECS_Component));
+			return pComponent;
+		}
+
+		template<typename T>
+		inline void RegisterSystem(ESystemType type)
+		{
+			auto pSystem = std::make_shared<T>(this);
+			pSystem->SetSystemID(type);
+			m_systemList.emplace(type, pSystem);
+		}
+
+		void RemoveEntity(uint32_t entityID);
+		void RemoveSystem(ESystemType type);
+
+		const EntityList* GetEntityList() const;
+
+		std::shared_ptr<IEntity> FindEntityWithTag(EEntityTag tag) const;
+		std::vector<std::shared_ptr<IEntity>> FindEntitiesWithTag(EEntityTag tag) const;
+
+	private:
+		uint32_t GetNewECSID(EECSType type);
+
+	private:
+		EntityList m_entityList;
+		SystemList m_systemList;
+
+		std::vector<uint32_t> m_IDAssignments;
+	};
+}

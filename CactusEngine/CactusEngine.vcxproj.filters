@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="Assets\Shader\GLSL\Basic.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\Basic.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{930d0b60-22c0-4a7f-9af9-efe92b883aa8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Application">
+      <UniqueIdentifier>{29ae19a5-1397-470e-9358-4e1555afec19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Math">
+      <UniqueIdentifier>{4fb64023-d742-4cb7-b22a-6a14cae3606d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component">
+      <UniqueIdentifier>{8de75a69-fa6a-4445-a20a-38ba2038c5a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\Header">
+      <UniqueIdentifier>{c1442a47-9c75-4e6c-88ee-272746ae5f26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component\Source">
+      <UniqueIdentifier>{4593d16b-bf87-49b7-8b4b-e62493e7c5bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entity">
+      <UniqueIdentifier>{c8725d2a-231e-41cc-9145-abd7a07a4b00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entity\Header">
+      <UniqueIdentifier>{94f2850e-81ca-4b82-89dd-11d804c1d83e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Entity\Source">
+      <UniqueIdentifier>{99c4af1f-66dc-4f3e-98ed-e1e07af24c91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{7749655e-be3f-4de2-8080-3629f2e338aa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device">
+      <UniqueIdentifier>{df664d4d-a53d-4a37-b447-ce1178ed630e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\OpenGL">
+      <UniqueIdentifier>{8c142bd4-2ac9-41d8-803e-49968c0492f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\OpenGL\Shader">
+      <UniqueIdentifier>{99e15d24-d3fe-402f-bccf-f281df5dc1cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\Vulkan">
+      <UniqueIdentifier>{58bf0e6d-2ebe-4977-8765-9d69248d1619}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\FrameGraph">
+      <UniqueIdentifier>{aee2f5c7-61c9-4844-838b-f51d05babd47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Resources">
+      <UniqueIdentifier>{648dabd1-a67f-49fe-8df9-e8532d985fe7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Renderer">
+      <UniqueIdentifier>{0d226e10-affb-4e94-8676-592a360233ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{de5b50df-2fb4-46da-bb92-52764c5fe9b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{3e9c8923-b033-4687-a511-1ffc6e9a1417}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System">
+      <UniqueIdentifier>{e4090044-5a40-4837-8e79-e581b66996ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Third-party">
+      <UniqueIdentifier>{8329b5d1-2666-4913-8fde-477e9f51b625}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{fb0dbe0e-0dfd-4ca5-ae7b-1367bdcfbb93}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\Application\BaseApplication.h">
+      <Filter>Common\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Application\GraphicsApplication.h">
+      <Filter>Common\Application</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Math\BasicMathTypes.h">
+      <Filter>Common\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Configuration.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ECSWorld.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Global.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\SharedTypes.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\AnimationComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\CameraComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\GLCComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\MaterialComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\MeshFilterComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\MeshRendererComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\TransformComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\EntityProperties.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\BaseEntity.h">
+      <Filter>Entity\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\StandardEntity.h">
+      <Filter>Entity\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\DrawingDevice_OpenGL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\DrawingUtil_OpenGL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\DrawingDevice.h">
+      <Filter>Graphics\Device</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\FrameGraph\FrameGraph.h">
+      <Filter>Graphics\FrameGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\BuiltInShaderType.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\DrawingResources.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\Mesh.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\ObjMesh.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer\BaseRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer\DeferredRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer\ForwardRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\BaseWindow.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="GUI\GLFWWindow.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IApplication.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IComponent.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IEntity.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IRenderer.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\ISystem.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="System\AnimationSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="System\DrawingSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\BaseComponent.h">
+      <Filter>Component</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common\Application\BaseApplication.cpp">
+      <Filter>Common\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Application\GraphicsApplication.cpp">
+      <Filter>Common\Application</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\ECSWorld.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Global.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Main.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\AnimationComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\CameraComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\GLCComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\MaterialComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\MeshFilterComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\MeshRendererComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\TransformComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\BaseEntity.cpp">
+      <Filter>Entity\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\StandardEntity.cpp">
+      <Filter>Entity\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\DrawingDevice_OpenGL.cpp">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.cpp">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.cpp">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\DrawingDevice.cpp">
+      <Filter>Graphics\Device</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\FrameGraph\FrameGraph.cpp">
+      <Filter>Graphics\FrameGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\DrawingResources.cpp">
+      <Filter>Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\Mesh.cpp">
+      <Filter>Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\ObjMesh.cpp">
+      <Filter>Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\DeferredRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\BaseWindow.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\GLFWWindow.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="System\AnimationSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="System\DrawingSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\BaseComponent.cpp">
+      <Filter>Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\glad\glad.c">
+      <Filter>Third-party</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
