@@ -38,6 +38,8 @@ namespace Engine
 
 		std::shared_ptr<GLCRay> GetRayGen(unsigned int index) const;
 
+		std::shared_ptr<GLCRay> GenerateRay() const;
+
 	private:
 		float m_firstImagePlane;
 		float m_secondImagePlane;

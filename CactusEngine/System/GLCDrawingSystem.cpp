@@ -6,7 +6,6 @@ using namespace Engine;
 GLCDrawingSystem::GLCDrawingSystem(ECSWorld* pWorld)
 	: m_pECSWorld(pWorld)
 {
-
 }
 
 void GLCDrawingSystem::SetSystemID(uint32_t id)
@@ -21,7 +20,7 @@ uint32_t GLCDrawingSystem::GetSystemID() const
 
 void GLCDrawingSystem::Initialize()
 {
-
+	m_pRenderResult = std::make_shared<RenderTexture>(256, 256); // This is the default output texture size, equivalent to 65536 rays
 }
 
 void GLCDrawingSystem::ShutDown()
@@ -42,7 +41,7 @@ void GLCDrawingSystem::Tick()
 		auto pGLCComp = std::static_pointer_cast<GLCComponent>(pGLCEntity->GetComponent(eCompType_GLC));
 		if (pGLCComp)
 		{
-
+			
 		}
 	}
 }

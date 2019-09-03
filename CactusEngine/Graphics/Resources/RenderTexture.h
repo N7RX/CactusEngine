@@ -3,8 +3,10 @@
 
 namespace Engine
 {
-	class RenderTexture : Texture2D
+	class RenderTexture : public Texture2D
 	{
-
+	public:
+		RenderTexture(uint32_t width, uint32_t height);
+		~RenderTexture() = default;
 	};
 }

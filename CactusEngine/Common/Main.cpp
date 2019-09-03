@@ -228,7 +228,15 @@ void TestSetup(GraphicsApplication* pApp)
 	// General Linera Camera
 
 	auto pGLCComponent = pWorld->CreateComponent<GLCComponent>();
-	
+	auto pRayGen1 = pGLCComponent->GetRayGen(0);
+	auto pRayGen2 = pGLCComponent->GetRayGen(1);
+	auto pRayGen3 = pGLCComponent->GetRayGen(2);
+	pRayGen1->SetOrigin(Vector2(0, 0));
+	pRayGen1->SetDirection(Vector2(0, 0));
+	pRayGen2->SetOrigin(Vector2(1, 0));
+	pRayGen2->SetDirection(Vector2(255, 0));
+	pRayGen3->SetOrigin(Vector2(0, 1));
+	pRayGen3->SetDirection(Vector2(0, 255));
 
 	auto pGLC = pWorld->CreateEntity<StandardEntity>();
 	pGLC->AttachComponent(pGLCComponent);

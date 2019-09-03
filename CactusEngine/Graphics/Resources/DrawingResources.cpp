@@ -28,6 +28,16 @@ uint32_t VertexBuffer::GetNumberOfIndices() const
 	return m_numberOfIndices;
 }
 
+uint32_t Texture2D::GetWidth() const
+{
+	return m_width;
+}
+
+uint32_t Texture2D::GetHeight() const
+{
+	return m_height;
+}
+
 Shader::Shader(EShaderType type)
 	: m_shaderType(type)
 {

@@ -59,7 +59,15 @@ namespace Engine
 
 	class Texture2D : public RawResource
 	{
+	public:
+		virtual ~Texture2D() = default;
 
+		uint32_t GetWidth() const;
+		uint32_t GetHeight() const;
+
+	protected:
+		uint32_t m_width;
+		uint32_t m_height;
 	};
 
 	enum EGLShaderParamType
