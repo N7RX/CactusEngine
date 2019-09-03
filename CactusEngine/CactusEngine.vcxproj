@@ -165,8 +165,10 @@
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h" />
     <ClInclude Include="Graphics\Resources\BuiltInShaderType.h" />
     <ClInclude Include="Graphics\Resources\DrawingResources.h" />
+    <ClInclude Include="Graphics\Resources\GLCMesh.h" />
     <ClInclude Include="Graphics\Resources\Mesh.h" />
     <ClInclude Include="Graphics\Resources\ObjMesh.h" />
+    <ClInclude Include="Graphics\Resources\RenderTexture.h" />
     <ClInclude Include="GUI\BaseWindow.h" />
     <ClInclude Include="GUI\GLFWWindow.h" />
     <ClInclude Include="Interface\IApplication.h" />
@@ -176,6 +178,7 @@
     <ClInclude Include="Interface\ISystem.h" />
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
+    <ClInclude Include="System\GLCDrawingSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp" />
@@ -202,12 +205,15 @@
     <ClCompile Include="Graphics\Renderer\DeferredRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
+    <ClCompile Include="Graphics\Resources\GLCMesh.cpp" />
     <ClCompile Include="Graphics\Resources\Mesh.cpp" />
     <ClCompile Include="Graphics\Resources\ObjMesh.cpp" />
+    <ClCompile Include="Graphics\Resources\RenderTexture.cpp" />
     <ClCompile Include="GUI\BaseWindow.cpp" />
     <ClCompile Include="GUI\GLFWWindow.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
+    <ClCompile Include="System\GLCDrawingSystem.cpp" />
     <ClCompile Include="Third-party\glad\glad.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

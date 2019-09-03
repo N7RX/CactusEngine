@@ -31,6 +31,7 @@ namespace Engine
 		//eSystem_Log,
 		//eSystem_Audio,
 		//eSystem_Physics,
+		eSystem_GLCDrawing,
 		ESYSTEMTYPE_COUNT
 	};
 

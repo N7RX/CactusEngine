@@ -6,6 +6,8 @@ namespace Engine
 	{
 		eEntityTag_None = 0,
 		eEntityTag_MainCamera,
+		eEntityTag_MainGLC,
+		eEntityTag_GLCMesh,
 		EENTITYTAG_COUNT
 	};
 }

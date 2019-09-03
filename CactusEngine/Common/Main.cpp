@@ -2,14 +2,17 @@
 #include "Global.h"
 #include "DrawingSystem.h"
 #include "AnimationSystem.h"
+#include "GLCDrawingSystem.h"
 #include "TransformComponent.h"
 #include "MeshFilterComponent.h"
 #include "MeshRendererComponent.h"
 #include "AnimationComponent.h"
 #include "CameraComponent.h"
 #include "MaterialComponent.h"
+#include "GLCComponent.h"
 #include "StandardEntity.h"
 #include "ObjMesh.h"
+#include "GLCMesh.h"
 #include <iostream>
 
 // This is the entry of the program
@@ -84,6 +87,7 @@ void TestSetup(GraphicsApplication* pApp)
 
 	pWorld->RegisterSystem<DrawingSystem>(eSystem_Drawing);
 	pWorld->RegisterSystem<AnimationSystem>(eSystem_Animation);
+	pWorld->RegisterSystem<GLCDrawingSystem>(eSystem_GLCDrawing);
 
 	// Camera
 
@@ -100,10 +104,11 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Cube
 
+	auto pCubeMesh = std::make_shared<ObjMesh>("Assets/Models/Cube.obj");
+
 	auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
 	pTransformComp->SetPosition(Vector3(1.5f, -1, 0));
 
-	auto pCubeMesh = std::make_shared<ObjMesh>("Assets/Models/Cube.obj");
 	auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp->SetMesh(pCubeMesh);
 
@@ -219,4 +224,32 @@ void TestSetup(GraphicsApplication* pApp)
 	pCube4->AttachComponent(pMaterialComp4);
 	pCube4->AttachComponent(pMeshRendererComp4);
 	pCube4->AttachComponent(pAnimationComp4);
+
+	// General Linera Camera
+
+	auto pGLCComponent = pWorld->CreateComponent<GLCComponent>();
+	
+
+	auto pGLC = pWorld->CreateEntity<StandardEntity>();
+	pGLC->AttachComponent(pGLCComponent);
+	pGLC->SetEntityTag(eEntityTag_MainGLC);
+
+	// GLC Cube
+
+	auto pGLCCubeMesh = std::make_shared<GLCMesh>("Assets/Models/Cube.obj");
+
+	auto pTransformCompGLC = pWorld->CreateComponent<TransformComponent>();
+	pTransformCompGLC->SetPosition(Vector3(0, 0, 0));
+
+	auto pMeshFilterCompGLC = pWorld->CreateComponent<MeshFilterComponent>();
+	pMeshFilterCompGLC->SetMesh(pGLCCubeMesh);
+
+	auto pMaterialCompGLC = std::make_shared<MaterialComponent>();
+	pMaterialCompGLC->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
+
+	auto pGLCCube = pWorld->CreateEntity<StandardEntity>();
+	pGLCCube->AttachComponent(pTransformCompGLC);
+	pGLCCube->AttachComponent(pMeshFilterCompGLC);
+	pGLCCube->AttachComponent(pMaterialCompGLC);
+	pGLCCube->SetEntityTag(eEntityTag_GLCMesh);
 }
