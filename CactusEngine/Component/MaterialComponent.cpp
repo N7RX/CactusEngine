@@ -17,6 +17,16 @@ void MaterialComponent::SetShaderProgram(EBuiltInShaderProgramType shaderProgram
 	m_useShaderType = shaderProgramType;
 }
 
+void MaterialComponent::SetAlbedoTexture(const std::shared_ptr<Texture2D> pAlbedoTexture)
+{
+	m_pAlbedoTexture = pAlbedoTexture;
+}
+
+std::shared_ptr<Texture2D> MaterialComponent::GetAlbedoTexture() const
+{
+	return m_pAlbedoTexture;
+}
+
 void MaterialComponent::SetAlbedoColor(Color4 albedo)
 {
 	m_albedoColor = albedo;

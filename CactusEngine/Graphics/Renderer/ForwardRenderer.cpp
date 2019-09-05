@@ -4,6 +4,7 @@
 #include "MaterialComponent.h"
 #include "CameraComponent.h"
 #include "DrawingSystem.h"
+#include "GLCDrawingSystem.h"
 
 using namespace Engine;
 
@@ -48,12 +49,10 @@ void ForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList
 			continue;
 		}
 
-		Vector3 rotate = pTransformComp->GetRotation();
-		Matrix4x4 modelMat = 
-			glm::translate(pTransformComp->GetPosition())
-			* (glm::rotate(rotate.x * D2R, X_AXIS)*glm::rotate(rotate.y * D2R, Y_AXIS)*glm::rotate(rotate.z * D2R, Z_AXIS))
-			* glm::scale(pTransformComp->GetScale());
+		Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
 		Matrix4x4 pvmMatrix = projectionMat * viewMat * modelMat;
+
+		auto pAlbedoTexture = pMaterialComp->GetAlbedoTexture();
 
 		auto pShaderProgram = m_pSystem->GetShaderProgramByType(pMaterialComp->GetShaderProgramType());
 		auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -61,8 +60,17 @@ void ForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList
 		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PVM_MATRIX), eShaderParam_Mat4, glm::value_ptr(pvmMatrix));
 		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), eShaderParam_Vec4, glm::value_ptr(pMaterialComp->GetAlbedoColor()));
 
+		if (pAlbedoTexture)
+		{
+			// Alert: this only works for OpenGL; Vulkan requires doing this through descriptor sets
+			uint32_t albedoTexID = pAlbedoTexture->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), eShaderParam_Texture2D, &albedoTexID);
+		}
+
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 		m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
 		m_pDevice->DrawPrimitive(pMesh->GetVertexBuffer()->GetNumberOfIndices());
+
+		pShaderProgram->Reset();
 	}
 }

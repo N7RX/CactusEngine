@@ -7,6 +7,8 @@
 
 namespace Engine
 {
+	class DrawingDevice;
+
 	class RawResourceData
 	{
 	public:
@@ -34,16 +36,16 @@ namespace Engine
 
 	struct VertexBufferCreateInfo
 	{
-		int* pIndexData;
+		int*	 pIndexData;
 		uint32_t indexDataCount;
 
-		float* pPositionData;
+		float*	 pPositionData;
 		uint32_t positionDatacount;
 
-		float* pNormalData;
+		float*	 pNormalData;
 		uint32_t normalDatacount;
 
-		float* pTexcoordData;
+		float*	 pTexcoordData;
 		uint32_t texcoordDatacount;
 	};
 
@@ -57,6 +59,15 @@ namespace Engine
 		uint32_t m_numberOfIndices;
 	};
 
+	struct Texture2DCreateInfo
+	{
+		const void*	   pTextureData;
+		uint32_t	   textureWidth;
+		uint32_t	   textureHeight;
+		EDataType	   dataType;
+		ETextureFormat format;
+	};
+
 	class Texture2D : public RawResource
 	{
 	public:
@@ -64,6 +75,8 @@ namespace Engine
 
 		uint32_t GetWidth() const;
 		uint32_t GetHeight() const;
+
+		virtual uint32_t GetTextureID() const = 0;
 
 	protected:
 		uint32_t m_width;
@@ -79,7 +92,8 @@ namespace Engine
 		eShaderParam_Vec4,
 		eShaderParam_Mat2,
 		eShaderParam_Mat3,
-		eShaderParam_Mat4
+		eShaderParam_Mat4,
+		eShaderParam_Texture2D
 	};
 
 	class Shader
@@ -118,12 +132,14 @@ namespace Engine
 		uint32_t GetShaderStages() const;
 
 		unsigned int GetParamLocation(const char* paramName) const;
+		virtual void Reset() = 0;
 
 	protected:
 		ShaderProgram(uint32_t shaderStages);
 
 	protected:
 		uint32_t m_programID;
+		DrawingDevice* m_pDevice;
 		uint32_t m_shaderStages; // This is a bitmap
 		std::unordered_map<const char*, unsigned int> m_paramLocations;
 	};

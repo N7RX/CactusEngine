@@ -1,4 +1,5 @@
 #pragma once
+#include "SharedTypes.h"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <fstream>
@@ -24,7 +25,7 @@ namespace Engine
 		return NULL;
 	}
 
-	void PrintShaderCompileError_GL(GLuint shaderID)
+	static void PrintShaderCompileError_GL(GLuint shaderID)
 	{
 		GLint logSize;
 		glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logSize);
@@ -34,7 +35,7 @@ namespace Engine
 		delete[] logMsg;
 	}
 
-	void PrintProgramLinkError_GL(GLuint programID)
+	static void PrintProgramLinkError_GL(GLuint programID)
 	{
 		GLint  logSize;
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
@@ -42,5 +43,64 @@ namespace Engine
 		glGetProgramInfoLog(programID, logSize, NULL, logMsg);
 		std::cerr << logMsg << std::endl;
 		delete[] logMsg;
+	}
+
+	static unsigned int OpenGLFormat(ETextureFormat format)
+	{
+		switch (format)
+		{
+		case eFormat_RGBA32F:
+			return GL_RGBA32F;
+		default:
+			std::cerr << "Unhandled OpenGL format." << std::endl;
+			break;
+		}
+		return 0;
+	}
+
+	static GLenum OpenGLPixelFormat(GLuint glFormat)
+	{
+		switch (glFormat)
+		{
+		case GL_RGBA32F:
+		case GL_RGBA16F:
+			return GL_RGBA;
+		default:
+			std::cerr << "Unhandled OpenGL pixel format." << std::endl;
+			break;
+		}
+		return 0;
+	}
+
+	static int OpenGLDataType(EDataType type)
+	{
+		switch (type)
+		{
+		case eDataType_Float:
+			return GL_FLOAT;
+		case eDataType_UnsignedByte:
+			return GL_UNSIGNED_BYTE;
+		default:
+			std::cerr << "Unhandled OpenGL data type." << std::endl;
+			break;
+		}
+		return -1;
+	}
+
+	static uint32_t OpenGLTypeSize(EDataType type)
+	{
+		switch (type)
+		{
+		case eDataType_Float:
+			return 4;
+			break;
+		case eDataType_UnsignedByte:
+			return 1;
+			break;
+		default:
+			std::cerr << "Unhandled OpenGL data type." << std::endl;
+			break;
+		}
+		return 0;
 	}
 }

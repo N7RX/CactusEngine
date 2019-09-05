@@ -53,3 +53,13 @@ Vector3 TransformComponent::GetRightDirection() const
 {
 	return m_rightDirection;
 }
+
+Matrix4x4 TransformComponent::GetModelMatrix() const
+{
+	Matrix4x4 modelMat =
+		glm::translate(m_position)
+		* (glm::rotate(m_rotationEuler.x * D2R, X_AXIS)*glm::rotate(m_rotationEuler.y * D2R, Y_AXIS)*glm::rotate(m_rotationEuler.z * D2R, Z_AXIS))
+		* glm::scale(m_scale);
+
+	return modelMat;
+}

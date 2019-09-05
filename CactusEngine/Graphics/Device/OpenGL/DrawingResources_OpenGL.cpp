@@ -18,6 +18,27 @@ VertexBuffer_OpenGL::~VertexBuffer_OpenGL()
 	glDeleteVertexArrays(1, &m_vao);
 }
 
+GLuint Texture2D_OpenGL::GetGLTextureID() const
+{
+	return m_glTextureID;
+}
+
+uint32_t Texture2D_OpenGL::GetTextureID() const
+{
+	return static_cast<uint32_t>(m_glTextureID);
+}
+
+void Texture2D_OpenGL::SetGLTextureID(GLuint id)
+{
+	m_glTextureID = id;
+}
+
+void Texture2D_OpenGL::MarkTextureSize(uint32_t width, uint32_t height)
+{
+	m_width = width;
+	m_height = height;
+}
+
 VertexShader_OpenGL::VertexShader_OpenGL(const char* filePath)
 {
 	GLchar* source = ReadSourceFileAsChar(filePath);
@@ -70,9 +91,10 @@ GLuint FragmentShader_OpenGL::GetGLShaderID() const
 	return m_glShaderID;
 }
 
-ShaderProgram_OpenGL::ShaderProgram_OpenGL(const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader)
-	: ShaderProgram(eShader_Vertex | eShader_Fragment)
+ShaderProgram_OpenGL::ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader)
+	: ShaderProgram(eShader_Vertex | eShader_Fragment), m_activeTextureUnit(0)
 {
+	m_pDevice = pDevice;
 	m_glProgramID = glCreateProgram();
 
 	glAttachShader(m_glProgramID, pVertexShader->GetGLShaderID());
@@ -124,10 +146,23 @@ void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EGLShaderParamT
 	case eShaderParam_Mat4:
 		glUniformMatrix4fv(location, 1, false, (float*)value);
 		break;
+	case eShaderParam_Texture2D:
+		m_activeTextureUnit += 1; // Confusion: this doesn't make sense to be before glActiveTexture(), but placing behind wouldn't work
+		glActiveTexture(m_activeTextureUnit + GL_TEXTURE0);		
+		glBindTexture(GL_TEXTURE_2D, *(unsigned int*)value);
+		glUniform1i(location, *(unsigned int*)value);
+		break;
 	default:
-		throw std::runtime_error("Wrong shader parameter type.");
+		throw std::runtime_error("Unsupported shader parameter type.");
 		break;
 	}
+}
+
+void ShaderProgram_OpenGL::Reset()
+{
+	m_activeTextureUnit = 0;
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glUseProgram(0);
 }
 
 void ShaderProgram_OpenGL::ReflectParamLocations()

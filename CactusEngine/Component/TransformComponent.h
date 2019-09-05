@@ -22,6 +22,8 @@ namespace Engine
 		Vector3 GetForwardDirection() const;
 		Vector3 GetRightDirection() const;
 
+		Matrix4x4 GetModelMatrix() const;
+
 	private:
 		Vector3 m_position;
 		Vector3 m_scale;

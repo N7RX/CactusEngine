@@ -20,7 +20,15 @@ namespace Engine
 
 	class Texture2D_OpenGL : public Texture2D
 	{
+	public:
+		GLuint GetGLTextureID() const;
+		uint32_t GetTextureID() const override;
 
+		void SetGLTextureID(GLuint id);
+		void MarkTextureSize(uint32_t width, uint32_t height);
+
+	private:
+		GLuint m_glTextureID;
 	};
 
 	class VertexShader_OpenGL : public VertexShader
@@ -50,16 +58,18 @@ namespace Engine
 	class ShaderProgram_OpenGL : public ShaderProgram
 	{
 	public:
-		ShaderProgram_OpenGL(const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader);
+		ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader);
 
 		GLuint GetGLProgramID() const;
 
 		void UpdateParameterValue(GLuint location, EGLShaderParamType type, const void* value);
+		void Reset() override;
 
 	private:
 		void ReflectParamLocations();
 
 	private:
 		GLuint m_glProgramID;
+		uint32_t m_activeTextureUnit;
 	};
 }

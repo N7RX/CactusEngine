@@ -87,4 +87,15 @@ namespace Engine
 		eGlobalState_GLFWInit = 0,
 		EGLOBALSTATEQUERYTYPE_COUNT
 	};
+
+	enum ETextureFormat
+	{
+		eFormat_RGBA32F = 0,
+	};
+
+	enum EDataType
+	{
+		eDataType_Float = 0,
+		eDataType_UnsignedByte,
+	};
 }

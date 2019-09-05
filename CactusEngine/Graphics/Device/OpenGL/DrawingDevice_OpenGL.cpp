@@ -1,13 +1,11 @@
 #include "DrawingDevice_OpenGL.h"
 #include "DrawingResources_OpenGL.h"
+#include "DrawingUtil_OpenGL.h"
 
 using namespace Engine;
 
 void DrawingDevice_OpenGL::Initialize()
 {
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
 	glGenerateMipmap(GL_TEXTURE_2D);
 }
 
@@ -21,7 +19,7 @@ std::shared_ptr<ShaderProgram> DrawingDevice_OpenGL::CreateShaderProgramFromFile
 	auto pVertexShader = std::make_shared<VertexShader_OpenGL>(vertexShaderFilePath);
 	auto pFragmentShader = std::make_shared<FragmentShader_OpenGL>(fragmentShaderFilePath);
 
-	return std::make_shared<ShaderProgram_OpenGL>(pVertexShader, pFragmentShader);
+	return std::make_shared<ShaderProgram_OpenGL>(this, pVertexShader, pFragmentShader);
 }
 
 bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
@@ -68,6 +66,42 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	return true;
 }
 
+bool DrawingDevice_OpenGL::CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput)
+{
+	if (pOutput != nullptr)
+	{
+		auto pTexture = std::static_pointer_cast<Texture2D_OpenGL>(pOutput);
+		GLuint texID = pTexture->GetGLTextureID();
+		if (texID != -1)
+		{
+			glDeleteTextures(1, &texID);
+		}
+	}
+	else
+	{
+		pOutput = std::make_shared<Texture2D_OpenGL>();
+	}
+
+	auto pTexture = std::static_pointer_cast<Texture2D_OpenGL>(pOutput);
+
+	GLuint texID = -1;
+	glGenTextures(1, &texID);
+	glBindTexture(GL_TEXTURE_2D, texID);
+	glTexImage2D(GL_TEXTURE_2D, 0, OpenGLFormat(createInfo.format), createInfo.textureWidth, createInfo.textureHeight, 0, OpenGLPixelFormat(OpenGLFormat(createInfo.format)), OpenGLDataType(createInfo.dataType), createInfo.pTextureData);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	pTexture->SetGLTextureID(texID);
+	pTexture->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
+	pTexture->SetData(nullptr, static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(createInfo.dataType)));
+
+	return true;
+}
+
 void DrawingDevice_OpenGL::SetClearColor(Color4 color)
 {
 	glClearColor(color.r, color.g, color.b, color.a);
@@ -108,7 +142,7 @@ void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseInd
 
 void DrawingDevice_OpenGL::Present()
 {
-	
+
 }
 
 EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const

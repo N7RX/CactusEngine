@@ -14,6 +14,7 @@ namespace Engine
 		std::shared_ptr<ShaderProgram> CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) override;
 
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput) override;
+		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
 
 		void SetClearColor(Color4 color) override;
 		void ClearTarget() override;
@@ -23,7 +24,7 @@ namespace Engine
 
 		void Present() override;
 
-		EGraphicsDeviceType GetDeviceType() const;
+		EGraphicsDeviceType GetDeviceType() const override;
 
 		void ConfigureStates_Test() override;
 
