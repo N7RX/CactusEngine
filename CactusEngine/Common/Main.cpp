@@ -125,7 +125,7 @@ void TestSetup(GraphicsApplication* pApp)
 	{
 		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
 		Vector3 currRotation = pTransform->GetRotation();
-		currRotation.y += .5f;
+		currRotation.y += 1.f;
 		if (currRotation.y >= 360)
 		{
 			currRotation.y = 0;
@@ -181,8 +181,7 @@ void TestSetup(GraphicsApplication* pApp)
 		[](IEntity* pEntity)
 	{
 		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
-		Vector3 currScale = pTransform->GetScale();
-		currScale = sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.01f) * Vector3(1, 1, 1);
+		Vector3 currScale = sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.01f) * Vector3(1, 1, 1);
 		pTransform->SetScale(currScale);
 	});
 
@@ -240,8 +239,8 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pGLCCubeMesh = std::make_shared<GLCMesh>("Assets/Models/Cube.obj");
 
 	auto pTransformCompGLC = pWorld->CreateComponent<TransformComponent>();
-	pTransformCompGLC->SetPosition(Vector3(1.0f, 0.5f, 2.0f));
-	pTransformCompGLC->SetScale(Vector3(0.25f, 0.5f, 0.5f));
+	pTransformCompGLC->SetPosition(Vector3(0.5f, 0.5f, 1.5f));
+	pTransformCompGLC->SetScale(Vector3(0.25f, 0.25f, 0.25f));
 
 	auto pMeshFilterCompGLC = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterCompGLC->SetMesh(pGLCCubeMesh);
@@ -254,13 +253,8 @@ void TestSetup(GraphicsApplication* pApp)
 		[](IEntity* pEntity)
 	{
 		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
-		Vector3 currRotation = pTransform->GetRotation();
-		currRotation.y += 5.0f;
-		if (currRotation.y >= 360)
-		{
-			currRotation.y = 0;
-		}
-		pTransform->SetRotation(currRotation);
+		Vector3 currScale = sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.005f) * Vector3(0.25f, 0.25f, 0.25f);
+		pTransform->SetScale(currScale);
 	});
 
 	auto pGLCCube = pWorld->CreateEntity<StandardEntity>();
@@ -273,9 +267,9 @@ void TestSetup(GraphicsApplication* pApp)
 	// GLC Cube 2
 
 	auto pTransformCompGLC2 = pWorld->CreateComponent<TransformComponent>();
-	pTransformCompGLC2->SetPosition(Vector3(1.0f, 1.25f, 2.0f));
-	pTransformCompGLC2->SetRotation(Vector3(0, 45.0f, 0));
-	pTransformCompGLC2->SetScale(Vector3(0.75f, 0.3f, 0.5f));
+	pTransformCompGLC2->SetPosition(Vector3(0.75f, 0.75f, 1.5f));
+	pTransformCompGLC2->SetRotation(Vector3(0, 0.0f, 0));
+	pTransformCompGLC2->SetScale(Vector3(0.25f, 0.25f, 0.25f));
 
 	auto pMeshFilterCompGLC2 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterCompGLC2->SetMesh(pGLCCubeMesh);
@@ -287,14 +281,9 @@ void TestSetup(GraphicsApplication* pApp)
 	pAnimationCompGLC2->SetAnimFunction(
 		[](IEntity* pEntity)
 	{
-		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
-		Vector3 currRotation = pTransform->GetRotation();
-		currRotation.y += 10.0f;
-		if (currRotation.y >= 360)
-		{
-			currRotation.y = 0;
-		}
-		pTransform->SetRotation(currRotation);
+		auto pMaterial = std::static_pointer_cast<MaterialComponent>(pEntity->GetComponent(eCompType_Material));
+		Color3 currColor = abs(sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.01f)) * Color3(0.7f, 0.7f, 1.0f);
+		pMaterial->SetAlbedoColor(Color4(currColor, 1.0f));
 	});
 
 	auto pGLCCube2 = pWorld->CreateEntity<StandardEntity>();
@@ -307,9 +296,9 @@ void TestSetup(GraphicsApplication* pApp)
 	// GLC display cube (Cube 5)
 
 	auto pTransformComp5 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp5->SetPosition(Vector3(0, 0, 0));
+	pTransformComp5->SetPosition(Vector3(0, 0, -1.0f));
 	pTransformComp5->SetRotation(Vector3(0, 0, 180));
-	pTransformComp5->SetScale(Vector3(1.5f, 1.5f, 1.0f));
+	pTransformComp5->SetScale(Vector3(6.0f, 6.0f, 0.5f));
 
 	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp5->SetMesh(pCubeMesh);

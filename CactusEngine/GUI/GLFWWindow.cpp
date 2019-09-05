@@ -1,5 +1,6 @@
 #include "GLFWWindow.h"
 #include "Global.h"
+#include "ImGuiOverlay.h"
 
 using namespace Engine;
 
@@ -55,10 +56,14 @@ void GLFWWindow::Initialize()
 	default:
 		throw std::runtime_error("Unsupported device type when initializing GFLW window.");
 	}
+
+	InitImGui(m_pGLFWWindowHandle);
 }
 
 void GLFWWindow::Tick()
 {
+	DrawImGui();
+
 	m_shouldQuit = glfwWindowShouldClose(m_pGLFWWindowHandle);
 	glfwSwapBuffers(m_pGLFWWindowHandle);
 	glfwPollEvents();

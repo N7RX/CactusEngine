@@ -171,6 +171,7 @@
     <ClInclude Include="Graphics\Resources\RenderTexture.h" />
     <ClInclude Include="GUI\BaseWindow.h" />
     <ClInclude Include="GUI\GLFWWindow.h" />
+    <ClInclude Include="GUI\ImGuiOverlay.h" />
     <ClInclude Include="Interface\IApplication.h" />
     <ClInclude Include="Interface\IComponent.h" />
     <ClInclude Include="Interface\IEntity.h" />
@@ -179,6 +180,13 @@
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\GLCDrawingSystem.h" />
+    <ClInclude Include="Third-party\ImGui\imconfig.h" />
+    <ClInclude Include="Third-party\ImGui\imgui.h" />
+    <ClInclude Include="Third-party\ImGui\imgui_impl_glfw_gl3.h" />
+    <ClInclude Include="Third-party\ImGui\imgui_internal.h" />
+    <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
+    <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp" />
@@ -211,10 +219,16 @@
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp" />
     <ClCompile Include="GUI\BaseWindow.cpp" />
     <ClCompile Include="GUI\GLFWWindow.cpp" />
+    <ClCompile Include="GUI\ImGuiOverlay.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
     <ClCompile Include="System\GLCDrawingSystem.cpp" />
     <ClCompile Include="Third-party\glad\glad.c" />
+    <ClCompile Include="Third-party\ImGui\imgui.cpp" />
+    <ClCompile Include="Third-party\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="Third-party\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp" />
+    <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -43,9 +43,11 @@ namespace Engine
 
 		void UpdateParameters();
 
+	public:
+		static float m_sSecondImagePlane;
+
 	private:
 		float m_firstImagePlane;
-		float m_secondImagePlane;
 		std::vector<std::shared_ptr<GLCRay>> m_pRayDefinition;
 		float m_coeffA, m_coeffB, m_coeffC;
 	};

@@ -9,10 +9,10 @@
 
 using namespace Engine;
 
-uint32_t GLCDrawingSystem::m_sGLCOrigin_Hori;
-uint32_t GLCDrawingSystem::m_sGLCOrigin_Vert;
-std::shared_ptr<RenderTexture> GLCDrawingSystem::m_sRenderResult;
+int GLCDrawingSystem::m_sGLCOrigin_Hori;
+int GLCDrawingSystem::m_sGLCOrigin_Vert;
 Color3 GLCDrawingSystem::m_sBackgroundColor;
+std::shared_ptr<RenderTexture> GLCDrawingSystem::m_sRenderResult;
 
 GLCDrawingSystem::GLCDrawingSystem(ECSWorld* pWorld)
 	: m_pECSWorld(pWorld)

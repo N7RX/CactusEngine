@@ -41,10 +41,10 @@ namespace Engine
 		void WriteLinearResultToPPM();
 
 	public:
-		static uint32_t m_sGLCOrigin_Hori;
-		static uint32_t m_sGLCOrigin_Vert;
-		static std::shared_ptr<RenderTexture> m_sRenderResult;
+		static int m_sGLCOrigin_Hori;
+		static int m_sGLCOrigin_Vert;
 		static Color3 m_sBackgroundColor;
+		static std::shared_ptr<RenderTexture> m_sRenderResult;
 
 	private:
 		uint32_t m_systemID;

@@ -76,6 +76,9 @@
     <Filter Include="Util">
       <UniqueIdentifier>{fb0dbe0e-0dfd-4ca5-ae7b-1367bdcfbb93}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Third-party\ImGui">
+      <UniqueIdentifier>{6453977b-e77a-401c-b305-e37611907f09}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -210,6 +213,30 @@
     <ClInclude Include="Graphics\Resources\RenderTexture.h">
       <Filter>Graphics\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="GUI\ImGuiOverlay.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imconfig.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imgui.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imgui_impl_glfw_gl3.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imgui_internal.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imstb_rectpack.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imstb_textedit.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\ImGui\imstb_truetype.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -313,6 +340,24 @@
     </ClCompile>
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp">
       <Filter>Graphics\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="GUI\ImGuiOverlay.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\ImGui\imgui.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\ImGui\imgui_demo.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\ImGui\imgui_draw.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp">
+      <Filter>Third-party\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
