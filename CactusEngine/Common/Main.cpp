@@ -86,7 +86,6 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pWorld = pApp->GetECSWorld();
 
 	pWorld->RegisterSystem<AnimationSystem>(eSystem_Animation);
-	pWorld->RegisterSystem<GLCDrawingSystem>(eSystem_GLCDrawing);
 	pWorld->RegisterSystem<DrawingSystem>(eSystem_Drawing);
 
 	// Camera
@@ -223,97 +222,4 @@ void TestSetup(GraphicsApplication* pApp)
 	pCube4->AttachComponent(pMaterialComp4);
 	pCube4->AttachComponent(pMeshRendererComp4);
 	pCube4->AttachComponent(pAnimationComp4);
-
-	// General Linera Camera
-
-	GLCDrawingSystem::m_sRenderResult = std::make_shared<RenderTexture>(256, 256, std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice());
-
-	auto pGLCComponent = pWorld->CreateComponent<GLCComponent>();
-
-	auto pGLC = pWorld->CreateEntity<StandardEntity>();
-	pGLC->AttachComponent(pGLCComponent);
-	pGLC->SetEntityTag(eEntityTag_MainGLC);
-
-	// GLC Cube
-
-	auto pGLCCubeMesh = std::make_shared<GLCMesh>("Assets/Models/Cube.obj");
-
-	auto pTransformCompGLC = pWorld->CreateComponent<TransformComponent>();
-	pTransformCompGLC->SetPosition(Vector3(0.5f, 0.5f, 1.5f));
-	pTransformCompGLC->SetScale(Vector3(0.25f, 0.25f, 0.25f));
-
-	auto pMeshFilterCompGLC = pWorld->CreateComponent<MeshFilterComponent>();
-	pMeshFilterCompGLC->SetMesh(pGLCCubeMesh);
-
-	auto pMaterialCompGLC = std::make_shared<MaterialComponent>();
-	pMaterialCompGLC->SetAlbedoColor(Color4(1.0f, 0.7f, 0.7f, 1));
-
-	auto pAnimationCompGLC = std::make_shared<AnimationComponent>();
-	pAnimationCompGLC->SetAnimFunction(
-		[](IEntity* pEntity)
-	{
-		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
-		Vector3 currScale = sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.005f) * Vector3(0.25f, 0.25f, 0.25f);
-		pTransform->SetScale(currScale);
-	});
-
-	auto pGLCCube = pWorld->CreateEntity<StandardEntity>();
-	pGLCCube->AttachComponent(pTransformCompGLC);
-	pGLCCube->AttachComponent(pMeshFilterCompGLC);
-	pGLCCube->AttachComponent(pMaterialCompGLC);
-	pGLCCube->AttachComponent(pAnimationCompGLC);
-	pGLCCube->SetEntityTag(eEntityTag_GLCMesh);
-
-	// GLC Cube 2
-
-	auto pTransformCompGLC2 = pWorld->CreateComponent<TransformComponent>();
-	pTransformCompGLC2->SetPosition(Vector3(0.75f, 0.75f, 1.5f));
-	pTransformCompGLC2->SetRotation(Vector3(0, 0.0f, 0));
-	pTransformCompGLC2->SetScale(Vector3(0.25f, 0.25f, 0.25f));
-
-	auto pMeshFilterCompGLC2 = pWorld->CreateComponent<MeshFilterComponent>();
-	pMeshFilterCompGLC2->SetMesh(pGLCCubeMesh);
-
-	auto pMaterialCompGLC2 = std::make_shared<MaterialComponent>();
-	pMaterialCompGLC2->SetAlbedoColor(Color4(0.7f, 0.7f, 1.0f, 1));
-
-	auto pAnimationCompGLC2 = std::make_shared<AnimationComponent>();
-	pAnimationCompGLC2->SetAnimFunction(
-		[](IEntity* pEntity)
-	{
-		auto pMaterial = std::static_pointer_cast<MaterialComponent>(pEntity->GetComponent(eCompType_Material));
-		Color3 currColor = abs(sinf(std::chrono::high_resolution_clock::now().time_since_epoch().count() * 0.01f)) * Color3(0.7f, 0.7f, 1.0f);
-		pMaterial->SetAlbedoColor(Color4(currColor, 1.0f));
-	});
-
-	auto pGLCCube2 = pWorld->CreateEntity<StandardEntity>();
-	pGLCCube2->AttachComponent(pTransformCompGLC2);
-	pGLCCube2->AttachComponent(pMeshFilterCompGLC2);
-	pGLCCube2->AttachComponent(pMaterialCompGLC2);
-	pGLCCube2->AttachComponent(pAnimationCompGLC2);
-	pGLCCube2->SetEntityTag(eEntityTag_GLCMesh);
-
-	// GLC display cube (Cube 5)
-
-	auto pTransformComp5 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp5->SetPosition(Vector3(0, 0, -1.0f));
-	pTransformComp5->SetRotation(Vector3(0, 0, 180));
-	pTransformComp5->SetScale(Vector3(6.0f, 6.0f, 0.5f));
-
-	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();
-	pMeshFilterComp5->SetMesh(pCubeMesh);
-
-	auto pMaterialComp5 = std::make_shared<MaterialComponent>();
-	pMaterialComp5->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
-	pMaterialComp5->SetAlbedoTexture(GLCDrawingSystem::m_sRenderResult);
-	pMaterialComp5->SetShaderProgram(eShaderProgram_Basic);
-
-	auto pMeshRendererComp5 = std::make_shared<MeshRendererComponent>();
-	pMeshRendererComp5->SetRenderer(eRenderer_Forward);
-
-	auto pCube5 = pWorld->CreateEntity<StandardEntity>();
-	pCube5->AttachComponent(pTransformComp5);
-	pCube5->AttachComponent(pMeshFilterComp5);
-	pCube5->AttachComponent(pMaterialComp5);
-	pCube5->AttachComponent(pMeshRendererComp5);
 }

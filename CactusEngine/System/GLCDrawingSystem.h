@@ -40,12 +40,6 @@ namespace Engine
 		void WriteLinearResultToTexture();
 		void WriteLinearResultToPPM();
 
-	public:
-		static int m_sGLCOrigin_Hori;
-		static int m_sGLCOrigin_Vert;
-		static Color3 m_sBackgroundColor;
-		static std::shared_ptr<RenderTexture> m_sRenderResult;
-
 	private:
 		uint32_t m_systemID;
 		ECSWorld* m_pECSWorld;
@@ -54,7 +48,13 @@ namespace Engine
 		uint32_t m_drawWidth;
 		uint32_t m_drawHeight;
 
+		int m_glcOrigin_Hori;
+		int m_glcOrigin_Vert;
+		Color3 m_backgroundColor;	
+
 		std::vector<float> m_linearResult;
+		std::shared_ptr<RenderTexture> m_renderResult;
+
 		const int LINEAR_RESULT_WIDTH = 4;
 	};
 }

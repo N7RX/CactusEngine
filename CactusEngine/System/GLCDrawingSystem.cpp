@@ -9,11 +9,6 @@
 
 using namespace Engine;
 
-int GLCDrawingSystem::m_sGLCOrigin_Hori;
-int GLCDrawingSystem::m_sGLCOrigin_Vert;
-Color3 GLCDrawingSystem::m_sBackgroundColor;
-std::shared_ptr<RenderTexture> GLCDrawingSystem::m_sRenderResult;
-
 GLCDrawingSystem::GLCDrawingSystem(ECSWorld* pWorld)
 	: m_pECSWorld(pWorld)
 {
@@ -21,8 +16,8 @@ GLCDrawingSystem::GLCDrawingSystem(ECSWorld* pWorld)
 	ConfigureDrawDimension(256, 256);
 	SetBackgroundColor(Color3(0.2f, 0.2f, 0.3f));
 
-	m_sGLCOrigin_Vert = 1;
-	m_sGLCOrigin_Hori = 1;
+	m_glcOrigin_Vert = 1;
+	m_glcOrigin_Hori = 1;
 }
 
 void GLCDrawingSystem::SetSystemID(uint32_t id)
@@ -38,9 +33,9 @@ uint32_t GLCDrawingSystem::GetSystemID() const
 void GLCDrawingSystem::Initialize()
 {
 	m_linearResult.resize(m_drawWidth * m_drawHeight * LINEAR_RESULT_WIDTH, 0.0f);
-	if (!m_sRenderResult)
+	if (!m_renderResult)
 	{
-		m_sRenderResult = std::make_shared<RenderTexture>(m_drawWidth, m_drawHeight, std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice());
+		m_renderResult = std::make_shared<RenderTexture>(m_drawWidth, m_drawHeight, std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice());
 	}
 }
 
@@ -74,7 +69,7 @@ void GLCDrawingSystem::ConfigureDrawDimension(uint32_t width, uint32_t height)
 
 void GLCDrawingSystem::SetBackgroundColor(Color3 color)
 {
-	m_sBackgroundColor = color;
+	m_backgroundColor = color;
 }
 
 void GLCDrawingSystem::BuildRenderTask()
@@ -92,6 +87,12 @@ void GLCDrawingSystem::BuildRenderTask()
 void GLCDrawingSystem::ConfigureRenderEnvironment()
 {
 	auto pGLC = m_pECSWorld->FindEntityWithTag(eEntityTag_MainGLC);
+	if (!pGLC)
+	{
+		std::cerr << "No main GLC assigned.\n";
+		return;
+	}
+
 	auto pGLCComp = std::static_pointer_cast<GLCComponent>(pGLC->GetComponent(eCompType_GLC));
 
 	auto pRayDef1 = pGLCComp->GetRayDefinition(0);
@@ -99,9 +100,9 @@ void GLCDrawingSystem::ConfigureRenderEnvironment()
 	auto pRayDef3 = pGLCComp->GetRayDefinition(2);
 	pRayDef1->SetOrigin(Vector2(0, 0));
 	pRayDef1->SetImagePlanePoint(Vector2(0, 0));
-	pRayDef2->SetOrigin(Vector2(m_sGLCOrigin_Hori, 0));
+	pRayDef2->SetOrigin(Vector2(m_glcOrigin_Hori, 0));
 	pRayDef2->SetImagePlanePoint(Vector2(m_drawWidth, 0));
-	pRayDef3->SetOrigin(Vector2(0, m_sGLCOrigin_Vert));
+	pRayDef3->SetOrigin(Vector2(0, m_glcOrigin_Vert));
 	pRayDef3->SetImagePlanePoint(Vector2(0, m_drawHeight));
 
 	pGLCComp->UpdateParameters();
@@ -110,6 +111,12 @@ void GLCDrawingSystem::ConfigureRenderEnvironment()
 void GLCDrawingSystem::ExecuteRenderTask()
 {
 	auto pGLC = m_pECSWorld->FindEntityWithTag(eEntityTag_MainGLC);
+	if (!pGLC)
+	{
+		std::cerr << "No main GLC assigned.\n";
+		return;
+	}
+
 	auto pGLCComp = std::static_pointer_cast<GLCComponent>(pGLC->GetComponent(eCompType_GLC));
 
 	RayTraceDraw(pGLCComp, m_renderTaskList);
@@ -176,7 +183,7 @@ Color4 GLCDrawingSystem::RayIntersect(const std::shared_ptr<GLCRay> pRay, const 
 		}
 	}
 
-	return Vector4(m_sBackgroundColor, 1.0f);
+	return Vector4(m_backgroundColor, 1.0f);
 }
 
 bool GLCDrawingSystem::RayTriangleIntersect(const std::shared_ptr<GLCRay> pRay, const Vector3 v1, const Vector3 v2, Vector3 v3)
@@ -186,7 +193,7 @@ bool GLCDrawingSystem::RayTriangleIntersect(const std::shared_ptr<GLCRay> pRay, 
 	Vector3 normal = glm::cross(v2 - v1, v3 - v1);
 
 	Vector3 rayDir = Vector3(pRay->GetDirection().x / float(m_drawWidth), pRay->GetDirection().y / float(m_drawHeight), pRay->GetDirection().z);
-	Vector3 rayOri = Vector3(pRay->GetOrigin().x / float(m_drawWidth - m_sGLCOrigin_Hori + 1), pRay->GetOrigin().y / float(m_drawHeight - m_sGLCOrigin_Vert + 1), pRay->GetOrigin().z);
+	Vector3 rayOri = Vector3(pRay->GetOrigin().x / float(m_drawWidth - m_glcOrigin_Hori + 1), pRay->GetOrigin().y / float(m_drawHeight - m_glcOrigin_Vert + 1), pRay->GetOrigin().z);
 	// Error: this origin correction does not fit the middle results
 
 	float NormalDotRayDir = glm::dot(normal, rayDir);
@@ -236,7 +243,7 @@ bool GLCDrawingSystem::RayTriangleIntersect(const std::shared_ptr<GLCRay> pRay, 
 
 void GLCDrawingSystem::WriteLinearResultToTexture()
 {
-	m_sRenderResult->FlushData(m_linearResult.data(), eDataType_Float, eFormat_RGBA32F);
+	m_renderResult->FlushData(m_linearResult.data(), eDataType_Float, eFormat_RGBA32F);
 }
 
 void GLCDrawingSystem::WriteLinearResultToPPM()

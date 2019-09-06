@@ -53,10 +53,8 @@ Vector3 GLCRay::GetPointOnRay(float t) const
 	return m_origin + t * m_direction;
 }
 
-float GLCComponent::m_sSecondImagePlane = 1.0f;
-
 GLCComponent::GLCComponent()
-	: BaseComponent(eCompType_GLC), m_firstImagePlane(0)
+	: BaseComponent(eCompType_GLC), m_firstImagePlane(0), m_secondImagePlane(1.0f)
 {
 	m_pRayDefinition.resize(3);
 	for (int i = 0; i < 3; ++i)
@@ -67,7 +65,7 @@ GLCComponent::GLCComponent()
 
 void GLCComponent::SetSecondImagePlane(float val)
 {
-	m_sSecondImagePlane = val;
+	m_secondImagePlane = val;
 }
 
 float GLCComponent::GetFirstImagePlane()
@@ -77,7 +75,7 @@ float GLCComponent::GetFirstImagePlane()
 
 float GLCComponent::GetSecondImagePlane()
 {
-	return m_sSecondImagePlane;
+	return m_secondImagePlane;
 }
 
 std::shared_ptr<GLCRay> GLCComponent::GetRayDefinition(unsigned int index) const
@@ -89,16 +87,16 @@ std::shared_ptr<GLCRay> GLCComponent::GetRayDefinition(unsigned int index) const
 std::shared_ptr<GLCRay> GLCComponent::GenerateRay(unsigned int columnIndex, unsigned int rowIndex) const
 {
 	Matrix3x3 alphaMat;
-	alphaMat[0][0] = m_sSecondImagePlane * m_pRayDefinition[0]->GetDirection()[0]; alphaMat[1][0] = m_sSecondImagePlane * m_pRayDefinition[0]->GetDirection()[1];		   alphaMat[2][0] = 1.0f;
+	alphaMat[0][0] = m_secondImagePlane * m_pRayDefinition[0]->GetDirection()[0]; alphaMat[1][0] = m_secondImagePlane * m_pRayDefinition[0]->GetDirection()[1];		   alphaMat[2][0] = 1.0f;
 	alphaMat[0][1] = float(columnIndex);										   alphaMat[1][1] = float(rowIndex);													   alphaMat[2][1] = 1.0f;
-	alphaMat[0][2] = m_sSecondImagePlane * m_pRayDefinition[2]->GetDirection()[0]; alphaMat[1][2] = 1.0f + m_sSecondImagePlane * m_pRayDefinition[2]->GetDirection()[1];   alphaMat[2][2] = 1.0f;
-	float alpha = glm::determinant(alphaMat) / (m_coeffA*m_sSecondImagePlane*m_sSecondImagePlane + m_coeffB * m_sSecondImagePlane + m_coeffC);
+	alphaMat[0][2] = m_secondImagePlane * m_pRayDefinition[2]->GetDirection()[0]; alphaMat[1][2] = 1.0f + m_secondImagePlane * m_pRayDefinition[2]->GetDirection()[1];   alphaMat[2][2] = 1.0f;
+	float alpha = glm::determinant(alphaMat) / (m_coeffA*m_secondImagePlane*m_secondImagePlane + m_coeffB * m_secondImagePlane + m_coeffC);
 
 	Matrix3x3 betaMat;
-	betaMat[0][0] = m_sSecondImagePlane * m_pRayDefinition[0]->GetDirection()[0];		 betaMat[1][0] = m_sSecondImagePlane * m_pRayDefinition[0]->GetDirection()[1]; betaMat[2][0] = 1.0f;
-	betaMat[0][1] = 1.0f + m_sSecondImagePlane * m_pRayDefinition[1]->GetDirection()[0]; betaMat[1][1] = m_sSecondImagePlane * m_pRayDefinition[1]->GetDirection()[1]; betaMat[2][1] = 1.0f;
+	betaMat[0][0] = m_secondImagePlane * m_pRayDefinition[0]->GetDirection()[0];		 betaMat[1][0] = m_secondImagePlane * m_pRayDefinition[0]->GetDirection()[1]; betaMat[2][0] = 1.0f;
+	betaMat[0][1] = 1.0f + m_secondImagePlane * m_pRayDefinition[1]->GetDirection()[0]; betaMat[1][1] = m_secondImagePlane * m_pRayDefinition[1]->GetDirection()[1]; betaMat[2][1] = 1.0f;
 	betaMat[0][2] = float(columnIndex);													 betaMat[1][2] = float(rowIndex);											   betaMat[2][2] = 1.0f;
-	float beta = glm::determinant(betaMat) / (m_coeffA*m_sSecondImagePlane*m_sSecondImagePlane + m_coeffB * m_sSecondImagePlane + m_coeffC);
+	float beta = glm::determinant(betaMat) / (m_coeffA*m_secondImagePlane*m_secondImagePlane + m_coeffB * m_secondImagePlane + m_coeffC);
 
 	Vector4 generatedDefinition = alpha * m_pRayDefinition[1]->GetDefinition() + beta * m_pRayDefinition[2]->GetDefinition() + (1.0f - alpha - beta) * m_pRayDefinition[0]->GetDefinition();
 

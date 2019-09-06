@@ -180,6 +180,7 @@
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\GLCDrawingSystem.h" />
+    <ClInclude Include="Third-party\glad\glad.h" />
     <ClInclude Include="Third-party\ImGui\imconfig.h" />
     <ClInclude Include="Third-party\ImGui\imgui.h" />
     <ClInclude Include="Third-party\ImGui\imgui_impl_glfw_gl3.h" />

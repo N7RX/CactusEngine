@@ -79,6 +79,9 @@
     <Filter Include="Third-party\ImGui">
       <UniqueIdentifier>{6453977b-e77a-401c-b305-e37611907f09}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Third-party\GLAD">
+      <UniqueIdentifier>{c4a84d85-f6e9-4a92-bbee-0b26eb036f47}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -237,6 +240,9 @@
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h">
       <Filter>Third-party\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Third-party\glad\glad.h">
+      <Filter>Third-party\GLAD</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -329,9 +335,6 @@
     <ClCompile Include="Component\BaseComponent.cpp">
       <Filter>Component</Filter>
     </ClCompile>
-    <ClCompile Include="Third-party\glad\glad.c">
-      <Filter>Third-party</Filter>
-    </ClCompile>
     <ClCompile Include="System\GLCDrawingSystem.cpp">
       <Filter>System</Filter>
     </ClCompile>
@@ -358,6 +361,9 @@
     </ClCompile>
     <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp">
       <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\glad\glad.c">
+      <Filter>Third-party\GLAD</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
