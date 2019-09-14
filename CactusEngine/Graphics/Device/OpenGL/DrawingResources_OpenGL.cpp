@@ -147,10 +147,10 @@ void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EGLShaderParamT
 		glUniformMatrix4fv(location, 1, false, (float*)value);
 		break;
 	case eShaderParam_Texture2D:
-		m_activeTextureUnit += 1; // Confusion: this doesn't make sense to be before glActiveTexture(), but placing behind wouldn't work
-		glActiveTexture(m_activeTextureUnit + GL_TEXTURE0);		
+		glActiveTexture(GL_TEXTURE0 + m_activeTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, *(unsigned int*)value);
-		glUniform1i(location, *(unsigned int*)value);
+		glUniform1i(location, m_activeTextureUnit);
+		m_activeTextureUnit += 1;
 		break;
 	default:
 		throw std::runtime_error("Unsupported shader parameter type.");

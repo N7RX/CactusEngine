@@ -104,6 +104,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// Cube
 
 	auto pCubeMesh = std::make_shared<ObjMesh>("Assets/Models/Cube.obj");
+	auto pDefaultTexture = std::make_shared<ImageTexture>("Assets/Textures/Default.png");
 
 	auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
 	pTransformComp->SetPosition(Vector3(2.0f, -1.5f, 0));
@@ -114,6 +115,7 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMaterialComp = std::make_shared<MaterialComponent>();
 	pMaterialComp->SetAlbedoColor(Color4(1.0f, 1, 0.3f, 1));
 	pMaterialComp->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp->SetAlbedoTexture(pDefaultTexture);
 
 	auto pMeshRendererComp = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp->SetRenderer(eRenderer_Forward);
@@ -150,6 +152,7 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMaterialComp2 = std::make_shared<MaterialComponent>();
 	pMaterialComp2->SetAlbedoColor(Color4(0.3f, 0.3f, 1.0f, 1));
 	pMaterialComp2->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp2->SetAlbedoTexture(pDefaultTexture);
 
 	auto pMeshRendererComp2 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp2->SetRenderer(eRenderer_Forward);
@@ -171,6 +174,7 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMaterialComp3 = std::make_shared<MaterialComponent>();
 	pMaterialComp3->SetAlbedoColor(Color4(1.0f, 0.3, 0.3f, 1));
 	pMaterialComp3->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp3->SetAlbedoTexture(pDefaultTexture);
 
 	auto pMeshRendererComp3 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp3->SetRenderer(eRenderer_Forward);
@@ -204,6 +208,7 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMaterialComp4 = std::make_shared<MaterialComponent>();
 	pMaterialComp4->SetAlbedoColor(Color4(0.3f, 1, 0.3f, 1));
 	pMaterialComp4->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp4->SetAlbedoTexture(pDefaultTexture);
 
 	auto pMeshRendererComp4 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp4->SetRenderer(eRenderer_Forward);
@@ -229,12 +234,12 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Plane
 
-	auto pPlaneMesh = std::make_shared<Plane>(30, 30);
+	auto pPlaneMesh = std::make_shared<Plane>(31, 31);
 	auto pTexture = std::make_shared<ImageTexture>("Assets/Textures/Statue.jpg");
 
 	auto pTransformComp5 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp5->SetPosition(Vector3(1.0f, 1.0f, 0));
-	pTransformComp5->SetScale(Vector3(2, 2, 1));
+	pTransformComp5->SetPosition(Vector3(1.5f, 1.5f, 0));
+	pTransformComp5->SetScale(Vector3(3, 3, 1));
 	pTransformComp5->SetRotation(Vector3(0, 0, 180));
 
 	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();

@@ -13,7 +13,7 @@ void Engine::DrawImGui()
 {
 	ImGui_ImplGlfwGL3_NewFrame();
 
-	ImGui::Begin("ImGui", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Begin("Status", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 	ImGui::TextColored(ImVec4(0.0, 1.0, 0.0, 1.0), "FPS: %u", Timer::GetAverageFPS());
 	ImGui::End();
 

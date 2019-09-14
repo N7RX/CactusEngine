@@ -12,11 +12,5 @@ uniform vec4 AlbedoColor;
 void main(void)
 {
 	vec4 colorFromAlbedoTexture = texture2D(AlbedoTexture, v2fTexCoord);
-
-	if (colorFromAlbedoTexture.x + colorFromAlbedoTexture.y + colorFromAlbedoTexture.z < 0.001f) // A temp fix before default texture function is implemented
-	{
-		colorFromAlbedoTexture.xyz = vec3(1.0f, 1.0f, 1.0f);
-	}
-
 	outColor = AlbedoColor * colorFromAlbedoTexture;
 }
