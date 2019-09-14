@@ -1,4 +1,5 @@
 #include "GraphicsApplication.h"
+#include "Timer.h"
 
 using namespace Engine;
 
@@ -14,12 +15,18 @@ void GraphicsApplication::Initialize()
 	}
 
 	InitECS();
+
+	Timer::Initialize();
 }
 
 void GraphicsApplication::Tick()
 {
+	Timer::FrameBegin();
+
 	m_pECSWorld->Tick();
 	m_pWindow->Tick();
+
+	Timer::FrameEnd();
 }
 
 void GraphicsApplication::ShutDown()

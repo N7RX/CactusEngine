@@ -82,6 +82,12 @@
     <Filter Include="Third-party\GLAD">
       <UniqueIdentifier>{c4a84d85-f6e9-4a92-bbee-0b26eb036f47}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\Resources\Mesh">
+      <UniqueIdentifier>{2b3a6956-b120-42a5-9533-e4121cb9ce8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Resources\Texture">
+      <UniqueIdentifier>{8f32716a-0ce1-4fdf-bc3e-11b6e512e881}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -162,12 +168,6 @@
     <ClInclude Include="Graphics\Resources\DrawingResources.h">
       <Filter>Graphics\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Resources\Mesh.h">
-      <Filter>Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Resources\ObjMesh.h">
-      <Filter>Graphics\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
@@ -210,12 +210,6 @@
     <ClInclude Include="System\GLCDrawingSystem.h">
       <Filter>System</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Resources\GLCMesh.h">
-      <Filter>Graphics\Resources</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Resources\RenderTexture.h">
-      <Filter>Graphics\Resources</Filter>
-    </ClInclude>
     <ClInclude Include="GUI\ImGuiOverlay.h">
       <Filter>GUI</Filter>
     </ClInclude>
@@ -242,6 +236,27 @@
     </ClInclude>
     <ClInclude Include="Third-party\glad\glad.h">
       <Filter>Third-party\GLAD</Filter>
+    </ClInclude>
+    <ClInclude Include="Util\Timer.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\RenderTexture.h">
+      <Filter>Graphics\Resources\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\GLCMesh.h">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\Mesh.h">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\ObjMesh.h">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\Plane.h">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\ImageTexture.h">
+      <Filter>Graphics\Resources\Texture</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -305,12 +320,6 @@
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp">
       <Filter>Graphics\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Resources\Mesh.cpp">
-      <Filter>Graphics\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Resources\ObjMesh.cpp">
-      <Filter>Graphics\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
@@ -338,12 +347,6 @@
     <ClCompile Include="System\GLCDrawingSystem.cpp">
       <Filter>System</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Resources\GLCMesh.cpp">
-      <Filter>Graphics\Resources</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Resources\RenderTexture.cpp">
-      <Filter>Graphics\Resources</Filter>
-    </ClCompile>
     <ClCompile Include="GUI\ImGuiOverlay.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
@@ -364,6 +367,27 @@
     </ClCompile>
     <ClCompile Include="Third-party\glad\glad.c">
       <Filter>Third-party\GLAD</Filter>
+    </ClCompile>
+    <ClCompile Include="Util\Timer.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\RenderTexture.cpp">
+      <Filter>Graphics\Resources\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\GLCMesh.cpp">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\Mesh.cpp">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\ObjMesh.cpp">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\Plane.cpp">
+      <Filter>Graphics\Resources\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\ImageTexture.cpp">
+      <Filter>Graphics\Resources\Texture</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

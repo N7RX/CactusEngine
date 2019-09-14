@@ -1,9 +1,9 @@
-#define TINYOBJLOADER_IMPLEMENTATION
-
 #include "ObjMesh.h"
-#include "ObjLoader/tiny_obj_loader.h"
 #include "Global.h"
 #include "GraphicsApplication.h"
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "ObjLoader/tiny_obj_loader.h"
 
 using namespace Engine;
 

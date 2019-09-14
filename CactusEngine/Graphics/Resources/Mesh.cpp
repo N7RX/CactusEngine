@@ -14,6 +14,12 @@ std::shared_ptr<VertexBuffer> Mesh::GetVertexBuffer() const
 
 void Mesh::CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<int>& indices)
 {
+	if (!m_pDevice)
+	{
+		throw std::runtime_error("Device is not assigned.");
+		return;
+	}
+
 	VertexBufferCreateInfo createInfo = {};
 
 	createInfo.pIndexData = indices.data();

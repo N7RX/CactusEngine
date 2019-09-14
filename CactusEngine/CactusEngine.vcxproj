@@ -166,8 +166,10 @@
     <ClInclude Include="Graphics\Resources\BuiltInShaderType.h" />
     <ClInclude Include="Graphics\Resources\DrawingResources.h" />
     <ClInclude Include="Graphics\Resources\GLCMesh.h" />
+    <ClInclude Include="Graphics\Resources\ImageTexture.h" />
     <ClInclude Include="Graphics\Resources\Mesh.h" />
     <ClInclude Include="Graphics\Resources\ObjMesh.h" />
+    <ClInclude Include="Graphics\Resources\Plane.h" />
     <ClInclude Include="Graphics\Resources\RenderTexture.h" />
     <ClInclude Include="GUI\BaseWindow.h" />
     <ClInclude Include="GUI\GLFWWindow.h" />
@@ -188,6 +190,7 @@
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Util\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp" />
@@ -215,8 +218,10 @@
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
     <ClCompile Include="Graphics\Resources\GLCMesh.cpp" />
+    <ClCompile Include="Graphics\Resources\ImageTexture.cpp" />
     <ClCompile Include="Graphics\Resources\Mesh.cpp" />
     <ClCompile Include="Graphics\Resources\ObjMesh.cpp" />
+    <ClCompile Include="Graphics\Resources\Plane.cpp" />
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp" />
     <ClCompile Include="GUI\BaseWindow.cpp" />
     <ClCompile Include="GUI\GLFWWindow.cpp" />
@@ -230,6 +235,7 @@
     <ClCompile Include="Third-party\ImGui\imgui_draw.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Util\Timer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
