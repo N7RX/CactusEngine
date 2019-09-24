@@ -50,6 +50,16 @@ std::shared_ptr<DrawingDevice> GraphicsApplication::GetDrawingDevice() const
 	return m_pDevice;
 }
 
+std::shared_ptr<BaseWindow> GraphicsApplication::GetWindow() const
+{
+	return m_pWindow;
+}
+
+void* GraphicsApplication::GetWindowHandle() const
+{
+	return m_pWindow->GetWindowHandle();
+}
+
 void GraphicsApplication::SetDrawingDevice(const std::shared_ptr<DrawingDevice> pDevice)
 {
 	m_pDevice = pDevice;

@@ -7,7 +7,7 @@ namespace Engine
 	class RenderTexture : public Texture2D
 	{
 	public:
-		RenderTexture(uint32_t width, uint32_t height, const std::shared_ptr<DrawingDevice> pDevice);
+		RenderTexture(uint32_t width, uint32_t height);
 		~RenderTexture() = default;
 
 		void FlushData(const void* pData, EDataType dataType, ETextureFormat format);

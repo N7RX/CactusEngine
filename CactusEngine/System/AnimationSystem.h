@@ -2,7 +2,6 @@
 #include "ISystem.h"
 #include "Global.h"
 #include "ECSWorld.h"
-#include "DrawingDevice.h"
 #include <chrono>
 
 namespace Engine

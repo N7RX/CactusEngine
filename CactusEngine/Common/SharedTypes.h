@@ -26,8 +26,8 @@ namespace Engine
 	{
 		eSystem_Drawing = 0,
 		eSystem_Animation,
-		//eSystem_Event,
-		//eSystem_Input,
+		eSystem_Event,
+		eSystem_Input,
 		//eSystem_Log,
 		//eSystem_Audio,
 		//eSystem_Physics,
@@ -57,8 +57,9 @@ namespace Engine
 	{
 		eQueue_Graphics = 0,
 		eQueue_Copy,
-		eQueue_Compute,
-		EQUEUETYPE_COUNT
+		eQueue_Compute,	
+		EQUEUETYPE_COUNT,
+		eQueue_Present
 	};
 
 	enum EConfigurationType

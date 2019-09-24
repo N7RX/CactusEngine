@@ -147,9 +147,6 @@
     <ClInclude Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.h">
       <Filter>Graphics\Device\OpenGL</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Device\OpenGL\DrawingUtil_OpenGL.h">
       <Filter>Graphics\Device\OpenGL</Filter>
     </ClInclude>
@@ -258,6 +255,42 @@
     <ClInclude Include="Graphics\Resources\ImageTexture.h">
       <Filter>Graphics\Resources\Texture</Filter>
     </ClInclude>
+    <ClInclude Include="System\EventSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="System\InputSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingDevice_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingResources_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingUtil_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingCommandManager_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingDescriptorAllocator_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingExtensionWrangler_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Util\SafeQueue.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Util\SafeVector.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -306,9 +339,6 @@
       <Filter>Graphics\Device\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.cpp">
       <Filter>Graphics\Device\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Device\DrawingDevice.cpp">
@@ -388,6 +418,33 @@
     </ClCompile>
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp">
       <Filter>Graphics\Resources\Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="System\EventSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="System\InputSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingDevice_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingResources_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingCommandManager_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingDescriptorAllocator_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingExtensionWrangler_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

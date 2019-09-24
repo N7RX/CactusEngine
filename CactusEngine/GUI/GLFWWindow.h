@@ -18,7 +18,6 @@ namespace Engine
 		void RegisterCallback() override;
 
 		void* GetWindowHandle() const override;
-		GLFWwindow* GetGLFWWindowHandle() const;
 
 		void SetWindowSize(uint32_t width, uint32_t height) override;
 

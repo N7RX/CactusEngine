@@ -3,7 +3,6 @@
 #include "MeshFilterComponent.h"
 #include "MaterialComponent.h"
 #include "GLCMesh.h"
-#include "GraphicsApplication.h"
 #include <iostream>
 #include <fstream>
 
@@ -35,7 +34,7 @@ void GLCDrawingSystem::Initialize()
 	m_linearResult.resize(m_drawWidth * m_drawHeight * LINEAR_RESULT_WIDTH, 0.0f);
 	if (!m_renderResult)
 	{
-		m_renderResult = std::make_shared<RenderTexture>(m_drawWidth, m_drawHeight, std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice());
+		m_renderResult = std::make_shared<RenderTexture>(m_drawWidth, m_drawHeight);
 	}
 }
 

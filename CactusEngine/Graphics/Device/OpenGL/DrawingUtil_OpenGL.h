@@ -7,7 +7,7 @@
 
 namespace Engine
 {
-	static char* ReadSourceFileAsChar(const char* shaderFile)
+	inline char* ReadSourceFileAsChar(const char* shaderFile)
 	{
 		std::ifstream ifs(shaderFile, std::ios::in | std::ios::binary | std::ios::ate);
 
@@ -25,7 +25,7 @@ namespace Engine
 		return NULL;
 	}
 
-	static void PrintShaderCompileError_GL(GLuint shaderID)
+	inline void PrintShaderCompileError_GL(GLuint shaderID)
 	{
 		GLint logSize;
 		glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logSize);
@@ -35,7 +35,7 @@ namespace Engine
 		delete[] logMsg;
 	}
 
-	static void PrintProgramLinkError_GL(GLuint programID)
+	inline void PrintProgramLinkError_GL(GLuint programID)
 	{
 		GLint  logSize;
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
@@ -45,7 +45,7 @@ namespace Engine
 		delete[] logMsg;
 	}
 
-	static unsigned int OpenGLFormat(ETextureFormat format)
+	inline unsigned int OpenGLFormat(ETextureFormat format)
 	{
 		switch (format)
 		{
@@ -58,7 +58,7 @@ namespace Engine
 		return 0;
 	}
 
-	static GLenum OpenGLPixelFormat(GLuint glFormat)
+	inline GLenum OpenGLPixelFormat(GLuint glFormat)
 	{
 		switch (glFormat)
 		{
@@ -72,7 +72,7 @@ namespace Engine
 		return 0;
 	}
 
-	static int OpenGLDataType(EDataType type)
+	inline int OpenGLDataType(EDataType type)
 	{
 		switch (type)
 		{
@@ -87,7 +87,7 @@ namespace Engine
 		return -1;
 	}
 
-	static uint32_t OpenGLTypeSize(EDataType type)
+	inline uint32_t OpenGLTypeSize(EDataType type)
 	{
 		switch (type)
 		{

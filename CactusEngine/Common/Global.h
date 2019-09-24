@@ -5,6 +5,8 @@
 #include <vector>
 #include <assert.h>
 
+#define GLFW_IMPLEMENTATION_CACTUS
+
 namespace Engine
 {
 	class BaseApplication;
@@ -33,6 +35,8 @@ namespace Engine
 
 		bool QueryGlobalState(EGlobalStateQueryType type) const;
 		void MarkGlobalState(EGlobalStateQueryType type, bool val); // Alert: this does not "change" global state, that's why it's "Mark.."
+
+		void* GetWindowHandle() const;
 
 	private:
 		std::shared_ptr<BaseApplication> m_pCurrentApp;

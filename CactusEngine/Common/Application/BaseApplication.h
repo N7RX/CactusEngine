@@ -19,6 +19,8 @@ namespace Engine
 
 		virtual bool ShouldQuit() const;
 
+		virtual void* GetWindowHandle() const = 0;
+
 	protected:
 		uint32_t m_applicationID;
 		bool m_shouldQuit;

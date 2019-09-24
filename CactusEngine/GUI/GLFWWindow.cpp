@@ -55,6 +55,7 @@ void GLFWWindow::Initialize()
 	}
 	default:
 		throw std::runtime_error("Unsupported device type when initializing GFLW window.");
+		break;
 	}
 
 	InitImGui(m_pGLFWWindowHandle);
@@ -80,11 +81,6 @@ void GLFWWindow::RegisterCallback()
 }
 
 void* GLFWWindow::GetWindowHandle() const
-{
-	return nullptr;
-}
-
-GLFWwindow* GLFWWindow::GetGLFWWindowHandle() const
 {
 	return m_pGLFWWindowHandle;
 }

@@ -37,21 +37,21 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	// Position
 	glGenBuffers(1, &pVertexBuffer->m_vboPositions);
 	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboPositions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.positionDatacount, createInfo.pPositionData, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.positionDataCount, createInfo.pPositionData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_POSITION_LOCATION);
 	glVertexAttribPointer(ATTRIB_POSITION_LOCATION, 3, GL_FLOAT, 0, 0, 0);
 
 	// Normal
 	glGenBuffers(1, &pVertexBuffer->m_vboNormals);
 	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboNormals);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.normalDatacount, createInfo.pNormalData, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.normalDataCount, createInfo.pNormalData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_NORMAL_LOCATION);
 	glVertexAttribPointer(ATTRIB_NORMAL_LOCATION, 3, GL_FLOAT, 0, 0, 0);
 
 	// Texcoord
 	glGenBuffers(1, &pVertexBuffer->m_vboTexcoords);
 	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboTexcoords);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.texcoordDatacount, createInfo.pTexcoordData, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.texcoordDataCount, createInfo.pTexcoordData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_TEXCOORD_LOCATION);
 	glVertexAttribPointer(ATTRIB_TEXCOORD_LOCATION, 2, GL_FLOAT, 0, 0, 0);
 
@@ -60,7 +60,7 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	pVertexBuffer->SetNumberOfIndices(createInfo.indexDataCount);
-	pVertexBuffer->SetData(nullptr, static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount + sizeof(float) * createInfo.positionDatacount + sizeof(float) * createInfo.normalDatacount + sizeof(float) * createInfo.texcoordDatacount));
+	pVertexBuffer->SetData(nullptr, static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount + sizeof(float) * createInfo.positionDataCount + sizeof(float) * createInfo.normalDataCount + sizeof(float) * createInfo.texcoordDataCount));
 
 	pOutput = pVertexBuffer;
 	return true;
@@ -109,7 +109,7 @@ void DrawingDevice_OpenGL::SetClearColor(Color4 color)
 
 void DrawingDevice_OpenGL::ClearTarget()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);;
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)

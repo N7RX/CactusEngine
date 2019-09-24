@@ -35,3 +35,8 @@ void Global::MarkGlobalState(EGlobalStateQueryType type, bool val)
 	assert(type < m_globalStates.size());
 	m_globalStates[type] = val;
 }
+
+void* Global::GetWindowHandle() const
+{
+	return m_pCurrentApp->GetWindowHandle();
+}

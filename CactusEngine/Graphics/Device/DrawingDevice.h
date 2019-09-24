@@ -9,8 +9,10 @@ namespace Engine
 	class DrawingDevice : std::enable_shared_from_this<DrawingDevice>
 	{
 	public:
+		virtual ~DrawingDevice();
+
 		virtual void Initialize() = 0;
-		virtual void ShutDown() = 0;
+		virtual void ShutDown() {};
 
 		virtual std::shared_ptr<ShaderProgram> CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) = 0;
 

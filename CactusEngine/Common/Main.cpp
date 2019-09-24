@@ -13,6 +13,7 @@
 #include "Timer.h"
 #include "Plane.h"
 #include "ImageTexture.h"
+#include "InputSystem.h"
 #include <iostream>
 
 // This is the entry of the program
@@ -85,6 +86,8 @@ void TestSetup(GraphicsApplication* pApp)
 {
 	auto pWorld = pApp->GetECSWorld();
 
+	// Alert: the registration sequence corresponds to execution sequence
+	pWorld->RegisterSystem<InputSystem>(eSystem_Input);
 	pWorld->RegisterSystem<AnimationSystem>(eSystem_Animation);
 	pWorld->RegisterSystem<DrawingSystem>(eSystem_Drawing);
 
@@ -186,7 +189,7 @@ void TestSetup(GraphicsApplication* pApp)
 		static float startTime = Timer::Now();
 		float deltaTime = Timer::Now() - startTime;
 		auto pTransform = std::static_pointer_cast<TransformComponent>(pEntity->GetComponent(eCompType_Transform));
-		Vector3 currScale = sinf(deltaTime * 2.0f) * Vector3(1, 1, 1);
+		Vector3 currScale = abs(sinf(deltaTime * 2.0f)) * Vector3(1, 1, 1);
 		pTransform->SetScale(currScale);
 	});
 
@@ -238,8 +241,8 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pTexture = std::make_shared<ImageTexture>("Assets/Textures/Statue.jpg");
 
 	auto pTransformComp5 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp5->SetPosition(Vector3(1.5f, 1.5f, 0));
-	pTransformComp5->SetScale(Vector3(3, 3, 1));
+	pTransformComp5->SetPosition(Vector3(2.5f, 2.5f, 0));
+	pTransformComp5->SetScale(Vector3(5, 5, 1));
 	pTransformComp5->SetRotation(Vector3(0, 0, 180));
 
 	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();

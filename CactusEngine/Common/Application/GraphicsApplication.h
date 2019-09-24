@@ -2,7 +2,9 @@
 #include "BaseApplication.h"
 #include "ECSWorld.h"
 #include "DrawingDevice.h"
+#if defined(GLFW_IMPLEMENTATION_CACTUS)
 #include "GLFWWindow.h"
+#endif
 
 namespace Engine
 {
@@ -20,6 +22,8 @@ namespace Engine
 
 		std::shared_ptr<ECSWorld> GetECSWorld() const;
 		std::shared_ptr<DrawingDevice> GetDrawingDevice() const;
+		std::shared_ptr<BaseWindow> GetWindow() const;
+		void* GetWindowHandle() const override;
 
 		void SetDrawingDevice(const std::shared_ptr<DrawingDevice> pDevice);
 		void AddSetupFunction(void(*pSetupFunc)(GraphicsApplication* pApp));
@@ -31,7 +35,9 @@ namespace Engine
 	private:
 		std::shared_ptr<ECSWorld> m_pECSWorld;
 		std::shared_ptr<DrawingDevice> m_pDevice;
+#if defined(GLFW_IMPLEMENTATION_CACTUS)
 		std::shared_ptr<GLFWWindow> m_pWindow;
+#endif
 		void(*m_pSetupFunc)(GraphicsApplication* pApp);
 	};
 }

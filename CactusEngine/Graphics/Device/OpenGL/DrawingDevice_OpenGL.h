@@ -38,7 +38,7 @@ namespace Engine
 	template<>
 	static std::shared_ptr<DrawingDevice> CreateDrawingDevice<eDevice_OpenGL>()
 	{
-		auto device = std::make_shared<DrawingDevice_OpenGL>();
+		auto pDevice = std::make_shared<DrawingDevice_OpenGL>();
 
 		if (!gpGlobal->QueryGlobalState(eGlobalState_GLFWInit))
 		{
@@ -49,6 +49,6 @@ namespace Engine
 			}
 		}
 
-		return device;
+		return pDevice;
 	}
 }

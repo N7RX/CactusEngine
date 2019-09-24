@@ -40,13 +40,13 @@ namespace Engine
 		uint32_t indexDataCount;
 
 		float*	 pPositionData;
-		uint32_t positionDatacount;
+		uint32_t positionDataCount;
 
 		float*	 pNormalData;
-		uint32_t normalDatacount;
+		uint32_t normalDataCount;
 
 		float*	 pTexcoordData;
-		uint32_t texcoordDatacount;
+		uint32_t texcoordDataCount;
 	};
 
 	class VertexBuffer : public RawResource

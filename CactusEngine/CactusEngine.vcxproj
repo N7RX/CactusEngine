@@ -76,10 +76,12 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -98,6 +100,9 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -127,6 +132,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -156,8 +162,15 @@
     <ClInclude Include="Graphics\Device\DrawingDevice.h" />
     <ClInclude Include="Graphics\Device\OpenGL\DrawingDevice_OpenGL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\DrawingUtil_OpenGL.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingCommandManager_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingDescriptorAllocator_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingDevice_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingExtensionWrangler_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingResources_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\DrawingUtil_Vulkan.h" />
     <ClInclude Include="Graphics\FrameGraph\FrameGraph.h" />
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
     <ClInclude Include="Graphics\Renderer\DeferredRenderer.h" />
@@ -181,7 +194,9 @@
     <ClInclude Include="Interface\ISystem.h" />
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
+    <ClInclude Include="System\EventSystem.h" />
     <ClInclude Include="System\GLCDrawingSystem.h" />
+    <ClInclude Include="System\InputSystem.h" />
     <ClInclude Include="Third-party\glad\glad.h" />
     <ClInclude Include="Third-party\ImGui\imconfig.h" />
     <ClInclude Include="Third-party\ImGui\imgui.h" />
@@ -190,6 +205,8 @@
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Util\SafeQueue.h" />
+    <ClInclude Include="Util\SafeVector.h" />
     <ClInclude Include="Util\Timer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -211,7 +228,13 @@
     <ClCompile Include="Graphics\Device\DrawingDevice.cpp" />
     <ClCompile Include="Graphics\Device\OpenGL\DrawingDevice_OpenGL.cpp" />
     <ClCompile Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\DrawingUploadAllocator_OpenGL.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingCommandManager_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingDescriptorAllocator_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingDevice_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingExtensionWrangler_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingResources_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.cpp" />
+    <ClCompile Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.cpp" />
     <ClCompile Include="Graphics\FrameGraph\FrameGraph.cpp" />
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\DeferredRenderer.cpp" />
@@ -228,7 +251,9 @@
     <ClCompile Include="GUI\ImGuiOverlay.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
+    <ClCompile Include="System\EventSystem.cpp" />
     <ClCompile Include="System\GLCDrawingSystem.cpp" />
+    <ClCompile Include="System\InputSystem.cpp" />
     <ClCompile Include="Third-party\glad\glad.c" />
     <ClCompile Include="Third-party\ImGui\imgui.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_demo.cpp" />
