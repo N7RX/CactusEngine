@@ -4,12 +4,13 @@
 #include "ECSWorld.h"
 #include "GLCComponent.h"
 #include "RenderTexture.h"
+#include "NoCopy.h"
 
 namespace Engine
 {
 	// This is a dedicated system for GLC experiment task
 	// The entire GLC module is subject to removal in the future
-	class GLCDrawingSystem : public ISystem
+	class GLCDrawingSystem : public ISystem, public NoCopy
 	{
 	public:
 		GLCDrawingSystem(ECSWorld* pWorld);

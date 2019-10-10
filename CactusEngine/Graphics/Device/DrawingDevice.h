@@ -2,17 +2,18 @@
 #include "DrawingResources.h"
 #include "Global.h"
 #include "BasicMathTypes.h"
+#include "NoCopy.h"
 #include <memory>
 
 namespace Engine
 {
-	class DrawingDevice : std::enable_shared_from_this<DrawingDevice>
+	class DrawingDevice : std::enable_shared_from_this<DrawingDevice>, public NoCopy
 	{
 	public:
-		virtual ~DrawingDevice();
+		virtual ~DrawingDevice() = default;
 
 		virtual void Initialize() = 0;
-		virtual void ShutDown() {};
+		virtual void ShutDown() = 0;
 
 		virtual std::shared_ptr<ShaderProgram> CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) = 0;
 

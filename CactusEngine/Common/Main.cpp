@@ -97,7 +97,7 @@ void TestSetup(GraphicsApplication* pApp)
 	pCameraComponent->SetClearColor(Color4(0.2f, 0.2f, 0.3f, 1.0f));
 
 	auto pCameraTransformComp = pWorld->CreateComponent<TransformComponent>();
-	pCameraTransformComp->SetPosition(Vector3(0, 0, 5));
+	pCameraTransformComp->SetPosition(Vector3(0, 0, 7.5f));
 
 	auto pCamera = pWorld->CreateEntity<StandardEntity>();
 	pCamera->AttachComponent(pCameraComponent);
@@ -110,7 +110,7 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pDefaultTexture = std::make_shared<ImageTexture>("Assets/Textures/Default.png");
 
 	auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp->SetPosition(Vector3(2.0f, -1.5f, 0));
+	pTransformComp->SetPosition(Vector3(4.0f, 1.5f, 0));
 
 	auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp->SetMesh(pCubeMesh);
@@ -147,7 +147,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// Cube 2
 
 	auto pTransformComp2 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp2->SetPosition(Vector3(-2.0f, -1.5f, 0));
+	pTransformComp2->SetPosition(Vector3(-4.0f, 1.5f, 0));
 
 	auto pMeshFilterComp2 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp2->SetMesh(pCubeMesh);
@@ -235,23 +235,24 @@ void TestSetup(GraphicsApplication* pApp)
 	pCube4->AttachComponent(pMeshRendererComp4);
 	pCube4->AttachComponent(pAnimationComp4);
 
-	// Plane
+	// Water Plane
 
-	auto pPlaneMesh = std::make_shared<Plane>(31, 31);
-	auto pTexture = std::make_shared<ImageTexture>("Assets/Textures/Statue.jpg");
+	auto pPlaneMesh = std::make_shared<Plane>(63, 63);
+	auto pTexture = std::make_shared<ImageTexture>("Assets/Textures/Water_Color_1.jpg");
 
 	auto pTransformComp5 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp5->SetPosition(Vector3(2.5f, 2.5f, 0));
+	pTransformComp5->SetPosition(Vector3(2.5f, -1.1f, 0));
 	pTransformComp5->SetScale(Vector3(5, 5, 1));
-	pTransformComp5->SetRotation(Vector3(0, 0, 180));
+	pTransformComp5->SetRotation(Vector3(-90, 0, 180));
 
 	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp5->SetMesh(pPlaneMesh);
 
 	auto pMaterialComp5 = std::make_shared<MaterialComponent>();
 	pMaterialComp5->SetAlbedoColor(Color4(1.0f, 1, 1.0f, 1));
-	pMaterialComp5->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp5->SetShaderProgram(eShaderProgram_WaterBasic);
 	pMaterialComp5->SetAlbedoTexture(pTexture);
+	pMaterialComp5->SetTransparent(true);
 
 	auto pMeshRendererComp5 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp5->SetRenderer(eRenderer_Forward);
@@ -261,4 +262,30 @@ void TestSetup(GraphicsApplication* pApp)
 	pPlane->AttachComponent(pMeshFilterComp5);
 	pPlane->AttachComponent(pMaterialComp5);
 	pPlane->AttachComponent(pMeshRendererComp5);
+
+	// Island
+
+	auto pRockMesh = std::make_shared<ObjMesh>("Assets/Models/Rock_1.obj");
+
+	auto pTransformComp6 = pWorld->CreateComponent<TransformComponent>();
+	pTransformComp6->SetPosition(Vector3(0, -1.4f, 2.5f));
+	pTransformComp6->SetScale(Vector3(0.007f, 0.007f, 0.004f));
+	pTransformComp6->SetRotation(Vector3(-90, 0, 0));
+
+	auto pMeshFilterComp6 = pWorld->CreateComponent<MeshFilterComponent>();
+	pMeshFilterComp6->SetMesh(pRockMesh);
+
+	auto pMaterialComp6 = std::make_shared<MaterialComponent>();
+	pMaterialComp6->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
+	pMaterialComp6->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp6->SetAlbedoTexture(pDefaultTexture);
+
+	auto pMeshRendererComp6 = std::make_shared<MeshRendererComponent>();
+	pMeshRendererComp6->SetRenderer(eRenderer_Forward);
+
+	auto pRock = pWorld->CreateEntity<StandardEntity>();
+	pRock->AttachComponent(pTransformComp6);
+	pRock->AttachComponent(pMeshFilterComp6);
+	pRock->AttachComponent(pMaterialComp6);
+	pRock->AttachComponent(pMeshRendererComp6);
 }

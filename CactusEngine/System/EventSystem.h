@@ -2,10 +2,11 @@
 #include "ISystem.h"
 #include "ECSWorld.h"
 #include "Global.h"
+#include "NoCopy.h"
 
 namespace Engine
 {
-	class EventSystem : public ISystem
+	class EventSystem : public ISystem, public NoCopy
 	{
 	public:
 		EventSystem(ECSWorld* pWorld) {};

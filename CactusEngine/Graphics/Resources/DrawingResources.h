@@ -18,8 +18,10 @@ namespace Engine
 
 	class RawResource
 	{
-	public :
+	public:
 		virtual ~RawResource() = default;
+
+		virtual uint32_t GetResourceID() const;
 
 		virtual uint32_t GetSize() const;
 		virtual std::shared_ptr<RawResourceData> GetData() const;
@@ -27,11 +29,30 @@ namespace Engine
 		virtual void SetData(const std::shared_ptr<RawResourceData> pData, uint32_t size);
 
 	protected:
-		RawResource() = default;
+		RawResource();
 
 	protected:
+		uint32_t m_resourceID;
 		uint32_t m_sizeInBytes;
 		std::shared_ptr<RawResourceData> m_pData;
+
+	private:
+		static uint32_t m_assignedID;
+	};
+
+	class FrameBuffer : public RawResource
+	{
+	public:
+		virtual ~FrameBuffer() = default;
+
+		uint32_t GetWidth() const;
+		uint32_t GetHeight() const;
+
+		virtual uint32_t GetFrameBufferID() const = 0;
+
+	protected:
+		uint32_t m_width;
+		uint32_t m_height;
 	};
 
 	struct VertexBufferCreateInfo
@@ -81,19 +102,6 @@ namespace Engine
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
-	};
-
-	enum EGLShaderParamType
-	{
-		eShaderParam_Int1 = 0,
-		eShaderParam_Float1,
-		eShaderParam_Vec2,
-		eShaderParam_Vec3,
-		eShaderParam_Vec4,
-		eShaderParam_Mat2,
-		eShaderParam_Mat3,
-		eShaderParam_Mat4,
-		eShaderParam_Texture2D
 	};
 
 	class Shader

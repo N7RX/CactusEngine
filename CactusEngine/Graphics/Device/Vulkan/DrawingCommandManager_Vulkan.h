@@ -2,6 +2,7 @@
 #include "DrawingSyncObjectManager_Vulkan.h"
 #include "SharedTypes.h"
 #include "SafeQueue.h"
+#include "NoCopy.h"
 #include <vulkan.h>
 #include <memory>
 #include <vector>
@@ -35,7 +36,7 @@ namespace Engine
 	};
 
 	class DrawingDevice_Vulkan;
-	class DrawingCommandManager_Vulkan
+	class DrawingCommandManager_Vulkan : public NoCopy
 	{
 	public:
 		DrawingCommandManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue);

@@ -21,3 +21,13 @@ uint32_t BaseRenderer::GetRendererPriority() const
 {
 	return m_renderPriority;
 }
+
+std::shared_ptr<DrawingDevice> BaseRenderer::GetDrawingDevice() const
+{
+	return m_pDevice;
+}
+
+DrawingSystem* BaseRenderer::GetDrawingSystem() const
+{
+	return m_pSystem;
+}

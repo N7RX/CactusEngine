@@ -4,6 +4,11 @@
 
 using namespace Engine;
 
+DrawingDevice_OpenGL::~DrawingDevice_OpenGL()
+{
+	ShutDown();
+}
+
 void DrawingDevice_OpenGL::Initialize()
 {
 	glGenerateMipmap(GL_TEXTURE_2D);

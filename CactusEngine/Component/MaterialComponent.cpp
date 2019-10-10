@@ -3,7 +3,7 @@
 using namespace Engine;
 
 MaterialComponent::MaterialComponent()
-	: BaseComponent(eCompType_Material), m_albedoColor(Color4(1, 1, 1, 1))
+	: BaseComponent(eCompType_Material), m_albedoColor(Color4(1, 1, 1, 1)), m_transparentPass(false)
 {
 }
 
@@ -35,4 +35,14 @@ void MaterialComponent::SetAlbedoColor(Color4 albedo)
 Color4 MaterialComponent::GetAlbedoColor() const
 {
 	return m_albedoColor;
+}
+
+void MaterialComponent::SetTransparent(bool val)
+{
+	m_transparentPass = val;
+}
+
+bool MaterialComponent::IsTransparent() const
+{
+	return m_transparentPass;
 }

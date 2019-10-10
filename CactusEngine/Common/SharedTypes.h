@@ -76,6 +76,19 @@ namespace Engine
 		EGRAPHICSDEVICE_COUNT
 	};
 
+	enum EGLShaderParamType
+	{
+		eShaderParam_Int1 = 0,
+		eShaderParam_Float1,
+		eShaderParam_Vec2,
+		eShaderParam_Vec3,
+		eShaderParam_Vec4,
+		eShaderParam_Mat2,
+		eShaderParam_Mat3,
+		eShaderParam_Mat4,
+		eShaderParam_Texture2D
+	};
+
 	enum ECameraProjectionType
 	{
 		eProjectionType_Perspective = 0,

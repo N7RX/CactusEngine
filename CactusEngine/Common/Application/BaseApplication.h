@@ -1,10 +1,11 @@
 #pragma once
 #include "IApplication.h"
 #include "Global.h"
+#include "NoCopy.h"
 
 namespace Engine
 {
-	class BaseApplication : public IApplication
+	class BaseApplication : public IApplication, public NoCopy
 	{
 	public:
 		BaseApplication();

@@ -8,6 +8,8 @@ namespace Engine
 	class DrawingDevice_OpenGL : public DrawingDevice
 	{
 	public:
+		~DrawingDevice_OpenGL();
+
 		void Initialize() override;
 		void ShutDown() override;
 

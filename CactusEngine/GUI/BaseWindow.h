@@ -1,9 +1,10 @@
 #pragma once
+#include "NoCopy.h"
 #include <cstdint>
 
 namespace Engine
 {
-	class BaseWindow
+	class BaseWindow : public NoCopy
 	{
 	public:
 		virtual ~BaseWindow() = default;

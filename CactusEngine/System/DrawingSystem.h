@@ -4,13 +4,14 @@
 #include "DrawingDevice.h"
 #include "Global.h"
 #include "BuiltInShaderType.h"
+#include "NoCopy.h"
 
 namespace Engine
 {
 	typedef std::unordered_map<ERendererType, std::shared_ptr<IRenderer>> RendererTable;
 	typedef std::unordered_map<ERendererType, std::vector<std::shared_ptr<IEntity>>> RenderTaskTable;
 
-	class DrawingSystem : public ISystem, std::enable_shared_from_this<DrawingSystem>
+	class DrawingSystem : public ISystem, std::enable_shared_from_this<DrawingSystem>, public NoCopy
 	{
 	public:
 		DrawingSystem(ECSWorld* pWorld);
@@ -45,6 +46,7 @@ namespace Engine
 	private:
 		bool CreateDevice();
 		bool LoadShaders();
+		void BuildRenderGraphs();
 		void BuildRenderTask();
 		void ConfigureRenderEnvironment();
 		void ExecuteRenderTask();

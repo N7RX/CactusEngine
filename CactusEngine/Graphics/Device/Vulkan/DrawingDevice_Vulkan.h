@@ -34,6 +34,8 @@ namespace Engine
 		};
 
 	public:
+		~DrawingDevice_Vulkan();
+
 		void SetupDevice();
 		void Initialize() override;
 		void ShutDown() override;

@@ -2,11 +2,12 @@
 #include "ISystem.h"
 #include "Global.h"
 #include "ECSWorld.h"
+#include "NoCopy.h"
 #include <chrono>
 
 namespace Engine
 {
-	class AnimationSystem : public ISystem
+	class AnimationSystem : public ISystem, public NoCopy
 	{
 	public:
 		AnimationSystem(ECSWorld* pWorld);

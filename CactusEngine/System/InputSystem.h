@@ -3,10 +3,11 @@
 #include "ECSWorld.h"
 #include "Global.h"
 #include "GLFWWindow.h"
+#include "NoCopy.h"
 
 namespace Engine
 {
-	class InputSystem : public ISystem
+	class InputSystem : public ISystem, public NoCopy
 	{
 	public:
 		InputSystem(ECSWorld* pWorld);

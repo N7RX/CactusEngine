@@ -16,6 +16,7 @@ namespace Engine
 		void Tick();
 		void FrameEnd();
 
+		void BuildRenderGraph();
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera);
 
 		ERendererType GetRendererType() const;

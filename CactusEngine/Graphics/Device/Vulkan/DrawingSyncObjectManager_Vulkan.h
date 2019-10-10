@@ -1,4 +1,5 @@
 #pragma once
+#include "NoCopy.h"
 #include <vulkan.h>
 #include <memory>
 #include <vector>
@@ -34,7 +35,7 @@ namespace Engine
 	};
 
 	class DrawingDevice_Vulkan;
-	class DrawingSyncObjectManager_Vulkan
+	class DrawingSyncObjectManager_Vulkan : public NoCopy
 	{
 	public:
 		DrawingSyncObjectManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice);

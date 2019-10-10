@@ -2,6 +2,18 @@
 
 using namespace Engine;
 
+uint32_t RawResource::m_assignedID = 0;
+
+RawResource::RawResource()
+{
+	m_resourceID = m_assignedID++; // Alert: this ID would run out under rare situation
+}
+
+uint32_t RawResource::GetResourceID() const
+{
+	return m_resourceID;
+}
+
 uint32_t RawResource::GetSize() const
 {
 	return m_sizeInBytes;
@@ -16,6 +28,16 @@ void RawResource::SetData(const std::shared_ptr<RawResourceData> pData, uint32_t
 {
 	m_pData = pData;
 	m_sizeInBytes = size;
+}
+
+uint32_t FrameBuffer::GetWidth() const
+{
+	return m_width;
+}
+
+uint32_t FrameBuffer::GetHeight() const
+{
+	return m_height;
 }
 
 void VertexBuffer::SetNumberOfIndices(uint32_t count)

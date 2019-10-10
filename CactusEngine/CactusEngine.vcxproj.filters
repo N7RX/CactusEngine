@@ -8,6 +8,12 @@
     <None Include="Assets\Shader\GLSL\Basic.vert">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\Water_Basic.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\Water_Basic.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">
@@ -52,9 +58,6 @@
     <Filter Include="Graphics\Device\Vulkan">
       <UniqueIdentifier>{58bf0e6d-2ebe-4977-8765-9d69248d1619}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\FrameGraph">
-      <UniqueIdentifier>{aee2f5c7-61c9-4844-838b-f51d05babd47}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Resources">
       <UniqueIdentifier>{648dabd1-a67f-49fe-8df9-e8532d985fe7}</UniqueIdentifier>
     </Filter>
@@ -87,6 +90,9 @@
     </Filter>
     <Filter Include="Graphics\Resources\Texture">
       <UniqueIdentifier>{8f32716a-0ce1-4fdf-bc3e-11b6e512e881}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\RenderGraph">
+      <UniqueIdentifier>{9ba1326b-3234-4ebb-b21a-290a6cf81622}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -152,9 +158,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Device\DrawingDevice.h">
       <Filter>Graphics\Device</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\FrameGraph\FrameGraph.h">
-      <Filter>Graphics\FrameGraph</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h">
       <Filter>Graphics\Resources</Filter>
@@ -291,6 +294,12 @@
     <ClInclude Include="Util\SafeVector.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\RenderGraph.h">
+      <Filter>Graphics\RenderGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\NoCopy.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -343,9 +352,6 @@
     </ClCompile>
     <ClCompile Include="Graphics\Device\DrawingDevice.cpp">
       <Filter>Graphics\Device</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\FrameGraph\FrameGraph.cpp">
-      <Filter>Graphics\FrameGraph</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp">
       <Filter>Graphics\Resources</Filter>
@@ -445,6 +451,9 @@
     </ClCompile>
     <ClCompile Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.cpp">
       <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp">
+      <Filter>Graphics\RenderGraph</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

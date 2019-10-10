@@ -9,6 +9,11 @@
 
 using namespace Engine;
 
+DrawingDevice_Vulkan::~DrawingDevice_Vulkan()
+{
+	ShutDown();
+}
+
 void DrawingDevice_Vulkan::SetupDevice()
 {
 	GetRequiredExtensions();

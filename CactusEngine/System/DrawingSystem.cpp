@@ -32,6 +32,7 @@ uint32_t DrawingSystem::GetSystemID() const
 void DrawingSystem::Initialize()
 {
 	LoadShaders();
+	BuildRenderGraphs();
 }
 
 void DrawingSystem::ShutDown()
@@ -103,12 +104,21 @@ bool DrawingSystem::LoadShaders()
 	case eDevice_OpenGL:
 	{
 		m_shaderPrograms[eShaderProgram_Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
+		m_shaderPrograms[eShaderProgram_WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
 		break;
 	}
 	case eDevice_Vulkan:
 		break;
 	}
 	return true;
+}
+
+void DrawingSystem::BuildRenderGraphs()
+{
+	for (auto& pRenderer : m_rendererTable)
+	{
+		pRenderer.second->BuildRenderGraph();
+	}
 }
 
 void DrawingSystem::BuildRenderTask()

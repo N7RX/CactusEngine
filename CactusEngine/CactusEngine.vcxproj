@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -138,6 +138,8 @@
   <ItemGroup>
     <None Include="Assets\Shader\GLSL\Basic.frag" />
     <None Include="Assets\Shader\GLSL\Basic.vert" />
+    <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
+    <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -171,10 +173,10 @@
     <ClInclude Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.h" />
     <ClInclude Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.h" />
     <ClInclude Include="Graphics\Device\Vulkan\DrawingUtil_Vulkan.h" />
-    <ClInclude Include="Graphics\FrameGraph\FrameGraph.h" />
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
     <ClInclude Include="Graphics\Renderer\DeferredRenderer.h" />
     <ClInclude Include="Graphics\Renderer\ForwardRenderer.h" />
+    <ClInclude Include="Graphics\RenderGraph\RenderGraph.h" />
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h" />
     <ClInclude Include="Graphics\Resources\BuiltInShaderType.h" />
     <ClInclude Include="Graphics\Resources\DrawingResources.h" />
@@ -192,6 +194,7 @@
     <ClInclude Include="Interface\IEntity.h" />
     <ClInclude Include="Interface\IRenderer.h" />
     <ClInclude Include="Interface\ISystem.h" />
+    <ClInclude Include="Interface\NoCopy.h" />
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\EventSystem.h" />
@@ -235,10 +238,10 @@
     <ClCompile Include="Graphics\Device\Vulkan\DrawingResources_Vulkan.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.cpp" />
-    <ClCompile Include="Graphics\FrameGraph\FrameGraph.cpp" />
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\DeferredRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
     <ClCompile Include="Graphics\Resources\GLCMesh.cpp" />
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp" />
