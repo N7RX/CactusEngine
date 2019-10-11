@@ -21,7 +21,7 @@ uniform float Kd = 0.9f;
 uniform float Ks = 1.0f;
 uniform int Shininess = 50;
 
-uniform float FoamHeight = -1.1f;
+uniform float FoamHeight = -1.13f;
 uniform float FoamRange = 0.1f; // This is determined by Amplitude in previous stage
 uniform vec4  FoamColor = vec4(1, 1, 1, 1);
 

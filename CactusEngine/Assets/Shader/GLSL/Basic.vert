@@ -10,12 +10,13 @@ out vec3 v2fNormal;
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
 
 
 void main(void)
 {
 	v2fTexCoord = inTexCoord;
-	v2fNormal = inNormal;
+	v2fNormal = NormalMatrix * inNormal;
 
 	gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(inPosition, 1.0);
 }

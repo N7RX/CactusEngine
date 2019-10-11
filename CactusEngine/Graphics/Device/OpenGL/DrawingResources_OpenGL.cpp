@@ -170,6 +170,7 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::MODEL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::MODEL_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::VIEW_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::VIEW_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::PROJECTION_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::PROJECTION_MATRIX));
+	m_paramLocations.emplace(ShaderParamNames::NORMAL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::NORMAL_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::CAMERA_POSITION, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_POSITION));
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));

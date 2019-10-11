@@ -14,6 +14,7 @@ namespace Engine
 		static const char* MODEL_MATRIX = "ModelMatrix";
 		static const char* VIEW_MATRIX = "ViewMatrix";
 		static const char* PROJECTION_MATRIX = "ProjectionMatrix";
+		static const char* NORMAL_MATRIX = "NormalMatrix";
 
 		static const char* CAMERA_POSITION = "CameraPosition";
 

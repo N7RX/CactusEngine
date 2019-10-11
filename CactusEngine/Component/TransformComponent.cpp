@@ -63,3 +63,12 @@ Matrix4x4 TransformComponent::GetModelMatrix() const
 
 	return modelMat;
 }
+
+Matrix3x3 TransformComponent::GetNormalMatrix() const
+{
+	Matrix3x3 normalMat =
+		Matrix3x3(glm::rotate(m_rotationEuler.x * D2R, X_AXIS)*glm::rotate(m_rotationEuler.y * D2R, Y_AXIS)*glm::rotate(m_rotationEuler.z * D2R, Z_AXIS))
+		* glm::inverse(Matrix3x3(glm::scale(m_scale)));
+
+	return normalMat;
+}

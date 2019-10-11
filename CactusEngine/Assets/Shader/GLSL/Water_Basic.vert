@@ -11,12 +11,13 @@ out vec3 v2fPosition;
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
+uniform mat3 NormalMatrix;
 
 uniform float Time;
 
-uniform float WaveLength = 0.08f;
+uniform float WaveLength = 0.06f;
 uniform float Steepness = 0.2f;
-uniform float Amplitude = 0.1f;
+uniform float Amplitude = 0.07f;
 uniform float Speed = 0.1f;
 uniform vec2  Direction = vec2(0.7071068f, 0.7071068f);
 
@@ -42,8 +43,7 @@ void main(void)
 	float yNormal = -(Direction.y * frequency * Amplitude * cos(frequency * dot(Direction, vPosition.xy) + phi * Time));
 	float zNormal = 1 - (Steepness * frequency * Amplitude * sin(frequency * dot(Direction, vPosition.xy) + phi * Time));
 
-	v2fNormal = vec3(xNormal, yNormal, zNormal);
-
+	v2fNormal = NormalMatrix * vec3(xNormal, yNormal, zNormal);
 
 	v2fPosition = (ModelMatrix * vec4(vPosition, 1.0)).xyz;
 
