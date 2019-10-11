@@ -57,6 +57,11 @@ namespace Engine
 			return m_windowHeight;
 		}
 
+		float GetWindowAspect() const
+		{
+			return float(m_windowWidth) / float(m_windowHeight);
+		}
+
 	private:
 		EGraphicsDeviceType m_deviceType;
 		uint32_t m_windowWidth;

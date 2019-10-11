@@ -249,7 +249,7 @@ void TestSetup(GraphicsApplication* pApp)
 	pMeshFilterComp5->SetMesh(pPlaneMesh);
 
 	auto pMaterialComp5 = std::make_shared<MaterialComponent>();
-	pMaterialComp5->SetAlbedoColor(Color4(1.0f, 1, 1.0f, 1));
+	pMaterialComp5->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 0.7f));
 	pMaterialComp5->SetShaderProgram(eShaderProgram_WaterBasic);
 	pMaterialComp5->SetAlbedoTexture(pTexture);
 	pMaterialComp5->SetTransparent(true);
@@ -288,4 +288,31 @@ void TestSetup(GraphicsApplication* pApp)
 	pRock->AttachComponent(pMeshFilterComp6);
 	pRock->AttachComponent(pMaterialComp6);
 	pRock->AttachComponent(pMeshRendererComp6);
+
+	// Bottom
+
+	auto pPlaneMesh2 = std::make_shared<Plane>(1, 1);
+	auto pTexture2 = std::make_shared<ImageTexture>("Assets/Textures/Worktops_3_Low.jpg");
+
+	auto pTransformComp7 = pWorld->CreateComponent<TransformComponent>();
+	pTransformComp7->SetPosition(Vector3(2.5f, -1.3f, 0));
+	pTransformComp7->SetScale(Vector3(5, 5, 1));
+	pTransformComp7->SetRotation(Vector3(-90, 0, 180));
+
+	auto pMeshFilterComp7 = pWorld->CreateComponent<MeshFilterComponent>();
+	pMeshFilterComp7->SetMesh(pPlaneMesh2);
+
+	auto pMaterialComp7 = std::make_shared<MaterialComponent>();
+	pMaterialComp7->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1.0f));
+	pMaterialComp7->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp7->SetAlbedoTexture(pTexture2);
+
+	auto pMeshRendererComp7 = std::make_shared<MeshRendererComponent>();
+	pMeshRendererComp7->SetRenderer(eRenderer_Forward);
+
+	auto pPlane2 = pWorld->CreateEntity<StandardEntity>();
+	pPlane2->AttachComponent(pTransformComp7);
+	pPlane2->AttachComponent(pMeshFilterComp7);
+	pPlane2->AttachComponent(pMaterialComp7);
+	pPlane2->AttachComponent(pMeshRendererComp7);
 }

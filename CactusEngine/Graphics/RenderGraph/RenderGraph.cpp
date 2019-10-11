@@ -11,7 +11,7 @@ RenderNode::RenderNode(const std::shared_ptr<RenderGraph> pRenderGraph, void(*pR
 void RenderNode::AddNextNode(std::shared_ptr<RenderNode> pNode)
 {
 	m_nextNodes.emplace_back(pNode);
-	pNode->m_prevNodes.push_back(std::static_pointer_cast<RenderNode>(shared_from_this()));
+	pNode->m_prevNodes.emplace_back(this);
 }
 
 void RenderNode::Execute()
@@ -25,19 +25,19 @@ void RenderNode::Execute()
 	}
 }
 
-void RenderGraph::AddRenderNode(std::shared_ptr<RenderNode> pNode)
+void RenderGraph::AddRenderNode(ERenderNodeType type, std::shared_ptr<RenderNode> pNode)
 {
-	m_nodes.emplace_back(pNode);
+	m_nodes.emplace(type, pNode);
 }
 
 void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContext)
 {
 	for (auto& pNode : m_nodes)
 	{
-		pNode->m_pContext = pContext;
-		if (pNode->m_prevNodes.empty())
+		pNode.second->m_pContext = pContext;
+		if (pNode.second->m_prevNodes.empty())
 		{
-			m_startingNodes.push(pNode);
+			m_startingNodes.push(pNode.second);
 		}
 	}
 
@@ -47,4 +47,13 @@ void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContex
 		m_startingNodes.front()->Execute();
 		m_startingNodes.pop();
 	}
+}
+
+std::shared_ptr<RenderNode> RenderGraph::GetNodeByType(ERenderNodeType type) const
+{
+	if (m_nodes.find(type) != m_nodes.end())
+	{
+		return m_nodes.at(type);
+	}
+	return nullptr;
 }

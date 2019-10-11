@@ -59,6 +59,11 @@ void DrawingDevice_Vulkan::ClearTarget()
 
 }
 
+void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
+{
+
+}
+
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
 {
 

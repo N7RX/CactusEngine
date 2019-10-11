@@ -47,6 +47,7 @@ namespace Engine
 
 		void SetClearColor(Color4 color) override;
 		void ClearTarget() override;
+		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex = 0, uint32_t baseVertex = 0) override;

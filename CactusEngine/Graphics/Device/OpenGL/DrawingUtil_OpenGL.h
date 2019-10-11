@@ -93,14 +93,26 @@ namespace Engine
 		{
 		case eDataType_Float:
 			return 4;
-			break;
 		case eDataType_UnsignedByte:
 			return 1;
-			break;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;
 			break;
 		}
 		return 0;
+	}
+
+	inline int OpenGLBlendFactor(EBlendFactor factor)
+	{
+		switch (factor)
+		{
+		case eBlend_SrcAlpha:
+			return GL_SRC_ALPHA;
+		case eBlend_OneMinusSrcAlpha:
+			return GL_ONE_MINUS_SRC_ALPHA;
+		default:
+			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;
+			break;
+		}
 	}
 }

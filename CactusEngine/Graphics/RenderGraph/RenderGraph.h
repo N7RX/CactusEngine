@@ -35,21 +35,30 @@ namespace Engine
 		std::shared_ptr<RenderContext> m_pContext;
 		RenderGraphResource m_input;
 		RenderGraphResource m_output;
-		std::vector<std::shared_ptr<RenderNode>> m_prevNodes;
+		std::vector<RenderNode*> m_prevNodes;
 		std::vector<std::shared_ptr<RenderNode>> m_nextNodes;
 
 		friend class RenderGraph;
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 	};
 
+	enum ERenderNodeType
+	{
+		eRenderNode_Opaque = 0,
+		eRenderNode_Transparent,
+		ERENDERNODETYPE_COUNT
+	};
+
 	class RenderGraph : public NoCopy
 	{
 	public:
-		void AddRenderNode(std::shared_ptr<RenderNode> pNode);
+		void AddRenderNode(ERenderNodeType type, std::shared_ptr<RenderNode> pNode);
 		void BeginRenderPasses(const std::shared_ptr<RenderContext> pContext);
 
+		std::shared_ptr<RenderNode> GetNodeByType(ERenderNodeType type) const;
+
 	private:
-		std::vector<std::shared_ptr<RenderNode>> m_nodes;
+		std::unordered_map<ERenderNodeType, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>>  m_startingNodes; // Nodes that has no previous dependencies
 	};
 }

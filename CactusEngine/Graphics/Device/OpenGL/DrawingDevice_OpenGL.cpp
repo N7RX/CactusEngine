@@ -117,6 +117,19 @@ void DrawingDevice_OpenGL::ClearTarget()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+void DrawingDevice_OpenGL::SetBlendState(const DeviceBlendStateInfo& blendInfo)
+{
+	if (blendInfo.enabled)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(OpenGLBlendFactor(blendInfo.srcFactor), OpenGLBlendFactor(blendInfo.dstFactor));
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+	}
+}
+
 void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
 {
 	auto pProgram = std::static_pointer_cast<ShaderProgram_OpenGL>(pShaderProgram);
@@ -160,6 +173,5 @@ void DrawingDevice_OpenGL::ConfigureStates_Test()
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
-	glDisable(GL_BLEND);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }

@@ -7,6 +7,13 @@
 
 namespace Engine
 {
+	struct DeviceBlendStateInfo
+	{
+		bool enabled;
+		EBlendFactor srcFactor;
+		EBlendFactor dstFactor;
+	};
+
 	class DrawingDevice : std::enable_shared_from_this<DrawingDevice>, public NoCopy
 	{
 	public:
@@ -22,6 +29,7 @@ namespace Engine
 
 		virtual void SetClearColor(Color4 color) = 0;
 		virtual void ClearTarget() = 0;
+		virtual void SetBlendState(const DeviceBlendStateInfo& blendInfo) = 0;
 		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) = 0;
 		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) = 0;
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex = 0, uint32_t baseVertex = 0) = 0;

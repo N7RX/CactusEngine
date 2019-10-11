@@ -1,4 +1,5 @@
 #include "CameraComponent.h"
+#include "Global.h"
 #include <cmath>
 
 using namespace Engine;

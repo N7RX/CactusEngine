@@ -13,7 +13,7 @@ uniform vec3 CameraPosition;
 
 // TODO: replace Phong model with PBR
 uniform vec3  LightPosition = vec3(0.5f, 0.5f, 2.5f);
-uniform vec3  LightColor = vec3(1, 1, 1);
+uniform vec4  LightColor = vec4(1, 1, 1, 1);
 uniform float LightIntensity = 2.0f;
 
 uniform float Ka = 0.25f;
@@ -39,11 +39,11 @@ void main(void)
 	float illumination = LightIntensity * (Ka + lightFalloff * (Kd * dot(lightDir, v2fNormal) + Ks * pow(dot(viewDir, reflectDir), Shininess)));
 
 	// Foam approximation
-	vec4  waterColor = (AlbedoColor * colorFromAlbedoTexture * LightColor);
+	vec4 waterColor = (AlbedoColor * colorFromAlbedoTexture * LightColor);
 	float foamFactor = pow(10.0f * clamp(v2fPosition.y - FoamHeight, 0, FoamRange), 2);
 	waterColor = foamFactor * FoamColor + (1.0f - foamFactor) * waterColor;
 
-	vec4 finalColor = waterColor * illumination;
+	vec4 finalColor = vec4(waterColor.xyz * illumination, waterColor.a);
 
 	outColor = finalColor;
 }

@@ -28,9 +28,9 @@ namespace Engine
 		eSystem_Animation,
 		eSystem_Event,
 		eSystem_Input,
-		//eSystem_Log,
-		//eSystem_Audio,
-		//eSystem_Physics,
+		eSystem_Log,
+		eSystem_Audio,
+		eSystem_Physics,
 		eSystem_GLCDrawing,
 		ESYSTEMTYPE_COUNT
 	};
@@ -111,5 +111,11 @@ namespace Engine
 	{
 		eDataType_Float = 0,
 		eDataType_UnsignedByte,
+	};
+
+	enum EBlendFactor
+	{
+		eBlend_SrcAlpha = 0,
+		eBlend_OneMinusSrcAlpha
 	};
 }
