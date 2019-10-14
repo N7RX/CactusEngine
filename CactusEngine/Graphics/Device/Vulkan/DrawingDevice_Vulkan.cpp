@@ -49,6 +49,16 @@ bool DrawingDevice_Vulkan::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	return false;
 }
 
+bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
+{
+	return false;
+}
+
+void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
+{
+
+}
+
 void DrawingDevice_Vulkan::SetClearColor(Color4 color)
 {
 
@@ -75,6 +85,11 @@ void DrawingDevice_Vulkan::SetVertexBuffer(const std::shared_ptr<VertexBuffer> p
 }
 
 void DrawingDevice_Vulkan::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
+{
+
+}
+
+void DrawingDevice_Vulkan::DrawFullScreenQuad()
 {
 
 }

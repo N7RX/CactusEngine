@@ -51,6 +51,8 @@ namespace Engine
 		{
 		case eFormat_RGBA32F:
 			return GL_RGBA32F;
+		case eFormat_Depth:
+			return GL_DEPTH_COMPONENT24;
 		default:
 			std::cerr << "Unhandled OpenGL format." << std::endl;
 			break;
@@ -65,6 +67,8 @@ namespace Engine
 		case GL_RGBA32F:
 		case GL_RGBA16F:
 			return GL_RGBA;
+		case GL_DEPTH_COMPONENT24:
+			return GL_DEPTH_COMPONENT;
 		default:
 			std::cerr << "Unhandled OpenGL pixel format." << std::endl;
 			break;
@@ -114,5 +118,6 @@ namespace Engine
 			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;
 			break;
 		}
+		return -1;
 	}
 }

@@ -40,6 +40,7 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	createInfo.pTextureData = imageData;
 	createInfo.dataType = eDataType_UnsignedByte;
 	createInfo.format = eFormat_RGBA32F;
+	createInfo.textureType = eTextureType_SampledImage;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 

@@ -13,10 +13,18 @@ namespace Engine
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
 
 	private:
+		void BuildFrameResources();
 		void BuildOpaquePass();
 		void BuildTransparentPass();
+		void BuildOpaqueTranspBlendPass();
 
 	private:
-		std::shared_ptr<FrameBuffer> m_pOpaquePassFrameOutput;
+		std::shared_ptr<FrameBuffer> m_pOpaquePassFrameBuffer;
+		std::shared_ptr<Texture2D> m_pOpaquePassColorOutput;
+		std::shared_ptr<Texture2D> m_pOpaquePassDepthOutput;
+
+		std::shared_ptr<FrameBuffer> m_pTranspPassFrameBuffer;
+		std::shared_ptr<Texture2D> m_pTranspPassColorOutput;
+		std::shared_ptr<Texture2D> m_pTranspPassDepthOutput;
 	};
 }

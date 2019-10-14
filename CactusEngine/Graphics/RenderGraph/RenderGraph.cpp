@@ -3,6 +3,20 @@
 
 using namespace Engine;
 
+void RenderGraphResource::Add(const char* name, std::shared_ptr<RawResource> pResource)
+{
+	m_renderResources.emplace(name, pResource);
+}
+
+std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
+{
+	if (m_renderResources.find(name) != m_renderResources.end())
+	{
+		return m_renderResources.at(name);
+	}
+	return nullptr;
+}
+
 RenderNode::RenderNode(const std::shared_ptr<RenderGraph> pRenderGraph, void(*pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext), const RenderGraphResource& input, const RenderGraphResource& output)
 	: m_pRenderGraph(pRenderGraph), m_pRenderPassFunc(pRenderPassFunc), m_input(input), m_output(output)
 {

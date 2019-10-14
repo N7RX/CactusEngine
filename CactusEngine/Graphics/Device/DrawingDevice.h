@@ -26,13 +26,16 @@ namespace Engine
 
 		virtual bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput) = 0;
 		virtual bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) = 0;
+		virtual bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) = 0;
 
+		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
 		virtual void SetClearColor(Color4 color) = 0;
 		virtual void ClearTarget() = 0;
 		virtual void SetBlendState(const DeviceBlendStateInfo& blendInfo) = 0;
 		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) = 0;
 		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) = 0;
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex = 0, uint32_t baseVertex = 0) = 0;
+		virtual void DrawFullScreenQuad() = 0;
 
 		virtual void Present() = 0;
 

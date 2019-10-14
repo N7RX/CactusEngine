@@ -11,7 +11,7 @@ uniform vec4 AlbedoColor;
 // TODO: replace Lambertian model with PBR
 uniform vec3  LightDirection = vec3(0.57735027f, 0.57735027f, 0.57735027f);
 uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 1.0f;
+uniform float LightIntensity = 1.5f;
 
 void main(void)
 {

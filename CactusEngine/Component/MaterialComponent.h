@@ -14,8 +14,8 @@ namespace Engine
 		EBuiltInShaderProgramType GetShaderProgramType() const;
 		void SetShaderProgram(EBuiltInShaderProgramType shaderProgramType);
 
-		void SetAlbedoTexture(const std::shared_ptr<Texture2D> pAlbedoTexture);
-		std::shared_ptr<Texture2D> GetAlbedoTexture() const;
+		void SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture);
+		std::shared_ptr<Texture2D> GetTexture(EMaterialTextureType type) const;
 
 		void SetAlbedoColor(Color4 albedo);
 		Color4 GetAlbedoColor() const;
@@ -25,8 +25,12 @@ namespace Engine
 
 	private:
 		EBuiltInShaderProgramType m_useShaderType;
+
 		std::shared_ptr<Texture2D> m_pAlbedoTexture;
+		std::shared_ptr<Texture2D> m_pNoiseTexture;
+
 		Color4 m_albedoColor;
+
 		bool m_transparentPass;
 	};
 }

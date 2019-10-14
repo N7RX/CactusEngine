@@ -40,21 +40,6 @@ namespace Engine
 		static uint32_t m_assignedID;
 	};
 
-	class FrameBuffer : public RawResource
-	{
-	public:
-		virtual ~FrameBuffer() = default;
-
-		uint32_t GetWidth() const;
-		uint32_t GetHeight() const;
-
-		virtual uint32_t GetFrameBufferID() const = 0;
-
-	protected:
-		uint32_t m_width;
-		uint32_t m_height;
-	};
-
 	struct VertexBufferCreateInfo
 	{
 		int*	 pIndexData;
@@ -87,6 +72,7 @@ namespace Engine
 		uint32_t	   textureHeight;
 		EDataType	   dataType;
 		ETextureFormat format;
+		ETextureType   textureType;
 	};
 
 	class Texture2D : public RawResource
@@ -98,6 +84,33 @@ namespace Engine
 		uint32_t GetHeight() const;
 
 		virtual uint32_t GetTextureID() const = 0;
+
+		void SetTextureType(ETextureType type);
+		ETextureType GetTextureType() const;
+
+	protected:
+		uint32_t m_width;
+		uint32_t m_height;
+
+		ETextureType m_type;
+	};
+
+	struct FrameBufferCreateInfo
+	{
+		uint32_t framebufferWidth;
+		uint32_t framebufferHeight;
+		std::vector<std::shared_ptr<Texture2D>> bindTextures;
+	};
+
+	class FrameBuffer : public RawResource
+	{
+	public:
+		virtual ~FrameBuffer() = default;
+
+		uint32_t GetWidth() const;
+		uint32_t GetHeight() const;
+
+		virtual uint32_t GetFrameBufferID() const = 0;
 
 	protected:
 		uint32_t m_width;

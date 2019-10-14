@@ -14,6 +14,12 @@
     <None Include="Assets\Shader\GLSL\Water_Basic.vert">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\FullScreenQuad.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

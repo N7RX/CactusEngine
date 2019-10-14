@@ -138,6 +138,8 @@
   <ItemGroup>
     <None Include="Assets\Shader\GLSL\Basic.frag" />
     <None Include="Assets\Shader\GLSL\Basic.vert" />
+    <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag" />
+    <None Include="Assets\Shader\GLSL\FullScreenQuad.vert" />
     <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
     <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="packages.config" />

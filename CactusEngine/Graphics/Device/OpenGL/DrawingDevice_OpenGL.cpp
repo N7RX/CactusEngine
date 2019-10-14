@@ -12,6 +12,7 @@ DrawingDevice_OpenGL::~DrawingDevice_OpenGL()
 void DrawingDevice_OpenGL::Initialize()
 {
 	glGenerateMipmap(GL_TEXTURE_2D);
+	glGenVertexArrays(1, &m_attributeless_vao);
 }
 
 void DrawingDevice_OpenGL::ShutDown()
@@ -53,7 +54,7 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glEnableVertexAttribArray(ATTRIB_NORMAL_LOCATION);
 	glVertexAttribPointer(ATTRIB_NORMAL_LOCATION, 3, GL_FLOAT, 0, 0, 0);
 
-	// Texcoord
+	// TexCoord
 	glGenBuffers(1, &pVertexBuffer->m_vboTexcoords);
 	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboTexcoords);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.texcoordDataCount, createInfo.pTexcoordData, GL_STATIC_DRAW);
@@ -97,14 +98,91 @@ bool DrawingDevice_OpenGL::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	if (createInfo.format == eFormat_Depth)
+	{
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	pTexture->SetGLTextureID(texID);
 	pTexture->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
+	pTexture->SetTextureType(createInfo.textureType);
 	pTexture->SetData(nullptr, static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(createInfo.dataType)));
 
 	return true;
+}
+
+bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
+{
+	if (pOutput != nullptr)
+	{
+		auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_OpenGL>(pOutput);
+		GLuint frameBufferID = pFrameBuffer->GetGLFrameBufferID();
+		if (frameBufferID != -1)
+		{
+			glDeleteFramebuffers(1, &frameBufferID);
+		}
+	}
+	else
+	{
+		pOutput = std::make_shared<FrameBuffer_OpenGL>();
+	}
+
+	auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_OpenGL>(pOutput);
+
+	GLuint frameBufferID = -1;
+	glGenFramebuffers(1, &frameBufferID);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+
+	int colorAttachmentCount = 0;
+	for (int i = 0; i < createInfo.bindTextures.size(); ++i)
+	{
+		switch (createInfo.bindTextures[i]->GetTextureType())
+		{
+		case eTextureType_ColorAttachment:
+			pFrameBuffer->AddColorAttachment(GL_COLOR_ATTACHMENT0 + colorAttachmentCount); // Alert: this could cause the framebuffer to be partially "initialized" when creation failed
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
+			colorAttachmentCount++;
+			break;
+		case eTextureType_DepthAttachment:
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
+			break;
+		default:
+			std::cerr << "Unhandled framebuffer attachment type.\n";
+			break;
+		}
+	}
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		std::cerr << "Failed to create framebuffer.\n";
+		return false;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	pFrameBuffer->SetGLFrameBufferID(frameBufferID);
+	pFrameBuffer->MarkFrameBufferSize(createInfo.framebufferWidth, createInfo.framebufferHeight);
+
+	return true;
+}
+
+void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
+{
+	if (pFrameBuffer == nullptr)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return;
+	}
+
+	auto pTarget = std::static_pointer_cast<FrameBuffer_OpenGL>(pFrameBuffer);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, pTarget->GetGLFrameBufferID());
+	glDrawBuffers(pTarget->GetColorAttachmentCount(), pTarget->GetColorAttachments());
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Alert: clearing target here might be incorrect
 }
 
 void DrawingDevice_OpenGL::SetClearColor(Color4 color)
@@ -155,6 +233,14 @@ void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> p
 void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
 {
 	glDrawElementsBaseVertex(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
+	glBindVertexArray(0);
+}
+
+void DrawingDevice_OpenGL::DrawFullScreenQuad()
+{
+	// This has to be used with FullScreenQuad shader
+	glBindVertexArray(m_attributeless_vao);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
 }
 

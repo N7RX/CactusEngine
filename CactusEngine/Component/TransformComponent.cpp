@@ -42,6 +42,10 @@ void TransformComponent::SetScale(Vector3 newScale)
 void TransformComponent::SetRotation(Vector3 newRotation)
 {
 	m_rotationEuler = newRotation;
+
+	m_forwardDirection = Vector3(
+		(glm::rotate(m_rotationEuler.x * D2R, X_AXIS)*glm::rotate(m_rotationEuler.y * D2R, Y_AXIS)*glm::rotate(m_rotationEuler.z * D2R, Z_AXIS))
+		* Vector4(m_forwardDirection, 1.0f));
 }
 
 Vector3 TransformComponent::GetForwardDirection() const

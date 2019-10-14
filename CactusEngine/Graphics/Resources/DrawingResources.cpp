@@ -60,6 +60,16 @@ uint32_t Texture2D::GetHeight() const
 	return m_height;
 }
 
+void Texture2D::SetTextureType(ETextureType type)
+{
+	m_type = type;
+}
+
+ETextureType Texture2D::GetTextureType() const
+{
+	return m_type;
+}
+
 Shader::Shader(EShaderType type)
 	: m_shaderType(type)
 {

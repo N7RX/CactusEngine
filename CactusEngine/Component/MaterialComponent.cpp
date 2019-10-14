@@ -1,4 +1,5 @@
 #include "MaterialComponent.h"
+#include <iostream>
 
 using namespace Engine;
 
@@ -17,14 +18,34 @@ void MaterialComponent::SetShaderProgram(EBuiltInShaderProgramType shaderProgram
 	m_useShaderType = shaderProgramType;
 }
 
-void MaterialComponent::SetAlbedoTexture(const std::shared_ptr<Texture2D> pAlbedoTexture)
+void MaterialComponent::SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture)
 {
-	m_pAlbedoTexture = pAlbedoTexture;
+	switch (type)
+	{
+	case eMaterialTexture_Albedo:
+		m_pAlbedoTexture = pTexture;
+		break;
+	case eMaterialTexture_Noise:
+		m_pNoiseTexture = pTexture;
+		break;
+	default:
+		std::cerr << "Unhandled texture type.\n";
+		break;
+	}
 }
 
-std::shared_ptr<Texture2D> MaterialComponent::GetAlbedoTexture() const
+std::shared_ptr<Texture2D> MaterialComponent::GetTexture(EMaterialTextureType type) const
 {
-	return m_pAlbedoTexture;
+	switch (type)
+	{
+	case eMaterialTexture_Albedo:
+		return m_pAlbedoTexture;
+	case eMaterialTexture_Noise:
+		return m_pNoiseTexture;
+	default:
+		std::cerr << "Unhandled texture type.\n";
+		return nullptr;
+	}
 }
 
 void MaterialComponent::SetAlbedoColor(Color4 albedo)

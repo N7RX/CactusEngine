@@ -67,9 +67,9 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 					std::unordered_map<int, char> filterMap;
 					for (size_t j = 0; j < groupIndices.size(); ++j)
 					{
-						if (filterMap.find(groupIndices[j].vertex_index) == filterMap.end())
+						if (filterMap.find(groupIndices[j].vertex_index) == filterMap.end()) // Remove duplicate face vertices from the group
 						{
-							filterMap.emplace(groupIndices[j].vertex_index, '0');
+							filterMap.emplace(groupIndices[j].vertex_index, '0'); // '0' is a placeholder, it has no meaning
 							smoothIndices.emplace_back(groupIndices[j]);
 
 							vertexIndices.emplace_back((smoothIndices.size() - 1));
@@ -97,7 +97,7 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 					groupIndices.emplace_back(shape.mesh.indices[3 * i + 2]);
 				}
 
-				if (i == shape.mesh.smoothing_group_ids.size() - 1)
+				if (i == shape.mesh.smoothing_group_ids.size() - 1) // Last face
 				{
 					std::unordered_map<int, char> filterMap;
 					for (size_t j = 0; j < groupIndices.size(); ++j)
@@ -159,6 +159,8 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 		texcoords[2 * i] = attributes.texcoords[2 * texcoordIndex];
 		texcoords[2 * i + 1] = attributes.texcoords[2 * texcoordIndex + 1];
 	}
+
+	smoothIndices.clear();
 
 	CreateVertexBufferFromVertices(vertices, normals, texcoords, vertexIndices);
 }

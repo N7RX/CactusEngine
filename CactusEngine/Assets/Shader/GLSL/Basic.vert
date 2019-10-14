@@ -16,7 +16,7 @@ uniform mat3 NormalMatrix;
 void main(void)
 {
 	v2fTexCoord = inTexCoord;
-	v2fNormal = NormalMatrix * inNormal;
+	v2fNormal = normalize(NormalMatrix * inNormal);
 
 	gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(inPosition, 1.0);
 }

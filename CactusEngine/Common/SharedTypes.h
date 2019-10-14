@@ -102,9 +102,18 @@ namespace Engine
 		EGLOBALSTATEQUERYTYPE_COUNT
 	};
 
+	enum ETextureType
+	{
+		eTextureType_SampledImage = 0,
+		eTextureType_ColorAttachment,
+		eTextureType_DepthAttachment,
+		ETEXTURETYPE_COUNT
+	};
+
 	enum ETextureFormat
 	{
 		eFormat_RGBA32F = 0,
+		eFormat_Depth,
 	};
 
 	enum EDataType

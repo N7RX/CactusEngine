@@ -31,6 +31,26 @@ namespace Engine
 		GLuint m_glTextureID;
 	};
 
+	class FrameBuffer_OpenGL : public FrameBuffer
+	{
+	public:
+		~FrameBuffer_OpenGL();
+
+		GLuint GetGLFrameBufferID() const;
+		uint32_t GetFrameBufferID() const override;
+
+		void SetGLFrameBufferID(GLuint id);
+		void MarkFrameBufferSize(uint32_t width, uint32_t height);
+
+		void AddColorAttachment(GLenum attachment);
+		size_t GetColorAttachmentCount() const;
+		const GLenum* GetColorAttachments() const;
+
+	private:
+		GLuint m_glFrameBufferID;
+		std::vector<GLenum> m_bufferAttachments;
+	};
+
 	class VertexShader_OpenGL : public VertexShader
 	{
 	public:

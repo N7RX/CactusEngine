@@ -39,6 +39,47 @@ void Texture2D_OpenGL::MarkTextureSize(uint32_t width, uint32_t height)
 	m_height = height;
 }
 
+FrameBuffer_OpenGL::~FrameBuffer_OpenGL()
+{
+	glDeleteFramebuffers(1, &m_glFrameBufferID);
+}
+
+GLuint FrameBuffer_OpenGL::GetGLFrameBufferID() const
+{
+	return m_glFrameBufferID;
+}
+
+uint32_t FrameBuffer_OpenGL::GetFrameBufferID() const
+{
+	return static_cast<uint32_t>(m_glFrameBufferID);
+}
+
+void FrameBuffer_OpenGL::SetGLFrameBufferID(GLuint id)
+{
+	m_glFrameBufferID = id;
+}
+
+void FrameBuffer_OpenGL::MarkFrameBufferSize(uint32_t width, uint32_t height)
+{
+	m_width = width;
+	m_height = height;
+}
+
+void FrameBuffer_OpenGL::AddColorAttachment(GLenum attachment)
+{
+	m_bufferAttachments.emplace_back(attachment);
+}
+
+size_t FrameBuffer_OpenGL::GetColorAttachmentCount() const
+{
+	return m_bufferAttachments.size();
+}
+
+const GLenum* FrameBuffer_OpenGL::GetColorAttachments() const
+{
+	return m_bufferAttachments.data();
+}
+
 VertexShader_OpenGL::VertexShader_OpenGL(const char* filePath)
 {
 	GLchar* source = ReadSourceFileAsChar(filePath);
@@ -171,8 +212,18 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::VIEW_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::VIEW_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::PROJECTION_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::PROJECTION_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::NORMAL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::NORMAL_MATRIX));
+
 	m_paramLocations.emplace(ShaderParamNames::CAMERA_POSITION, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_POSITION));
-	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
-	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
+
 	m_paramLocations.emplace(ShaderParamNames::TIME, glGetUniformLocation(m_glProgramID, ShaderParamNames::TIME));
+
+	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
+
+	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
+	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE));
+
+	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_1));
+	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_2));
+	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_1));
+	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_2));
 }
