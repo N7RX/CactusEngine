@@ -22,32 +22,32 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{1E63B727-B617-4586-8B6D-A9FF8761959D}</ProjectGuid>
     <RootNamespace>CactusEngine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

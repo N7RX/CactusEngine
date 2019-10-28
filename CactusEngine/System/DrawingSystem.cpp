@@ -1,6 +1,7 @@
 #include "DrawingSystem.h"
 #include "ForwardRenderer.h"
 #include "DrawingDevice_OpenGL.h"
+#include "DrawingDevice_Vulkan.h"
 #include "MeshRendererComponent.h"
 #include "CameraComponent.h"
 #include "GraphicsApplication.h"

@@ -49,8 +49,7 @@ namespace Engine
 		auto pDevice = std::make_shared<DrawingDevice_OpenGL>();
 
 		if (!gpGlobal->QueryGlobalState(eGlobalState_GLFWInit))
-		{
-			glfwInit();
+		{		
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			{
 				throw std::runtime_error("Failed to initialize GLAD");

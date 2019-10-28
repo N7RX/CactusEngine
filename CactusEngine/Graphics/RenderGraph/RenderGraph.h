@@ -47,7 +47,7 @@ namespace Engine
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 	};
 
-	enum ERenderNodeType
+	enum ERenderNodeType // TODO£º remove this enum, and move node naming into renderers
 	{
 		eRenderNode_Opaque = 0,
 		eRenderNode_Transparent,

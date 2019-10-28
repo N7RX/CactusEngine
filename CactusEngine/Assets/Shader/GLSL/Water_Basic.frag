@@ -78,7 +78,7 @@ void main(void)
 	vec3 viewDir = normalize(CameraPosition - v2fPosition);
 	vec3 reflectDir = normalize(2 * dot(lightDir, v2fNormal) * v2fNormal - lightDir);
 	float lightFalloff = 1.0f / pow(length(LightPosition - v2fPosition), 2);
-	float illumination = LightIntensity * (Ka + lightFalloff * (Kd * dot(lightDir, v2fNormal) + Ks * pow(dot(viewDir, reflectDir), Shininess)));
+	float illumination = LightIntensity * (Ka + lightFalloff * (Kd * dot(lightDir, v2fNormal) + Ks * pow(clamp(dot(viewDir, reflectDir), 0, 1), Shininess)));
 
 	// Blend with background color
 	waterColor.xyz *= illumination;

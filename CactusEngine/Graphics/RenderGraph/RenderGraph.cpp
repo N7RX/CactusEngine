@@ -33,7 +33,7 @@ void RenderNode::Execute()
 	assert(m_pRenderPassFunc != nullptr);
 	m_pRenderPassFunc(m_input, m_output, m_pContext);
 
-	for (auto& pNode : m_nextNodes)
+	for (auto& pNode : m_nextNodes) // Alert: we might run into duplicate execution
 	{
 		pNode->Execute();
 	}
