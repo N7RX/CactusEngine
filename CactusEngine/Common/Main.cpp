@@ -80,6 +80,7 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<AppConfiguration>(eConfiguration_App)->SetAppName("Cactus Engine");
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->SetDeviceType(eDevice_OpenGL);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->SetWindowSize(1280, 720);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->SetVSync(true);
 }
 
 void TestSetup(GraphicsApplication* pApp)
@@ -373,4 +374,30 @@ void TestSetup(GraphicsApplication* pApp)
 		pFish->AttachComponent(pMaterialComp9);
 		pFish->AttachComponent(pMeshRendererComp9);
 	}
+
+	// Unity Chan
+
+	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/UnityChan.obj");
+
+	auto pTransformComp10 = pWorld->CreateComponent<TransformComponent>();
+	pTransformComp10->SetPosition(Vector3(0, -0.5f, 2.5));
+	pTransformComp10->SetScale(Vector3(0.02f, 0.02f, 0.02f));
+	pTransformComp10->SetRotation(Vector3(0, 0, 0));
+
+	auto pMeshFilterComp10 = pWorld->CreateComponent<MeshFilterComponent>();
+	pMeshFilterComp10->SetMesh(pCharMesh);
+
+	auto pMaterialComp10 = std::make_shared<MaterialComponent>();
+	pMaterialComp10->SetAlbedoColor(Color4(1.0f, 0.8f, 0.8f, 1));
+	pMaterialComp10->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp10->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
+	auto pMeshRendererComp10 = std::make_shared<MeshRendererComponent>();
+	pMeshRendererComp10->SetRenderer(eRenderer_Forward);
+
+	auto pUnityChan = pWorld->CreateEntity<StandardEntity>();
+	pUnityChan->AttachComponent(pTransformComp10);
+	pUnityChan->AttachComponent(pMeshFilterComp10);
+	pUnityChan->AttachComponent(pMaterialComp10);
+	pUnityChan->AttachComponent(pMeshRendererComp10);
 }

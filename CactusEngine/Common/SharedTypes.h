@@ -18,7 +18,6 @@ namespace Engine
 		eCompType_Material = 0x8,
 		eCompType_Animation = 0x10,
 		eCompType_Camera = 0x20,
-		eCompType_GLC = 0x40,
 		ECOMPTYPE_COUNT = 7
 	};
 
@@ -31,7 +30,6 @@ namespace Engine
 		eSystem_Log,
 		eSystem_Audio,
 		eSystem_Physics,
-		eSystem_GLCDrawing,
 		ESYSTEMTYPE_COUNT
 	};
 

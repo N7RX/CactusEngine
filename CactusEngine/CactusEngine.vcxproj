@@ -76,12 +76,12 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -101,7 +101,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -132,7 +132,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -155,7 +155,6 @@
     <ClInclude Include="Component\AnimationComponent.h" />
     <ClInclude Include="Component\BaseComponent.h" />
     <ClInclude Include="Component\CameraComponent.h" />
-    <ClInclude Include="Component\GLCComponent.h" />
     <ClInclude Include="Component\MaterialComponent.h" />
     <ClInclude Include="Component\MeshFilterComponent.h" />
     <ClInclude Include="Component\MeshRendererComponent.h" />
@@ -182,7 +181,6 @@
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h" />
     <ClInclude Include="Graphics\Resources\BuiltInShaderType.h" />
     <ClInclude Include="Graphics\Resources\DrawingResources.h" />
-    <ClInclude Include="Graphics\Resources\GLCMesh.h" />
     <ClInclude Include="Graphics\Resources\ImageTexture.h" />
     <ClInclude Include="Graphics\Resources\Mesh.h" />
     <ClInclude Include="Graphics\Resources\ObjMesh.h" />
@@ -200,7 +198,6 @@
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\EventSystem.h" />
-    <ClInclude Include="System\GLCDrawingSystem.h" />
     <ClInclude Include="System\InputSystem.h" />
     <ClInclude Include="Third-party\glad\glad.h" />
     <ClInclude Include="Third-party\ImGui\imconfig.h" />
@@ -223,7 +220,6 @@
     <ClCompile Include="Component\AnimationComponent.cpp" />
     <ClCompile Include="Component\BaseComponent.cpp" />
     <ClCompile Include="Component\CameraComponent.cpp" />
-    <ClCompile Include="Component\GLCComponent.cpp" />
     <ClCompile Include="Component\MaterialComponent.cpp" />
     <ClCompile Include="Component\MeshFilterComponent.cpp" />
     <ClCompile Include="Component\MeshRendererComponent.cpp" />
@@ -245,7 +241,6 @@
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
     <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
-    <ClCompile Include="Graphics\Resources\GLCMesh.cpp" />
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp" />
     <ClCompile Include="Graphics\Resources\Mesh.cpp" />
     <ClCompile Include="Graphics\Resources\ObjMesh.cpp" />
@@ -257,7 +252,6 @@
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
     <ClCompile Include="System\EventSystem.cpp" />
-    <ClCompile Include="System\GLCDrawingSystem.cpp" />
     <ClCompile Include="System\InputSystem.cpp" />
     <ClCompile Include="Third-party\glad\glad.c" />
     <ClCompile Include="Third-party\ImGui\imgui.cpp" />

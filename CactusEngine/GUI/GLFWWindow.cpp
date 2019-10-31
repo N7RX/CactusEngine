@@ -58,7 +58,10 @@ void GLFWWindow::Initialize()
 		break;
 	}
 
-	//glfwSwapInterval(0); // TODO: wrap this with V-sync configuration control
+	if (!gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetVSync())
+	{
+		glfwSwapInterval(0);
+	}
 
 	InitImGui(m_pGLFWWindowHandle);
 }

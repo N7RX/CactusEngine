@@ -129,9 +129,6 @@
     <ClInclude Include="Component\CameraComponent.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Component\GLCComponent.h">
-      <Filter>Component\Header</Filter>
-    </ClInclude>
     <ClInclude Include="Component\MaterialComponent.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
@@ -213,9 +210,6 @@
     <ClInclude Include="Component\BaseComponent.h">
       <Filter>Component</Filter>
     </ClInclude>
-    <ClInclude Include="System\GLCDrawingSystem.h">
-      <Filter>System</Filter>
-    </ClInclude>
     <ClInclude Include="GUI\ImGuiOverlay.h">
       <Filter>GUI</Filter>
     </ClInclude>
@@ -248,9 +242,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Resources\RenderTexture.h">
       <Filter>Graphics\Resources\Texture</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Resources\GLCMesh.h">
-      <Filter>Graphics\Resources\Mesh</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Resources\Mesh.h">
       <Filter>Graphics\Resources\Mesh</Filter>
@@ -329,9 +320,6 @@
     <ClCompile Include="Component\CameraComponent.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Component\GLCComponent.cpp">
-      <Filter>Component\Source</Filter>
-    </ClCompile>
     <ClCompile Include="Component\MaterialComponent.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
@@ -386,9 +374,6 @@
     <ClCompile Include="Component\BaseComponent.cpp">
       <Filter>Component</Filter>
     </ClCompile>
-    <ClCompile Include="System\GLCDrawingSystem.cpp">
-      <Filter>System</Filter>
-    </ClCompile>
     <ClCompile Include="GUI\ImGuiOverlay.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
@@ -415,9 +400,6 @@
     </ClCompile>
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp">
       <Filter>Graphics\Resources\Texture</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Resources\GLCMesh.cpp">
-      <Filter>Graphics\Resources\Mesh</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Resources\Mesh.cpp">
       <Filter>Graphics\Resources\Mesh</Filter>
