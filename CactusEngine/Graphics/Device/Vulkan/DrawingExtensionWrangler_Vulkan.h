@@ -1,6 +1,7 @@
 #pragma once
 
 #define ENABLE_COPY_QUEUE_VK
+#define ENABLE_HETEROGENEOUS_GPUS_VK
 #define VK_USE_PLATFORM_WIN32_KHR
 
 #include <vulkan.h>

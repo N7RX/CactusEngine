@@ -39,9 +39,9 @@ void RenderNode::Execute()
 	}
 }
 
-void RenderGraph::AddRenderNode(ERenderNodeType type, std::shared_ptr<RenderNode> pNode)
+void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
 {
-	m_nodes.emplace(type, pNode);
+	m_nodes.emplace(name, pNode);
 }
 
 void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContext)
@@ -63,11 +63,11 @@ void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContex
 	}
 }
 
-std::shared_ptr<RenderNode> RenderGraph::GetNodeByType(ERenderNodeType type) const
+std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
 {
-	if (m_nodes.find(type) != m_nodes.end())
+	if (m_nodes.find(name) != m_nodes.end())
 	{
-		return m_nodes.at(type);
+		return m_nodes.at(name);
 	}
 	return nullptr;
 }

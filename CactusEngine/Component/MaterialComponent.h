@@ -25,12 +25,8 @@ namespace Engine
 
 	private:
 		EBuiltInShaderProgramType m_useShaderType;
-
-		std::shared_ptr<Texture2D> m_pAlbedoTexture;
-		std::shared_ptr<Texture2D> m_pNoiseTexture;
-
+		std::unordered_map<EMaterialTextureType, std::shared_ptr<Texture2D>> m_Textures;
 		Color4 m_albedoColor;
-
 		bool m_transparentPass;
 	};
 }

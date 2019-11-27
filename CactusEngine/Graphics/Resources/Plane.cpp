@@ -48,5 +48,10 @@ Plane::Plane(uint32_t dimLength, uint32_t dimWidth)
 		}
 	}
 
+	m_subMeshes.resize(1);
+	m_subMeshes[0].m_baseIndex = 0;
+	m_subMeshes[0].m_baseVertex = 0;
+	m_subMeshes[0].m_numIndices = vertexIndices.size();
+
 	CreateVertexBufferFromVertices(positions, normals, texcoords, vertexIndices);
 }

@@ -169,7 +169,17 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	return true;
 }
 
+void DrawingDevice_OpenGL::ClearRenderTarget()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
 void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
+{
+	SetRenderTarget(pFrameBuffer, std::vector<uint32_t>());
+}
+
+void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
 {
 	if (pFrameBuffer == nullptr)
 	{
@@ -180,19 +190,32 @@ void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pF
 	auto pTarget = std::static_pointer_cast<FrameBuffer_OpenGL>(pFrameBuffer);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, pTarget->GetGLFrameBufferID());
-	glDrawBuffers(pTarget->GetColorAttachmentCount(), pTarget->GetColorAttachments());
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Alert: clearing target here might be incorrect
+	if (attachments.size() == 0) // Default to draw all attachments
+	{
+		glDrawBuffers(pTarget->GetColorAttachmentCount(), pTarget->GetColorAttachments());
+	}
+	else
+	{
+		if (attachments.size() == 1)
+		{
+			glDrawBuffer(pTarget->GetColorAttachment(attachments[0]));
+		}
+		else
+		{
+			std::vector<GLenum> colorAttachments;
+			for (unsigned int i = 0; i < attachments.size(); ++i)
+			{
+				colorAttachments.emplace_back(pTarget->GetColorAttachment(attachments[i]));
+			}
+			glDrawBuffers(colorAttachments.size(), colorAttachments.data());
+		}
+	}
 }
 
 void DrawingDevice_OpenGL::SetClearColor(Color4 color)
 {
 	glClearColor(color.r, color.g, color.b, color.a);
-}
-
-void DrawingDevice_OpenGL::ClearTarget()
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void DrawingDevice_OpenGL::SetBlendState(const DeviceBlendStateInfo& blendInfo)
@@ -233,7 +256,6 @@ void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> p
 void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
 {
 	glDrawElementsBaseVertex(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
-	glBindVertexArray(0);
 }
 
 void DrawingDevice_OpenGL::DrawFullScreenQuad()

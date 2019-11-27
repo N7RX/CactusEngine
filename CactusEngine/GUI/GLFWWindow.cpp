@@ -1,6 +1,7 @@
 #include "GLFWWindow.h"
 #include "Global.h"
 #include "ImGuiOverlay.h"
+#include <iostream>
 
 using namespace Engine;
 
@@ -14,9 +15,14 @@ GLFWWindow::~GLFWWindow()
 	ShutDown();
 }
 
-void Engine::GLFWFramebufferSizeCallback(GLFWwindow* pWindow, int width, int height)
+void Engine::GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int width, int height)
 {
 	glViewport(0, 0, width, height);
+}
+
+void Engine::GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int width, int height)
+{
+	std::cout << "Vulkan window resized but not handled\n";
 }
 
 void GLFWWindow::Initialize()
@@ -38,7 +44,7 @@ void GLFWWindow::Initialize()
 			glfwTerminate();
 		}
 		glfwMakeContextCurrent(m_pGLFWWindowHandle);
-		glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
+		glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback_GL);
 
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
@@ -50,7 +56,18 @@ void GLFWWindow::Initialize()
 	}
 	case eDevice_Vulkan:
 	{
-		throw std::runtime_error("Vulkan device is not implemented yet.");
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+		m_pGLFWWindowHandle = glfwCreateWindow(m_windowWidth, m_windowHeight, m_windowName, NULL, NULL);
+		if (m_pGLFWWindowHandle == NULL)
+		{
+			throw std::runtime_error("Failed to create GLFW window");
+			glfwTerminate();
+		}
+
+		glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback_VK);
+
+		gpGlobal->MarkGlobalState(eGlobalState_GLFWInit, true);
 		break;
 	}
 	default:

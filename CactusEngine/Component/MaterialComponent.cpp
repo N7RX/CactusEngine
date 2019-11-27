@@ -20,32 +20,16 @@ void MaterialComponent::SetShaderProgram(EBuiltInShaderProgramType shaderProgram
 
 void MaterialComponent::SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture)
 {
-	switch (type)
-	{
-	case eMaterialTexture_Albedo:
-		m_pAlbedoTexture = pTexture;
-		break;
-	case eMaterialTexture_Noise:
-		m_pNoiseTexture = pTexture;
-		break;
-	default:
-		std::cerr << "Unhandled texture type.\n";
-		break;
-	}
+	m_Textures[type] = pTexture;
 }
 
 std::shared_ptr<Texture2D> MaterialComponent::GetTexture(EMaterialTextureType type) const
 {
-	switch (type)
+	if (m_Textures.find(type) != m_Textures.end())
 	{
-	case eMaterialTexture_Albedo:
-		return m_pAlbedoTexture;
-	case eMaterialTexture_Noise:
-		return m_pNoiseTexture;
-	default:
-		std::cerr << "Unhandled texture type.\n";
-		return nullptr;
+		return m_Textures.at(type);
 	}
+	return nullptr;
 }
 
 void MaterialComponent::SetAlbedoColor(Color4 albedo)

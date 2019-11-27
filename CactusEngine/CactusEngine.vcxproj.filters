@@ -20,6 +20,30 @@
     <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\AnimeStyle.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\AnimeStyle.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\NormalOnly.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\NormalOnly.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\Gaussian.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LineDrawing_Curvature.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LineDrawing_Color.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">
@@ -99,6 +123,9 @@
     </Filter>
     <Filter Include="Graphics\RenderGraph">
       <UniqueIdentifier>{9ba1326b-3234-4ebb-b21a-290a6cf81622}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Script">
+      <UniqueIdentifier>{26716332-c88f-43e3-b6f7-ac20d9fe4ee8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -297,6 +324,21 @@
     <ClInclude Include="Interface\NoCopy.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Script\BaseScript.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="System\ScriptSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\AllComponents.h">
+      <Filter>Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\CameraScript.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\ScriptComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -442,6 +484,15 @@
     </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp">
       <Filter>Graphics\RenderGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="System\ScriptSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\CameraScript.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\ScriptComponent.cpp">
+      <Filter>Component\Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

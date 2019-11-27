@@ -3,7 +3,7 @@
 using namespace Engine;
 
 TransformComponent::TransformComponent()
-	: BaseComponent(eCompType_Transform), m_position(Vector3(0, 0, 0)), m_scale(Vector3(1, 1, 1)), m_rotationEuler(Vector3(0, 0, 0)), 
+	: BaseComponent(eCompType_Transform), m_position(Vector3(0, 0, 0)), m_scale(Vector3(1, 1, 1)), m_rotationEuler(Vector3(0, -90, 0)), 
 	m_forwardDirection(Vector3(0, 0, -1)), m_rightDirection(Vector3(1, 0, 0))
 {
 }
@@ -41,11 +41,20 @@ void TransformComponent::SetScale(Vector3 newScale)
 
 void TransformComponent::SetRotation(Vector3 newRotation)
 {
+	//Vector3 diff = newRotation - m_rotationEuler;
 	m_rotationEuler = newRotation;
 
-	m_forwardDirection = Vector3(
-		(glm::rotate(m_rotationEuler.x * D2R, X_AXIS)*glm::rotate(m_rotationEuler.y * D2R, Y_AXIS)*glm::rotate(m_rotationEuler.z * D2R, Z_AXIS))
-		* Vector4(m_forwardDirection, 1.0f));
+	m_forwardDirection.x = cos(m_rotationEuler.y * D2R) * cos(m_rotationEuler.x * D2R);
+	m_forwardDirection.y = sin(m_rotationEuler.x * D2R);
+	m_forwardDirection.z = sin(m_rotationEuler.y * D2R) * cos(m_rotationEuler.x * D2R);
+
+	m_forwardDirection = glm::normalize(m_forwardDirection);
+
+	//m_forwardDirection = Vector3(
+	//	(glm::rotate(diff.x * D2R, X_AXIS)*glm::rotate(diff.y * D2R, Y_AXIS)*glm::rotate(diff.z * D2R, Z_AXIS))
+	//	* Vector4(m_forwardDirection, 1.0f));
+
+	m_rightDirection = glm::normalize(glm::cross(m_forwardDirection, UP));
 }
 
 Vector3 TransformComponent::GetForwardDirection() const

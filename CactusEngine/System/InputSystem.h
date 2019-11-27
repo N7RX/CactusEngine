@@ -4,6 +4,7 @@
 #include "Global.h"
 #include "GLFWWindow.h"
 #include "NoCopy.h"
+#include "BasicMathTypes.h"
 
 namespace Engine
 {
@@ -23,10 +24,14 @@ namespace Engine
 		void Tick();
 		void FrameEnd();
 
+		static bool GetKeyPress(char key);
+		static bool GetMousePress(int key);
+		static Vector2 GetCursorPosition();
+
 	private:
 		uint32_t m_systemID;
 #if defined(GLFW_IMPLEMENTATION_CACTUS)
-		GLFWwindow* m_pGLFWWindow;
+		static GLFWwindow* m_pGLFWWindow;
 #endif
 	};
 }

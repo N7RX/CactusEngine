@@ -16,7 +16,7 @@ DrawingFence_Vulkan::DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t as
 
 }
 
-DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice)
+DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
 	: m_pDevice(pDevice)
 {
 
@@ -80,7 +80,7 @@ bool DrawingSyncObjectManager_Vulkan::CreateNewSemaphore(uint32_t count)
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		VkSemaphore newSemaphore;
-		if (vkCreateSemaphore(m_pDevice->GetLogicalDevice(), &semaphoreInfo, nullptr, &newSemaphore) == VK_SUCCESS)
+		if (vkCreateSemaphore(m_pDevice->logicalDevice, &semaphoreInfo, nullptr, &newSemaphore) == VK_SUCCESS)
 		{
 			uint32_t newID = static_cast<uint32_t>(m_semaphorePool.size()); // We use current pool size as assigned ID
 			m_semaphorePool.emplace_back(std::make_shared<DrawingSemaphore_Vulkan>(newSemaphore, newID));
@@ -107,7 +107,7 @@ bool DrawingSyncObjectManager_Vulkan::CreateNewFence(uint32_t count, bool signal
 	for (uint32_t i = 0; i < count; ++i)
 	{
 		VkFence newFence;
-		if (vkCreateFence(m_pDevice->GetLogicalDevice(), &fenceInfo, nullptr, &newFence) == VK_SUCCESS)
+		if (vkCreateFence(m_pDevice->logicalDevice, &fenceInfo, nullptr, &newFence) == VK_SUCCESS)
 		{
 			uint32_t newID = static_cast<uint32_t>(m_fencePool.size()); // We use current pool size as assigned ID
 			m_fencePool.emplace_back(std::make_shared<DrawingFence_Vulkan>(newFence, newID));

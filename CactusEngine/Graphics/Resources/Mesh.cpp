@@ -12,6 +12,11 @@ std::shared_ptr<VertexBuffer> Mesh::GetVertexBuffer() const
 	return m_pVertexBuffer;
 }
 
+const std::vector<SubMesh>* Mesh::GetSubMeshes() const
+{
+	return &m_subMeshes;
+}
+
 void Mesh::CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<int>& indices)
 {
 	if (!m_pDevice)

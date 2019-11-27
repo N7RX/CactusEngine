@@ -6,6 +6,27 @@
 
 namespace Engine
 {
+	enum PhysicalDeviceType_Vulkan
+	{
+		eVulkanPhysicalDeviceType_Integrated = 0,
+		eVulkanPhysicalDeviceType_Discrete
+	};
+
+	struct LogicalDevice_Vulkan
+	{
+		PhysicalDeviceType_Vulkan type;
+		VkPhysicalDevice physicalDevice;
+		VkDevice logicalDevice;
+		VkPhysicalDeviceProperties deviceProperties;
+		DrawingCommandQueue_Vulkan presentQueue;
+		DrawingCommandQueue_Vulkan graphicsQueue;
+		std::shared_ptr<DrawingCommandManager_Vulkan> pGraphicsCommandManager;
+#if defined(ENABLE_COPY_QUEUE_VK)
+		DrawingCommandQueue_Vulkan copyQueue;
+		std::shared_ptr<DrawingCommandManager_Vulkan> pCopyCommandManager;
+#endif
+	};
+
 	class DrawingDevice_Vulkan : public DrawingDevice
 	{
 	public:
@@ -46,21 +67,22 @@ namespace Engine
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;
 
+		void ClearRenderTarget() override;
+		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
 		void SetClearColor(Color4 color) override;
-		void ClearTarget() override;
 		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
-		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex = 0, uint32_t baseVertex = 0) override;
+		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) override;
 		void DrawFullScreenQuad() override;
 
 		void Present() override;
 
 		EGraphicsDeviceType GetDeviceType() const override;
 
-		VkPhysicalDevice GetPhysicalDevice() const;
-		VkDevice GetLogicalDevice() const;
+		VkPhysicalDevice GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const;
+		VkDevice GetLogicalDevice(PhysicalDeviceType_Vulkan type) const;
 
 		void ConfigureStates_Test() override;
 
@@ -71,6 +93,8 @@ namespace Engine
 		void CreatePresentationSurface();
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
+		void CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice);
+
 		void SetupCommandManager();
 		void SetupUploadAllocator();
 		void SetupDescriptorAllocator();
@@ -88,25 +112,19 @@ namespace Engine
 
 	private:
 		VkInstance m_instance;
-		VkPhysicalDevice m_physicalDevice;
-		VkDevice m_logicalDevice;
+
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDiscreteDevice;
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+		std::shared_ptr<LogicalDevice_Vulkan> m_pIntegratedDevice;
+#endif
 
 		VkApplicationInfo m_appInfo;
 		std::vector<const char*> m_requiredExtensions;
-		VkPhysicalDeviceProperties m_deviceProperties;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
 		VkSurfaceKHR m_presentationSurface;
 
 		VkDebugUtilsMessengerEXT m_debugMessenger;
-
-		DrawingCommandQueue_Vulkan m_presentQueue;
-		DrawingCommandQueue_Vulkan m_graphicsQueue;
-		std::shared_ptr<DrawingCommandManager_Vulkan> m_pGraphicsCommandManager;
-#if defined(ENABLE_COPY_QUEUE_VK)
-		DrawingCommandQueue_Vulkan m_copyQueue;
-		std::shared_ptr<DrawingCommandManager_Vulkan> m_pCopyCommandManager;		
-#endif
 	};
 
 	template<>

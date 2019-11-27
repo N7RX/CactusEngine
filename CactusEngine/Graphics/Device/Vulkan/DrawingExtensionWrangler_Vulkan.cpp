@@ -167,7 +167,12 @@ std::vector<const char*> Engine::GetRequiredExtensions_VK(bool enableValidationL
 
 bool Engine::IsPhysicalDeviceSuitable_VK(const VkPhysicalDevice& device, const VkSurfaceKHR& surface, const std::vector<const char*>& deviceExtensions)
 {
-	QueueFamilyIndices_VK indices = FindQueueFamilies_VK(device, surface);
+	if (device == VK_NULL_HANDLE || surface == VK_NULL_HANDLE)
+	{
+		return false;
+	}
+
+	//QueueFamilyIndices_VK indices = FindQueueFamilies_VK(device, surface);
 
 	bool extensionsSupported = CheckDeviceExtensionsSupport_VK(device, deviceExtensions);
 
@@ -181,7 +186,8 @@ bool Engine::IsPhysicalDeviceSuitable_VK(const VkPhysicalDevice& device, const V
 	// Add extra selection criteria here
 	// ...
 
-	return indices.isComplete() && extensionsSupported && swapChainAdequate;
+	//return indices.isComplete() && extensionsSupported && swapChainAdequate;
+	return extensionsSupported && swapChainAdequate;
 }
 
 QueueFamilyIndices_VK Engine::FindQueueFamilies_VK(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)
@@ -224,7 +230,7 @@ QueueFamilyIndices_VK Engine::FindQueueFamilies_VK(const VkPhysicalDevice& devic
 
 	if (!indices.isComplete())
 	{
-		throw std::runtime_error("Vulkan: Could not find required queues.");
+		std::cerr << "Vulkan: Some queue family is not supported by a physical device.\n";
 	}
 
 	return indices;

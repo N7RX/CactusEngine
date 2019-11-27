@@ -35,11 +35,11 @@ namespace Engine
 		friend class DrawingCommandManager_Vulkan;
 	};
 
-	class DrawingDevice_Vulkan;
+	struct LogicalDevice_Vulkan;
 	class DrawingCommandManager_Vulkan : public NoCopy
 	{
 	public:
-		DrawingCommandManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue);
+		DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue);
 		~DrawingCommandManager_Vulkan();
 
 		EQueueType GetWorkingQueueType() const;
@@ -57,7 +57,7 @@ namespace Engine
 		const uint32_t MAX_COMMAND_BUFFER_COUNT = 64;
 
 	private:
-		std::shared_ptr<DrawingDevice_Vulkan> m_pDevice;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		DrawingCommandQueue_Vulkan m_workingQueue;
 
 		VkCommandPool m_commandPool;

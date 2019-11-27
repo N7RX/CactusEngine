@@ -34,11 +34,11 @@ namespace Engine
 		friend class DrawingSyncObjectManager_Vulkan;
 	};
 
-	class DrawingDevice_Vulkan;
+	struct LogicalDevice_Vulkan;
 	class DrawingSyncObjectManager_Vulkan : public NoCopy
 	{
 	public:
-		DrawingSyncObjectManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice);
+		DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
 
 		std::shared_ptr<DrawingSemaphore_Vulkan> RequestSemaphore();
 		std::shared_ptr<DrawingFence_Vulkan> RequestFence();
@@ -55,7 +55,7 @@ namespace Engine
 		const uint32_t MAX_FENCE_COUNT = 64;
 
 	private:
-		std::shared_ptr<DrawingDevice_Vulkan> m_pDevice;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		mutable std::mutex m_mutex;
 
 		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_semaphorePool;

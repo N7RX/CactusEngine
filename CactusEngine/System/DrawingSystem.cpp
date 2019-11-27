@@ -107,6 +107,12 @@ bool DrawingSystem::LoadShaders()
 		m_shaderPrograms[eShaderProgram_Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
 		m_shaderPrograms[eShaderProgram_WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
 		m_shaderPrograms[eShaderProgram_DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2);
+		m_shaderPrograms[eShaderProgram_NormalOnly] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_NORMALONLY_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_NORMALONLY_OPENGL);
+		m_shaderPrograms[eShaderProgram_GaussianBlur] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GAUSSIANBLUR);
+		m_shaderPrograms[eShaderProgram_AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
+		m_shaderPrograms[eShaderProgram_LineDrawing_Curvature] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_CURVATURE);
+		m_shaderPrograms[eShaderProgram_LineDrawing_Color] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_COLOR);
+		m_shaderPrograms[eShaderProgram_LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND);
 		break;
 	}
 	case eDevice_Vulkan:
@@ -150,7 +156,7 @@ void DrawingSystem::ExecuteRenderTask()
 	{
 		m_pDevice->SetClearColor(pCameraComp->GetClearColor());
 	}
-	m_pDevice->ClearTarget();
+	m_pDevice->ClearRenderTarget();
 
 	// Alert: we are ignoring renderer priority at this moment
 	for (auto& renderList : m_renderTaskTable)

@@ -25,5 +25,6 @@ namespace Engine
 		GLFWwindow* m_pGLFWWindowHandle;
 	};
 
-	extern void GLFWFramebufferSizeCallback(GLFWwindow* pWindow, int width, int height);
+	extern void GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int width, int height);
+	extern void GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int width, int height);
 }

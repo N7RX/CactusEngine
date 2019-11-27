@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -136,10 +136,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag" />
+    <None Include="Assets\Shader\GLSL\AnimeStyle.frag" />
+    <None Include="Assets\Shader\GLSL\AnimeStyle.vert" />
     <None Include="Assets\Shader\GLSL\Basic.frag" />
     <None Include="Assets\Shader\GLSL\Basic.vert" />
     <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag" />
     <None Include="Assets\Shader\GLSL\FullScreenQuad.vert" />
+    <None Include="Assets\Shader\GLSL\Gaussian.frag" />
+    <None Include="Assets\Shader\GLSL\LineDrawing_Color.frag" />
+    <None Include="Assets\Shader\GLSL\LineDrawing_Curvature.frag" />
+    <None Include="Assets\Shader\GLSL\NormalOnly.frag" />
+    <None Include="Assets\Shader\GLSL\NormalOnly.vert" />
     <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
     <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="packages.config" />
@@ -152,12 +160,14 @@
     <ClInclude Include="Common\Global.h" />
     <ClInclude Include="Common\Math\BasicMathTypes.h" />
     <ClInclude Include="Common\SharedTypes.h" />
+    <ClInclude Include="Component\AllComponents.h" />
     <ClInclude Include="Component\AnimationComponent.h" />
     <ClInclude Include="Component\BaseComponent.h" />
     <ClInclude Include="Component\CameraComponent.h" />
     <ClInclude Include="Component\MaterialComponent.h" />
     <ClInclude Include="Component\MeshFilterComponent.h" />
     <ClInclude Include="Component\MeshRendererComponent.h" />
+    <ClInclude Include="Component\ScriptComponent.h" />
     <ClInclude Include="Component\TransformComponent.h" />
     <ClInclude Include="Entity\BaseEntity.h" />
     <ClInclude Include="Entity\EntityProperties.h" />
@@ -195,10 +205,13 @@
     <ClInclude Include="Interface\IRenderer.h" />
     <ClInclude Include="Interface\ISystem.h" />
     <ClInclude Include="Interface\NoCopy.h" />
+    <ClInclude Include="Script\BaseScript.h" />
+    <ClInclude Include="Script\CameraScript.h" />
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\EventSystem.h" />
     <ClInclude Include="System\InputSystem.h" />
+    <ClInclude Include="System\ScriptSystem.h" />
     <ClInclude Include="Third-party\glad\glad.h" />
     <ClInclude Include="Third-party\ImGui\imconfig.h" />
     <ClInclude Include="Third-party\ImGui\imgui.h" />
@@ -223,6 +236,7 @@
     <ClCompile Include="Component\MaterialComponent.cpp" />
     <ClCompile Include="Component\MeshFilterComponent.cpp" />
     <ClCompile Include="Component\MeshRendererComponent.cpp" />
+    <ClCompile Include="Component\ScriptComponent.cpp" />
     <ClCompile Include="Component\TransformComponent.cpp" />
     <ClCompile Include="Entity\BaseEntity.cpp" />
     <ClCompile Include="Entity\StandardEntity.cpp" />
@@ -249,10 +263,12 @@
     <ClCompile Include="GUI\BaseWindow.cpp" />
     <ClCompile Include="GUI\GLFWWindow.cpp" />
     <ClCompile Include="GUI\ImGuiOverlay.cpp" />
+    <ClCompile Include="Script\CameraScript.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
     <ClCompile Include="System\EventSystem.cpp" />
     <ClCompile Include="System\InputSystem.cpp" />
+    <ClCompile Include="System\ScriptSystem.cpp" />
     <ClCompile Include="Third-party\glad\glad.c" />
     <ClCompile Include="Third-party\ImGui\imgui.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_demo.cpp" />

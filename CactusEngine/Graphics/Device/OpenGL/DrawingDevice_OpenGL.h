@@ -19,13 +19,14 @@ namespace Engine
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;
 
+		void ClearRenderTarget() override;
+		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
 		void SetClearColor(Color4 color) override;
-		void ClearTarget() override;
 		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
-		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex = 0, uint32_t baseVertex = 0) override;
+		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) override;
 		void DrawFullScreenQuad() override;
 
 		void Present() override;

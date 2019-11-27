@@ -1,20 +1,17 @@
+#include <iostream>
 #include "GraphicsApplication.h"
 #include "Global.h"
 #include "DrawingSystem.h"
+#include "InputSystem.h"
 #include "AnimationSystem.h"
-#include "TransformComponent.h"
-#include "MeshFilterComponent.h"
-#include "MeshRendererComponent.h"
-#include "AnimationComponent.h"
-#include "CameraComponent.h"
-#include "MaterialComponent.h"
+#include "ScriptSystem.h"
+#include "AllComponents.h"
 #include "StandardEntity.h"
 #include "ObjMesh.h"
 #include "Timer.h"
 #include "Plane.h"
 #include "ImageTexture.h"
-#include "InputSystem.h"
-#include <iostream>
+#include "CameraScript.h"
 
 // This is the entry of the program
 
@@ -90,7 +87,8 @@ void TestSetup(GraphicsApplication* pApp)
 	// Alert: the registration sequence corresponds to execution sequence
 	pWorld->RegisterSystem<InputSystem>(eSystem_Input);
 	pWorld->RegisterSystem<AnimationSystem>(eSystem_Animation);
-	pWorld->RegisterSystem<DrawingSystem>(eSystem_Drawing);
+	pWorld->RegisterSystem<DrawingSystem>(eSystem_Script);
+	pWorld->RegisterSystem<ScriptSystem>(eSystem_Drawing);
 
 	// Camera
 
@@ -98,13 +96,18 @@ void TestSetup(GraphicsApplication* pApp)
 	pCameraComponent->SetClearColor(Color4(0.2f, 0.2f, 0.3f, 1.0f));
 
 	auto pCameraTransformComp = pWorld->CreateComponent<TransformComponent>();
-	pCameraTransformComp->SetPosition(Vector3(0, 2, 6.5f));
-	pCameraTransformComp->SetRotation(Vector3(-30, 0, 0));
+	pCameraTransformComp->SetPosition(Vector3(0, 1.5f, 6.5f));
+	pCameraTransformComp->SetRotation(Vector3(-17, -90, 0));
+
+	auto pCameraScriptComp = pWorld->CreateComponent<ScriptComponent>();
 
 	auto pCamera = pWorld->CreateEntity<StandardEntity>();
 	pCamera->AttachComponent(pCameraComponent);
 	pCamera->AttachComponent(pCameraTransformComp);
+	pCamera->AttachComponent(pCameraScriptComp);
 	pCamera->SetEntityTag(eEntityTag_MainCamera);
+
+	pCameraScriptComp->BindScript(std::make_shared<SampleScript::CameraScript>(pCamera));
 
 	// Cube
 
@@ -377,10 +380,11 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Unity Chan
 
-	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/UnityChan.obj");
+	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/unitychan_v1.3ds");
+	auto pToneTexture = std::make_shared<ImageTexture>("Assets/Textures/XToon.png");
 
 	auto pTransformComp10 = pWorld->CreateComponent<TransformComponent>();
-	pTransformComp10->SetPosition(Vector3(0, -0.5f, 2.5));
+	pTransformComp10->SetPosition(Vector3(0, 0.5f, 5.3f));
 	pTransformComp10->SetScale(Vector3(0.02f, 0.02f, 0.02f));
 	pTransformComp10->SetRotation(Vector3(0, 0, 0));
 
@@ -388,9 +392,10 @@ void TestSetup(GraphicsApplication* pApp)
 	pMeshFilterComp10->SetMesh(pCharMesh);
 
 	auto pMaterialComp10 = std::make_shared<MaterialComponent>();
-	pMaterialComp10->SetAlbedoColor(Color4(1.0f, 0.8f, 0.8f, 1));
-	pMaterialComp10->SetShaderProgram(eShaderProgram_Basic);
+	pMaterialComp10->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
+	pMaterialComp10->SetShaderProgram(eShaderProgram_AnimeStyle);
 	pMaterialComp10->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+	pMaterialComp10->SetTexture(eMaterialTexture_Tone, pToneTexture);
 
 	auto pMeshRendererComp10 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp10->SetRenderer(eRenderer_Forward);

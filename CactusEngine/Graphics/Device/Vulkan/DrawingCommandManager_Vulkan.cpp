@@ -28,7 +28,7 @@ bool DrawingCommandBuffer_Vulkan::InExecution() const
 	return m_inExecution;
 }
 
-DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
+DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
 	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE)
 {
 
@@ -36,7 +36,7 @@ DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr
 
 DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
 {
-	vkDestroyCommandPool(m_pDevice->GetLogicalDevice(), m_commandPool, nullptr);
+	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
 }
 
 EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
@@ -84,7 +84,7 @@ void DrawingCommandManager_Vulkan::CreateCommandPool()
 	poolInfo.queueFamilyIndex = m_workingQueue.queueFamilyIndex;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Alert: all command buffers allocated from this pool can be reset
 
-	vkCreateCommandPool(m_pDevice->GetLogicalDevice(), &poolInfo, nullptr, &m_commandPool);
+	vkCreateCommandPool(m_pDevice->logicalDevice, &poolInfo, nullptr, &m_commandPool);
 }
 
 bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
@@ -99,7 +99,7 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = count;
 
-	if (vkAllocateCommandBuffers(m_pDevice->GetLogicalDevice(), &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
+	if (vkAllocateCommandBuffers(m_pDevice->logicalDevice, &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
 	{
 		for (auto& cmdBuffer : cmdBufferHandles)
 		{

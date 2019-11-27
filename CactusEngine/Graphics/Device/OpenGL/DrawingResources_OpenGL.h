@@ -44,6 +44,7 @@ namespace Engine
 
 		void AddColorAttachment(GLenum attachment);
 		size_t GetColorAttachmentCount() const;
+		GLenum GetColorAttachment(uint32_t index) const;
 		const GLenum* GetColorAttachments() const;
 
 	private:

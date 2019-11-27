@@ -26,7 +26,9 @@ void DrawingDevice_Vulkan::SetupDevice()
 
 void DrawingDevice_Vulkan::Initialize()
 {
-	
+	SetupCommandManager();
+	SetupUploadAllocator();
+	SetupDescriptorAllocator();
 }
 
 void DrawingDevice_Vulkan::ShutDown()
@@ -54,17 +56,22 @@ bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	return false;
 }
 
+void DrawingDevice_Vulkan::ClearRenderTarget()
+{
+
+}
+
+void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
+{
+
+}
+
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
 
 }
 
 void DrawingDevice_Vulkan::SetClearColor(Color4 color)
-{
-
-}
-
-void DrawingDevice_Vulkan::ClearTarget()
 {
 
 }
@@ -104,14 +111,30 @@ EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const
 	return eDevice_Vulkan;
 }
 
-VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice() const
+VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const
 {
-	return m_physicalDevice;
+	switch (type)
+	{
+	case eVulkanPhysicalDeviceType_Integrated:
+		return m_pIntegratedDevice->physicalDevice;
+	case eVulkanPhysicalDeviceType_Discrete:
+		return m_pDiscreteDevice->physicalDevice;
+	default:
+		return VK_NULL_HANDLE;
+	}
 }
 
-VkDevice DrawingDevice_Vulkan::GetLogicalDevice() const
+VkDevice DrawingDevice_Vulkan::GetLogicalDevice(PhysicalDeviceType_Vulkan type) const
 {
-	return m_logicalDevice;
+	switch (type)
+	{
+	case eVulkanPhysicalDeviceType_Integrated:
+		return m_pIntegratedDevice->logicalDevice;
+	case eVulkanPhysicalDeviceType_Discrete:
+		return m_pDiscreteDevice->logicalDevice;
+	default:
+		return VK_NULL_HANDLE;
+	}
 }
 
 void DrawingDevice_Vulkan::ConfigureStates_Test()
@@ -252,36 +275,80 @@ void DrawingDevice_Vulkan::SelectPhysicalDevice()
 	std::vector<VkPhysicalDevice> devices(deviceCount);
 	vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
+	std::vector<VkPhysicalDevice> suitableDevices;
 	for (const auto& device : devices)
 	{
 		if (IsPhysicalDeviceSuitable_VK(device, m_presentationSurface, m_deviceExtensions))
 		{
-			m_physicalDevice = device;
-			break;
+			suitableDevices.emplace_back(device);
 		}
 	}
 
-	if (m_physicalDevice == VK_NULL_HANDLE)
+	if (suitableDevices.size() == 0)
 	{
 		throw std::runtime_error("Vulkan: Failed to find a suitable GPU.");
 		return;
 	}
 
-	vkGetPhysicalDeviceProperties(m_physicalDevice, &m_deviceProperties);
+	for (const auto& device : suitableDevices)
+	{
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
+			m_pDiscreteDevice->physicalDevice = device;
+			m_pDiscreteDevice->deviceProperties = deviceProperties;
+
 #if defined(_DEBUG)
-	PrintPhysicalDeviceInfo_VK(m_deviceProperties);
+			PrintPhysicalDeviceInfo_VK(deviceProperties);
 #endif
+		}
+		else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		{
+			m_pIntegratedDevice->physicalDevice = device;
+			m_pIntegratedDevice->deviceProperties = deviceProperties;
+
+#if defined(_DEBUG)
+			PrintPhysicalDeviceInfo_VK(deviceProperties);
+#endif
+		}
+	}
 }
 
 void DrawingDevice_Vulkan::CreateLogicalDevice()
 {
-	QueueFamilyIndices_VK queueFamilyIndices = FindQueueFamilies_VK(m_physicalDevice, m_presentationSurface);
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	CreateLogicalDevice(m_pIntegratedDevice);
+#endif
+	CreateLogicalDevice(m_pDiscreteDevice);
+
+	{
+		std::cout << "Success!\n";
+		system("pause");
+	}
+}
+
+void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice)
+{
+	QueueFamilyIndices_VK queueFamilyIndices = FindQueueFamilies_VK(pDevice->physicalDevice, m_presentationSurface);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+	std::set<uint32_t> uniqueQueueFamilies;
+
+	if (queueFamilyIndices.graphicsFamily.has_value())
+	{
+		uniqueQueueFamilies.emplace(queueFamilyIndices.graphicsFamily.value());
+	}
+	if (queueFamilyIndices.presentFamily.has_value())
+	{
+		uniqueQueueFamilies.emplace(queueFamilyIndices.presentFamily.value());
+	}
 #if defined(ENABLE_COPY_QUEUE_VK)
-	std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value(), queueFamilyIndices.copyFamily.value() };
-#else
-	std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value() };
+	if (queueFamilyIndices.copyFamily.has_value())
+	{
+		uniqueQueueFamilies.emplace(queueFamilyIndices.copyFamily.value());
+	}
 #endif
 
 	float queuePriority = 1.0f;
@@ -314,36 +381,53 @@ void DrawingDevice_Vulkan::CreateLogicalDevice()
 		deviceCreateInfo.enabledLayerCount = 0;
 	}
 
-	VkResult result = vkCreateDevice(m_physicalDevice, &deviceCreateInfo, nullptr, &m_logicalDevice);
+	VkResult result = vkCreateDevice(pDevice->physicalDevice, &deviceCreateInfo, nullptr, &pDevice->logicalDevice);
 
-	if (result != VK_SUCCESS || m_logicalDevice == VK_NULL_HANDLE)
+	if (result != VK_SUCCESS || pDevice->logicalDevice == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan: Failed to create logical device.");
 		return;
 	}
 
-	m_graphicsQueue.type = eQueue_Graphics;
-	m_graphicsQueue.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-	vkGetDeviceQueue(m_logicalDevice, m_graphicsQueue.queueFamilyIndex, 0, &m_graphicsQueue.queue);
+	if (queueFamilyIndices.graphicsFamily.has_value())
+	{
+		pDevice->graphicsQueue.type = eQueue_Graphics;
+		pDevice->graphicsQueue.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->graphicsQueue.queueFamilyIndex, 0, &pDevice->graphicsQueue.queue);
+	}
 
-	m_presentQueue.type = eQueue_Present;
-	m_presentQueue.queueFamilyIndex = queueFamilyIndices.presentFamily.value();	
-	vkGetDeviceQueue(m_logicalDevice, m_presentQueue.queueFamilyIndex, 0, &m_presentQueue.queue);
+	if (queueFamilyIndices.presentFamily.has_value())
+	{
+		pDevice->presentQueue.type = eQueue_Present;
+		pDevice->presentQueue.queueFamilyIndex = queueFamilyIndices.presentFamily.value();
+		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->presentQueue.queueFamilyIndex, 0, &pDevice->presentQueue.queue);
+	}
+
 #if defined(ENABLE_COPY_QUEUE_VK)
-	m_copyQueue.type = eQueue_Copy;
-	m_copyQueue.queueFamilyIndex = queueFamilyIndices.copyFamily.value();
-	vkGetDeviceQueue(m_logicalDevice, m_copyQueue.queueFamilyIndex, 0, &m_copyQueue.queue);
+	if (queueFamilyIndices.copyFamily.has_value())
+	{
+		pDevice->copyQueue.type = eQueue_Copy;
+		pDevice->copyQueue.queueFamilyIndex = queueFamilyIndices.copyFamily.value();
+		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->copyQueue.queueFamilyIndex, 0, &pDevice->copyQueue.queue);
+	}
+#endif
+
+#if defined(_DEBUG)
+	std::cout << "Vulkan: Logical device created on " << pDevice->deviceProperties.deviceName << "\n";
 #endif
 }
 
 void DrawingDevice_Vulkan::SetupCommandManager()
 {
+	m_pDiscreteDevice->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDiscreteDevice, m_pDiscreteDevice->graphicsQueue);
+#if defined(ENABLE_COPY_QUEUE_VK)
 
+#endif
 }
 
 void DrawingDevice_Vulkan::SetupUploadAllocator()
 {
-
+	
 }
 
 void DrawingDevice_Vulkan::SetupDescriptorAllocator()

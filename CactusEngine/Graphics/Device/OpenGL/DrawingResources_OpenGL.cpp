@@ -75,6 +75,13 @@ size_t FrameBuffer_OpenGL::GetColorAttachmentCount() const
 	return m_bufferAttachments.size();
 }
 
+GLenum FrameBuffer_OpenGL::GetColorAttachment(uint32_t index) const
+{
+	assert(index < m_bufferAttachments.size());
+
+	return m_bufferAttachments[index];
+}
+
 const GLenum* FrameBuffer_OpenGL::GetColorAttachments() const
 {
 	return m_bufferAttachments.data();
@@ -220,10 +227,18 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
 
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
+	m_paramLocations.emplace(ShaderParamNames::GNORMAL_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GNORMAL_TEXTURE));
 	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE));
 
 	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_1));
 	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_2));
 	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_1));
 	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_2));
+
+	m_paramLocations.emplace(ShaderParamNames::TONE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::TONE_TEXTURE));
+
+	m_paramLocations.emplace(ShaderParamNames::BOOL_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::BOOL_1));
+
+	// For line drawing
+	m_paramLocations.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SAMPLE_MATRIX_TEXTURE));
 }

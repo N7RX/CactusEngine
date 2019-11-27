@@ -9,7 +9,7 @@
 
 using namespace Engine;
 
-Assimp::Importer gImporter;
+static Assimp::Importer gImporter;
 
 ObjMesh::ObjMesh(const char* filePath)
 	: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice())
@@ -29,14 +29,19 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 		return;
 	}
 
-	// Alert: we haven't handle submeshes yet
-
-	int totalNumSubmeshes = scene->mNumMeshes;
+	int totalNumSubMeshes = scene->mNumMeshes;
 	int totalNumVertices = 0;
 	int totalNumIndices = 0;
 
-	for (int i = 0; i < totalNumSubmeshes; ++i)
+	m_subMeshes.resize(totalNumSubMeshes);
+
+	// Record submeshes
+	for (int i = 0; i < totalNumSubMeshes; ++i)
 	{
+		m_subMeshes[i].m_baseIndex = totalNumIndices;
+		m_subMeshes[i].m_baseVertex = totalNumVertices;
+		m_subMeshes[i].m_numIndices = scene->mMeshes[i]->mNumFaces * 3;
+
 		totalNumVertices += scene->mMeshes[i]->mNumVertices;
 		totalNumIndices  += scene->mMeshes[i]->mNumFaces * 3;
 	}
@@ -51,15 +56,16 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 	unsigned int texcoordOffset = 0;
 	unsigned int normalOffset = 0;
 
-	for (int i = 0; i < totalNumSubmeshes; ++i)
+	// Buffer data
+	for (int i = 0; i < totalNumSubMeshes; ++i)
 	{
 		aiMesh* mesh = scene->mMeshes[i];
 
 		// Indices
-		int meshFaces = mesh->mNumFaces;
-		for (unsigned int j = 0; j < meshFaces; ++j)
+		int numFaces = mesh->mNumFaces;
+		for (unsigned int j = 0; j < numFaces; ++j)
 		{
-			memcpy(&indices[faceIndex], scene->mMeshes[i]->mFaces[j].mIndices, 3 * sizeof(unsigned int));
+			memcpy(&indices[faceIndex], mesh->mFaces[j].mIndices, 3 * sizeof(unsigned int));
 			faceIndex += 3;
 		}
 
@@ -85,8 +91,14 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 		// Normals
 		if (mesh->HasNormals())
 		{
-			const int size = 3 * sizeof(float) * mesh->mNumVertices;
-			memcpy(&normals[normalOffset], mesh->mNormals, size);
+			//const int size = 3 * sizeof(float) * mesh->mNumVertices;
+			//memcpy(&normals[normalOffset], mesh->mNormals, size);
+			for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
+			{
+				normals[j * 3 + normalOffset] = mesh->mNormals[j].x;
+				normals[j * 3 + normalOffset + 1] = mesh->mNormals[j].y;
+				normals[j * 3 + normalOffset + 2] = mesh->mNormals[j].z;
+			}
 			normalOffset += 3 * mesh->mNumVertices;
 		}
 	}

@@ -47,35 +47,16 @@ namespace Engine
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 	};
 
-	enum ERenderNodeType // TODO£º remove this enum, and move node naming into renderers
-	{
-		eRenderNode_Opaque = 0,
-		eRenderNode_Transparent,
-		eRenderNode_ColorBlend_DepthBased_2,
-		ERENDERNODETYPE_COUNT
-	};
-
 	class RenderGraph : public NoCopy
 	{
 	public:
-		void AddRenderNode(ERenderNodeType type, std::shared_ptr<RenderNode> pNode);
+		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
 		void BeginRenderPasses(const std::shared_ptr<RenderContext> pContext);
 
-		std::shared_ptr<RenderNode> GetNodeByType(ERenderNodeType type) const;
+		std::shared_ptr<RenderNode> GetNodeByName(const char* name) const;
 
 	private:
-		std::unordered_map<ERenderNodeType, std::shared_ptr<RenderNode>> m_nodes;
+		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>>  m_startingNodes; // Nodes that has no previous dependencies
 	};
-
-	namespace RGraphResName
-	{
-		static const char* FWD_OPAQUE_FB = "OpaqueFrameBuffer";
-		static const char* FWD_OPAQUE_COLOR = "OpaqueColor";
-		static const char* FWD_OPAQUE_DEPTH = "OpaqueDepth";
-
-		static const char* FWD_TRANSP_FB = "TranspFrameBuffer";
-		static const char* FWD_TRANSP_COLOR = "TranspColor";
-		static const char* FWD_TRANSP_DEPTH = "TranspDepth";
-	}
 }
