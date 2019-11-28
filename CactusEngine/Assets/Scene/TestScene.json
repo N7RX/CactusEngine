@@ -1,0 +1,620 @@
+{
+	"entity0" : 
+	{
+		"camera" : 
+		{
+			"clearColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.30000001192092896,
+				"g" : 0.20000000298023224,
+				"r" : 0.20000000298023224
+			},
+			"farClip" : 1000.0,
+			"fov" : 45.0,
+			"nearClip" : 0.30000001192092896,
+			"projection" : 0
+		},
+		"script" : 
+		{
+			"scriptID" : 0
+		},
+		"tag" : 1,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.0,
+				"y" : 1.5,
+				"z" : 6.5
+			},
+			"rotation" : 
+			{
+				"x" : -17.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity1" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.30000001192092896,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Default.png",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Cube.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 4.0,
+				"y" : 1.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity10" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.80000001192092896,
+				"g" : 1.0,
+				"r" : 0.80000001192092896
+			},
+			"albedoTexturePath" : "Assets/Textures/Amago_0.bmp",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Amago_0.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 1.7999999523162842,
+				"y" : -1.25,
+				"z" : 3.2000000476837158
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : 20.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity11" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.80000001192092896,
+				"g" : 1.0,
+				"r" : 0.80000001192092896
+			},
+			"albedoTexturePath" : "Assets/Textures/Amago_0.bmp",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Amago_0.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 1.7999999523162842,
+				"y" : -1.25,
+				"z" : 3.5999999046325684
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : 20.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity12" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 1.0,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Default.png",
+			"shaderType" : 3,
+			"toneTexturePath" : "Assets/Textures/XToon.png",
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/unitychan_v2.3ds",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.0,
+				"y" : 0.5,
+				"z" : 5.3000001907348633
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : 0.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 0.019999999552965164,
+				"y" : 0.019999999552965164,
+				"z" : 0.019999999552965164
+			}
+		}
+	},
+	"entity2" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 1.0,
+				"g" : 0.30000001192092896,
+				"r" : 0.30000001192092896
+			},
+			"albedoTexturePath" : "Assets/Textures/Default.png",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Cube.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : -4.0,
+				"y" : 1.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity3" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.30000001192092896,
+				"g" : 0.30000001192092896,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Default.png",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Cube.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : -2.0,
+				"y" : 1.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity4" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.30000001192092896,
+				"g" : 1.0,
+				"r" : 0.30000001192092896
+			},
+			"albedoTexturePath" : "Assets/Textures/Default.png",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Cube.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 2.0,
+				"y" : 1.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity5" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 0.85000002384185791,
+				"b" : 0.64999997615814209,
+				"g" : 0.69999998807907104,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Water_Color_1.jpg",
+			"noiseTexturePath" : "Assets/Textures/Noise_1.png",
+			"shaderType" : 1,
+			"transparent" : true
+		},
+		"meshFilter" : 
+		{
+			"planeDimension" : 
+			{
+				"x" : 63.0,
+				"y" : 63.0
+			},
+			"type" : 1
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 2.5,
+				"y" : -1.1000000238418579,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : -90.0,
+				"y" : 0.0,
+				"z" : 180.0
+			},
+			"scale" : 
+			{
+				"x" : 5.0,
+				"y" : 5.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity6" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 1.0,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Rock_1.tga",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Rock_1.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.0,
+				"y" : -1.3999999761581421,
+				"z" : 2.4000000953674316
+			},
+			"rotation" : 
+			{
+				"x" : -90.0,
+				"y" : 0.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 0.0070000002160668373,
+				"y" : 0.0070000002160668373,
+				"z" : 0.0040000001899898052
+			}
+		}
+	},
+	"entity7" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.80000001192092896,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Worktops_3_Low.jpg",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"planeDimension" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0
+			},
+			"type" : 1
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 2.5,
+				"y" : -1.2999999523162842,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : -90.0,
+				"y" : 0.0,
+				"z" : 180.0
+			},
+			"scale" : 
+			{
+				"x" : 5.0,
+				"y" : 5.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity8" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 1.0,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"albedoTexturePath" : "Assets/Textures/Rock_1.tga",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Rock_1.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : -1.5,
+				"y" : -1.8999999761581421,
+				"z" : 3.4000000953674316
+			},
+			"rotation" : 
+			{
+				"x" : -90.0,
+				"y" : 0.0,
+				"z" : 45.0
+			},
+			"scale" : 
+			{
+				"x" : 0.0070000002160668373,
+				"y" : 0.0070000002160668373,
+				"z" : 0.0040000001899898052
+			}
+		}
+	},
+	"entity9" : 
+	{
+		"material" : 
+		{
+			"albedoColor" : 
+			{
+				"a" : 1.0,
+				"b" : 0.80000001192092896,
+				"g" : 1.0,
+				"r" : 0.80000001192092896
+			},
+			"albedoTexturePath" : "Assets/Textures/Amago_0.bmp",
+			"shaderType" : 0,
+			"transparent" : false
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Amago_0.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 1.7999999523162842,
+				"y" : -1.25,
+				"z" : 2.7999999523162842
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : 20.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entityCount" : 13
+}

@@ -20,6 +20,9 @@ namespace Engine
 
 		std::shared_ptr<VertexBuffer> GetVertexBuffer() const;
 		const std::vector<SubMesh>* GetSubMeshes() const;
+		const char* GetFilePath() const;
+		EBuiltInMeshType GetMeshType() const;
+		Vector2 GetPlaneDimenstion() const;
 
 	protected:
 		Mesh(const std::shared_ptr<DrawingDevice> pDevice);
@@ -30,5 +33,9 @@ namespace Engine
 		std::shared_ptr<DrawingDevice> m_pDevice;
 		std::shared_ptr<VertexBuffer> m_pVertexBuffer;
 		std::vector<SubMesh> m_subMeshes;
+
+		std::string m_filePath;
+		EBuiltInMeshType m_type;
+		Vector2 m_planeDimension;
 	};
 }

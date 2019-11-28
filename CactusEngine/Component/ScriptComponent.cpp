@@ -7,12 +7,12 @@ ScriptComponent::ScriptComponent()
 {
 }
 
-void ScriptComponent::BindScript(const std::shared_ptr<SampleScript::BaseScript> pScript)
+void ScriptComponent::BindScript(const std::shared_ptr<IScript> pScript)
 {
 	m_pScript = pScript;
 }
 
-std::shared_ptr<SampleScript::BaseScript> ScriptComponent::GetScript() const
+std::shared_ptr<IScript> ScriptComponent::GetScript() const
 {
 	return m_pScript;
 }

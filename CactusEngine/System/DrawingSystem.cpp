@@ -131,7 +131,7 @@ void DrawingSystem::BuildRenderGraphs()
 
 void DrawingSystem::BuildRenderTask()
 {
-	const EntityList* pEntityList = m_pECSWorld->GetEntityList();
+	auto pEntityList = m_pECSWorld->GetEntityList();
 	for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 	{
 		auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(itr->second->GetComponent(eCompType_MeshRenderer));

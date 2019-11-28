@@ -91,17 +91,13 @@ void ObjMesh::LoadMeshFromFile(const char* filePath)
 		// Normals
 		if (mesh->HasNormals())
 		{
-			//const int size = 3 * sizeof(float) * mesh->mNumVertices;
-			//memcpy(&normals[normalOffset], mesh->mNormals, size);
-			for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
-			{
-				normals[j * 3 + normalOffset] = mesh->mNormals[j].x;
-				normals[j * 3 + normalOffset + 1] = mesh->mNormals[j].y;
-				normals[j * 3 + normalOffset + 2] = mesh->mNormals[j].z;
-			}
+			const int size = 3 * sizeof(float) * mesh->mNumVertices;
+			memcpy(&normals[normalOffset], mesh->mNormals, size);
 			normalOffset += 3 * mesh->mNumVertices;
 		}
 	}
 
+	m_filePath.assign(filePath);
+	m_type = eBuiltInMesh_External;
 	CreateVertexBufferFromVertices(vertices, normals, texcoords, indices);
 }

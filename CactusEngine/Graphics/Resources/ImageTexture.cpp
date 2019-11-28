@@ -44,6 +44,7 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 
+	m_filePath.assign(filePath);
 	stbi_image_free(imageData);
 }
 

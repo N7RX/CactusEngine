@@ -36,7 +36,7 @@ void AnimationSystem::FrameBegin()
 
 void AnimationSystem::Tick()
 {
-	const EntityList* pEntityList = m_pECSWorld->GetEntityList();
+	auto pEntityList = m_pECSWorld->GetEntityList();
 	for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 	{
 		auto pAnimationComp = std::static_pointer_cast<AnimationComponent>(itr->second->GetComponent(eCompType_Animation));

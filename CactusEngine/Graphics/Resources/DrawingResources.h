@@ -88,11 +88,15 @@ namespace Engine
 		void SetTextureType(ETextureType type);
 		ETextureType GetTextureType() const;
 
+		void SetFilePath(const char* filePath);
+		const char* GetFilePath() const;
+
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
 
 		ETextureType m_type;
+		std::string m_filePath;
 	};
 
 	struct FrameBufferCreateInfo

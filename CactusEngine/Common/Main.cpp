@@ -12,6 +12,8 @@
 #include "Plane.h"
 #include "ImageTexture.h"
 #include "CameraScript.h"
+#include "ECSSceneWriter.h"
+#include "ECSSceneReader.h"
 
 // This is the entry of the program
 
@@ -380,7 +382,7 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Unity Chan
 
-	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/unitychan_v1.3ds");
+	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/unitychan_v2.3ds");
 	auto pToneTexture = std::make_shared<ImageTexture>("Assets/Textures/XToon.png");
 
 	auto pTransformComp10 = pWorld->CreateComponent<TransformComponent>();
@@ -405,4 +407,6 @@ void TestSetup(GraphicsApplication* pApp)
 	pUnityChan->AttachComponent(pMeshFilterComp10);
 	pUnityChan->AttachComponent(pMaterialComp10);
 	pUnityChan->AttachComponent(pMeshRendererComp10);
+
+	//WriteECSWorldToJson(pWorld, "Assets/Scene/TestScene.json");
 }

@@ -70,6 +70,16 @@ ETextureType Texture2D::GetTextureType() const
 	return m_type;
 }
 
+void Texture2D::SetFilePath(const char* filePath)
+{
+	m_filePath = filePath;
+}
+
+const char* Texture2D::GetFilePath() const
+{
+	return m_filePath.c_str();
+}
+
 Shader::Shader(EShaderType type)
 	: m_shaderType(type)
 {

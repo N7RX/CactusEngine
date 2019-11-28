@@ -127,4 +127,11 @@ namespace Engine
 		eBlend_SrcAlpha = 0,
 		eBlend_OneMinusSrcAlpha
 	};
+
+	enum EBuiltInMeshType
+	{
+		eBuiltInMesh_External = 0, // From file
+		eBuiltInMesh_Plane,
+		EBUILTINMESHTYPE_COUNT
+	};
 }

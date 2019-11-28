@@ -127,6 +127,9 @@
     <Filter Include="Script">
       <UniqueIdentifier>{26716332-c88f-43e3-b6f7-ac20d9fe4ee8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="IO">
+      <UniqueIdentifier>{b37816ec-82c7-4d77-afc1-eba40cf00e26}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -324,9 +327,6 @@
     <ClInclude Include="Interface\NoCopy.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Script\BaseScript.h">
-      <Filter>Script</Filter>
-    </ClInclude>
     <ClInclude Include="System\ScriptSystem.h">
       <Filter>System</Filter>
     </ClInclude>
@@ -338,6 +338,24 @@
     </ClInclude>
     <ClInclude Include="Component\ScriptComponent.h">
       <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IScript.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\ECSSceneWriter.h">
+      <Filter>IO</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\ScriptIDList.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\ECSSceneReader.h">
+      <Filter>IO</Filter>
+    </ClInclude>
+    <ClInclude Include="IO\ResourceManager.h">
+      <Filter>IO</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\ScriptSelector.h">
+      <Filter>Script</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

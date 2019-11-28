@@ -14,3 +14,15 @@ Currently working on:
 
 * Basic drawing (Vulkan) 
 * Render Graph (Vulkan)
+
+<br/>
+
+#### Dependencies
+
+- GLFW, GLAD
+- GLM
+- Dear ImGui
+- Assimp
+- Eigen
+- stb_image
+- jsoncpp

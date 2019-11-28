@@ -44,6 +44,7 @@ void TransformComponent::SetRotation(Vector3 newRotation)
 	//Vector3 diff = newRotation - m_rotationEuler;
 	m_rotationEuler = newRotation;
 
+	// Alert: this could be buggy since z angle is not taken into account
 	m_forwardDirection.x = cos(m_rotationEuler.y * D2R) * cos(m_rotationEuler.x * D2R);
 	m_forwardDirection.y = sin(m_rotationEuler.x * D2R);
 	m_forwardDirection.z = sin(m_rotationEuler.y * D2R) * cos(m_rotationEuler.x * D2R);

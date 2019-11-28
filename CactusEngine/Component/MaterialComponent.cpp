@@ -32,6 +32,11 @@ std::shared_ptr<Texture2D> MaterialComponent::GetTexture(EMaterialTextureType ty
 	return nullptr;
 }
 
+const MaterialTextureList& MaterialComponent::GetTextureList() const
+{
+	return m_Textures;
+}
+
 void MaterialComponent::SetAlbedoColor(Color4 albedo)
 {
 	m_albedoColor = albedo;

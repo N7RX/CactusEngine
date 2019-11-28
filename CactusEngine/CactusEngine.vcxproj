@@ -76,12 +76,12 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -101,7 +101,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;jsoncpp.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -132,7 +132,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;jsoncpp.lib;assimp-vc142-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -203,10 +203,15 @@
     <ClInclude Include="Interface\IComponent.h" />
     <ClInclude Include="Interface\IEntity.h" />
     <ClInclude Include="Interface\IRenderer.h" />
+    <ClInclude Include="Interface\IScript.h" />
     <ClInclude Include="Interface\ISystem.h" />
     <ClInclude Include="Interface\NoCopy.h" />
-    <ClInclude Include="Script\BaseScript.h" />
+    <ClInclude Include="IO\ECSSceneReader.h" />
+    <ClInclude Include="IO\ECSSceneWriter.h" />
+    <ClInclude Include="IO\ResourceManager.h" />
     <ClInclude Include="Script\CameraScript.h" />
+    <ClInclude Include="Script\ScriptIDList.h" />
+    <ClInclude Include="Script\ScriptSelector.h" />
     <ClInclude Include="System\AnimationSystem.h" />
     <ClInclude Include="System\DrawingSystem.h" />
     <ClInclude Include="System\EventSystem.h" />
@@ -280,13 +285,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\glfw.3.3.0.1\build\native\glfw.targets" Condition="Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" />
-    <Import Project="..\packages\glm.0.9.9.500\build\native\glm.targets" Condition="Exists('..\packages\glm.0.9.9.500\build\native\glm.targets')" />
+    <Import Project="..\packages\glm.0.9.9.600\build\native\glm.targets" Condition="Exists('..\packages\glm.0.9.9.600\build\native\glm.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\glfw.3.3.0.1\build\native\glfw.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glfw.3.3.0.1\build\native\glfw.targets'))" />
-    <Error Condition="!Exists('..\packages\glm.0.9.9.500\build\native\glm.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glm.0.9.9.500\build\native\glm.targets'))" />
+    <Error Condition="!Exists('..\packages\glm.0.9.9.600\build\native\glm.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\glm.0.9.9.600\build\native\glm.targets'))" />
   </Target>
 </Project>

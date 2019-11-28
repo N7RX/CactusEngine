@@ -5,6 +5,8 @@
 
 namespace Engine
 {
+	typedef std::unordered_map<EMaterialTextureType, std::shared_ptr<Texture2D>> MaterialTextureList;
+
 	class MaterialComponent : public BaseComponent
 	{
 	public:
@@ -16,6 +18,7 @@ namespace Engine
 
 		void SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture);
 		std::shared_ptr<Texture2D> GetTexture(EMaterialTextureType type) const;
+		const MaterialTextureList& GetTextureList() const;
 
 		void SetAlbedoColor(Color4 albedo);
 		Color4 GetAlbedoColor() const;
@@ -25,7 +28,7 @@ namespace Engine
 
 	private:
 		EBuiltInShaderProgramType m_useShaderType;
-		std::unordered_map<EMaterialTextureType, std::shared_ptr<Texture2D>> m_Textures;
+		MaterialTextureList m_Textures;
 		Color4 m_albedoColor;
 		bool m_transparentPass;
 	};

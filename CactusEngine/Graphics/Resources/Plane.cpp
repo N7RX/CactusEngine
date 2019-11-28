@@ -53,5 +53,7 @@ Plane::Plane(uint32_t dimLength, uint32_t dimWidth)
 	m_subMeshes[0].m_baseVertex = 0;
 	m_subMeshes[0].m_numIndices = vertexIndices.size();
 
+	m_type = eBuiltInMesh_Plane;
+	m_planeDimension = Vector2(dimLength, dimWidth);
 	CreateVertexBufferFromVertices(positions, normals, texcoords, vertexIndices);
 }

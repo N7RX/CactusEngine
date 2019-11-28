@@ -24,7 +24,6 @@ namespace Engine
 		eMaterialTexture_AO,		
 		eMaterialTexture_Noise,
 		eMaterialTexture_Tone,
-		eMaterialTexture_GNormal,
 		EMATERIALTEXTURETYPE_COUNT
 	};
 
