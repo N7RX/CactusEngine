@@ -7,7 +7,7 @@ layout(location = 0) out vec4 outColor;
 uniform sampler2D ColorTexture_1; // Blurred tone value (stored in alpha channel)
 // Containing the 5x9 sample parameter matrix
 uniform sampler2D SampleMatrixTexture;
-uniform int LineWidth = 2;
+uniform int LineWidth = 1;
 
 
 vec2 findCurvature(in vec2 position)

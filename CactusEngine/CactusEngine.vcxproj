@@ -193,7 +193,7 @@
     <ClInclude Include="Graphics\Resources\DrawingResources.h" />
     <ClInclude Include="Graphics\Resources\ImageTexture.h" />
     <ClInclude Include="Graphics\Resources\Mesh.h" />
-    <ClInclude Include="Graphics\Resources\ObjMesh.h" />
+    <ClInclude Include="Graphics\Resources\ExternalMesh.h" />
     <ClInclude Include="Graphics\Resources\Plane.h" />
     <ClInclude Include="Graphics\Resources\RenderTexture.h" />
     <ClInclude Include="GUI\BaseWindow.h" />
@@ -262,7 +262,7 @@
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp" />
     <ClCompile Include="Graphics\Resources\Mesh.cpp" />
-    <ClCompile Include="Graphics\Resources\ObjMesh.cpp" />
+    <ClCompile Include="Graphics\Resources\ExternalMesh.cpp" />
     <ClCompile Include="Graphics\Resources\Plane.cpp" />
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp" />
     <ClCompile Include="GUI\BaseWindow.cpp" />

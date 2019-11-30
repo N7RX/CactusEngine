@@ -114,44 +114,56 @@ namespace Engine
 					auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(componentEntry.second);
 					Json::Value component;
 
-					component["shaderType"] = pMaterialComp->GetShaderProgramType();
+					auto materialList = pMaterialComp->GetMaterialList();
 
-					auto textureList = pMaterialComp->GetTextureList();
-					for (auto textureEntry : textureList)
+					component["materialCount"] = materialList.size();
+
+					for (auto& material : materialList)
 					{
-						switch (textureEntry.first)
+						Json::Value subComponent;
+						subComponent["shaderType"] = material.second->GetShaderProgramType();
+
+						auto textureList = material.second->GetTextureList();
+						for (auto& textureEntry : textureList)
 						{
-						case eMaterialTexture_Albedo:
-							component["albedoTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						case eMaterialTexture_Normal:
-							component["normalTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						case eMaterialTexture_Roughness:
-							component["roughnessTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						case eMaterialTexture_AO:
-							component["aoTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						case eMaterialTexture_Noise:
-							component["noiseTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						case eMaterialTexture_Tone:
-							component["toneTexturePath"] = textureEntry.second->GetFilePath();
-							break;
-						default:
-							std::cout << "ECSSceneWriter: Unhandled texture type: " << textureEntry.first << std::endl;
-							break;
+							switch (textureEntry.first)
+							{
+							case eMaterialTexture_Albedo:
+								subComponent["albedoTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							case eMaterialTexture_Normal:
+								subComponent["normalTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							case eMaterialTexture_Roughness:
+								subComponent["roughnessTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							case eMaterialTexture_AO:
+								subComponent["aoTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							case eMaterialTexture_Noise:
+								subComponent["noiseTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							case eMaterialTexture_Tone:
+								subComponent["toneTexturePath"] = textureEntry.second->GetFilePath();
+								break;
+							default:
+								std::cout << "ECSSceneWriter: Unhandled texture type: " << textureEntry.first << std::endl;
+								break;
+							}
 						}
+
+						Color4 albedoColor = material.second->GetAlbedoColor();
+						subComponent["albedoColor"]["r"] = albedoColor.x;
+						subComponent["albedoColor"]["g"] = albedoColor.y;
+						subComponent["albedoColor"]["b"] = albedoColor.z;
+						subComponent["albedoColor"]["a"] = albedoColor.w;
+
+						subComponent["transparent"] = material.second->IsTransparent();
+
+						std::stringstream materialName;
+						materialName << "materialImpl" << material.first;
+						component[materialName.str()] = subComponent;
 					}
-
-					Color4 albedoColor = pMaterialComp->GetAlbedoColor();
-					component["albedoColor"]["r"] = albedoColor.x;
-					component["albedoColor"]["g"] = albedoColor.y;
-					component["albedoColor"]["b"] = albedoColor.z;
-					component["albedoColor"]["a"] = albedoColor.w;
-
-					component["transparent"] = pMaterialComp->IsTransparent();
 
 					entity["material"] = component;
 					break;

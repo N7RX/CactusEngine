@@ -17,7 +17,7 @@ uniform vec4 AlbedoColor;
 
 uniform vec3  LightDirection = vec3(0.57735027f, 0.57735027f, 0.57735027f);
 uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 1.0f;
+uniform float LightIntensity = 1.15f;
 
 // TODO: Pass in camera parameters
 uniform float CameraZFar = 1000.0f;
@@ -40,6 +40,10 @@ const float PI = 3.1415926536;
 void main(void)
 {
 	vec4 colorFromAlbedoTexture = texture2D(AlbedoTexture, v2fTexCoord);
+	if (colorFromAlbedoTexture.a <= 0.4f) // TODO: Why 0.4f?
+	{
+		//discard;
+	}
 
 	// Toon mapping
 
@@ -129,7 +133,7 @@ void main(void)
 	// Intensity profile function
 	float I = pow(clamp(Beta + (1.0f - Beta) * cos(u), 0.0f, 1e10), Gamma);
 
-	outColor = I * toneColor;
+	outColor = I * toneColor * colorFromAlbedoTexture;
 
 	// For line drawing
 	outColor.a = toonCoord.x;

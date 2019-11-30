@@ -1,9 +1,6 @@
 #include "ForwardRenderer.h"
-#include "TransformComponent.h"
-#include "MeshFilterComponent.h"
-#include "MaterialComponent.h"
-#include "CameraComponent.h"
 #include "DrawingSystem.h"
+#include "AllComponents.h"
 #include "Timer.h"
 
 // For line drawing computation
@@ -230,13 +227,6 @@ void ForwardRenderer::BuildNormalOnlyPass()
 
 			for (auto& entity : *pContext->pDrawList)
 			{
-				auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(eCompType_Material));
-
-				if (!pMaterialComp)
-				{
-					continue;
-				}
-
 				auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(eCompType_Transform));
 				auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(eCompType_MeshFilter));
 
@@ -320,16 +310,10 @@ void ForwardRenderer::BuildOpaquePass()
 		for (auto& entity : *pContext->pDrawList)
 		{
 			auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(eCompType_Material));
-
-			if (!pMaterialComp || pMaterialComp->IsTransparent())
-			{
-				continue;
-			}
-
 			auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(eCompType_Transform));
 			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(eCompType_MeshFilter));
-			
-			if (!pTransformComp || !pMeshFilterComp)
+
+			if (!pMaterialComp || pMaterialComp->GetMaterialCount() == 0 || !pTransformComp || !pMeshFilterComp)
 			{
 				continue;
 			}
@@ -344,54 +328,66 @@ void ForwardRenderer::BuildOpaquePass()
 			Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
 			Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
 
-			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterialComp->GetShaderProgramType());
-			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
-
 			float currTime = Timer::Now();
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), eShaderParam_Mat4, glm::value_ptr(modelMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), eShaderParam_Mat4, glm::value_ptr(viewMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), eShaderParam_Mat4, glm::value_ptr(projectionMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), eShaderParam_Mat3, glm::value_ptr(normalMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), eShaderParam_Vec3, glm::value_ptr(cameraPos));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), eShaderParam_Float1, &currTime);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), eShaderParam_Vec4, glm::value_ptr(pMaterialComp->GetAlbedoColor()));
+			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-			auto pAlbedoTexture = pMaterialComp->GetTexture(eMaterialTexture_Albedo);
-			if (pAlbedoTexture)
-			{
-				// Alert: this only works for OpenGL; Vulkan requires doing this through descriptor sets
-				uint32_t texID = pAlbedoTexture->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), eShaderParam_Texture2D, &texID);
-			}
+			unsigned int submeshCount = pMesh->GetSubmeshCount();
+			auto subMeshes = pMesh->GetSubMeshes();
 
-			auto pNoiseTexture = pMaterialComp->GetTexture(eMaterialTexture_Noise);
-			if (pNoiseTexture)
-			{
-				uint32_t texID = pNoiseTexture->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
-			}
-
-			auto pToneTexture = pMaterialComp->GetTexture(eMaterialTexture_Tone);
-			if (pToneTexture)
-			{
-				uint32_t texID = pToneTexture->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TONE_TEXTURE), eShaderParam_Texture2D, &texID);
-			}
-
-			auto gNormalTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::NORMALONLY_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::GNORMAL_TEXTURE), eShaderParam_Texture2D, &gNormalTextureID);
-
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
 
-			auto subMeshes = pMesh->GetSubMeshes();
-			for (size_t i = 0; i < subMeshes->size(); ++i)
+			for (unsigned int i = 0; i < submeshCount; ++i)
 			{
-				pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
-			}
+				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
 
-			pShaderProgram->Reset();
+				if (pMaterial->IsTransparent())
+				{
+					continue;
+				}
+
+				auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+				pShaderParamTable->Clear();
+
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), eShaderParam_Mat4, glm::value_ptr(modelMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), eShaderParam_Mat4, glm::value_ptr(viewMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), eShaderParam_Mat4, glm::value_ptr(projectionMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), eShaderParam_Mat3, glm::value_ptr(normalMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), eShaderParam_Vec3, glm::value_ptr(cameraPos));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), eShaderParam_Float1, &currTime);
+
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), eShaderParam_Vec4, glm::value_ptr(pMaterial->GetAlbedoColor()));
+
+				auto pAlbedoTexture = pMaterial->GetTexture(eMaterialTexture_Albedo);
+				if (pAlbedoTexture)
+				{
+					uint32_t texID = pAlbedoTexture->GetTextureID();
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), eShaderParam_Texture2D, &texID);
+				}
+
+				auto pNoiseTexture = pMaterial->GetTexture(eMaterialTexture_Noise);
+				if (pNoiseTexture)
+				{
+					uint32_t texID = pNoiseTexture->GetTextureID();
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
+				}
+
+				auto pToneTexture = pMaterial->GetTexture(eMaterialTexture_Tone);
+				if (pToneTexture)
+				{
+					uint32_t texID = pToneTexture->GetTextureID();
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TONE_TEXTURE), eShaderParam_Texture2D, &texID);
+				}
+
+				auto gNormalTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::NORMALONLY_COLOR))->GetTextureID();
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::GNORMAL_TEXTURE), eShaderParam_Texture2D, &gNormalTextureID);
+
+				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
+				pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+
+				pShaderProgram->Reset();
+			}
+			
 		}
 	},
 		passInput,
@@ -651,16 +647,10 @@ void ForwardRenderer::BuildTransparentPass()
 		for (auto& entity : *pContext->pDrawList)
 		{
 			auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(eCompType_Material));
-
-			if (!pMaterialComp || !pMaterialComp->IsTransparent())
-			{
-				continue;
-			}
-
 			auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(eCompType_Transform));
 			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(eCompType_MeshFilter));
 
-			if (!pTransformComp || !pMeshFilterComp)
+			if (!pMaterialComp || pMaterialComp->GetMaterialCount() == 0 || !pTransformComp || !pMeshFilterComp)
 			{
 				continue;
 			}
@@ -675,50 +665,63 @@ void ForwardRenderer::BuildTransparentPass()
 			Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
 			Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
 
-			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterialComp->GetShaderProgramType());
+			float currTime = Timer::Now();
+	
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-			float currTime = Timer::Now();
-
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), eShaderParam_Mat4, glm::value_ptr(modelMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), eShaderParam_Mat4, glm::value_ptr(viewMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), eShaderParam_Mat4, glm::value_ptr(projectionMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), eShaderParam_Mat3, glm::value_ptr(normalMat));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), eShaderParam_Vec3, glm::value_ptr(cameraPos));
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), eShaderParam_Float1, &currTime);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), eShaderParam_Vec4, glm::value_ptr(pMaterialComp->GetAlbedoColor()));
-
-			auto depthTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_DEPTH))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::DEPTH_TEXTURE_1), eShaderParam_Texture2D, &depthTextureID);
-
-			auto colorTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), eShaderParam_Texture2D, &colorTextureID);
-
-			auto pAlbedoTexture = pMaterialComp->GetTexture(eMaterialTexture_Albedo);
-			if (pAlbedoTexture)
-			{
-				// Alert: this only works for OpenGL; Vulkan requires doing this through descriptor sets
-				uint32_t texID = pAlbedoTexture->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), eShaderParam_Texture2D, &texID);
-			}
-
-			auto pNoiseTexture = pMaterialComp->GetTexture(eMaterialTexture_Noise);
-			if (pNoiseTexture)
-			{
-				uint32_t texID = pNoiseTexture->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
-			}
-
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
-			
+			unsigned int submeshCount = pMesh->GetSubmeshCount();
 			auto subMeshes = pMesh->GetSubMeshes();
-			for (size_t i = 0; i < subMeshes->size(); ++i)
-			{
-				pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
-			}
 
-			pShaderProgram->Reset();
+			pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+
+			for (unsigned int i = 0; i < submeshCount; ++i)
+			{
+				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
+
+				if (!pMaterial->IsTransparent()) // TODO: use a list to record these parts instead of checking one-by-one
+				{
+					continue;
+				}
+
+				auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+				pShaderParamTable->Clear();
+
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), eShaderParam_Mat4, glm::value_ptr(modelMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), eShaderParam_Mat4, glm::value_ptr(viewMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), eShaderParam_Mat4, glm::value_ptr(projectionMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), eShaderParam_Mat3, glm::value_ptr(normalMat));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), eShaderParam_Vec3, glm::value_ptr(cameraPos));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), eShaderParam_Float1, &currTime);
+
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), eShaderParam_Vec4, glm::value_ptr(pMaterial->GetAlbedoColor()));
+
+				auto depthTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_DEPTH))->GetTextureID();
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::DEPTH_TEXTURE_1), eShaderParam_Texture2D, &depthTextureID);
+
+				auto colorTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_COLOR))->GetTextureID();
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), eShaderParam_Texture2D, &colorTextureID);
+
+				auto pAlbedoTexture = pMaterial->GetTexture(eMaterialTexture_Albedo);
+				if (pAlbedoTexture)
+				{
+					// Alert: this only works for OpenGL; Vulkan requires doing this through descriptor sets
+					uint32_t texID = pAlbedoTexture->GetTextureID();
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), eShaderParam_Texture2D, &texID);
+				}
+
+				auto pNoiseTexture = pMaterial->GetTexture(eMaterialTexture_Noise);
+				if (pNoiseTexture)
+				{
+					uint32_t texID = pNoiseTexture->GetTextureID();
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
+				}
+
+				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
+				pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+
+				pShaderProgram->Reset();
+			}
+			
 		}
 	},
 		passInput,
@@ -803,7 +806,7 @@ void ForwardRenderer::CreateLineDrawingMatrices()
 
 	// 3x3 grid sample
 	int rowIndex = 0;
-	int lineWidth = 2;
+	int lineWidth = 1;
 	for (int m = -lineWidth; m < lineWidth + 1; m += lineWidth)
 	{
 		for (int n = -lineWidth; n < lineWidth + 1; n += lineWidth)

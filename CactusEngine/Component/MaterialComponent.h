@@ -7,11 +7,11 @@ namespace Engine
 {
 	typedef std::unordered_map<EMaterialTextureType, std::shared_ptr<Texture2D>> MaterialTextureList;
 
-	class MaterialComponent : public BaseComponent
+	class Material
 	{
 	public:
-		MaterialComponent();
-		~MaterialComponent() = default;
+		Material();
+		~Material() = default;
 
 		EBuiltInShaderProgramType GetShaderProgramType() const;
 		void SetShaderProgram(EBuiltInShaderProgramType shaderProgramType);
@@ -31,5 +31,22 @@ namespace Engine
 		MaterialTextureList m_Textures;
 		Color4 m_albedoColor;
 		bool m_transparentPass;
+	};
+
+	typedef std::unordered_map<unsigned int, std::shared_ptr<Material>> MaterialList;
+
+	class MaterialComponent : public BaseComponent
+	{
+	public:
+		MaterialComponent();
+		~MaterialComponent() = default;
+
+		void AddMaterial(unsigned int submeshIndex, const std::shared_ptr<Material> pMaterialComp);
+		const MaterialList& GetMaterialList() const;
+		const std::shared_ptr<Material> GetMaterialBySubmeshIndex(unsigned int submeshIndex) const;
+		unsigned int GetMaterialCount() const;
+
+	private:
+		MaterialList m_materialList; // This is a temporary solution, a better way is to implement auto sub-entity creation
 	};
 }

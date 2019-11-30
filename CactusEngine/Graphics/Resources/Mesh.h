@@ -20,6 +20,7 @@ namespace Engine
 
 		std::shared_ptr<VertexBuffer> GetVertexBuffer() const;
 		const std::vector<SubMesh>* GetSubMeshes() const;
+		unsigned int GetSubmeshCount() const;
 		const char* GetFilePath() const;
 		EBuiltInMeshType GetMeshType() const;
 		Vector2 GetPlaneDimenstion() const;

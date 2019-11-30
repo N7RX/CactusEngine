@@ -5,7 +5,7 @@ in vec2 v2fTexCoord;
 layout(location = 0) out vec4 outColor;
 
 uniform sampler2D ColorTexture_1; // Curvature result (r and b channel)
-uniform int LineWidth = 2;
+uniform int LineWidth = 1;
 
 const float CurvatureThreshold = 0.03f;
 const float cl = 0.3f;	// Lower bound

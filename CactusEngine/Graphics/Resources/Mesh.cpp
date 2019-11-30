@@ -17,6 +17,11 @@ const std::vector<SubMesh>* Mesh::GetSubMeshes() const
 	return &m_subMeshes;
 }
 
+unsigned int Mesh::GetSubmeshCount() const
+{
+	return m_subMeshes.size();
+}
+
 const char* Mesh::GetFilePath() const
 {
 	return m_filePath.c_str();

@@ -7,7 +7,7 @@
 #include "ScriptSystem.h"
 #include "AllComponents.h"
 #include "StandardEntity.h"
-#include "ObjMesh.h"
+#include "ExternalMesh.h"
 #include "Timer.h"
 #include "Plane.h"
 #include "ImageTexture.h"
@@ -92,6 +92,10 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->RegisterSystem<DrawingSystem>(eSystem_Script);
 	pWorld->RegisterSystem<ScriptSystem>(eSystem_Drawing);
 
+	// Read test
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/TestScene.json");
+	//return;
+
 	// Camera
 
 	auto pCameraComponent = pWorld->CreateComponent<CameraComponent>();
@@ -113,7 +117,7 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Cube
 
-	auto pCubeMesh = std::make_shared<ObjMesh>("Assets/Models/Cube.obj");
+	auto pCubeMesh = std::make_shared<ExternalMesh>("Assets/Models/Cube.obj");
 	auto pDefaultTexture = std::make_shared<ImageTexture>("Assets/Textures/Default.png");
 
 	auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
@@ -122,10 +126,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp->SetMesh(pCubeMesh);
 
+	auto pMaterial = std::make_shared<Material>();
+	pMaterial->SetAlbedoColor(Color4(1.0f, 1, 0.3f, 1));
+	pMaterial->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
 	auto pMaterialComp = std::make_shared<MaterialComponent>();
-	pMaterialComp->SetAlbedoColor(Color4(1.0f, 1, 0.3f, 1));
-	pMaterialComp->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+	pMaterialComp->AddMaterial(0, pMaterial);
 
 	auto pMeshRendererComp = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp->SetRenderer(eRenderer_Forward);
@@ -159,10 +166,14 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp2 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp2->SetMesh(pCubeMesh);
 
+	auto pMaterial2 = std::make_shared<Material>();
+	
+	pMaterial2->SetAlbedoColor(Color4(0.3f, 0.3f, 1.0f, 1));
+	pMaterial2->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial2->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
 	auto pMaterialComp2 = std::make_shared<MaterialComponent>();
-	pMaterialComp2->SetAlbedoColor(Color4(0.3f, 0.3f, 1.0f, 1));
-	pMaterialComp2->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp2->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+	pMaterialComp2->AddMaterial(0, pMaterial2);
 
 	auto pMeshRendererComp2 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp2->SetRenderer(eRenderer_Forward);
@@ -181,10 +192,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp3 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp3->SetMesh(pCubeMesh);
 
+	auto pMaterial3 = std::make_shared<Material>();
+	pMaterial3->SetAlbedoColor(Color4(1.0f, 0.3, 0.3f, 1));
+	pMaterial3->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial3->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
 	auto pMaterialComp3 = std::make_shared<MaterialComponent>();
-	pMaterialComp3->SetAlbedoColor(Color4(1.0f, 0.3, 0.3f, 1));
-	pMaterialComp3->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp3->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+	pMaterialComp3->AddMaterial(0, pMaterial3);
 
 	auto pMeshRendererComp3 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp3->SetRenderer(eRenderer_Forward);
@@ -215,10 +229,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp4 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp4->SetMesh(pCubeMesh);
 
+	auto pMaterial4 = std::make_shared<Material>();
+	pMaterial4->SetAlbedoColor(Color4(0.3f, 1, 0.3f, 1));
+	pMaterial4->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial4->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
 	auto pMaterialComp4 = std::make_shared<MaterialComponent>();
-	pMaterialComp4->SetAlbedoColor(Color4(0.3f, 1, 0.3f, 1));
-	pMaterialComp4->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp4->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+	pMaterialComp4->AddMaterial(0, pMaterial4);
 
 	auto pMeshRendererComp4 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp4->SetRenderer(eRenderer_Forward);
@@ -256,12 +273,15 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp5 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp5->SetMesh(pPlaneMesh);
 
+	auto pMaterial5 = std::make_shared<Material>();
+	pMaterial5->SetAlbedoColor(Color4(1.0f, 0.7f, 0.65f, 0.85f));
+	pMaterial5->SetShaderProgram(eShaderProgram_WaterBasic);
+	pMaterial5->SetTexture(eMaterialTexture_Albedo, pWaterTexture);
+	pMaterial5->SetTexture(eMaterialTexture_Noise, pNoiseTexture);
+	pMaterial5->SetTransparent(true);
+
 	auto pMaterialComp5 = std::make_shared<MaterialComponent>();
-	pMaterialComp5->SetAlbedoColor(Color4(1.0f, 0.7f, 0.65f, 0.85f));
-	pMaterialComp5->SetShaderProgram(eShaderProgram_WaterBasic);
-	pMaterialComp5->SetTexture(eMaterialTexture_Albedo, pWaterTexture);
-	pMaterialComp5->SetTexture(eMaterialTexture_Noise, pNoiseTexture);
-	pMaterialComp5->SetTransparent(true);
+	pMaterialComp5->AddMaterial(0, pMaterial5);
 
 	auto pMeshRendererComp5 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp5->SetRenderer(eRenderer_Forward);
@@ -274,7 +294,7 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Large island
 
-	auto pRockMesh = std::make_shared<ObjMesh>("Assets/Models/Rock_1.obj");
+	auto pRockMesh = std::make_shared<ExternalMesh>("Assets/Models/Rock_1.obj");
 	auto pRockTexture = std::make_shared<ImageTexture>("Assets/Textures/Rock_1.tga");
 
 	auto pTransformComp6 = pWorld->CreateComponent<TransformComponent>();
@@ -285,10 +305,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp6 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp6->SetMesh(pRockMesh);
 
+	auto pMaterial6 = std::make_shared<Material>();
+	pMaterial6->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
+	pMaterial6->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial6->SetTexture(eMaterialTexture_Albedo, pRockTexture);
+
 	auto pMaterialComp6 = std::make_shared<MaterialComponent>();
-	pMaterialComp6->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
-	pMaterialComp6->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp6->SetTexture(eMaterialTexture_Albedo, pRockTexture);
+	pMaterialComp6->AddMaterial(0, pMaterial6);
 
 	auto pMeshRendererComp6 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp6->SetRenderer(eRenderer_Forward);
@@ -312,10 +335,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp7 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp7->SetMesh(pPlaneMesh2);
 
+	auto pMaterial7 = std::make_shared<Material>();
+	pMaterial7->SetAlbedoColor(Color4(1.0f, 1.0f, 0.8f, 1.0f));
+	pMaterial7->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial7->SetTexture(eMaterialTexture_Albedo, pTexture2);
+
 	auto pMaterialComp7 = std::make_shared<MaterialComponent>();
-	pMaterialComp7->SetAlbedoColor(Color4(1.0f, 1.0f, 0.8f, 1.0f));
-	pMaterialComp7->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp7->SetTexture(eMaterialTexture_Albedo, pTexture2);
+	pMaterialComp7->AddMaterial(0, pMaterial7);
 
 	auto pMeshRendererComp7 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp7->SetRenderer(eRenderer_Forward);
@@ -336,10 +362,13 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp8 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp8->SetMesh(pRockMesh);
 
+	auto pMaterial8 = std::make_shared<Material>();
+	pMaterial8->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
+	pMaterial8->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial8->SetTexture(eMaterialTexture_Albedo, pRockTexture);
+
 	auto pMaterialComp8 = std::make_shared<MaterialComponent>();
-	pMaterialComp8->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
-	pMaterialComp8->SetShaderProgram(eShaderProgram_Basic);
-	pMaterialComp8->SetTexture(eMaterialTexture_Albedo, pRockTexture);
+	pMaterialComp8->AddMaterial(0, pMaterial8);
 
 	auto pMeshRendererComp8 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp8->SetRenderer(eRenderer_Forward);
@@ -352,8 +381,13 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Fish
 
-	auto pFishMesh = std::make_shared<ObjMesh>("Assets/Models/Amago_0.obj");
+	auto pFishMesh = std::make_shared<ExternalMesh>("Assets/Models/Amago_0.obj");
 	auto pFishTexture = std::make_shared<ImageTexture>("Assets/Textures/Amago_0.bmp");
+
+	auto pMaterial9 = std::make_shared<Material>();
+	pMaterial9->SetAlbedoColor(Color4(0.8f, 1.0f, 0.8f, 1));
+	pMaterial9->SetShaderProgram(eShaderProgram_Basic);
+	pMaterial9->SetTexture(eMaterialTexture_Albedo, pFishTexture);
 
 	for (int count = 0; count < 3; ++count)
 	{
@@ -366,9 +400,7 @@ void TestSetup(GraphicsApplication* pApp)
 		pMeshFilterComp9->SetMesh(pFishMesh);
 
 		auto pMaterialComp9 = std::make_shared<MaterialComponent>();
-		pMaterialComp9->SetAlbedoColor(Color4(0.8f, 1.0f, 0.8f, 1));
-		pMaterialComp9->SetShaderProgram(eShaderProgram_Basic);
-		pMaterialComp9->SetTexture(eMaterialTexture_Albedo, pFishTexture);
+		pMaterialComp9->AddMaterial(0, pMaterial9);
 
 		auto pMeshRendererComp9 = std::make_shared<MeshRendererComponent>();
 		pMeshRendererComp9->SetRenderer(eRenderer_Forward);
@@ -382,8 +414,33 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Unity Chan
 
-	auto pCharMesh = std::make_shared<ObjMesh>("Assets/Models/unitychan_v2.3ds");
-	auto pToneTexture = std::make_shared<ImageTexture>("Assets/Textures/XToon.png");
+	auto pCharMesh = std::make_shared<ExternalMesh>("Assets/Models/unitychan_v1.3ds");
+	auto pToneTexture = std::make_shared<ImageTexture>("Assets/Textures/XToon_BW.png");
+
+	std::vector<std::shared_ptr<ImageTexture>> pUnityChanTextures =
+	{
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/hair_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/hair_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/hair_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/hair_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/hair_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/skin_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/cheek_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/eyeline_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/face_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/eyeline_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/face_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/eye_iris_L_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/eye_iris_R_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/face_00.tga"),
+		std::make_shared<ImageTexture>("Assets/Textures/unitychan/body_01.tga"),
+	};
 
 	auto pTransformComp10 = pWorld->CreateComponent<TransformComponent>();
 	pTransformComp10->SetPosition(Vector3(0, 0.5f, 5.3f));
@@ -393,11 +450,19 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pMeshFilterComp10 = pWorld->CreateComponent<MeshFilterComponent>();
 	pMeshFilterComp10->SetMesh(pCharMesh);
 
+	unsigned int submeshCount = pCharMesh->GetSubmeshCount();
+
 	auto pMaterialComp10 = std::make_shared<MaterialComponent>();
-	pMaterialComp10->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1));
-	pMaterialComp10->SetShaderProgram(eShaderProgram_AnimeStyle);
-	pMaterialComp10->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
-	pMaterialComp10->SetTexture(eMaterialTexture_Tone, pToneTexture);
+
+	for (unsigned int i = 0; i < submeshCount; ++i)
+	{
+		auto pMaterial10 = std::make_shared<Material>();
+		pMaterial10->SetShaderProgram(eShaderProgram_AnimeStyle);
+		pMaterial10->SetTexture(eMaterialTexture_Albedo, pUnityChanTextures[i]);
+		pMaterial10->SetTexture(eMaterialTexture_Tone, pToneTexture);
+
+		pMaterialComp10->AddMaterial(i, pMaterial10);
+	}
 
 	auto pMeshRendererComp10 = std::make_shared<MeshRendererComponent>();
 	pMeshRendererComp10->SetRenderer(eRenderer_Forward);
@@ -408,5 +473,38 @@ void TestSetup(GraphicsApplication* pApp)
 	pUnityChan->AttachComponent(pMaterialComp10);
 	pUnityChan->AttachComponent(pMeshRendererComp10);
 
-	//WriteECSWorldToJson(pWorld, "Assets/Scene/TestScene.json");
+	// Sponza
+
+	auto pSponzaMesh = std::make_shared<ExternalMesh>("Assets/Models/sponza.obj");
+
+	auto pTransformComp11 = pWorld->CreateComponent<TransformComponent>();
+	pTransformComp11->SetPosition(Vector3(0, 0.0f, 0.0f));
+	pTransformComp11->SetScale(Vector3(0.007f, 0.007f, 0.007f));
+
+	auto pMeshFilterComp11 = pWorld->CreateComponent<MeshFilterComponent>();
+	pMeshFilterComp11->SetMesh(pSponzaMesh);
+
+	submeshCount = pSponzaMesh->GetSubmeshCount();
+
+	auto pMaterialComp11 = std::make_shared<MaterialComponent>();
+
+	for (unsigned int i = 0; i < submeshCount; ++i)
+	{
+		auto pMaterial11 = std::make_shared<Material>();
+		pMaterial11->SetShaderProgram(eShaderProgram_Basic);
+		pMaterial11->SetTexture(eMaterialTexture_Albedo, pDefaultTexture);
+
+		pMaterialComp11->AddMaterial(i, pMaterial11);
+	}
+
+	auto pMeshRendererComp11 = std::make_shared<MeshRendererComponent>();
+	pMeshRendererComp11->SetRenderer(eRenderer_Forward);
+
+	auto pSponza = pWorld->CreateEntity<StandardEntity>();
+	pSponza->AttachComponent(pTransformComp11);
+	pSponza->AttachComponent(pMeshFilterComp11);
+	pSponza->AttachComponent(pMaterialComp11);
+	pSponza->AttachComponent(pMeshRendererComp11);
+
+	WriteECSWorldToJson(pWorld, "Assets/Scene/TestScene.json");
 }

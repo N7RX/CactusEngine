@@ -276,9 +276,6 @@
     <ClInclude Include="Graphics\Resources\Mesh.h">
       <Filter>Graphics\Resources\Mesh</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Resources\ObjMesh.h">
-      <Filter>Graphics\Resources\Mesh</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Resources\Plane.h">
       <Filter>Graphics\Resources\Mesh</Filter>
     </ClInclude>
@@ -356,6 +353,9 @@
     </ClInclude>
     <ClInclude Include="Script\ScriptSelector.h">
       <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\ExternalMesh.h">
+      <Filter>Graphics\Resources\Mesh</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -464,9 +464,6 @@
     <ClCompile Include="Graphics\Resources\Mesh.cpp">
       <Filter>Graphics\Resources\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Resources\ObjMesh.cpp">
-      <Filter>Graphics\Resources\Mesh</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Resources\Plane.cpp">
       <Filter>Graphics\Resources\Mesh</Filter>
     </ClCompile>
@@ -511,6 +508,9 @@
     </ClCompile>
     <ClCompile Include="Component\ScriptComponent.cpp">
       <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\ExternalMesh.cpp">
+      <Filter>Graphics\Resources\Mesh</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

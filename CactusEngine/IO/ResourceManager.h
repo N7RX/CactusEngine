@@ -8,8 +8,8 @@ namespace Engine
 {
 	namespace ResourceManagement
 	{
-		typedef std::unordered_map<const char*, std::shared_ptr<Texture2D>> FileTextureList;
-		typedef std::unordered_map<const char*, std::shared_ptr<Mesh>> FileMeshList;
+		typedef std::unordered_map<std::string, std::shared_ptr<Texture2D>> FileTextureList;
+		typedef std::unordered_map<std::string, std::shared_ptr<Mesh>> FileMeshList;
 
 		// Record already external resources to prevent duplicate loading
 		static FileTextureList LoadedImageTextures;

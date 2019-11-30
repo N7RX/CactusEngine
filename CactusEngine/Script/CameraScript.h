@@ -17,6 +17,8 @@ namespace SampleScript
 		void Start();
 		void Update();
 
+		float m_cameraMoveSpeed = 10.0f;
+
 	private:
 		EScriptID m_id;
 		bool m_started;

@@ -61,7 +61,7 @@ void CameraScript::Update()
 
 	if (InputSystem::GetMousePress(1))
 	{		
-		Vector2 rotation = (m_prevCursorPosition - cursorPos) * Timer::GetFrameDeltaTime() * 5.0f;
+		Vector2 rotation = (m_prevCursorPosition - cursorPos) * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
 
 		Vector3 currRot = m_pCameraTransform->GetRotation();
 		Vector3 newRot = currRot + Vector3(rotation.y, -rotation.x, 0);

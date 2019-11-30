@@ -10,7 +10,7 @@
 #include "AllComponents.h"
 #include "StandardEntity.h"
 #include "ScriptSelector.h"
-#include "ObjMesh.h"
+#include "ExternalMesh.h"
 #include "Plane.h"
 
 namespace Engine
@@ -104,15 +104,15 @@ namespace Engine
 				switch ((EBuiltInMeshType)(component["type"].asInt()))
 				{
 				case eBuiltInMesh_External:
-					//if (ResourceManagement::LoadedMeshes.find(component["filePath"].asCString()) == ResourceManagement::LoadedMeshes.end())
+					if (ResourceManagement::LoadedMeshes.find(component["filePath"].asString()) == ResourceManagement::LoadedMeshes.end())
 					{
-						pMesh = std::make_shared<ObjMesh>(component["filePath"].asCString());
-						//ResourceManagement::LoadedMeshes.emplace(component["filePath"].asCString(), pMesh);
+						pMesh = std::make_shared<ExternalMesh>(component["filePath"].asCString());
+						ResourceManagement::LoadedMeshes.emplace(component["filePath"].asString(), pMesh);
 					}
-					//else
-					//{
-					//	pMesh = ResourceManagement::LoadedMeshes.at(component["filePath"].asCString());
-					//}
+					else
+					{
+						pMesh = ResourceManagement::LoadedMeshes.at(component["filePath"].asString());
+					}
 					break;
 				case eBuiltInMesh_Plane:
 					pMesh = std::make_shared<Plane>(component["planeDimension"]["x"].asUInt(), component["planeDimension"]["y"].asUInt());
@@ -137,8 +137,6 @@ namespace Engine
 
 				auto pMaterialComp = std::make_shared<MaterialComponent>();
 
-				pMaterialComp->SetShaderProgram((EBuiltInShaderProgramType)(component["shaderType"].asInt()));
-
 				static std::string pathTypes[EMATERIALTEXTURETYPE_COUNT] =
 				{
 					"albedoTexturePath",
@@ -149,33 +147,48 @@ namespace Engine
 					"toneTexturePath"
 				};
 
-				for (int i = 0; i < EMATERIALTEXTURETYPE_COUNT; ++i)
+				unsigned int materialCount = component["materialCount"].asUInt();
+
+				for (unsigned int i = 0; i < materialCount; ++i)
 				{
-					if (component[pathTypes[i]])
+					std::stringstream materialName;
+					materialName << "materialImpl" << i;
+					Json::Value subComponent = component[materialName.str()];
+
+					auto pMaterial = std::make_shared<Material>();
+
+					pMaterial->SetShaderProgram((EBuiltInShaderProgramType)(subComponent["shaderType"].asInt()));
+
+					for (int i = 0; i < EMATERIALTEXTURETYPE_COUNT; ++i)
 					{
-						std::shared_ptr<Texture2D> pTexture = nullptr;
-						//if (ResourceManagement::LoadedImageTextures.find(component[pathTypes[i]].asCString()) == ResourceManagement::LoadedImageTextures.end())
+						if (subComponent[pathTypes[i]])
 						{
-							pTexture = std::make_shared<ImageTexture>(component[pathTypes[i]].asCString());
-							//ResourceManagement::LoadedImageTextures.emplace(component[pathTypes[i]].asCString(), pTexture);
+							std::shared_ptr<Texture2D> pTexture = nullptr;
+							if (ResourceManagement::LoadedImageTextures.find(subComponent[pathTypes[i]].asString()) == ResourceManagement::LoadedImageTextures.end())
+							{
+								pTexture = std::make_shared<ImageTexture>(subComponent[pathTypes[i]].asCString());
+								ResourceManagement::LoadedImageTextures.emplace(subComponent[pathTypes[i]].asString(), pTexture);
+							}
+							else
+							{
+								pTexture = ResourceManagement::LoadedImageTextures.at(subComponent[pathTypes[i]].asString());
+							}
+							pMaterial->SetTexture((EMaterialTextureType)(eMaterialTexture_Albedo + i), pTexture); // Alert: here the check sequence must be consistent with enum sequence
 						}
-						//else
-						//{
-						//	pTexture = ResourceManagement::LoadedImageTextures.at(component[pathTypes[i]].asCString());
-						//}
-						pMaterialComp->SetTexture((EMaterialTextureType)(eMaterialTexture_Albedo + i), pTexture); // Alert: here the check sequence must be consistent with enum sequence
 					}
+
+					Color4 albedoColor(1);
+					albedoColor.x = subComponent["albedoColor"]["r"].asFloat();
+					albedoColor.y = subComponent["albedoColor"]["g"].asFloat();
+					albedoColor.z = subComponent["albedoColor"]["b"].asFloat();
+					albedoColor.w = subComponent["albedoColor"]["a"].asFloat();
+
+					pMaterial->SetAlbedoColor(albedoColor);
+
+					pMaterial->SetTransparent(subComponent["transparent"].asBool());
+
+					pMaterialComp->AddMaterial(i, pMaterial);
 				}
-
-				Color4 albedoColor(1);
-				albedoColor.x = component["albedoColor"]["r"].asFloat();
-				albedoColor.y = component["albedoColor"]["g"].asFloat();
-				albedoColor.z = component["albedoColor"]["b"].asFloat();
-				albedoColor.w = component["albedoColor"]["a"].asFloat();
-
-				pMaterialComp->SetAlbedoColor(albedoColor);
-
-				pMaterialComp->SetTransparent(component["transparent"].asBool());
 
 				components.push(pMaterialComp);
 			}
