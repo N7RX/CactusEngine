@@ -53,6 +53,12 @@ namespace Engine
 
 		float*	 pTexcoordData;
 		uint32_t texcoordDataCount;
+
+		float*	 pTangentData;
+		uint32_t tangentDataCount;
+
+		float*	 pBitangentData;
+		uint32_t bitangentDataCount;
 	};
 
 	class VertexBuffer : public RawResource

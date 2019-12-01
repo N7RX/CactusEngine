@@ -44,6 +44,18 @@
     <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\Basic_Transparent.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\ShadowMap.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\ShadowMap.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\DepthOfField.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

@@ -9,28 +9,28 @@ layout(location = 0) out vec4 outColor;
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
 
+uniform vec3 CameraPosition;
+
 uniform float Time;
 
 uniform sampler2D AlbedoTexture;
 uniform vec4 AlbedoColor;
 
-uniform vec3 CameraPosition;
-
 uniform sampler2D DepthTexture_1;
 uniform sampler2D ColorTexture_1;
 
 // TODO: replace Phong model with PBR
-uniform vec3  LightPosition = vec3(1.0f, 0.75f, 2.5f);
+uniform vec3  LightDirection = vec3(0.0f, 0.8660254f, -0.5f);
 uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 3.0f;
+uniform float LightIntensity = 1.5f;
 
 uniform float Ka = 0.25f;
 uniform float Kd = 0.9f;
 uniform float Ks = 1.0f;
 uniform int   Shininess = 64;
 
-uniform float FoamHeight = -1.12f;
-uniform float FoamRange = 0.1f; // This is determined by Amplitude in previous stage
+uniform float FoamHeight = 0.15f;
+uniform float FoamRange = 0.09f;
 uniform vec4  FoamColor = vec4(1, 1, 1, 1);
 
 uniform float BlendDepthRange = 0.18f;
@@ -74,11 +74,9 @@ void main(void)
 
 	// Lighting
 	// TODO: replace Phong model with PBR
-	vec3 lightDir = normalize(LightPosition - v2fPosition);
 	vec3 viewDir = normalize(CameraPosition - v2fPosition);
-	vec3 reflectDir = normalize(2 * dot(lightDir, v2fNormal) * v2fNormal - lightDir);
-	float lightFalloff = 1.0f / pow(length(LightPosition - v2fPosition), 2);
-	float illumination = LightIntensity * (Ka + lightFalloff * (Kd * dot(lightDir, v2fNormal) + Ks * pow(clamp(dot(viewDir, reflectDir), 0, 1), Shininess)));
+	vec3 reflectDir = normalize(2 * dot(LightDirection, v2fNormal) * v2fNormal - LightDirection);
+	float illumination = LightIntensity * (Ka + (Kd * dot(LightDirection, v2fNormal) + Ks * pow(clamp(dot(viewDir, reflectDir), 0, 1), Shininess)));
 
 	// Blend with background color
 	waterColor.xyz *= illumination;

@@ -136,6 +136,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="Assets\Shader\GLSL\Basic_Transparent.frag" />
+    <None Include="Assets\Shader\GLSL\DepthOfField.frag" />
     <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag" />
     <None Include="Assets\Shader\GLSL\AnimeStyle.frag" />
     <None Include="Assets\Shader\GLSL\AnimeStyle.vert" />
@@ -148,6 +150,8 @@
     <None Include="Assets\Shader\GLSL\LineDrawing_Curvature.frag" />
     <None Include="Assets\Shader\GLSL\NormalOnly.frag" />
     <None Include="Assets\Shader\GLSL\NormalOnly.vert" />
+    <None Include="Assets\Shader\GLSL\ShadowMap.frag" />
+    <None Include="Assets\Shader\GLSL\ShadowMap.vert" />
     <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
     <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="packages.config" />

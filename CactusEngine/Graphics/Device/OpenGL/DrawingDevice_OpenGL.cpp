@@ -61,6 +61,20 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glEnableVertexAttribArray(ATTRIB_TEXCOORD_LOCATION);
 	glVertexAttribPointer(ATTRIB_TEXCOORD_LOCATION, 2, GL_FLOAT, 0, 0, 0);
 
+	// Tangent
+	glGenBuffers(1, &pVertexBuffer->m_vboTangents);
+	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboTangents);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.tangentDataCount, createInfo.pTangentData, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(ATTRIB_TANGENT_LOCATION);
+	glVertexAttribPointer(ATTRIB_TANGENT_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+
+	// Bitangent
+	glGenBuffers(1, &pVertexBuffer->m_vboBitangents);
+	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboBitangents);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.bitangentDataCount, createInfo.pBitangentData, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(ATTRIB_BITANGENT_LOCATION);
+	glVertexAttribPointer(ATTRIB_BITANGENT_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -150,14 +164,14 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
 			break;
 		default:
-			std::cerr << "Unhandled framebuffer attachment type.\n";
+			std::cerr << "OpenGL: Unhandled framebuffer attachment type.\n";
 			break;
 		}
 	}
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		std::cerr << "Failed to create framebuffer.\n";
+		std::cerr << "OpenGL: Failed to create framebuffer.\n";
 		return false;
 	}
 
@@ -264,6 +278,11 @@ void DrawingDevice_OpenGL::DrawFullScreenQuad()
 	glBindVertexArray(m_attributeless_vao);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
+}
+
+void DrawingDevice_OpenGL::ResizeViewPort(uint32_t width, uint32_t height)
+{
+	glViewport(0, 0, width, height);
 }
 
 void DrawingDevice_OpenGL::Present()

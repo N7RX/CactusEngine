@@ -9,9 +9,23 @@ uniform sampler2D DepthTexture_1;
 uniform sampler2D ColorTexture_2;
 uniform sampler2D DepthTexture_2;
 
+uniform float CameraGamma = 0.6f;
+uniform float Exposure = 2.0f;
+
 
 void main(void)
 {
-	float alpha = step(0, texture2D(DepthTexture_1, v2fTexCoord).r - texture2D(DepthTexture_2, v2fTexCoord).r);
-	outColor = texture2D(ColorTexture_2, v2fTexCoord) * alpha + (1.0f - alpha) * texture2D(ColorTexture_1, v2fTexCoord);
+	float depthFromOpaque = texture2D(DepthTexture_1, v2fTexCoord).r;
+	float depthFromTransp = texture2D(DepthTexture_2, v2fTexCoord).r;
+
+	float alpha = step(0, depthFromOpaque - depthFromTransp);
+
+	vec4 colorFromOpaque = texture2D(ColorTexture_1, v2fTexCoord);
+	vec4 colorFromTransp = texture2D(ColorTexture_2, v2fTexCoord);
+
+	outColor = colorFromTransp * alpha + (1.0f - alpha) * colorFromOpaque;
+
+	// HDR tone mapping with gamma correction
+	outColor.xyz = vec3(1.02, 1.01, 1.0) - exp(-outColor.xyz * Exposure);
+	outColor.xyz = pow(outColor.xyz, vec3(1.0 / CameraGamma));
 }

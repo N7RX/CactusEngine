@@ -19,11 +19,11 @@ namespace Engine
 	typedef glm::mat3 Matrix3x3;
 	typedef glm::mat4 Matrix4x4;
 
-	const Vector3 X_AXIS = Vector3(1.0f, 0.0f, 0.0f);
-	const Vector3 Z_AXIS = Vector3(0.0f, 0.0f, 1.0f);
-	const Vector3 Y_AXIS = Vector3(0.0f, 1.0f, 0.0f);
+	const static Vector3 X_AXIS = Vector3(1.0f, 0.0f, 0.0f);
+	const static Vector3 Z_AXIS = Vector3(0.0f, 0.0f, 1.0f);
+	const static Vector3 Y_AXIS = Vector3(0.0f, 1.0f, 0.0f);
 
-	const Vector3 UP = Vector3(0.0f, 1.0f, 0.0f);
+	const static Vector3 UP = Vector3(0.0f, 1.0f, 0.0f);
 
-	const float D2R = 3.1415926536f / 180.0f;
+	const static float D2R = 3.1415926536f / 180.0f;
 }

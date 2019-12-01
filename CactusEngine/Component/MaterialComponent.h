@@ -23,14 +23,24 @@ namespace Engine
 		void SetAlbedoColor(Color4 albedo);
 		Color4 GetAlbedoColor() const;
 
+		void SetAnisotropy(float val);
+		float GetAnisotropy() const;
+		void SetRoughness(float val);
+		float GetRoughness() const;
+
 		void SetTransparent(bool val);
 		bool IsTransparent() const;
 
 	private:
 		EBuiltInShaderProgramType m_useShaderType;
-		MaterialTextureList m_Textures;
-		Color4 m_albedoColor;
 		bool m_transparentPass;
+
+		MaterialTextureList m_Textures;
+
+		Color4 m_albedoColor;
+
+		float m_anisotropy;
+		float m_roughness;
 	};
 
 	typedef std::unordered_map<unsigned int, std::shared_ptr<Material>> MaterialList;

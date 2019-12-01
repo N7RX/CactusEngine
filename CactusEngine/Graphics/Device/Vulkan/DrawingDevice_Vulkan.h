@@ -76,6 +76,7 @@ namespace Engine
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) override;
 		void DrawFullScreenQuad() override;
+		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
 		void Present() override;
 

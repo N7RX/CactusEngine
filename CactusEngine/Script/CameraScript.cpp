@@ -38,22 +38,22 @@ void CameraScript::Update()
 
 	if (InputSystem::GetKeyPress('w'))
 	{				
-		currPos += m_pCameraTransform->GetForwardDirection() * Timer::GetFrameDeltaTime();
+		currPos += m_pCameraTransform->GetForwardDirection() * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
 		m_pCameraTransform->SetPosition(currPos);
 	}
 	if (InputSystem::GetKeyPress('s'))
 	{
-		currPos -= m_pCameraTransform->GetForwardDirection() * Timer::GetFrameDeltaTime();
+		currPos -= m_pCameraTransform->GetForwardDirection() * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
 		m_pCameraTransform->SetPosition(currPos);
 	}
 	if (InputSystem::GetKeyPress('a'))
 	{
-		currPos -= m_pCameraTransform->GetRightDirection() * Timer::GetFrameDeltaTime();
+		currPos -= m_pCameraTransform->GetRightDirection() * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
 		m_pCameraTransform->SetPosition(currPos);
 	}
 	if (InputSystem::GetKeyPress('d'))
 	{
-		currPos += m_pCameraTransform->GetRightDirection() * Timer::GetFrameDeltaTime();
+		currPos += m_pCameraTransform->GetRightDirection() * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
 		m_pCameraTransform->SetPosition(currPos);
 	}
 
@@ -61,7 +61,7 @@ void CameraScript::Update()
 
 	if (InputSystem::GetMousePress(1))
 	{		
-		Vector2 rotation = (m_prevCursorPosition - cursorPos) * Timer::GetFrameDeltaTime() * m_cameraMoveSpeed;
+		Vector2 rotation = (m_prevCursorPosition - cursorPos) * Timer::GetFrameDeltaTime() * m_cameraRotateSpeed;
 
 		Vector3 currRot = m_pCameraTransform->GetRotation();
 		Vector3 newRot = currRot + Vector3(rotation.y, -rotation.x, 0);

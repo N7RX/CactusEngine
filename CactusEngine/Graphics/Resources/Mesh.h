@@ -28,7 +28,7 @@ namespace Engine
 	protected:
 		Mesh(const std::shared_ptr<DrawingDevice> pDevice);
 
-		void CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<int>& indices);
+		void CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<float>& tangents, std::vector<float>& bitangents, std::vector<int>& indices);
 
 	protected:
 		std::shared_ptr<DrawingDevice> m_pDevice;

@@ -101,6 +101,11 @@ void DrawingDevice_Vulkan::DrawFullScreenQuad()
 
 }
 
+void DrawingDevice_Vulkan::ResizeViewPort(uint32_t width, uint32_t height)
+{
+
+}
+
 void DrawingDevice_Vulkan::Present()
 {
 

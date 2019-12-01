@@ -4,7 +4,7 @@
 using namespace Engine;
 
 Material::Material()
-	: m_albedoColor(Color4(1, 1, 1, 1)), m_transparentPass(false)
+	: m_useShaderType(eShaderProgram_Basic), m_transparentPass(false), m_albedoColor(Color4(1, 1, 1, 1)), m_anisotropy(0.0f), m_roughness(0.75f)
 {
 }
 
@@ -45,6 +45,26 @@ void Material::SetAlbedoColor(Color4 albedo)
 Color4 Material::GetAlbedoColor() const
 {
 	return m_albedoColor;
+}
+
+void Material::SetAnisotropy(float val)
+{
+	m_anisotropy = val;
+}
+
+float Material::GetAnisotropy() const
+{
+	return m_anisotropy;
+}
+
+void Material::SetRoughness(float val)
+{
+	m_roughness = val;
+}
+
+float Material::GetRoughness() const
+{
+	return m_roughness;
 }
 
 void Material::SetTransparent(bool val)

@@ -5,7 +5,7 @@
 using namespace Engine;
 
 CameraComponent::CameraComponent()
-	: BaseComponent(eCompType_Camera), m_fov(45.0f), m_nearClip(0.3f), m_farClip(1000.0f), m_projectionType(eProjectionType_Perspective), m_clearColor(Color4(0, 0, 0, 1))
+	: BaseComponent(eCompType_Camera), m_fov(45.0f), m_nearClip(0.1f), m_farClip(1000.0f), m_projectionType(eProjectionType_Perspective), m_clearColor(Color4(0, 0, 0, 1))
 {
 }
 

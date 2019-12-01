@@ -37,6 +37,7 @@ namespace Engine
 		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) = 0;
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) = 0;
 		virtual void DrawFullScreenQuad() = 0;
+		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
 		virtual void Present() = 0;
 

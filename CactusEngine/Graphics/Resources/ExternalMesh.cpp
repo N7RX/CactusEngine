@@ -51,11 +51,15 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 	std::vector<float> vertices(totalNumVertices * 3);
 	std::vector<float> normals(totalNumVertices * 3);
 	std::vector<float> texcoords(totalNumVertices * 2);
+	std::vector<float> tangents(totalNumVertices * 3);
+	std::vector<float> bitangents(totalNumVertices * 3);
 
 	unsigned int faceIndex = 0;
 	unsigned int vertexOffset = 0;
-	unsigned int texcoordOffset = 0;
 	unsigned int normalOffset = 0;
+	unsigned int texcoordOffset = 0;
+	unsigned int tangentOffset = 0;
+	unsigned int bitangentOffset = 0;
 
 	// Buffer data
 	for (int i = 0; i < totalNumSubMeshes; ++i)
@@ -77,6 +81,14 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 			memcpy(&vertices[vertexOffset], mesh->mVertices, size);
 			vertexOffset += 3 * mesh->mNumVertices;
 		}
+		
+		// Normals
+		if (mesh->HasNormals())
+		{
+			const int size = 3 * sizeof(float) * mesh->mNumVertices;
+			memcpy(&normals[normalOffset], mesh->mNormals, size);
+			normalOffset += 3 * mesh->mNumVertices;
+		}
 
 		// Texcoords
 		if (mesh->HasTextureCoords(0))
@@ -88,17 +100,25 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 			}
 			texcoordOffset += 2 * mesh->mNumVertices;
 		}
-		
-		// Normals
-		if (mesh->HasNormals())
+
+		// Tangents
+		if (mesh->HasTangentsAndBitangents())
 		{
 			const int size = 3 * sizeof(float) * mesh->mNumVertices;
-			memcpy(&normals[normalOffset], mesh->mNormals, size);
-			normalOffset += 3 * mesh->mNumVertices;
+			memcpy(&tangents[tangentOffset], mesh->mTangents, size);
+			tangentOffset += 3 * mesh->mNumVertices;
+		}
+
+		// Bitangents
+		if (mesh->HasTangentsAndBitangents())
+		{
+			const int size = 3 * sizeof(float) * mesh->mNumVertices;
+			memcpy(&bitangents[bitangentOffset], mesh->mBitangents, size);
+			bitangentOffset += 3 * mesh->mNumVertices;
 		}
 	}
 
 	m_filePath.assign(filePath);
 	m_type = eBuiltInMesh_External;
-	CreateVertexBufferFromVertices(vertices, normals, texcoords, indices);
+	CreateVertexBufferFromVertices(vertices, normals, texcoords, tangents, bitangents, indices);
 }

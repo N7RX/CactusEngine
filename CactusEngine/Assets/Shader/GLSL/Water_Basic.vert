@@ -18,12 +18,12 @@ uniform float Time;
 uniform sampler2D NoiseTexture;
 
 uniform vec2  NoiseDirection = vec2(1.0f, 1.0f); // This should not be normalized
-uniform float NoiseIntensity = 1.2f;
-uniform float NoiseFrequency = 0.06f;
+uniform float NoiseIntensity = 1.0f;
+uniform float NoiseFrequency = 0.05f;
 
-uniform float WaveLength = 0.06f;
-uniform float Steepness = 0.25f;
-uniform float Amplitude = 0.09f;
+uniform float WaveLength = 0.08f;
+uniform float Steepness = 0.5f;
+uniform float Amplitude = 0.06f;
 uniform float Speed = 0.12f;
 uniform vec2  Direction = vec2(-0.7071068f, -0.7071068f);
 
@@ -33,7 +33,7 @@ void main(void)
 	v2fTexCoord = inTexCoord + vec2(fract(-0.05f * Time));
 
 	vec2 noiseTexCoord = inTexCoord + vec2(fract(NoiseFrequency * Time)) * NoiseDirection;
-	float noisedTime = Time + NoiseIntensity * texture2D(NoiseTexture, v2fTexCoord).r;
+	float noisedTime = Time + NoiseIntensity * texture2D(NoiseTexture, noiseTexCoord).r;
 
 	// Gerstner Wave
 

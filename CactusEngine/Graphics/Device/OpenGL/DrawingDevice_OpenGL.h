@@ -28,6 +28,7 @@ namespace Engine
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) override;
 		void DrawFullScreenQuad() override;
+		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
 		void Present() override;
 
@@ -40,6 +41,8 @@ namespace Engine
 		const GLuint ATTRIB_POSITION_LOCATION = 0;
 		const GLuint ATTRIB_NORMAL_LOCATION = 1;
 		const GLuint ATTRIB_TEXCOORD_LOCATION = 2;
+		const GLuint ATTRIB_TANGENT_LOCATION = 3;
+		const GLuint ATTRIB_BITANGENT_LOCATION = 4;
 
 		GLuint m_attributeless_vao;
 	};

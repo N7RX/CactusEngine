@@ -92,7 +92,7 @@ VertexShader_OpenGL::VertexShader_OpenGL(const char* filePath)
 	GLchar* source = ReadSourceFileAsChar(filePath);
 	if (source == NULL)
 	{
-		throw std::runtime_error("Failed to read shader source file.");
+		throw std::runtime_error("OpenGL: Failed to read shader source file.");
 	}
 
 	m_glShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -104,7 +104,7 @@ VertexShader_OpenGL::VertexShader_OpenGL(const char* filePath)
 	if (!compiled)
 	{
 		PrintShaderCompileError_GL(m_glShaderID);
-		throw std::runtime_error("Failed to compile shader.");
+		throw std::runtime_error("OpenGL: Failed to compile shader.");
 	}
 }
 
@@ -118,7 +118,7 @@ FragmentShader_OpenGL::FragmentShader_OpenGL(const char* filePath)
 	GLchar* source = ReadSourceFileAsChar(filePath);
 	if (source == NULL)
 	{
-		throw std::runtime_error("Failed to read shader source file.");
+		throw std::runtime_error("OpenGL: Failed to read shader source file.");
 	}
 
 	m_glShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -130,7 +130,7 @@ FragmentShader_OpenGL::FragmentShader_OpenGL(const char* filePath)
 	if (!compiled)
 	{
 		PrintShaderCompileError_GL(m_glShaderID);
-		throw std::runtime_error("Failed to compile shader.");
+		throw std::runtime_error("OpenGL: Failed to compile shader.");
 	}
 }
 
@@ -155,7 +155,7 @@ ShaderProgram_OpenGL::ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const 
 	if (!linked)
 	{
 		PrintProgramLinkError_GL(m_glProgramID);
-		throw std::runtime_error("Shader program failed to link.");
+		throw std::runtime_error("OpenGL: Shader program failed to link.");
 	}
 
 	ReflectParamLocations();
@@ -201,7 +201,7 @@ void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EGLShaderParamT
 		m_activeTextureUnit += 1;
 		break;
 	default:
-		throw std::runtime_error("Unsupported shader parameter type.");
+		throw std::runtime_error("OpenGL: Unsupported shader parameter type.");
 		break;
 	}
 }
@@ -220,14 +220,21 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::PROJECTION_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::PROJECTION_MATRIX));
 	m_paramLocations.emplace(ShaderParamNames::NORMAL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::NORMAL_MATRIX));
 
+	m_paramLocations.emplace(ShaderParamNames::LIGHT_SPACE_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::LIGHT_SPACE_MATRIX));
+	m_paramLocations.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE));
+
 	m_paramLocations.emplace(ShaderParamNames::CAMERA_POSITION, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_POSITION));
 
 	m_paramLocations.emplace(ShaderParamNames::TIME, glGetUniformLocation(m_glProgramID, ShaderParamNames::TIME));
 
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
 
+	m_paramLocations.emplace(ShaderParamNames::ANISOTROPY, glGetUniformLocation(m_glProgramID, ShaderParamNames::ANISOTROPY));
+	m_paramLocations.emplace(ShaderParamNames::ROUGHNESS, glGetUniformLocation(m_glProgramID, ShaderParamNames::ROUGHNESS));
+
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
 	m_paramLocations.emplace(ShaderParamNames::GNORMAL_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GNORMAL_TEXTURE));
+	m_paramLocations.emplace(ShaderParamNames::GPOSITION_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GPOSITION_TEXTURE));
 	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE));
 
 	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_1));
@@ -236,6 +243,7 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_2));
 
 	m_paramLocations.emplace(ShaderParamNames::TONE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::TONE_TEXTURE));
+	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE));
 
 	m_paramLocations.emplace(ShaderParamNames::BOOL_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::BOOL_1));
 

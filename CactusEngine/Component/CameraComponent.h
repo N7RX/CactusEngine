@@ -27,5 +27,10 @@ namespace Engine
 		float m_nearClip;
 		ECameraProjectionType m_projectionType;
 		Color4 m_clearColor;
+
+		// For depth-of-field
+		float m_aperture;
+		float m_focalDistance;
+		float m_imageDistance;
 	};
 }

@@ -6,6 +6,7 @@ layout(location = 2) in vec2 inTexCoord;
 
 out vec2 v2fTexCoord;
 out vec3 v2fNormal;
+out vec3 v2fPosition;
 
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
@@ -17,6 +18,7 @@ void main(void)
 {
 	v2fTexCoord = inTexCoord;
 	v2fNormal = normalize(NormalMatrix * inNormal);
+	v2fPosition = (ModelMatrix * vec4(inPosition, 1.0)).xyz;
 
 	gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(inPosition, 1.0);
 }
