@@ -55,6 +55,8 @@ namespace Engine
 		std::shared_ptr<IEntity> FindEntityWithTag(EEntityTag tag) const;
 		std::vector<std::shared_ptr<IEntity>> FindEntitiesWithTag(EEntityTag tag) const;
 
+		void ClearEntities();
+
 	private:
 		uint32_t GetNewECSID(EECSType type);
 

@@ -224,6 +224,9 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE));
 
 	m_paramLocations.emplace(ShaderParamNames::CAMERA_POSITION, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_POSITION));
+	m_paramLocations.emplace(ShaderParamNames::CAMERA_APERTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_APERTURE));
+	m_paramLocations.emplace(ShaderParamNames::CAMERA_FOCALDISTANCE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_FOCALDISTANCE));
+	m_paramLocations.emplace(ShaderParamNames::CAMERA_IMAGEDISTANCE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_IMAGEDISTANCE));
 
 	m_paramLocations.emplace(ShaderParamNames::TIME, glGetUniformLocation(m_glProgramID, ShaderParamNames::TIME));
 
@@ -233,9 +236,9 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::ROUGHNESS, glGetUniformLocation(m_glProgramID, ShaderParamNames::ROUGHNESS));
 
 	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
+
 	m_paramLocations.emplace(ShaderParamNames::GNORMAL_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GNORMAL_TEXTURE));
 	m_paramLocations.emplace(ShaderParamNames::GPOSITION_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GPOSITION_TEXTURE));
-	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE));
 
 	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_1));
 	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_2));
@@ -243,7 +246,10 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_2));
 
 	m_paramLocations.emplace(ShaderParamNames::TONE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::TONE_TEXTURE));
-	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE));
+	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE_1));
+	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE_1));
+	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE_2));
+	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE_2));
 
 	m_paramLocations.emplace(ShaderParamNames::BOOL_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::BOOL_1));
 

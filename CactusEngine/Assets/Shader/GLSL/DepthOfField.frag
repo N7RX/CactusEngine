@@ -6,8 +6,12 @@ layout(location = 0) out vec4 outColor;
 
 uniform sampler2D ColorTexture_1;
 uniform sampler2D GPositionTexture;
-uniform sampler2D MaskTexture;
-uniform sampler2D NoiseTexture;
+
+uniform sampler2D ColorTexture_2; // Shadow values
+uniform sampler2D MaskTexture_1;
+uniform sampler2D NoiseTexture_1;
+uniform sampler2D MaskTexture_2;
+uniform sampler2D NoiseTexture_2;
 
 uniform float Time;
 
@@ -15,9 +19,9 @@ uniform mat4 ViewMatrix;
 
 uniform bool Bool_1;
 
-uniform float FocalDistance = 2.0f;
-uniform float Aperture = 4.0f;
-uniform float ImageDistance = 2.0f;
+uniform float Aperture;
+uniform float FocalDistance;
+uniform float ImageDistance;
 
 const int SampleRadius = 2;
 const float Weight[10] = float[](0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216, 0.007, 0.003, 0.0012, 0.0005, 0.0003);
@@ -27,6 +31,7 @@ const float PI = 3.1415926536f;
 vec3 LevelBlur(int level)
 {
 	//return vec3(float(level)*0.1); // Visualize blur level
+	//return texture(ColorTexture_1, v2fTexCoord).rgb;
 
 	vec2 pixelOffset = 1.0 / textureSize(ColorTexture_1, 0);
 
@@ -77,11 +82,22 @@ void main(void)
 	vec3 result = LevelBlur(level);
 	outColor = vec4(result, 1.0);
 
+	// TODO: move this step to an individual shader
 	if (!Bool_1) // Final output (vertical)
 	{
+		// Apply pencil mask
+		float pencilStrength_1 = texture2D(MaskTexture_2, v2fTexCoord).r;
+		float pencilStrength_2 = texture2D(NoiseTexture_2, v2fTexCoord).r;
+
+		float interpVal = texture2D(ColorTexture_2, v2fTexCoord).r; // Interpolate by shadow
+		float interpMin = 0.86f * interpVal + 0.98f * (1.0f - interpVal);
+
+		float coeff = step(0, fract(Time) - 0.5f); // 0-0.5 and 0.5-1.0
+		outColor *= coeff * clamp(pencilStrength_1, interpMin, 1.0f) + (1.0f - coeff) * clamp(pencilStrength_2, interpMin, 1.0f);
+
 		// Apply brush mask
-		float maskStrength_1 = texture2D(MaskTexture, v2fTexCoord).r;
-		float maskStrength_2 = texture2D(NoiseTexture, v2fTexCoord).r;
+		float maskStrength_1 = texture2D(MaskTexture_1, v2fTexCoord).r;
+		float maskStrength_2 = texture2D(NoiseTexture_1, v2fTexCoord).r;
 
 		float portion = abs(sin(fract(0.1f * Time) * 2 * PI));
 		float finalStrength = portion * maskStrength_1 + (1.0f - portion) * maskStrength_2;

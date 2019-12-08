@@ -12,6 +12,5 @@ uniform vec4 LineColor = vec4(0.0f);
 void main(void)
 {
 	float alpha = texture2D(ColorTexture_1, v2fTexCoord).a;
-	//alpha = 0;
 	outColor = LineColor * alpha + (1.0f - alpha) * texture2D(ColorTexture_2, v2fTexCoord);
 }

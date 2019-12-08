@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include "CameraScript.h"
+#include "CubeScript.h"
+#include "BunnyScript.h"
 
 namespace SampleScript
 {
@@ -11,6 +13,10 @@ namespace SampleScript
 		{
 		case eScript_Camera:
 			return std::make_shared<CameraScript>(pEntity);
+		case eScript_Cube:
+			return std::make_shared<CubeScript>(pEntity);
+		case eScript_Bunny:
+			return std::make_shared<BunnyScript>(pEntity);
 		default:
 			std::cout << "ScriptSelector: Unhandled script type: " << id << std::endl;
 			break;

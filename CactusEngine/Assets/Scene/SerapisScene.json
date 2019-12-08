@@ -1,0 +1,541 @@
+{
+	"entity0" : 
+	{
+		"camera" : 
+		{
+			"aperture" : 4.0,
+			"clearColor" : 
+			{
+				"a" : 0.0,
+				"b" : 1.0,
+				"g" : 1.0,
+				"r" : 1.0
+			},
+			"farClip" : 1000.0,
+			"focalDistance" : 2.0,
+			"fov" : 45.0,
+			"imageDistance" : 2.0,
+			"nearClip" : 0.10000000149011612,
+			"projection" : 0
+		},
+		"script" : 
+		{
+			"scriptID" : 0
+		},
+		"tag" : 1,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.25,
+				"y" : 1.5,
+				"z" : 6.5
+			},
+			"rotation" : 
+			{
+				"x" : -17.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity1" : 
+	{
+		"material" : 
+		{
+			"materialCount" : 1,
+			"materialImpl0" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			}
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/serapis.stl",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.25,
+				"y" : 0.0,
+				"z" : 2.5
+			},
+			"rotation" : 
+			{
+				"x" : -90.0,
+				"y" : 0.0,
+				"z" : -90.0
+			},
+			"scale" : 
+			{
+				"x" : 0.02500000037252903,
+				"y" : 0.02500000037252903,
+				"z" : 0.02500000037252903
+			}
+		}
+	},
+	"entity2" : 
+	{
+		"material" : 
+		{
+			"materialCount" : 25,
+			"materialImpl0" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl1" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl10" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl11" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl12" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl13" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl14" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl15" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl16" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl17" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl18" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl19" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl2" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl20" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl21" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl22" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl23" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl24" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl3" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl4" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl5" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl6" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl7" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl8" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl9" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 1.0,
+					"g" : 1.0,
+					"r" : 1.0
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			}
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/sponza.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.0,
+				"y" : 0.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 0.0070000002160668373,
+				"y" : 0.0070000002160668373,
+				"z" : 0.0070000002160668373
+			}
+		}
+	},
+	"entityCount" : 3
+}

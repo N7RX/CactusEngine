@@ -81,6 +81,11 @@ std::vector<std::shared_ptr<IEntity>> ECSWorld::FindEntitiesWithTag(EEntityTag t
 	return result;
 }
 
+void ECSWorld::ClearEntities()
+{
+	m_entityList.clear();
+}
+
 uint32_t ECSWorld::GetNewECSID(EECSType type)
 {
 	assert(type < m_IDAssignments.size());

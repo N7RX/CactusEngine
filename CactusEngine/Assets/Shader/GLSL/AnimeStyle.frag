@@ -9,6 +9,7 @@ in vec3 v2fTangent;
 in vec3 v2fBitangent;
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outShadow;
 
 uniform mat4 ProjectionMatrix;
 uniform mat4 ViewMatrix;
@@ -200,13 +201,14 @@ void main(void)
 
 	float fragDepth = (2.0f * CameraZNear * CameraZFar) / (CameraZNear + CameraZFar - (2.0f * gl_FragCoord.z - 1.0f) * (CameraZFar - CameraZNear));
 	float D = clamp(1.0f - log2(fragDepth / ZMin), 0, 1); // Scale factor (r) is set to 2
-	vec2 toonCoord = vec2(clamp(dot(v2fNormal, LightDirection), 0.01f, 1), 1);
+	vec2 toonCoord = vec2(clamp(dot(v2fNormal, LightDirection), 0.01f, 1), D);
 	vec4 toneColor = texture2D(ToneTexture, toonCoord) * AlbedoColor * LightIntensity * LightColor;
 
 	// Applying shadow map
 	float shadowValue = ComputeShadow(vec4(v2fLightSpacePosition, 1.0f), v2fNormal);
 
 	outColor = I * toneColor * colorFromAlbedoTexture * (2.0f - shadowValue);
+	outShadow = vec4(min(shadowValue, (1.0f- toonCoord.x)));
 
 	// For line drawing
 	outColor.a = toonCoord.x;

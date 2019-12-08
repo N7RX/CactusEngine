@@ -1,0 +1,541 @@
+{
+	"entity0" : 
+	{
+		"camera" : 
+		{
+			"aperture" : 3.0,
+			"clearColor" : 
+			{
+				"a" : 0.0,
+				"b" : 0.44999998807907104,
+				"g" : 0.25999999046325684,
+				"r" : 0.25499999523162842
+			},
+			"farClip" : 1000.0,
+			"focalDistance" : 2.0,
+			"fov" : 45.0,
+			"imageDistance" : 2.0,
+			"nearClip" : 0.10000000149011612,
+			"projection" : 0
+		},
+		"script" : 
+		{
+			"scriptID" : 0
+		},
+		"tag" : 1,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.25,
+				"y" : 1.5,
+				"z" : 6.5
+			},
+			"rotation" : 
+			{
+				"x" : -17.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 1.0,
+				"y" : 1.0,
+				"z" : 1.0
+			}
+		}
+	},
+	"entity1" : 
+	{
+		"material" : 
+		{
+			"materialCount" : 1,
+			"materialImpl0" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			}
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/Lucy.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.25,
+				"y" : 0.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 0.0030000000260770321,
+				"y" : 0.0030000000260770321,
+				"z" : 0.0030000000260770321
+			}
+		}
+	},
+	"entity2" : 
+	{
+		"material" : 
+		{
+			"materialCount" : 25,
+			"materialImpl0" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_thorn_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl1" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/vase_round.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl10" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_details_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl11" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_column_b_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl12" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/Default.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl13" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_flagpole_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl14" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl15" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_blue_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl16" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_green_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl17" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_green_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl18" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_blue_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl19" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_diff_blur.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl2" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/vase_plant.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl20" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/chain_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl21" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/vase_hanging.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl22" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/vase_dif.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl23" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/lion.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl24" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_roof_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl3" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/background.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl4" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/spnza_bricks_a_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl5" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_arch_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl6" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_ceiling_a_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl7" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_column_a_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl8" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_floor_a_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			},
+			"materialImpl9" : 
+			{
+				"albedoColor" : 
+				{
+					"a" : 1.0,
+					"b" : 0.89999997615814209,
+					"g" : 0.5,
+					"r" : 0.51999998092651367
+				},
+				"albedoTexturePath" : "Assets/Textures/sponza/sponza_column_a_diff.png",
+				"anisotropy" : 0.0,
+				"roughness" : 0.75,
+				"shaderType" : 4,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
+				"transparent" : false
+			}
+		},
+		"meshFilter" : 
+		{
+			"filePath" : "Assets/Models/sponza.obj",
+			"type" : 0
+		},
+		"meshRenderer" : 
+		{
+			"rendererType" : 0
+		},
+		"tag" : 0,
+		"transform" : 
+		{
+			"position" : 
+			{
+				"x" : 0.0,
+				"y" : 0.0,
+				"z" : 0.0
+			},
+			"rotation" : 
+			{
+				"x" : 0.0,
+				"y" : -90.0,
+				"z" : 0.0
+			},
+			"scale" : 
+			{
+				"x" : 0.0070000002160668373,
+				"y" : 0.0070000002160668373,
+				"z" : 0.0070000002160668373
+			}
+		}
+	},
+	"entityCount" : 3
+}

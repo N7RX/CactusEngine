@@ -3,6 +3,8 @@
 #include "DrawingExtensionWrangler_Vulkan.h"
 #include "DrawingCommandManager_Vulkan.h"
 #include "DrawingResources_Vulkan.h"
+#include "DrawingUploadAllocator_Vulkan.h"
+#include "DrawingDescriptorAllocator_Vulkan.h"
 
 namespace Engine
 {
@@ -14,17 +16,22 @@ namespace Engine
 
 	struct LogicalDevice_Vulkan
 	{
-		PhysicalDeviceType_Vulkan type;
-		VkPhysicalDevice physicalDevice;
-		VkDevice logicalDevice;
+		PhysicalDeviceType_Vulkan  type;
+		VkPhysicalDevice		   physicalDevice;
+		VkDevice				   logicalDevice;
 		VkPhysicalDeviceProperties deviceProperties;
+
 		DrawingCommandQueue_Vulkan presentQueue;
 		DrawingCommandQueue_Vulkan graphicsQueue;
+
 		std::shared_ptr<DrawingCommandManager_Vulkan> pGraphicsCommandManager;
 #if defined(ENABLE_COPY_QUEUE_VK)
 		DrawingCommandQueue_Vulkan copyQueue;
 		std::shared_ptr<DrawingCommandManager_Vulkan> pCopyCommandManager;
 #endif
+
+		std::shared_ptr<DrawingUploadAllocator_Vulkan> pUploadAllocator;
+		std::shared_ptr<DrawingDescriptorAllocator_Vulkan> pDescriptorAllocator;
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice
@@ -114,9 +121,9 @@ namespace Engine
 	private:
 		VkInstance m_instance;
 
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDiscreteDevice;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0;
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-		std::shared_ptr<LogicalDevice_Vulkan> m_pIntegratedDevice;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_1; // Integrated GPU
 #endif
 
 		VkApplicationInfo m_appInfo;

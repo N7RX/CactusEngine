@@ -41,6 +41,9 @@ namespace Engine
 		static const char* SHADOWMAP_DEPTH_TEXTURE = "ShadowMapDepthTexture";
 
 		static const char* CAMERA_POSITION = "CameraPosition";
+		static const char* CAMERA_APERTURE = "Aperture";
+		static const char* CAMERA_FOCALDISTANCE = "FocalDistance";
+		static const char* CAMERA_IMAGEDISTANCE = "ImageDistance";
 
 		static const char* TIME = "Time";
 
@@ -50,7 +53,6 @@ namespace Engine
 		static const char* ROUGHNESS = "Roughness";
 
 		static const char* ALBEDO_TEXTURE = "AlbedoTexture";
-		static const char* NOISE_TEXTURE = "NoiseTexture";
 
 		static const char* GNORMAL_TEXTURE = "GNormalTexture";
 		static const char* GPOSITION_TEXTURE = "GPositionTexture";
@@ -62,7 +64,10 @@ namespace Engine
 		static const char* COLOR_TEXTURE_2 = "ColorTexture_2";
 
 		static const char* TONE_TEXTURE = "ToneTexture";
-		static const char* MASK_TEXTURE = "MaskTexture";
+		static const char* NOISE_TEXTURE_1 = "NoiseTexture_1";
+		static const char* NOISE_TEXTURE_2 = "NoiseTexture_2";
+		static const char* MASK_TEXTURE_1 = "MaskTexture_1";
+		static const char* MASK_TEXTURE_2 = "MaskTexture_2";
 
 		static const char* BOOL_1 = "Bool_1";
 

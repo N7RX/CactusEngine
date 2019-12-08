@@ -13,6 +13,11 @@ DrawingCommandBuffer_Vulkan::DrawingCommandBuffer_Vulkan(const VkCommandBuffer& 
 
 }
 
+DrawingCommandBuffer_Vulkan::~DrawingCommandBuffer_Vulkan()
+{
+
+}
+
 bool DrawingCommandBuffer_Vulkan::IsRecording() const
 {
 	return m_isRecording;
@@ -31,10 +36,22 @@ bool DrawingCommandBuffer_Vulkan::InExecution() const
 DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
 	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE)
 {
+	m_frameFenceLock = std::unique_lock<std::mutex>(m_frameFenceMutex, std::defer_lock);
+	m_frameFenceLock.lock();
+	m_commandBufferSubmissionThread = std::thread(&DrawingCommandManager_Vulkan::SubmitCommandBufferAsync, this);
 
+	m_commandBufferRecycleThread = std::thread(&DrawingCommandManager_Vulkan::RecycleCommandBufferAsync, this);
+
+	m_isRunning = true;
 }
 
 DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
+{
+	m_isRunning = false;
+	Destroy();
+}
+
+void DrawingCommandManager_Vulkan::Destroy()
 {
 	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
 }
@@ -110,4 +127,31 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 
 	throw std::runtime_error("Vulkan: Failed to allocate command buffer.");
 	return false;
+}
+
+void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
+{
+	std::shared_ptr<CommandSubmitInfo> pCommandSubmitInfo;
+
+	while (m_isRunning)
+	{
+		while (m_submissionQueue.TryPop(pCommandSubmitInfo))
+		{
+			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
+
+			if (pCommandSubmitInfo->waitFrameFenceSubmission)
+			{
+				m_frameFenceCv.notify_all();
+			}
+
+			pCommandSubmitInfo->Clear();
+
+			std::this_thread::yield();
+		}
+	}
+}
+
+void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
+{
+
 }

@@ -38,6 +38,7 @@ namespace Engine
 
 		std::shared_ptr<FrameBuffer> m_pOpaquePassFrameBuffer;
 		std::shared_ptr<Texture2D> m_pOpaquePassColorOutput;
+		std::shared_ptr<Texture2D> m_pOpaquePassShadowOutput;
 		std::shared_ptr<Texture2D> m_pOpaquePassDepthOutput;
 
 		std::shared_ptr<FrameBuffer> m_pBlurPassFrameBuffer;
@@ -62,6 +63,8 @@ namespace Engine
 
 		std::shared_ptr<Texture2D> m_pBrushMaskImageTexture_1;
 		std::shared_ptr<Texture2D> m_pBrushMaskImageTexture_2;
+		std::shared_ptr<Texture2D> m_pPencilMaskImageTexture_1;
+		std::shared_ptr<Texture2D> m_pPencilMaskImageTexture_2;
 	};
 
 	namespace ForwardGraphRes
@@ -84,6 +87,7 @@ namespace Engine
 
 		static const char* OPAQUE_FB = "OpaqueFrameBuffer";
 		static const char* OPAQUE_COLOR = "OpaqueColor";
+		static const char* OPAQUE_SHADOW = "OpaqueShadow";
 		static const char* OPAQUE_DEPTH = "OpaqueDepth";
 
 		static const char* BLUR_FB = "BlurFrameBuffer";
@@ -108,5 +112,7 @@ namespace Engine
 
 		static const char* BRUSH_MASK_TEXTURE_1 = "BrushMask_1";
 		static const char* BRUSH_MASK_TEXTURE_2 = "BrushMask_2";
+		static const char* PENCIL_MASK_TEXTURE_1 = "PencilMask_1";
+		static const char* PENCIL_MASK_TEXTURE_2 = "PencilMask_2";
 	}
 }

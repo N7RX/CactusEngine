@@ -153,7 +153,7 @@ void DrawingSystem::ConfigureRenderEnvironment()
 void DrawingSystem::ExecuteRenderTask()
 {
 	auto pCamera = m_pECSWorld->FindEntityWithTag(eEntityTag_MainCamera);
-	auto pCameraComp = std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(eCompType_Camera));
+	auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(eCompType_Camera)) : nullptr;
 
 	if (pCameraComp)
 	{

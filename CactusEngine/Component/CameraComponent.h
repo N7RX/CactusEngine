@@ -15,11 +15,17 @@ namespace Engine
 		float GetFarClip() const;
 		ECameraProjectionType GetProjectionType() const;
 		Color4 GetClearColor() const;
+		float GetAperture() const;
+		float GetFocalDistance() const;
+		float GetImageDistance() const;
 
 		void SetFOV(float fov);
 		void SetClipDistance(float near, float far);
 		void SetProjectionType(ECameraProjectionType type);
 		void SetClearColor(Color4 color);
+		void SetAperture(float val);
+		void SetFocalDistance(float val);
+		void SetImageDistance(float val);
 
 	private:
 		float m_fov;

@@ -118,28 +118,36 @@ EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const
 
 VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const
 {
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	switch (type)
 	{
 	case eVulkanPhysicalDeviceType_Integrated:
-		return m_pIntegratedDevice->physicalDevice;
+		return m_pDevice_1->physicalDevice;
 	case eVulkanPhysicalDeviceType_Discrete:
-		return m_pDiscreteDevice->physicalDevice;
+		return m_pDevice_0->physicalDevice;
 	default:
 		return VK_NULL_HANDLE;
 	}
+#else
+	return m_pDevice_0->physicalDevice;
+#endif
 }
 
 VkDevice DrawingDevice_Vulkan::GetLogicalDevice(PhysicalDeviceType_Vulkan type) const
 {
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	switch (type)
 	{
 	case eVulkanPhysicalDeviceType_Integrated:
-		return m_pIntegratedDevice->logicalDevice;
+		return m_pDevice_1->logicalDevice;
 	case eVulkanPhysicalDeviceType_Discrete:
-		return m_pDiscreteDevice->logicalDevice;
+		return m_pDevice_0->logicalDevice;
 	default:
 		return VK_NULL_HANDLE;
 	}
+#else
+	return m_pDevice_0->logicalDevice;
+#endif
 }
 
 void DrawingDevice_Vulkan::ConfigureStates_Test()
@@ -295,6 +303,11 @@ void DrawingDevice_Vulkan::SelectPhysicalDevice()
 		return;
 	}
 
+	m_pDevice_0 = std::make_shared< LogicalDevice_Vulkan>();
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	m_pDevice_1 = std::make_shared< LogicalDevice_Vulkan>();
+#endif
+
 	for (const auto& device : suitableDevices)
 	{
 		VkPhysicalDeviceProperties deviceProperties;
@@ -302,36 +315,33 @@ void DrawingDevice_Vulkan::SelectPhysicalDevice()
 
 		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
-			m_pDiscreteDevice->physicalDevice = device;
-			m_pDiscreteDevice->deviceProperties = deviceProperties;
+			m_pDevice_0->physicalDevice = device;
+			m_pDevice_0->deviceProperties = deviceProperties;
 
 #if defined(_DEBUG)
 			PrintPhysicalDeviceInfo_VK(deviceProperties);
 #endif
 		}
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 		else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		{
-			m_pIntegratedDevice->physicalDevice = device;
-			m_pIntegratedDevice->deviceProperties = deviceProperties;
+			m_pDevice_1->physicalDevice = device;
+			m_pDevice_1->deviceProperties = deviceProperties;
 
 #if defined(_DEBUG)
 			PrintPhysicalDeviceInfo_VK(deviceProperties);
 #endif
 		}
+#endif
 	}
 }
 
 void DrawingDevice_Vulkan::CreateLogicalDevice()
 {
+	CreateLogicalDevice(m_pDevice_0);
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	CreateLogicalDevice(m_pIntegratedDevice);
+	CreateLogicalDevice(m_pDevice_1);
 #endif
-	CreateLogicalDevice(m_pDiscreteDevice);
-
-	{
-		std::cout << "Success!\n";
-		system("pause");
-	}
 }
 
 void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice)
@@ -424,18 +434,33 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 
 void DrawingDevice_Vulkan::SetupCommandManager()
 {
-	m_pDiscreteDevice->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDiscreteDevice, m_pDiscreteDevice->graphicsQueue);
+	m_pDevice_0->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->graphicsQueue);
 #if defined(ENABLE_COPY_QUEUE_VK)
+	m_pDevice_0->pCopyCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->copyQueue);
+#endif
 
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	m_pDevice_1->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_1, m_pDevice_1->graphicsQueue);
+#if defined(ENABLE_COPY_QUEUE_VK)
+	// UHD 630 GPU doesn't seem to have standalone copy queue
+#endif
 #endif
 }
 
 void DrawingDevice_Vulkan::SetupUploadAllocator()
 {
-	
+	m_pDevice_0->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_0);
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	m_pDevice_1->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_1);
+#endif
 }
 
 void DrawingDevice_Vulkan::SetupDescriptorAllocator()
 {
+	m_pDevice_0->pDescriptorAllocator = std::make_shared<DrawingDescriptorAllocator_Vulkan>(m_pDevice_0);
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	m_pDevice_1->pDescriptorAllocator = std::make_shared<DrawingDescriptorAllocator_Vulkan>(m_pDevice_1);
+#endif
 
+	system("pause");
 }

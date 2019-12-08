@@ -111,6 +111,14 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassColorOutput);
 
+	// Shadow color output from opaque pass
+
+	texCreateInfo.dataType = eDataType_Float;
+	texCreateInfo.format = eFormat_RGBA32F;
+	texCreateInfo.textureType = eTextureType_ColorAttachment;
+
+	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassShadowOutput);
+
 	// Depth output from opaque pass
 
 	texCreateInfo.dataType = eDataType_Float;
@@ -123,6 +131,7 @@ void ForwardRenderer::BuildFrameResources()
 
 	FrameBufferCreateInfo opaqueFBCreateInfo = {};
 	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassColorOutput);
+	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassShadowOutput);
 	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassDepthOutput);
 	opaqueFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	opaqueFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
@@ -251,6 +260,8 @@ void ForwardRenderer::BuildFrameResources()
 	// Post effects resources
 	m_pBrushMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_1.png");
 	m_pBrushMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_2.png");
+	m_pPencilMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_1.jpg");
+	m_pPencilMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_2.jpg");
 }
 
 void ForwardRenderer::BuildShadowMapPass()
@@ -448,81 +459,82 @@ void ForwardRenderer::BuildOpaquePass()
 	passInput.Add(ForwardGraphRes::SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 
 	passOutput.Add(ForwardGraphRes::OPAQUE_COLOR, m_pOpaquePassColorOutput);
+	passOutput.Add(ForwardGraphRes::OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
 	passOutput.Add(ForwardGraphRes::OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
 
 	auto pOpaquePass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
-	{
-		auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(eCompType_Transform));
-		auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(eCompType_Camera));
-		if (!pCameraComp || !pCameraTransform)
 		{
-			return;
-		}
-		Vector3 cameraPos = pCameraTransform->GetPosition();
-		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
-		Matrix4x4 projectionMat = glm::perspective(pCameraComp->GetFOV(),
-			gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetWindowAspect(),
-			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
-
-		auto pDevice = pContext->pRenderer->GetDrawingDevice();
-
-		Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
-		Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
-		Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
-		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
-
-		auto shadowMapID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::SHADOWMAP_DEPTH))->GetTextureID();
-
-		// Configure blend state
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		pDevice->SetBlendState(blendInfo);
-
-		// Set render target
-		pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::OPAQUE_FB)));
-		pDevice->ClearRenderTarget();
-
-		float currTime = Timer::Now();
-
-		for (auto& entity : *pContext->pDrawList)
-		{
-			auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(eCompType_Material));
-			auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(eCompType_Transform));
-			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(eCompType_MeshFilter));
-
-			if (!pMaterialComp || pMaterialComp->GetMaterialCount() == 0 || !pTransformComp || !pMeshFilterComp)
+			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(eCompType_Transform));
+			auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(eCompType_Camera));
+			if (!pCameraComp || !pCameraTransform)
 			{
-				continue;
+				return;
 			}
+			Vector3 cameraPos = pCameraTransform->GetPosition();
+			Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
+			Matrix4x4 projectionMat = glm::perspective(pCameraComp->GetFOV(),
+				gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetWindowAspect(),
+				pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-			auto pMesh = pMeshFilterComp->GetMesh();
+			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
-			if (!pMesh)
+			Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
+			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
+			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
+			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
+
+			auto shadowMapID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::SHADOWMAP_DEPTH))->GetTextureID();
+
+			// Configure blend state
+			DeviceBlendStateInfo blendInfo = {};
+			blendInfo.enabled = false;
+			pDevice->SetBlendState(blendInfo);
+
+			// Set render target
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::OPAQUE_FB)));
+			pDevice->ClearRenderTarget();
+
+			float currTime = Timer::Now();
+
+			for (auto& entity : *pContext->pDrawList)
 			{
-				continue;
-			}
+				auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(eCompType_Material));
+				auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(eCompType_Transform));
+				auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(eCompType_MeshFilter));
 
-			Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
-			Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();		
-
-			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
-
-			unsigned int submeshCount = pMesh->GetSubmeshCount();
-			auto subMeshes = pMesh->GetSubMeshes();
-
-			pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
-
-			for (unsigned int i = 0; i < submeshCount; ++i)
-			{
-				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
-
-				if (pMaterial->IsTransparent())
+				if (!pMaterialComp || pMaterialComp->GetMaterialCount() == 0 || !pTransformComp || !pMeshFilterComp)
 				{
 					continue;
 				}
 
-				auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+				auto pMesh = pMeshFilterComp->GetMesh();
+
+				if (!pMesh)
+				{
+					continue;
+				}
+
+				Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
+				Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
+
+				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
+
+				unsigned int submeshCount = pMesh->GetSubmeshCount();
+				auto subMeshes = pMesh->GetSubMeshes();
+
+				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+
+				for (unsigned int i = 0; i < submeshCount; ++i)
+				{
+					auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
+
+					if (pMaterial->IsTransparent())
+					{
+						continue;
+					}
+
+					auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 				pShaderParamTable->Clear();
 
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), eShaderParam_Mat4, glm::value_ptr(modelMat));
@@ -554,7 +566,7 @@ void ForwardRenderer::BuildOpaquePass()
 				if (pNoiseTexture)
 				{
 					uint32_t texID = pNoiseTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), eShaderParam_Texture2D, &texID);
 				}
 
 				auto pToneTexture = pMaterial->GetTexture(eMaterialTexture_Tone);
@@ -898,7 +910,7 @@ void ForwardRenderer::BuildTransparentPass()
 				if (pNoiseTexture)
 				{
 					uint32_t texID = pNoiseTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &texID);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), eShaderParam_Texture2D, &texID);
 				}
 
 				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
@@ -985,6 +997,9 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 	passInput.Add(ForwardGraphRes::DOF_HORIZONTAL, m_pDOFPassHorizontalOutput);
 	passInput.Add(ForwardGraphRes::BRUSH_MASK_TEXTURE_1, m_pBrushMaskImageTexture_1);
 	passInput.Add(ForwardGraphRes::BRUSH_MASK_TEXTURE_2, m_pBrushMaskImageTexture_2);
+	passInput.Add(ForwardGraphRes::PENCIL_MASK_TEXTURE_1, m_pPencilMaskImageTexture_1);
+	passInput.Add(ForwardGraphRes::PENCIL_MASK_TEXTURE_2, m_pPencilMaskImageTexture_2);
+	passInput.Add(ForwardGraphRes::OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
 
 	auto pDOFPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -1018,6 +1033,14 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), eShaderParam_Mat4, glm::value_ptr(viewMat));
 
+			float aperture = pCameraComp->GetAperture();
+			float focalDistance = pCameraComp->GetFocalDistance();
+			float imageDistance = pCameraComp->GetImageDistance();
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_APERTURE), eShaderParam_Float1, &aperture);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_FOCALDISTANCE), eShaderParam_Float1, &focalDistance);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_IMAGEDISTANCE), eShaderParam_Float1, &imageDistance);
+
 			auto colorTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BLEND_COLOR))->GetTextureID();
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), eShaderParam_Texture2D, &colorTextureID_1);
 
@@ -1046,11 +1069,20 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), eShaderParam_Float1, &currTime);
 
-			auto pencilMaskTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_1))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MASK_TEXTURE), eShaderParam_Texture2D, &pencilMaskTextureID_1);
+			auto brushMaskTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_1))->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MASK_TEXTURE_1), eShaderParam_Texture2D, &brushMaskTextureID_1);
 
-			auto pencilMaskTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_2))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE), eShaderParam_Texture2D, &pencilMaskTextureID_2); // Noise location is used as mask 2 here
+			auto brushMaskTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_2))->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), eShaderParam_Texture2D, &brushMaskTextureID_2);
+
+			auto pencilMaskTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::PENCIL_MASK_TEXTURE_1))->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MASK_TEXTURE_2), eShaderParam_Texture2D, &pencilMaskTextureID_1);
+
+			auto pencilMaskTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::PENCIL_MASK_TEXTURE_2))->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_2), eShaderParam_Texture2D, &pencilMaskTextureID_2);
+
+			auto shadowResultTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_SHADOW))->GetTextureID();
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_2), eShaderParam_Texture2D, &shadowResultTextureID);
 
 			horizontal = 0;
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), eShaderParam_Int1, &horizontal);

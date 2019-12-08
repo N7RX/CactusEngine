@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\vma;.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>.\Third-party\vma;.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -213,7 +213,9 @@
     <ClInclude Include="IO\ECSSceneReader.h" />
     <ClInclude Include="IO\ECSSceneWriter.h" />
     <ClInclude Include="IO\ResourceManager.h" />
+    <ClInclude Include="Script\BunnyScript.h" />
     <ClInclude Include="Script\CameraScript.h" />
+    <ClInclude Include="Script\CubeScript.h" />
     <ClInclude Include="Script\ScriptIDList.h" />
     <ClInclude Include="Script\ScriptSelector.h" />
     <ClInclude Include="System\AnimationSystem.h" />
@@ -272,7 +274,11 @@
     <ClCompile Include="GUI\BaseWindow.cpp" />
     <ClCompile Include="GUI\GLFWWindow.cpp" />
     <ClCompile Include="GUI\ImGuiOverlay.cpp" />
+    <ClCompile Include="IO\ECSSceneReader.cpp" />
+    <ClCompile Include="IO\ECSSceneWriter.cpp" />
+    <ClCompile Include="Script\BunnyScript.cpp" />
     <ClCompile Include="Script\CameraScript.cpp" />
+    <ClCompile Include="Script\CubeScript.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
     <ClCompile Include="System\DrawingSystem.cpp" />
     <ClCompile Include="System\EventSystem.cpp" />

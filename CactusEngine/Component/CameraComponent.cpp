@@ -5,7 +5,8 @@
 using namespace Engine;
 
 CameraComponent::CameraComponent()
-	: BaseComponent(eCompType_Camera), m_fov(45.0f), m_nearClip(0.1f), m_farClip(1000.0f), m_projectionType(eProjectionType_Perspective), m_clearColor(Color4(0, 0, 0, 1))
+	: BaseComponent(eCompType_Camera), m_fov(45.0f), m_nearClip(0.1f), m_farClip(1000.0f), m_projectionType(eProjectionType_Perspective), m_clearColor(Color4(0, 0, 0, 1)), 
+	m_aperture(4.0f), m_focalDistance(2.0f), m_imageDistance(2.0f)
 {
 }
 
@@ -34,6 +35,21 @@ Color4 CameraComponent::GetClearColor() const
 	return m_clearColor;
 }
 
+float CameraComponent::GetAperture() const
+{
+	return m_aperture;
+}
+
+float CameraComponent::GetFocalDistance() const
+{
+	return m_focalDistance;
+}
+
+float CameraComponent::GetImageDistance() const
+{
+	return m_imageDistance;
+}
+
 void CameraComponent::SetFOV(float fov)
 {
 	m_fov = abs(fov);
@@ -53,4 +69,19 @@ void CameraComponent::SetProjectionType(ECameraProjectionType type)
 void CameraComponent::SetClearColor(Color4 color)
 {
 	m_clearColor = color;
+}
+
+void CameraComponent::SetAperture(float val)
+{
+	m_aperture = val;
+}
+
+void CameraComponent::SetFocalDistance(float val)
+{
+	m_focalDistance = val;
+}
+
+void CameraComponent::SetImageDistance(float val)
+{
+	m_imageDistance = val;
 }
