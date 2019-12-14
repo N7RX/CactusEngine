@@ -3,7 +3,7 @@
 using namespace Engine;
 
 ScriptComponent::ScriptComponent()
-	: BaseComponent(eCompType_Script)
+	: BaseComponent(EComponentType::Script)
 {
 }
 

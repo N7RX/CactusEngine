@@ -2,10 +2,10 @@
 
 namespace Engine
 {
-	enum EEntityTag
+	enum class EEntityTag
 	{
-		eEntityTag_None = 0,
-		eEntityTag_MainCamera,
-		EENTITYTAG_COUNT
+		None = 0,
+		MainCamera,
+		COUNT
 	};
 }

@@ -3,7 +3,7 @@
 using namespace Engine;
 
 Mesh::Mesh(const std::shared_ptr<DrawingDevice> pDevice)
-	: m_pDevice(pDevice), m_type(eBuiltInMesh_External), m_planeDimension(0, 0)
+	: m_pDevice(pDevice), m_type(EBuiltInMeshType::External), m_planeDimension(0, 0)
 {
 }
 
@@ -19,7 +19,7 @@ const std::vector<SubMesh>* Mesh::GetSubMeshes() const
 
 unsigned int Mesh::GetSubmeshCount() const
 {
-	return m_subMeshes.size();
+	return (unsigned int)m_subMeshes.size();
 }
 
 const char* Mesh::GetFilePath() const

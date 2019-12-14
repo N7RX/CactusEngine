@@ -22,6 +22,16 @@ DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shar
 
 }
 
+VkFence DrawingSyncObjectManager_Vulkan::RequestFenceByID(uint32_t id) const
+{
+	return VK_NULL_HANDLE;
+}
+
+void DrawingSyncObjectManager_Vulkan::ReturnFenceByID(uint32_t id)
+{
+
+}
+
 std::shared_ptr<DrawingSemaphore_Vulkan> DrawingSyncObjectManager_Vulkan::RequestSemaphore()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);

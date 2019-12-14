@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>.\Third-party\vma;.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>.\Third-party\vma;.\IO;.\Third-party\assimp;.\Third-party\Vulkan\include;.\Third-party;.\Graphics\Device;.\Graphics\Device\Vulkan;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\RenderGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;.\Script;.\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -231,6 +231,7 @@
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Util\SafeBasicTypes.h" />
     <ClInclude Include="Util\SafeQueue.h" />
     <ClInclude Include="Util\SafeVector.h" />
     <ClInclude Include="Util\Timer.h" />
@@ -290,6 +291,7 @@
     <ClCompile Include="Third-party\ImGui\imgui_draw.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Util\SafeBasicTypes.cpp" />
     <ClCompile Include="Util\Timer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

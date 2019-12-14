@@ -3,7 +3,7 @@
 using namespace Engine;
 
 AnimationComponent::AnimationComponent()
-	: BaseComponent(eCompType_Animation)
+	: BaseComponent(EComponentType::Animation)
 {
 }
 

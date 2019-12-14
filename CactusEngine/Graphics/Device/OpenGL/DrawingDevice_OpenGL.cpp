@@ -112,7 +112,7 @@ bool DrawingDevice_OpenGL::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	if (createInfo.format == eFormat_Depth)
+	if (createInfo.format == ETextureFormat::Depth)
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 	}
@@ -155,12 +155,12 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	{
 		switch (createInfo.bindTextures[i]->GetTextureType())
 		{
-		case eTextureType_ColorAttachment:
+		case ETextureType::ColorAttachment:
 			pFrameBuffer->AddColorAttachment(GL_COLOR_ATTACHMENT0 + colorAttachmentCount); // Alert: this could cause the framebuffer to be partially "initialized" when creation failed
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
 			colorAttachmentCount++;
 			break;
-		case eTextureType_DepthAttachment:
+		case ETextureType::DepthAttachment:
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
 			break;
 		default:
@@ -207,7 +207,7 @@ void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pF
 
 	if (attachments.size() == 0) // Default to draw all attachments
 	{
-		glDrawBuffers(pTarget->GetColorAttachmentCount(), pTarget->GetColorAttachments());
+		glDrawBuffers((GLsizei)pTarget->GetColorAttachmentCount(), pTarget->GetColorAttachments());
 	}
 	else
 	{
@@ -222,7 +222,7 @@ void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pF
 			{
 				colorAttachments.emplace_back(pTarget->GetColorAttachment(attachments[i]));
 			}
-			glDrawBuffers(colorAttachments.size(), colorAttachments.data());
+			glDrawBuffers((GLsizei)colorAttachments.size(), colorAttachments.data());
 		}
 	}
 }
@@ -292,7 +292,7 @@ void DrawingDevice_OpenGL::Present()
 
 EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const
 {
-	return eDevice_OpenGL;
+	return EGraphicsDeviceType::OpenGL;
 }
 
 void DrawingDevice_OpenGL::ConfigureStates_Test()

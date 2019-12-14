@@ -2,32 +2,32 @@
 
 namespace Engine
 {
-	enum EBuiltInShaderProgramType
+	enum class EBuiltInShaderProgramType
 	{
-		eShaderProgram_Basic = 0,
-		eShaderProgram_Basic_Transparent,
-		eShaderProgram_WaterBasic,
-		eShaderProgram_DepthBased_ColorBlend_2,
-		eShaderProgram_AnimeStyle,
-		eShaderProgram_NormalOnly,
-		eShaderProgram_LineDrawing_Curvature,
-		eShaderProgram_LineDrawing_Color,
-		eShaderProgram_LineDrawing_Blend,
-		eShaderProgram_GaussianBlur,
-		eShaderProgram_ShadowMap,
-		eShaderProgram_DOF,
-		EBUILTINSHADERTYPE_COUNT
+		Basic = 0,
+		Basic_Transparent,
+		WaterBasic,
+		DepthBased_ColorBlend_2,
+		AnimeStyle,
+		NormalOnly,
+		LineDrawing_Curvature,
+		LineDrawing_Color,
+		LineDrawing_Blend,
+		GaussianBlur,
+		ShadowMap,
+		DOF,
+		COUNT
 	};
 
-	enum EMaterialTextureType
+	enum class EMaterialTextureType
 	{
-		eMaterialTexture_Albedo = 0,
-		eMaterialTexture_Normal,
-		eMaterialTexture_Roughness,
-		eMaterialTexture_AO,		
-		eMaterialTexture_Noise,
-		eMaterialTexture_Tone,
-		EMATERIALTEXTURETYPE_COUNT
+		Albedo = 0,
+		Normal,
+		Roughness,
+		AO,		
+		Noise,
+		Tone,
+		COUNT
 	};
 
 	namespace ShaderParamNames

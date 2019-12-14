@@ -104,7 +104,7 @@ namespace Engine
 				std::shared_ptr<Mesh> pMesh = nullptr;
 				switch ((EBuiltInMeshType)(component["type"].asInt()))
 				{
-				case eBuiltInMesh_External:
+				case EBuiltInMeshType::External:
 					if (ResourceManagement::LoadedMeshes.find(component["filePath"].asString()) == ResourceManagement::LoadedMeshes.end())
 					{
 						pMesh = std::make_shared<ExternalMesh>(component["filePath"].asCString());
@@ -115,7 +115,7 @@ namespace Engine
 						pMesh = ResourceManagement::LoadedMeshes.at(component["filePath"].asString());
 					}
 					break;
-				case eBuiltInMesh_Plane:
+				case EBuiltInMeshType::Plane:
 					pMesh = std::make_shared<Plane>(component["planeDimension"]["x"].asUInt(), component["planeDimension"]["y"].asUInt());
 					break;
 				default:
@@ -138,7 +138,7 @@ namespace Engine
 
 				auto pMaterialComp = std::make_shared<MaterialComponent>();
 
-				static std::string pathTypes[EMATERIALTEXTURETYPE_COUNT] =
+				static std::string pathTypes[(uint32_t)EMaterialTextureType::COUNT] =
 				{
 					"albedoTexturePath",
 					"normalTexturePath",
@@ -160,7 +160,7 @@ namespace Engine
 
 					pMaterial->SetShaderProgram((EBuiltInShaderProgramType)(subComponent["shaderType"].asInt()));
 
-					for (int i = 0; i < EMATERIALTEXTURETYPE_COUNT; ++i)
+					for (int i = 0; i < (uint32_t)EMaterialTextureType::COUNT; ++i)
 					{
 						if (subComponent[pathTypes[i]])
 						{
@@ -174,7 +174,7 @@ namespace Engine
 							{
 								pTexture = ResourceManagement::LoadedImageTextures.at(subComponent[pathTypes[i]].asString());
 							}
-							pMaterial->SetTexture((EMaterialTextureType)(eMaterialTexture_Albedo + i), pTexture); // Alert: here the check sequence must be consistent with enum sequence
+							pMaterial->SetTexture((EMaterialTextureType)((uint32_t)EMaterialTextureType::Albedo + i), pTexture); // Alert: here the check sequence must be consistent with enum sequence
 						}
 					}
 

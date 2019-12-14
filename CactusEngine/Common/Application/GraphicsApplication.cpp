@@ -73,9 +73,9 @@ void GraphicsApplication::AddSetupFunction(void(*pSetupFunc)(GraphicsApplication
 void GraphicsApplication::InitWindow()
 {
 	m_pWindow = std::make_shared<GLFWWindow>(
-		gpGlobal->GetConfiguration<AppConfiguration>(eConfiguration_App)->GetAppName(),
-		gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetWindowWidth(),
-		gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetWindowHeight()
+		gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName(),
+		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
+		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight()
 		);
 
 	if (!m_pWindow)

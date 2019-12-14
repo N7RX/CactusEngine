@@ -5,6 +5,7 @@ using namespace Engine;
 uint32_t RawResource::m_assignedID = 0;
 
 RawResource::RawResource()
+	: m_sizeInBytes(0)
 {
 	m_resourceID = m_assignedID++; // Alert: this ID would run out under rare situation
 }
@@ -91,17 +92,17 @@ EShaderType Shader::GetType() const
 }
 
 VertexShader::VertexShader()
-	: Shader(eShader_Vertex)
+	: Shader(EShaderType::Vertex)
 {
 }
 
 FragmentShader::FragmentShader()
-	: Shader(eShader_Fragment)
+	: Shader(EShaderType::Fragment)
 {
 }
 
 ShaderProgram::ShaderProgram(uint32_t shaderStages)
-	: m_shaderStages(shaderStages)
+	: m_shaderStages(shaderStages), m_programID(-1), m_pDevice(nullptr)
 {
 }
 

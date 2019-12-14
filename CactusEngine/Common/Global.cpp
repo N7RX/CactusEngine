@@ -10,8 +10,8 @@ namespace Engine
 
 Global::Global()
 {
-	m_configurations.resize(ECONFIGURATION_COUNT, nullptr);
-	m_globalStates.resize(EGLOBALSTATEQUERYTYPE_COUNT, false);
+	m_configurations.resize((uint32_t)EConfigurationType::COUNT, nullptr);
+	m_globalStates.resize((uint32_t)EGlobalStateQueryType::COUNT, false);
 }
 
 void Global::SetApplication(const std::shared_ptr<BaseApplication> pApp)
@@ -26,14 +26,14 @@ std::shared_ptr<BaseApplication> Global::GetCurrentApplication() const
 
 bool Global::QueryGlobalState(EGlobalStateQueryType type) const
 {
-	assert(type < m_globalStates.size());
-	return m_globalStates[type];
+	assert((uint32_t)type < m_globalStates.size());
+	return m_globalStates[(uint32_t)type];
 }
 
 void Global::MarkGlobalState(EGlobalStateQueryType type, bool val)
 {
-	assert(type < m_globalStates.size());
-	m_globalStates[type] = val;
+	assert((uint32_t)type < m_globalStates.size());
+	m_globalStates[(uint32_t)type] = val;
 }
 
 void* Global::GetWindowHandle() const

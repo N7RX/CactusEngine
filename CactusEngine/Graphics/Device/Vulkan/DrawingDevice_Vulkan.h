@@ -32,6 +32,7 @@ namespace Engine
 
 		std::shared_ptr<DrawingUploadAllocator_Vulkan> pUploadAllocator;
 		std::shared_ptr<DrawingDescriptorAllocator_Vulkan> pDescriptorAllocator;
+		std::shared_ptr<DrawingSyncObjectManager_Vulkan> pSyncObjectManager;
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice
@@ -136,7 +137,7 @@ namespace Engine
 	};
 
 	template<>
-	static std::shared_ptr<DrawingDevice> CreateDrawingDevice<eDevice_Vulkan>()
+	static std::shared_ptr<DrawingDevice> CreateDrawingDevice<EGraphicsDeviceType::Vulkan>()
 	{
 		auto pDevice = std::make_shared<DrawingDevice_Vulkan>();
 		pDevice->SetupDevice();

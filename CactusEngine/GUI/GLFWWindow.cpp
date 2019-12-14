@@ -29,9 +29,9 @@ void GLFWWindow::Initialize()
 {
 	glfwInit();
 
-	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetDeviceType())
+	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
 	{
-	case eDevice_OpenGL:
+	case EGraphicsDeviceType::OpenGL:
 	{
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -51,10 +51,10 @@ void GLFWWindow::Initialize()
 			throw std::runtime_error("Failed to initialize GLAD");
 		}
 
-		gpGlobal->MarkGlobalState(eGlobalState_GLFWInit, true);
+		gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
 		break;
 	}
-	case eDevice_Vulkan:
+	case EGraphicsDeviceType::Vulkan:
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -67,7 +67,7 @@ void GLFWWindow::Initialize()
 
 		glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback_VK);
 
-		gpGlobal->MarkGlobalState(eGlobalState_GLFWInit, true);
+		gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
 		break;
 	}
 	default:
@@ -75,7 +75,7 @@ void GLFWWindow::Initialize()
 		break;
 	}
 
-	if (!gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetVSync())
+	if (!gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync())
 	{
 		glfwSwapInterval(0);
 	}

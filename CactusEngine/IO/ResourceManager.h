@@ -8,7 +8,7 @@ namespace Engine
 {
 	namespace ResourceManagement
 	{
-		typedef std::unordered_map<std::string, std::shared_ptr<Texture2D>> FileTextureList;
+		typedef std::unordered_map<std::string, std::shared_ptr<Texture2D>> FileTextureList; // TODO: use hased strings instead of strings
 		typedef std::unordered_map<std::string, std::shared_ptr<Mesh>> FileMeshList;
 
 		// Record already external resources to prevent duplicate loading

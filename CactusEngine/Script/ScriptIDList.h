@@ -3,10 +3,10 @@
 namespace SampleScript
 {
 	// TODO: find a better solution
-	enum EScriptID
+	enum class EScriptID
 	{
-		eScript_Camera = 0,
-		eScript_Cube,
-		eScript_Bunny,
+		Camera = 0,
+		Cube,
+		Bunny,
 	};
 }

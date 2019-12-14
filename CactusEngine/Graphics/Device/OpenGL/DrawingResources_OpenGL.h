@@ -30,7 +30,7 @@ namespace Engine
 		void MarkTextureSize(uint32_t width, uint32_t height);
 
 	private:
-		GLuint m_glTextureID;
+		GLuint m_glTextureID = -1;
 	};
 
 	class FrameBuffer_OpenGL : public FrameBuffer
@@ -50,7 +50,7 @@ namespace Engine
 		const GLenum* GetColorAttachments() const;
 
 	private:
-		GLuint m_glFrameBufferID;
+		GLuint m_glFrameBufferID = -1;
 		std::vector<GLenum> m_bufferAttachments;
 	};
 

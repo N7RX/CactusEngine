@@ -26,7 +26,7 @@ namespace Engine
 		inline std::shared_ptr<T> CreateEntity()
 		{
 			auto pEntity = std::make_shared<T>();
-			pEntity->SetEntityID(GetNewECSID(eECS_Entity));
+			pEntity->SetEntityID(GetNewECSID(EECSType::Entity));
 			m_entityList.emplace(pEntity->GetEntityID(), pEntity);
 			return pEntity;
 		}
@@ -35,7 +35,7 @@ namespace Engine
 		inline std::shared_ptr<T> CreateComponent()
 		{
 			auto pComponent = std::make_shared<T>();
-			pComponent->SetComponentID(GetNewECSID(eECS_Component));
+			pComponent->SetComponentID(GetNewECSID(EECSType::Component));
 			return pComponent;
 		}
 
@@ -43,8 +43,8 @@ namespace Engine
 		inline void RegisterSystem(ESystemType type)
 		{
 			auto pSystem = std::make_shared<T>(this);
-			pSystem->SetSystemID(type);
-			m_systemList.emplace(type, pSystem);
+			pSystem->SetSystemID((uint32_t)type);
+			m_systemList.emplace((uint32_t)type, pSystem);
 		}
 
 		void RemoveEntity(uint32_t entityID);

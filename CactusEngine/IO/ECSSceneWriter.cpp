@@ -40,7 +40,7 @@ namespace Engine
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
 			Json::Value entity;
-			entity["tag"] = itr->second->GetEntityTag();
+			entity["tag"] = (uint32_t)itr->second->GetEntityTag();
 			
 			// Write components of each entity
 
@@ -49,7 +49,7 @@ namespace Engine
 			{
 				switch (componentEntry.first)
 				{
-				case eCompType_Transform:
+				case EComponentType::Transform:
 				{
 					auto pTransformComp = std::static_pointer_cast<TransformComponent>(componentEntry.second);
 					Json::Value component;
@@ -72,44 +72,44 @@ namespace Engine
 					entity["transform"] = component;
 					break;
 				}
-				case eCompType_MeshRenderer:
+				case EComponentType::MeshRenderer:
 				{
 					auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(componentEntry.second);
 					Json::Value component;
 
-					component["rendererType"] = pMeshRendererComp->GetRendererType();
+					component["rendererType"] = (uint32_t)pMeshRendererComp->GetRendererType();
 
 					entity["meshRenderer"] = component;
 					break;
 				}
-				case eCompType_MeshFilter:
+				case EComponentType::MeshFilter:
 				{
 					auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(componentEntry.second);
 					Json::Value component;
 
 					auto pMesh = pMeshFilterComp->GetMesh();
 
-					component["type"] = pMesh->GetMeshType();
+					component["type"] = (uint32_t)pMesh->GetMeshType();
 
 					switch (pMesh->GetMeshType())
 					{
-					case eBuiltInMesh_External:
+					case EBuiltInMeshType::External:
 						component["filePath"] = pMesh->GetFilePath();
 						break;
-					case eBuiltInMesh_Plane:
+					case EBuiltInMeshType::Plane:
 						auto planeDimension = pMesh->GetPlaneDimenstion();
 						component["planeDimension"]["x"] = planeDimension.x;
 						component["planeDimension"]["y"] = planeDimension.y;
 						break;
 					default:
-						std::cout << "ECSSceneWriter: Unhandled mesh type: " << pMesh->GetMeshType() << std::endl;
+						std::cout << "ECSSceneWriter: Unhandled mesh type: " << (uint32_t)pMesh->GetMeshType() << std::endl;
 						break;
 					}
 
 					entity["meshFilter"] = component;
 					break;
 				}
-				case eCompType_Material:
+				case EComponentType::Material:
 				{
 					auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(componentEntry.second);
 					Json::Value component;
@@ -121,33 +121,33 @@ namespace Engine
 					for (auto& material : materialList)
 					{
 						Json::Value subComponent;
-						subComponent["shaderType"] = material.second->GetShaderProgramType();
+						subComponent["shaderType"] = (uint32_t)material.second->GetShaderProgramType();
 
 						auto textureList = material.second->GetTextureList();
 						for (auto& textureEntry : textureList)
 						{
 							switch (textureEntry.first)
 							{
-							case eMaterialTexture_Albedo:
+							case EMaterialTextureType::Albedo:
 								subComponent["albedoTexturePath"] = textureEntry.second->GetFilePath();
 								break;
-							case eMaterialTexture_Normal:
+							case EMaterialTextureType::Normal:
 								subComponent["normalTexturePath"] = textureEntry.second->GetFilePath();
 								break;
-							case eMaterialTexture_Roughness:
+							case EMaterialTextureType::Roughness:
 								subComponent["roughnessTexturePath"] = textureEntry.second->GetFilePath();
 								break;
-							case eMaterialTexture_AO:
+							case EMaterialTextureType::AO:
 								subComponent["aoTexturePath"] = textureEntry.second->GetFilePath();
 								break;
-							case eMaterialTexture_Noise:
+							case EMaterialTextureType::Noise:
 								subComponent["noiseTexturePath"] = textureEntry.second->GetFilePath();
 								break;
-							case eMaterialTexture_Tone:
+							case EMaterialTextureType::Tone:
 								subComponent["toneTexturePath"] = textureEntry.second->GetFilePath();
 								break;
 							default:
-								std::cout << "ECSSceneWriter: Unhandled texture type: " << textureEntry.first << std::endl;
+								std::cout << "ECSSceneWriter: Unhandled texture type: " << (uint32_t)textureEntry.first << std::endl;
 								break;
 							}
 						}
@@ -171,7 +171,7 @@ namespace Engine
 					entity["material"] = component;
 					break;
 				}
-				case eCompType_Camera:
+				case EComponentType::Camera:
 				{
 					auto pCameraComp = std::static_pointer_cast<CameraComponent>(componentEntry.second);
 					Json::Value component;
@@ -179,7 +179,7 @@ namespace Engine
 					component["fov"] = pCameraComp->GetFOV();
 					component["nearClip"] = pCameraComp->GetNearClip();
 					component["farClip"] = pCameraComp->GetFarClip();
-					component["projection"] = pCameraComp->GetProjectionType();
+					component["projection"] = (uint32_t)pCameraComp->GetProjectionType();
 					component["aperture"] = pCameraComp->GetAperture();
 					component["focalDistance"] = pCameraComp->GetFocalDistance();
 					component["imageDistance"] = pCameraComp->GetImageDistance();
@@ -193,23 +193,23 @@ namespace Engine
 					entity["camera"] = component;
 					break;
 				}
-				case eCompType_Animation:
+				case EComponentType::Animation:
 				{
 					// Anmiation component is unhandled at this moment
 					break;
 				}
-				case eCompType_Script:
+				case EComponentType::Script:
 				{
 					auto pScriptComp = std::static_pointer_cast<ScriptComponent>(componentEntry.second);
 					Json::Value component;
 
-					component["scriptID"] = pScriptComp->GetScript()->GetScriptID();
+					component["scriptID"] = (uint32_t)pScriptComp->GetScript()->GetScriptID();
 					
 					entity["script"] = component;
 					break;
 				}
 				default:
-					std::cout << "ECSSceneWriter: Unhandled component type: " << componentEntry.first << std::endl;
+					std::cout << "ECSSceneWriter: Unhandled component type: " << (uint32_t)componentEntry.first << std::endl;
 					break;
 				}
 			}

@@ -14,6 +14,8 @@ namespace Engine
 	class AppConfiguration : public BaseConfiguration
 	{
 	public:
+		AppConfiguration() { m_appName = "CEApplication"; }
+
 		void SetAppName(const char* appName)
 		{
 			m_appName = appName;
@@ -33,7 +35,7 @@ namespace Engine
 	public:
 		GraphicsConfiguration()
 		{
-			m_deviceType = EGraphicsDeviceType::eDevice_OpenGL;
+			m_deviceType = EGraphicsDeviceType::OpenGL;
 			m_windowWidth = 800;
 			m_windowHeight = 600;
 			m_enableVSync = false;

@@ -30,21 +30,21 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 		return;
 	}
 
-	int totalNumSubMeshes = scene->mNumMeshes;
-	int totalNumVertices = 0;
-	int totalNumIndices = 0;
+	size_t totalNumSubMeshes = scene->mNumMeshes;
+	size_t totalNumVertices = 0;
+	size_t totalNumIndices = 0;
 
 	m_subMeshes.resize(totalNumSubMeshes);
 
 	// Record submeshes
 	for (int i = 0; i < totalNumSubMeshes; ++i)
 	{
-		m_subMeshes[i].m_baseIndex = totalNumIndices;
-		m_subMeshes[i].m_baseVertex = totalNumVertices;
+		m_subMeshes[i].m_baseIndex = (unsigned int)totalNumIndices;
+		m_subMeshes[i].m_baseVertex = (unsigned int)totalNumVertices;
 		m_subMeshes[i].m_numIndices = scene->mMeshes[i]->mNumFaces * 3;
 
 		totalNumVertices += scene->mMeshes[i]->mNumVertices;
-		totalNumIndices  += scene->mMeshes[i]->mNumFaces * 3;
+		totalNumIndices  += (uint64_t)scene->mMeshes[i]->mNumFaces * 3;
 	}
 
 	std::vector<int>   indices(totalNumIndices);
@@ -67,7 +67,7 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 		aiMesh* mesh = scene->mMeshes[i];
 
 		// Indices
-		int numFaces = mesh->mNumFaces;
+		unsigned int numFaces = mesh->mNumFaces;
 		for (unsigned int j = 0; j < numFaces; ++j)
 		{
 			memcpy(&indices[faceIndex], mesh->mFaces[j].mIndices, 3 * sizeof(unsigned int));
@@ -95,8 +95,8 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 		{
 			for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
 			{
-				texcoords[j * 2 + texcoordOffset] = mesh->mTextureCoords[0][j].x;
-				texcoords[j * 2 + 1 + texcoordOffset] = mesh->mTextureCoords[0][j].y;
+				texcoords[(uint64_t)j * 2 + texcoordOffset] = mesh->mTextureCoords[0][j].x;
+				texcoords[(uint64_t)j * 2 + 1 + texcoordOffset] = mesh->mTextureCoords[0][j].y;
 			}
 			texcoordOffset += 2 * mesh->mNumVertices;
 		}
@@ -119,6 +119,6 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 	}
 
 	m_filePath.assign(filePath);
-	m_type = eBuiltInMesh_External;
+	m_type = EBuiltInMeshType::External;
 	CreateVertexBufferFromVertices(vertices, normals, texcoords, tangents, bitangents, indices);
 }

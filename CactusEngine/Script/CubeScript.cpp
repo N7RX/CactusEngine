@@ -9,7 +9,7 @@ using namespace Engine;
 int CubeScript::m_instanceCounter = 0;
 
 CubeScript::CubeScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(eScript_Cube), m_pEntity(pEntity), m_started(false), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
+	: m_id(EScriptID::Cube), m_pEntity(pEntity), m_started(false), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
 {
 	assert(pEntity != nullptr);
 
@@ -31,12 +31,12 @@ bool CubeScript::ShouldCallStart()
 
 void CubeScript::Start()
 {
-	m_pCubeTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(eCompType_Transform));
+	m_pCubeTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
 	assert(m_pCubeTransform != nullptr);
 
 	if (m_instanceIndex == 2)
 	{
-		m_pCubeMaterial = std::static_pointer_cast<MaterialComponent>(m_pEntity->GetComponent(eCompType_Material));
+		m_pCubeMaterial = std::static_pointer_cast<MaterialComponent>(m_pEntity->GetComponent(EComponentType::Material));
 		assert(m_pCubeMaterial != nullptr);
 	}
 

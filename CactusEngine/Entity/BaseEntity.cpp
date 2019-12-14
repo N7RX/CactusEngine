@@ -3,7 +3,7 @@
 using namespace Engine;
 
 BaseEntity::BaseEntity()
-	: m_componentBitmap(0), m_tag(eEntityTag_None)
+	: m_componentBitmap(0), m_tag(EEntityTag::None), m_entityID(-1)
 {
 }
 
@@ -20,17 +20,17 @@ void BaseEntity::SetEntityID(uint32_t id)
 void BaseEntity::AttachComponent(const std::shared_ptr<IComponent> pComponent)
 {
 	m_componentList.emplace(pComponent->GetComponentType(), pComponent);
-	m_componentBitmap |= pComponent->GetComponentType();
+	m_componentBitmap |= (uint32_t)pComponent->GetComponentType();
 	pComponent->SetParentEntity(this);
 }
 
 void BaseEntity::DetachComponent(EComponentType compType)
 {
-	if ((m_componentBitmap & compType) == compType)
+	if ((m_componentBitmap & (uint32_t)compType) == (uint32_t)compType)
 	{
 		m_componentList.at(compType)->SetParentEntity(nullptr);
 		m_componentList.erase(compType);
-		m_componentBitmap ^= compType;
+		m_componentBitmap ^= (uint32_t)compType;
 	}
 }
 
@@ -41,7 +41,7 @@ const ComponentList& BaseEntity::GetComponentList() const
 
 std::shared_ptr<IComponent> BaseEntity::GetComponent(EComponentType compType) const
 {
-	if ((m_componentBitmap & compType) == compType)
+	if ((m_componentBitmap & (uint32_t)compType) == (uint32_t)compType)
 	{
 		return m_componentList.at(compType);
 	}

@@ -4,7 +4,7 @@
 using namespace Engine;
 
 ScriptSystem::ScriptSystem(ECSWorld* pWorld)
-	: m_pECSWorld(pWorld)
+	: m_pECSWorld(pWorld), m_systemID(-1)
 {
 
 }
@@ -39,7 +39,7 @@ void ScriptSystem::Tick()
 	auto pEntityList = m_pECSWorld->GetEntityList();
 	for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 	{
-		auto pScriptComp = std::static_pointer_cast<ScriptComponent>(itr->second->GetComponent(eCompType_Script));
+		auto pScriptComp = std::static_pointer_cast<ScriptComponent>(itr->second->GetComponent(EComponentType::Script));
 		if (pScriptComp)
 		{
 			auto pScript = pScriptComp->GetScript();

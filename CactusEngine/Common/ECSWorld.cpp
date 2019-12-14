@@ -4,7 +4,7 @@ using namespace Engine;
 
 ECSWorld::ECSWorld()
 {
-	m_IDAssignments.resize(ECSTYPE_COUNT, 0);
+	m_IDAssignments.resize((size_t)EECSType::COUNT, 0);
 }
 
 void ECSWorld::Initialize()
@@ -48,7 +48,7 @@ void ECSWorld::RemoveEntity(uint32_t entityID)
 
 void ECSWorld::RemoveSystem(ESystemType type)
 {
-	m_systemList.erase(m_systemList[type]->GetSystemID());
+	m_systemList.erase(m_systemList[(uint32_t)type]->GetSystemID());
 }
 
 const EntityList* ECSWorld::GetEntityList() const
@@ -88,6 +88,6 @@ void ECSWorld::ClearEntities()
 
 uint32_t ECSWorld::GetNewECSID(EECSType type)
 {
-	assert(type < m_IDAssignments.size());
-	return m_IDAssignments[type]++; // Alert: the ID may run out in rare cases
+	assert((uint32_t)type < m_IDAssignments.size());
+	return m_IDAssignments[(uint32_t)type]++; // Alert: the ID may run out in rare cases
 }

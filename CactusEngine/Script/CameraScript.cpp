@@ -8,7 +8,7 @@ using namespace SampleScript;
 using namespace Engine;
 
 CameraScript::CameraScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(eScript_Camera), m_pEntity(pEntity), m_started(false), m_pCameraTransform(nullptr)
+	: m_id(EScriptID::Camera), m_pEntity(pEntity), m_started(false), m_pCameraTransform(nullptr)
 {
 	assert(pEntity != nullptr);
 	m_prevCursorPosition = Vector2(0);
@@ -26,7 +26,7 @@ bool CameraScript::ShouldCallStart()
 
 void CameraScript::Start()
 {
-	m_pCameraTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(eCompType_Transform));
+	m_pCameraTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
 	assert(m_pCameraTransform != nullptr);
 
 	m_started = true;

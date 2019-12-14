@@ -11,14 +11,14 @@ namespace SampleScript
 	{
 		switch (id)
 		{
-		case eScript_Camera:
+		case EScriptID::Camera:
 			return std::make_shared<CameraScript>(pEntity);
-		case eScript_Cube:
+		case EScriptID::Cube:
 			return std::make_shared<CubeScript>(pEntity);
-		case eScript_Bunny:
+		case EScriptID::Bunny:
 			return std::make_shared<BunnyScript>(pEntity);
 		default:
-			std::cout << "ScriptSelector: Unhandled script type: " << id << std::endl;
+			std::cout << "ScriptSelector: Unhandled script type: " << (uint32_t)id << std::endl;
 			break;
 		}
 

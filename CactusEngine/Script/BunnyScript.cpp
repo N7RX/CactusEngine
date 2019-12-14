@@ -11,7 +11,7 @@ using namespace Engine;
 int BunnyScript::m_instanceCounter = 0;
 
 BunnyScript::BunnyScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(eScript_Bunny), m_pEntity(pEntity), m_started(false), m_pBunnyTransform(nullptr)
+	: m_id(EScriptID::Bunny), m_pEntity(pEntity), m_started(false), m_pBunnyTransform(nullptr)
 {
 	assert(pEntity != nullptr);
 
@@ -33,7 +33,7 @@ bool BunnyScript::ShouldCallStart()
 
 void BunnyScript::Start()
 {
-	m_pBunnyTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(eCompType_Transform));
+	m_pBunnyTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
 	assert(m_pBunnyTransform != nullptr);
 
 	m_started = true;

@@ -3,7 +3,7 @@
 using namespace Engine;
 
 MeshFilterComponent::MeshFilterComponent()
-	: BaseComponent(eCompType_MeshFilter)
+	: BaseComponent(EComponentType::MeshFilter)
 {
 }
 

@@ -132,9 +132,11 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 {
 	std::shared_ptr<CommandSubmitInfo> pCommandSubmitInfo;
+	bool shouldRecycle = false;
 
 	while (m_isRunning)
 	{
+		shouldRecycle = false;
 		while (m_submissionQueue.TryPop(pCommandSubmitInfo))
 		{
 			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
@@ -144,7 +146,18 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 				m_frameFenceCv.notify_all();
 			}
 
+			if (pCommandSubmitInfo->initRecycle)
+			{
+				shouldRecycle = true;
+			}
+
 			pCommandSubmitInfo->Clear();
+
+			if (shouldRecycle)
+			{
+				m_commandBufferRecycleFlag.AssignValue(true);
+				m_commandBufferRecycleCv.notify_one();
+			}
 
 			std::this_thread::yield();
 		}
@@ -153,5 +166,61 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 
 void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 {
+	std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex, std::defer_lock);
+	std::unordered_map<uint32_t, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceMappings;
 
+	lock.lock(); // If the mutex object is not initially locked when waited, it would cause undefined behavior
+	const int MAX_POPCOUNT = 32; // Prevent going into endless interleaved push-pop circle
+
+	bool recycleFlag = false;
+	int  popCount = 0;
+	while (m_isRunning)
+	{
+		m_commandBufferRecycleFlag.GetValue(recycleFlag);
+		if (!recycleFlag) // Check if there is any recycle notification during last recycle
+		{
+			m_commandBufferRecycleCv.wait(lock);
+		}
+		m_commandBufferRecycleFlag.AssignValue(false);
+
+		std::shared_ptr<DrawingCommandBuffer_Vulkan> inExecutionCmdBuffer;
+		popCount = 0;
+		while (m_inExecutionCommandBuffers.TryPop(inExecutionCmdBuffer))
+		{
+			std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inExecutionCmdBuffer;
+			fenceMappings[ptrCopy->m_fenceID].emplace_back(ptrCopy);
+			popCount++;
+			if (popCount > MAX_POPCOUNT)
+			{
+				break;
+			}
+		}
+
+		for (auto& fenceMap : fenceMappings)
+		{
+			if (fenceMap.second.size() > 0)
+			{
+				VkFence fenceToQuery = m_pDevice->pSyncObjectManager->RequestFenceByID(fenceMap.first);
+				VkResult result = vkWaitForFences(m_pDevice->logicalDevice, 1, &fenceToQuery, VK_FALSE, RECYCLE_TIMEOUT);
+				if (result == VK_SUCCESS)
+				{
+					for (auto pCmdBuffer : fenceMap.second)
+					{
+						pCmdBuffer->m_fenceID = -1;
+						pCmdBuffer->m_inExecution = false;
+					}
+					m_pDevice->pSyncObjectManager->ReturnFenceByID(fenceMap.first);
+				}
+				else
+				{
+					throw std::runtime_error("Vulkan: command execution timeout.");
+				}
+				fenceMap.second.clear();
+			}
+		}
+
+		std::this_thread::yield();
+	}
+
+	fenceMappings.clear();
 }

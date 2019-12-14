@@ -2,6 +2,7 @@
 #include "DrawingSyncObjectManager_Vulkan.h"
 #include "SharedTypes.h"
 #include "SafeQueue.h"
+#include "SafeBasicTypes.h"
 #include "NoCopy.h"
 #include <vulkan.h>
 #include <memory>
@@ -79,8 +80,9 @@ namespace Engine
 		std::mutex notifyStateMutex;
 	};
 
-	struct CommandSubmitInfo
+	class CommandSubmitInfo
 	{
+	public:
 		~CommandSubmitInfo()
 		{
 			Clear();
@@ -94,9 +96,11 @@ namespace Engine
 			semaphoresToSignal.clear();
 		}
 
+	private:
 		VkSubmitInfo submitInfo;
 		VkFence		 fence;
 		bool		 waitFrameFenceSubmission;
+		bool		 initRecycle;
 		std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
 
 		// Retained resources
@@ -104,6 +108,8 @@ namespace Engine
 		std::vector<VkSemaphore>		  waitSemaphores;
 		std::vector<VkPipelineStageFlags> waitStages;
 		std::vector<VkSemaphore>		  semaphoresToSignal;
+
+		friend class DrawingCommandManager_Vulkan;
 	};
 
 	struct LogicalDevice_Vulkan;
@@ -158,7 +164,7 @@ namespace Engine
 		std::thread m_commandBufferRecycleThread;
 		std::mutex m_commandBufferRecycleMutex;
 		std::condition_variable m_commandBufferRecycleCv;
-		SafeQueue<char> m_commandBufferRecycleCallBuffer;
+		SafeBool m_commandBufferRecycleFlag;
 		const uint64_t RECYCLE_TIMEOUT = UINT64_MAX;
 	};
 }

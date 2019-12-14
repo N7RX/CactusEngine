@@ -13,10 +13,10 @@ namespace Engine
 
 		if (ifs.is_open())
 		{
-			unsigned int filesize = static_cast<unsigned int>(ifs.tellg());
+			size_t filesize = static_cast<size_t>(ifs.tellg());
 			ifs.seekg(0, std::ios::beg);
-			char* bytes = new char[filesize + 1];
-			memset(bytes, 0, filesize + 1);
+			char* bytes = new char[filesize + (size_t)1];
+			memset(bytes, 0, filesize + (size_t)1);
 			ifs.read(bytes, filesize);
 			ifs.close();
 			return bytes;
@@ -49,9 +49,9 @@ namespace Engine
 	{
 		switch (format)
 		{
-		case eFormat_RGBA32F:
+		case ETextureFormat::RGBA32F:
 			return GL_RGBA32F;
-		case eFormat_Depth:
+		case ETextureFormat::Depth:
 			return GL_DEPTH_COMPONENT32F;
 		default:
 			std::cerr << "Unhandled OpenGL format." << std::endl;
@@ -81,9 +81,9 @@ namespace Engine
 	{
 		switch (type)
 		{
-		case eDataType_Float:
+		case EDataType::Float:
 			return GL_FLOAT;
-		case eDataType_UnsignedByte:
+		case EDataType::UnsignedByte:
 			return GL_UNSIGNED_BYTE;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;
@@ -96,9 +96,9 @@ namespace Engine
 	{
 		switch (type)
 		{
-		case eDataType_Float:
+		case EDataType::Float:
 			return 4;
-		case eDataType_UnsignedByte:
+		case EDataType::UnsignedByte:
 			return 1;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;
@@ -111,9 +111,9 @@ namespace Engine
 	{
 		switch (factor)
 		{
-		case eBlend_SrcAlpha:
+		case EBlendFactor::SrcAlpha:
 			return GL_SRC_ALPHA;
-		case eBlend_OneMinusSrcAlpha:
+		case EBlendFactor::OneMinusSrcAlpha:
 			return GL_ONE_MINUS_SRC_ALPHA;
 		default:
 			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;

@@ -40,6 +40,9 @@ namespace Engine
 	public:
 		DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
 
+		VkFence RequestFenceByID(uint32_t id) const;
+		void ReturnFenceByID(uint32_t id);
+
 		std::shared_ptr<DrawingSemaphore_Vulkan> RequestSemaphore();
 		std::shared_ptr<DrawingFence_Vulkan> RequestFence();
 

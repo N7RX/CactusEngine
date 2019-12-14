@@ -22,15 +22,15 @@ namespace Engine
 		template<typename T>
 		inline void CreateConfiguration(EConfigurationType configType)
 		{
-			assert(configType < m_configurations.size());
-			m_configurations[configType] = std::make_shared<T>();
+			assert((uint32_t)configType < m_configurations.size());
+			m_configurations[(uint32_t)configType] = std::make_shared<T>();
 		}
 
 		template<typename T>
 		inline std::shared_ptr<T> GetConfiguration(EConfigurationType configType) const
 		{
-			assert(configType < m_configurations.size());
-			return std::dynamic_pointer_cast<T>(m_configurations[configType]);
+			assert((uint32_t)configType < m_configurations.size());
+			return std::dynamic_pointer_cast<T>(m_configurations[(uint32_t)configType]);
 		}
 
 		bool QueryGlobalState(EGlobalStateQueryType type) const;

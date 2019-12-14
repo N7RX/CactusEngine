@@ -113,7 +113,7 @@ void DrawingDevice_Vulkan::Present()
 
 EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const
 {
-	return eDevice_Vulkan;
+	return EGraphicsDeviceType::Vulkan;
 }
 
 VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const
@@ -184,7 +184,7 @@ void DrawingDevice_Vulkan::CreateInstance()
 
 	// Generate application info
 	m_appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	m_appInfo.pApplicationName = gpGlobal->GetConfiguration<AppConfiguration>(eConfiguration_App)->GetAppName();
+	m_appInfo.pApplicationName = gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName();
 	m_appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	m_appInfo.pEngineName = "Cactus Engine";
 	m_appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -406,14 +406,14 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 
 	if (queueFamilyIndices.graphicsFamily.has_value())
 	{
-		pDevice->graphicsQueue.type = eQueue_Graphics;
+		pDevice->graphicsQueue.type = EQueueType::Graphics;
 		pDevice->graphicsQueue.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->graphicsQueue.queueFamilyIndex, 0, &pDevice->graphicsQueue.queue);
 	}
 
 	if (queueFamilyIndices.presentFamily.has_value())
 	{
-		pDevice->presentQueue.type = eQueue_Present;
+		pDevice->presentQueue.type = EQueueType::Present;
 		pDevice->presentQueue.queueFamilyIndex = queueFamilyIndices.presentFamily.value();
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->presentQueue.queueFamilyIndex, 0, &pDevice->presentQueue.queue);
 	}
@@ -421,7 +421,7 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 #if defined(ENABLE_COPY_QUEUE_VK)
 	if (queueFamilyIndices.copyFamily.has_value())
 	{
-		pDevice->copyQueue.type = eQueue_Copy;
+		pDevice->copyQueue.type = EQueueType::Copy;
 		pDevice->copyQueue.queueFamilyIndex = queueFamilyIndices.copyFamily.value();
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->copyQueue.queueFamilyIndex, 0, &pDevice->copyQueue.queue);
 	}

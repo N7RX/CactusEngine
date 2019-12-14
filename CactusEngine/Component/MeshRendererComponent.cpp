@@ -3,7 +3,7 @@
 using namespace Engine;
 
 MeshRendererComponent::MeshRendererComponent()
-	: BaseComponent(eCompType_MeshRenderer)
+	: BaseComponent(EComponentType::MeshRenderer)
 {
 }
 

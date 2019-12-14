@@ -15,9 +15,9 @@ DrawingSystem::DrawingSystem(ECSWorld* pWorld)
 {
 	CreateDevice();
 
-	RegisterRenderer<ForwardRenderer>(eRenderer_Forward, 1);
+	RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
 
-	m_shaderPrograms.resize(EBUILTINSHADERTYPE_COUNT);
+	m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT);
 }
 
 void DrawingSystem::SetSystemID(uint32_t id)
@@ -68,8 +68,8 @@ EGraphicsDeviceType DrawingSystem::GetDeviceType() const
 
 std::shared_ptr<ShaderProgram> DrawingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
 {
-	assert(type < m_shaderPrograms.size());
-	return m_shaderPrograms[type];
+	assert((uint32_t)type < m_shaderPrograms.size());
+	return m_shaderPrograms[(uint32_t)type];
 }
 
 void DrawingSystem::RemoveRenderer(ERendererType type)
@@ -80,13 +80,13 @@ void DrawingSystem::RemoveRenderer(ERendererType type)
 
 bool DrawingSystem::CreateDevice()
 {
-	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(eConfiguration_Graphics)->GetDeviceType())
+	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
 	{
-	case eDevice_OpenGL:
-		m_pDevice = CreateDrawingDevice<eDevice_OpenGL>();
+	case EGraphicsDeviceType::OpenGL:
+		m_pDevice = CreateDrawingDevice<EGraphicsDeviceType::OpenGL>();
 		break;
-	case eDevice_Vulkan:
-		m_pDevice = CreateDrawingDevice<eDevice_Vulkan>();
+	case EGraphicsDeviceType::Vulkan:
+		m_pDevice = CreateDrawingDevice<EGraphicsDeviceType::Vulkan>();
 		break;
 	default:
 		throw std::runtime_error("Unsupported drawing device type.");
@@ -102,23 +102,23 @@ bool DrawingSystem::LoadShaders()
 {
 	switch (m_pDevice->GetDeviceType())
 	{
-	case eDevice_OpenGL:
+	case EGraphicsDeviceType::OpenGL:
 	{
-		m_shaderPrograms[eShaderProgram_Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
-		m_shaderPrograms[eShaderProgram_Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
-		m_shaderPrograms[eShaderProgram_WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
-		m_shaderPrograms[eShaderProgram_DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_OPENGL);
-		m_shaderPrograms[eShaderProgram_NormalOnly] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_NORMALONLY_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_NORMALONLY_OPENGL);
-		m_shaderPrograms[eShaderProgram_GaussianBlur] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GAUSSIANBLUR_OPENGL);
-		m_shaderPrograms[eShaderProgram_AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
-		m_shaderPrograms[eShaderProgram_LineDrawing_Curvature] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_CURVATURE_OPENGL);
-		m_shaderPrograms[eShaderProgram_LineDrawing_Color] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_COLOR_OPENGL);
-		m_shaderPrograms[eShaderProgram_LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND_OPENGL);
-		m_shaderPrograms[eShaderProgram_ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_OPENGL);
-		m_shaderPrograms[eShaderProgram_DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::NormalOnly] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_NORMALONLY_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_NORMALONLY_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::GaussianBlur] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GAUSSIANBLUR_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Curvature] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_CURVATURE_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Color] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_COLOR_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_OPENGL);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_OPENGL);
 		break;
 	}
-	case eDevice_Vulkan:
+	case EGraphicsDeviceType::Vulkan:
 		break;
 	}
 	return true;
@@ -137,7 +137,7 @@ void DrawingSystem::BuildRenderTask()
 	auto pEntityList = m_pECSWorld->GetEntityList();
 	for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 	{
-		auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(itr->second->GetComponent(eCompType_MeshRenderer));
+		auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(itr->second->GetComponent(EComponentType::MeshRenderer));
 		if (pMeshRendererComp)
 		{
 			m_renderTaskTable.at(pMeshRendererComp->GetRendererType()).emplace_back(itr->second);
@@ -152,8 +152,8 @@ void DrawingSystem::ConfigureRenderEnvironment()
 
 void DrawingSystem::ExecuteRenderTask()
 {
-	auto pCamera = m_pECSWorld->FindEntityWithTag(eEntityTag_MainCamera);
-	auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(eCompType_Camera)) : nullptr;
+	auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
+	auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(EComponentType::Camera)) : nullptr;
 
 	if (pCameraComp)
 	{

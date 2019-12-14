@@ -19,9 +19,9 @@ namespace Engine
 	class BaseRenderer;
 	struct RenderContext
 	{
-		const std::vector<std::shared_ptr<IEntity>>* pDrawList;
+		const std::vector<std::shared_ptr<IEntity>>* pDrawList = nullptr;
 		std::shared_ptr<IEntity> pCamera;
-		BaseRenderer* pRenderer;
+		BaseRenderer* pRenderer = nullptr;
 	};
 
 	class RenderGraph;

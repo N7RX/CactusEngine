@@ -140,7 +140,7 @@ GLuint FragmentShader_OpenGL::GetGLShaderID() const
 }
 
 ShaderProgram_OpenGL::ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader)
-	: ShaderProgram(eShader_Vertex | eShader_Fragment), m_activeTextureUnit(0)
+	: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment), m_activeTextureUnit(0)
 {
 	m_pDevice = pDevice;
 	m_glProgramID = glCreateProgram();
@@ -170,31 +170,31 @@ void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EGLShaderParamT
 {
 	switch (type)
 	{
-	case eShaderParam_Int1:
+	case EGLShaderParamType::Int1:
 		glUniform1i(location, *(int*)value);
 		break;
-	case eShaderParam_Float1:
+	case EGLShaderParamType::Float1:
 		glUniform1f(location, *(float*)value);
 		break;
-	case eShaderParam_Vec2:
+	case EGLShaderParamType::Vec2:
 		glUniform2fv(location, 1, (float*)value);
 		break;
-	case eShaderParam_Vec3:
+	case EGLShaderParamType::Vec3:
 		glUniform3fv(location, 1, (float*)value);
 		break;
-	case eShaderParam_Vec4:
+	case EGLShaderParamType::Vec4:
 		glUniform4fv(location, 1, (float*)value);
 		break;
-	case eShaderParam_Mat2:
+	case EGLShaderParamType::Mat2:
 		glUniformMatrix2fv(location, 1, false, (float*)value);
 		break;
-	case eShaderParam_Mat3:
+	case EGLShaderParamType::Mat3:
 		glUniformMatrix3fv(location, 1, false, (float*)value);
 		break;
-	case eShaderParam_Mat4:
+	case EGLShaderParamType::Mat4:
 		glUniformMatrix4fv(location, 1, false, (float*)value);
 		break;
-	case eShaderParam_Texture2D:
+	case EGLShaderParamType::Texture2D:
 		glActiveTexture(GL_TEXTURE0 + m_activeTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, *(unsigned int*)value);
 		glUniform1i(location, m_activeTextureUnit);

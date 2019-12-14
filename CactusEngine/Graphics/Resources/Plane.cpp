@@ -4,7 +4,7 @@
 
 using namespace Engine;
 
-Plane::Plane(uint32_t dimLength, uint32_t dimWidth)
+Plane::Plane(uint64_t dimLength, uint64_t dimWidth)
 	: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice())
 {
 	std::vector<float> positions((dimLength + 1) * (dimWidth + 1) * 3, 0);
@@ -12,7 +12,7 @@ Plane::Plane(uint32_t dimLength, uint32_t dimWidth)
 	std::vector<float> texcoords((dimLength + 1) * (dimWidth + 1) * 2, 0);
 	std::vector<float> tangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
 	std::vector<float> bitangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
-	std::vector<int> vertexIndices(dimLength * dimWidth * 6, 0);
+	std::vector<int>   vertexIndices(dimLength * dimWidth * 6, 0);
 
 	float gridLength = 1.0f / dimLength;
 	float gridWidth = 1.0f / dimWidth;
@@ -41,23 +41,23 @@ Plane::Plane(uint32_t dimLength, uint32_t dimWidth)
 		{
 			// For each quad
 			// Triangle 1
-			vertexIndices[index++] = i * (dimLength + 1) + j;
-			vertexIndices[index++] = i * (dimLength + 1) + j + 1;
-			vertexIndices[index++] = (i + 1) * (dimLength + 1) + j + 1;
+			vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
+			vertexIndices[index++] = (int)(i * (dimLength + 1) + j + 1);
+			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
 
 			// Triangle 2
-			vertexIndices[index++] = i * (dimLength + 1) + j;
-			vertexIndices[index++] = (i + 1) * (dimLength + 1) + j + 1;
-			vertexIndices[index++] = (i + 1) * (dimLength + 1) + j;
+			vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
+			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
+			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j);
 		}
 	}
 
 	m_subMeshes.resize(1);
 	m_subMeshes[0].m_baseIndex = 0;
 	m_subMeshes[0].m_baseVertex = 0;
-	m_subMeshes[0].m_numIndices = vertexIndices.size();
+	m_subMeshes[0].m_numIndices = (unsigned int)vertexIndices.size();
 
-	m_type = eBuiltInMesh_Plane;
+	m_type = EBuiltInMeshType::Plane;
 	m_planeDimension = Vector2(dimLength, dimWidth);
 	CreateVertexBufferFromVertices(positions, normals, texcoords, tangents, bitangents, vertexIndices);
 }

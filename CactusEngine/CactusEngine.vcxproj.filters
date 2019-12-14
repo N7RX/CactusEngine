@@ -375,6 +375,9 @@
     <ClInclude Include="Script\CubeScript.h">
       <Filter>Script</Filter>
     </ClInclude>
+    <ClInclude Include="Util\SafeBasicTypes.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -541,6 +544,9 @@
     </ClCompile>
     <ClCompile Include="IO\ECSSceneWriter.cpp">
       <Filter>IO</Filter>
+    </ClCompile>
+    <ClCompile Include="Util\SafeBasicTypes.cpp">
+      <Filter>Util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

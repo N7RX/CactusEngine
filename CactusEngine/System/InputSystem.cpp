@@ -7,6 +7,7 @@ using namespace Engine;
 GLFWwindow* InputSystem::m_pGLFWWindow = nullptr;
 
 InputSystem::InputSystem(ECSWorld* pWorld)
+	: m_systemID(-1)
 {
 #if defined(GLFW_IMPLEMENTATION_CACTUS)
 	m_pGLFWWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());

@@ -2,136 +2,136 @@
 
 namespace Engine
 {
-	enum EECSType
+	enum class EECSType
 	{
-		eECS_Entity = 0,
-		eECS_Component,
-		eECS_System,
-		ECSTYPE_COUNT
+		Entity = 0,
+		Component,
+		System,
+		COUNT
 	};
 
-	enum EComponentType
+	enum class EComponentType
 	{
-		eCompType_Transform = 0x1,
-		eCompType_MeshFilter = 0x2,
-		eCompType_MeshRenderer = 0x4,
-		eCompType_Material = 0x8,
-		eCompType_Animation = 0x10,
-		eCompType_Camera = 0x20,
-		eCompType_Script = 0x40,
-		ECOMPTYPE_COUNT = 7
+		Transform = 0x1,
+		MeshFilter = 0x2,
+		MeshRenderer = 0x4,
+		Material = 0x8,
+		Animation = 0x10,
+		Camera = 0x20,
+		Script = 0x40,
+		COUNT = 7
 	};
 
-	enum ESystemType
+	enum class ESystemType
 	{
-		eSystem_Drawing = 0,
-		eSystem_Animation,
-		eSystem_Event,
-		eSystem_Input,
-		eSystem_Log,
-		eSystem_Audio,
-		eSystem_Physics,
-		eSystem_Script,
-		ESYSTEMTYPE_COUNT
+		Drawing = 0,
+		Animation,
+		Event,
+		Input,
+		Log,
+		Audio,
+		Physics,
+		Script,
+		COUNT
 	};
 
-	enum ERendererType
+	enum class ERendererType
 	{
-		eRenderer_Forward = 0,
-		eRenderer_Deferred,
-		ERENDERERTYPE_COUNT
+		Forward = 0,
+		Deferred,
+		COUNT
 	};
 
-	enum EShaderType
+	enum class EShaderType
 	{
-		eShader_Vertex = 0x1,
-		eShader_Fragment = 0x2,
-		eShader_TessControl = 0x4,
-		eShader_TessEvaluation = 0x8,
-		eShader_Geometry = 0x10,
-		eShader_Compute = 0x20,
-		ESHADERTYPE_COUNT = 6
+		Vertex = 0x1,
+		Fragment = 0x2,
+		TessControl = 0x4,
+		TessEvaluation = 0x8,
+		Geometry = 0x10,
+		Compute = 0x20,
+		COUNT = 6
 	};
 
-	enum EQueueType
+	enum class EQueueType
 	{
-		eQueue_Graphics = 0,
-		eQueue_Copy,
-		eQueue_Compute,	
-		EQUEUETYPE_COUNT,
-		eQueue_Present
+		Graphics = 0,
+		Copy,
+		Compute,	
+		COUNT,
+		Present
 	};
 
-	enum EConfigurationType
+	enum class EConfigurationType
 	{
-		eConfiguration_App = 0,
-		eConfiguration_Graphics,
-		ECONFIGURATION_COUNT
+		App = 0,
+		Graphics,
+		COUNT
 	};
 
-	enum EGraphicsDeviceType
+	enum class EGraphicsDeviceType
 	{
-		eDevice_OpenGL = 0,
-		eDevice_Vulkan,
-		EGRAPHICSDEVICE_COUNT
+		OpenGL = 0,
+		Vulkan,
+		COUNT
 	};
 
-	enum EGLShaderParamType
+	enum class EGLShaderParamType
 	{
-		eShaderParam_Int1 = 0,
-		eShaderParam_Float1,
-		eShaderParam_Vec2,
-		eShaderParam_Vec3,
-		eShaderParam_Vec4,
-		eShaderParam_Mat2,
-		eShaderParam_Mat3,
-		eShaderParam_Mat4,
-		eShaderParam_Texture2D
+		Int1 = 0,
+		Float1,
+		Vec2,
+		Vec3,
+		Vec4,
+		Mat2,
+		Mat3,
+		Mat4,
+		Texture2D
 	};
 
-	enum ECameraProjectionType
+	enum class ECameraProjectionType
 	{
-		eProjectionType_Perspective = 0,
-		eProjectionType_Orthographic,
-		EPROJECTIONTYPE_COUNT
+		Perspective = 0,
+		Orthographic,
+		COUNT
 	};
 
-	enum EGlobalStateQueryType
+	enum class EGlobalStateQueryType
 	{
-		eGlobalState_GLFWInit = 0,
-		EGLOBALSTATEQUERYTYPE_COUNT
+		GLFWInit = 0,
+		COUNT
 	};
 
-	enum ETextureType
+	enum class ETextureType
 	{
-		eTextureType_SampledImage = 0,
-		eTextureType_ColorAttachment,
-		eTextureType_DepthAttachment,
-		ETEXTURETYPE_COUNT
+		SampledImage = 0,
+		ColorAttachment,
+		DepthAttachment,
+		COUNT
 	};
 
-	enum ETextureFormat
+	enum class ETextureFormat
 	{
-		eFormat_RGBA32F = 0,
-		eFormat_Depth,
+		RGBA32F = 0,
+		Depth,
 	};
 
-	enum EDataType
+	enum class EDataType
 	{
-		eDataType_Float = 0,
-		eDataType_UnsignedByte,
+		Float = 0,
+		UnsignedByte,
 	};
 
-	enum EBlendFactor
+	enum class EBlendFactor
 	{
-		eBlend_SrcAlpha = 0,
-		eBlend_OneMinusSrcAlpha
+		SrcAlpha = 0,
+		OneMinusSrcAlpha
 	};
 
-	enum EBuiltInMeshType
+	enum class EBuiltInMeshType
 	{
-		eBuiltInMesh_External = 0, // From file
-		eBuiltInMesh_Plane,
-		EBUILTINMESHTYPE_COUNT
+		External = 0, // From file
+		Plane,
+		COUNT
 	};
 }

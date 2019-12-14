@@ -4,7 +4,7 @@
 using namespace Engine;
 
 Material::Material()
-	: m_useShaderType(eShaderProgram_Basic), m_transparentPass(false), m_albedoColor(Color4(1, 1, 1, 1)), m_anisotropy(0.0f), m_roughness(0.75f)
+	: m_useShaderType(EBuiltInShaderProgramType::Basic), m_transparentPass(false), m_albedoColor(Color4(1, 1, 1, 1)), m_anisotropy(0.0f), m_roughness(0.75f)
 {
 }
 
@@ -78,7 +78,7 @@ bool Material::IsTransparent() const
 }
 
 MaterialComponent::MaterialComponent()
-	: BaseComponent(eCompType_Material)
+	: BaseComponent(EComponentType::Material)
 {
 }
 
@@ -107,5 +107,5 @@ const std::shared_ptr<Material> MaterialComponent::GetMaterialBySubmeshIndex(uns
 
 unsigned int MaterialComponent::GetMaterialCount() const
 {
-	return m_materialList.size();
+	return (unsigned int)m_materialList.size();
 }

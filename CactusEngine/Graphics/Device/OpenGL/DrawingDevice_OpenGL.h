@@ -44,15 +44,15 @@ namespace Engine
 		const GLuint ATTRIB_TANGENT_LOCATION = 3;
 		const GLuint ATTRIB_BITANGENT_LOCATION = 4;
 
-		GLuint m_attributeless_vao;
+		GLuint m_attributeless_vao = -1;
 	};
 
 	template<>
-	static std::shared_ptr<DrawingDevice> CreateDrawingDevice<eDevice_OpenGL>()
+	static std::shared_ptr<DrawingDevice> CreateDrawingDevice<EGraphicsDeviceType::OpenGL>()
 	{
 		auto pDevice = std::make_shared<DrawingDevice_OpenGL>();
 
-		if (!gpGlobal->QueryGlobalState(eGlobalState_GLFWInit))
+		if (!gpGlobal->QueryGlobalState(EGlobalStateQueryType::GLFWInit))
 		{		
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			{
