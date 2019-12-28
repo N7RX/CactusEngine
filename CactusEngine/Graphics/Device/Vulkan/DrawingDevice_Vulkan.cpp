@@ -56,6 +56,19 @@ bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	return false;
 }
 
+bool DrawingDevice_Vulkan::CreateImageView(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImageViewCreateInfo& createInfo, VkImageView& outImageView)
+{
+	assert(pLogicalDevice);
+
+	if (vkCreateImageView(pLogicalDevice->logicalDevice, &createInfo, nullptr, &outImageView) == VK_SUCCESS)
+	{
+		return true;
+	}
+
+	outImageView = VK_NULL_HANDLE;
+	return false;
+}
+
 void DrawingDevice_Vulkan::ClearRenderTarget()
 {
 
@@ -121,9 +134,9 @@ VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice(PhysicalDeviceType_Vulk
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	switch (type)
 	{
-	case eVulkanPhysicalDeviceType_Integrated:
+	case PhysicalDeviceType_Vulkan::Integrated:
 		return m_pDevice_1->physicalDevice;
-	case eVulkanPhysicalDeviceType_Discrete:
+	case PhysicalDeviceType_Vulkan::Discrete:
 		return m_pDevice_0->physicalDevice;
 	default:
 		return VK_NULL_HANDLE;
@@ -138,9 +151,9 @@ VkDevice DrawingDevice_Vulkan::GetLogicalDevice(PhysicalDeviceType_Vulkan type) 
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	switch (type)
 	{
-	case eVulkanPhysicalDeviceType_Integrated:
+	case PhysicalDeviceType_Vulkan::Integrated:
 		return m_pDevice_1->logicalDevice;
-	case eVulkanPhysicalDeviceType_Discrete:
+	case PhysicalDeviceType_Vulkan::Discrete:
 		return m_pDevice_0->logicalDevice;
 	default:
 		return VK_NULL_HANDLE;

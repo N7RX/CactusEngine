@@ -6,9 +6,9 @@
 
 namespace Engine
 {
-	struct RawImageCreateInfo_Vulkan
+	struct Texture2DCreateInfo_Vulkan
 	{
-		VkExtent3D			extent = { 0, 0, 1 };
+		VkExtent2D			extent = { 0, 0 };
 		VkFormat			format = VK_FORMAT_UNDEFINED;
 		VkImageTiling		tiling = VK_IMAGE_TILING_OPTIMAL;
 		uint32_t			mipLevels = 1;
@@ -18,8 +18,16 @@ namespace Engine
 		VmaMemoryUsage		memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
 	};
 
+	struct RawBufferCreateInfo_Vulkan
+	{
+		VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
+		VkDeviceSize size = 0;
+		VkDeviceSize stride = 0;
+	};
+
 	class Texture2D_Vulkan;	
-	class Buffer_Vulkan;
+	class RawBuffer_Vulkan;
 	struct LogicalDevice_Vulkan;
 	class DrawingCommandManager_Vulkan;
 	class DrawingUploadAllocator_Vulkan
@@ -28,14 +36,14 @@ namespace Engine
 		DrawingUploadAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
 		~DrawingUploadAllocator_Vulkan();
 
-		bool CreateBuffer(const VkDeviceSize size, const VkBufferUsageFlags usage, const VmaMemoryUsage memoryUsage, VkBuffer& buffer, VmaAllocation& allocation);
-		bool CreateImage(const RawImageCreateInfo_Vulkan& createInfo, Texture2D_Vulkan& rawImage);
+		bool CreateBuffer(const RawBufferCreateInfo_Vulkan& createInfo, RawBuffer_Vulkan& rawBuffer);
+		bool CreateTexture2D(const Texture2DCreateInfo_Vulkan& createInfo, Texture2D_Vulkan& texture2d);
 
 		bool CopyBuffer_Immediate(const VkBuffer& src, VkBuffer& dst, const VkDeviceSize size);
 		bool CopyBufferToImage_Immediate(const VkBuffer& buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
 
-		bool CopyBuffer_Recorded(const std::shared_ptr<Buffer_Vulkan> src, VkBuffer& dst, const VkDeviceSize size);
-		bool CopyBufferToImage_Recorded(const std::shared_ptr<Buffer_Vulkan> buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
+		bool CopyBuffer_Recorded(const std::shared_ptr<RawBuffer_Vulkan> src, VkBuffer& dst, const VkDeviceSize size);
+		bool CopyBufferToImage_Recorded(const std::shared_ptr<RawBuffer_Vulkan> buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
 
 		bool MapMemory(VmaAllocation& allocation, void** mappedData);
 		bool UnmapMemory(VmaAllocation& allocation);

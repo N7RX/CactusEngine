@@ -44,7 +44,7 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 		m_subMeshes[i].m_numIndices = scene->mMeshes[i]->mNumFaces * 3;
 
 		totalNumVertices += scene->mMeshes[i]->mNumVertices;
-		totalNumIndices  += (uint64_t)scene->mMeshes[i]->mNumFaces * 3;
+		totalNumIndices  += (size_t)scene->mMeshes[i]->mNumFaces * 3;
 	}
 
 	std::vector<int>   indices(totalNumIndices);

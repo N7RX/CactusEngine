@@ -15,6 +15,7 @@ namespace Engine
 
 	public:
 		VkSemaphore semaphore;
+		VkPipelineStageFlags waitStage;
 
 	private:
 		uint32_t id;
@@ -40,9 +41,6 @@ namespace Engine
 	public:
 		DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
 
-		VkFence RequestFenceByID(uint32_t id) const;
-		void ReturnFenceByID(uint32_t id);
-
 		std::shared_ptr<DrawingSemaphore_Vulkan> RequestSemaphore();
 		std::shared_ptr<DrawingFence_Vulkan> RequestFence();
 
@@ -61,6 +59,7 @@ namespace Engine
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		mutable std::mutex m_mutex;
 
+		// TODO: make the pool easier to resize
 		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_semaphorePool;
 		std::vector<std::shared_ptr<DrawingFence_Vulkan>> m_fencePool;
 

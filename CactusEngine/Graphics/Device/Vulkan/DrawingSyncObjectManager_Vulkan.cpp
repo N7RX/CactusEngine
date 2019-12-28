@@ -5,7 +5,7 @@
 using namespace Engine;
 
 DrawingSemaphore_Vulkan::DrawingSemaphore_Vulkan(const VkSemaphore& semaphoreHandle, uint32_t assignedID)
-	: semaphore(semaphoreHandle), id(assignedID)
+	: semaphore(semaphoreHandle), waitStage(0), id(assignedID)
 {
 
 }
@@ -18,16 +18,6 @@ DrawingFence_Vulkan::DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t as
 
 DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
 	: m_pDevice(pDevice)
-{
-
-}
-
-VkFence DrawingSyncObjectManager_Vulkan::RequestFenceByID(uint32_t id) const
-{
-	return VK_NULL_HANDLE;
-}
-
-void DrawingSyncObjectManager_Vulkan::ReturnFenceByID(uint32_t id)
 {
 
 }

@@ -12,6 +12,7 @@ public:
 
 	void Push(T val);
 	bool TryPop(T& val);
+	bool TryPopAll(std::queue<T>& allVals);
 	void Clear();
 	bool Empty() const;
 	size_t Size() const;
@@ -47,6 +48,24 @@ bool SafeQueue<T>::TryPop(T& val)
 
 	val = m_queueImpl.front();
 	m_queueImpl.pop();
+
+	return true;
+}
+
+template<typename T>
+bool SafeQueue<T>::TryPopAll(std::queue<T>& allVals)
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (m_queueImpl.empty())
+	{
+		return false;
+	}
+
+	while (!m_queueImpl.empty())
+	{
+		allVals.push(m_queueImpl.front());
+		m_queueImpl.pop();
+	}
 
 	return true;
 }

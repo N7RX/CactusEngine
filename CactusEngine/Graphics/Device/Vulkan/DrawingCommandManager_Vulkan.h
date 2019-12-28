@@ -4,6 +4,7 @@
 #include "SafeQueue.h"
 #include "SafeBasicTypes.h"
 #include "NoCopy.h"
+#include "BasicMathTypes.h"
 #include <vulkan.h>
 #include <memory>
 #include <vector>
@@ -17,6 +18,9 @@ namespace Engine
 		VkQueue queue;
 	};
 
+	class Texture2D_Vulkan;
+	class RawBuffer_Vulkan;
+
 	class DrawingCommandBuffer_Vulkan
 	{
 	public:
@@ -27,12 +31,36 @@ namespace Engine
 		bool InRenderPass() const;
 		bool InExecution() const;
 
+		void BeginCommandBuffer(VkCommandBufferUsageFlags usage);
+
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer vertexBuffer, const VkDeviceSize offsets);
+		void BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type);
+		void BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset = { 0, 0 });
+		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
+		void BindPipelineLayout(const VkPipelineLayout pipelineLayout);
+		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
+		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<VkDescriptorSet>& descriptorSets, uint32_t firstSet = 0);
+		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
+		void EndRenderPass();
+
+		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderType = EShaderType::Fragment);
+		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region);
+		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);
+
+		void WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
+		void SignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
+
 	private:
 		VkCommandBuffer m_commandBuffer;
+		VkPipelineLayout m_pipelineLayout;
+
+		std::shared_ptr<DrawingFence_Vulkan> m_pAssociatedFence;
+		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitSemaphores;
+		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalSemaphores;
+
 		bool m_isRecording;
 		bool m_inRenderPass;
 		bool m_inExecution;
-		uint32_t m_fenceID;
 
 		friend class DrawingCommandManager_Vulkan;
 	};
@@ -80,19 +108,19 @@ namespace Engine
 		std::mutex notifyStateMutex;
 	};
 
-	class CommandSubmitInfo
+	class CommandSubmitInfo_Vulkan
 	{
 	public:
-		~CommandSubmitInfo()
+		~CommandSubmitInfo_Vulkan()
 		{
 			Clear();
 		}
 
 		void Clear()
 		{
-			buffersAwaitSubmit.clear();
-			waitSemaphores.clear();
+			buffersAwaitSubmit.clear();		
 			waitStages.clear();
+			semaphoresToWait.clear();
 			semaphoresToSignal.clear();
 		}
 
@@ -104,9 +132,9 @@ namespace Engine
 		std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
 
 		// Retained resources
-		std::vector<VkCommandBuffer>	  buffersAwaitSubmit;
-		std::vector<VkSemaphore>		  waitSemaphores;
+		std::vector<VkCommandBuffer>	  buffersAwaitSubmit;	
 		std::vector<VkPipelineStageFlags> waitStages;
+		std::vector<VkSemaphore>		  semaphoresToWait;
 		std::vector<VkSemaphore>		  semaphoresToSignal;
 
 		friend class DrawingCommandManager_Vulkan;
@@ -125,8 +153,6 @@ namespace Engine
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
 		void SubmitCommandBuffers(VkFence fence);
-		void AddWaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
-		void AddSignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
 
 	private:
 		void CreateCommandPool();
@@ -148,10 +174,7 @@ namespace Engine
 		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_inUseCommandBuffers;
 		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_inExecutionCommandBuffers;
 
-		SafeQueue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_submitWaitSemaphores;
-		SafeQueue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_submitSignalSemaphores;
-
-		SafeQueue<std::shared_ptr<CommandSubmitInfo>> m_submissionQueue;
+		SafeQueue<std::shared_ptr<CommandSubmitInfo_Vulkan>> m_commandSubmissionQueue;
 
 		// Async command submission
 		std::thread m_commandBufferSubmissionThread;
