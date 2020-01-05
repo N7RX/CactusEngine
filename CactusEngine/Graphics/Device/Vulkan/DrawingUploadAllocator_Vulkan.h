@@ -42,14 +42,11 @@ namespace Engine
 		bool CopyBuffer_Immediate(const VkBuffer& src, VkBuffer& dst, const VkDeviceSize size);
 		bool CopyBufferToImage_Immediate(const VkBuffer& buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
 
-		bool CopyBuffer_Recorded(const std::shared_ptr<RawBuffer_Vulkan> src, VkBuffer& dst, const VkDeviceSize size);
-		bool CopyBufferToImage_Recorded(const std::shared_ptr<RawBuffer_Vulkan> buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
-
 		bool MapMemory(VmaAllocation& allocation, void** mappedData);
-		bool UnmapMemory(VmaAllocation& allocation);
+		void UnmapMemory(VmaAllocation& allocation);
 
-		bool FreeBuffer(VkBuffer& buffer, VmaAllocation& allocation);
-		bool FreeImage(VkImage& image, VmaAllocation& allocation);
+		void FreeBuffer(VkBuffer& buffer, VmaAllocation& allocation);
+		void FreeImage(VkImage& image, VmaAllocation& allocation);
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;

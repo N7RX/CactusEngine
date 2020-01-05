@@ -43,6 +43,7 @@ namespace Engine
 	protected:
 		VkBuffer m_buffer;
 		VmaAllocation m_allocation;
+		VkDeviceSize m_deviceSize;
 
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 
