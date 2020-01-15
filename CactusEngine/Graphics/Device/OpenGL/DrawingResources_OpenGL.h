@@ -85,7 +85,7 @@ namespace Engine
 
 		GLuint GetGLProgramID() const;
 
-		void UpdateParameterValue(GLuint location, EGLShaderParamType type, const void* value);
+		void UpdateParameterValue(GLuint location, EShaderParamType type, const void* value);
 		void Reset() override;
 
 	private:

@@ -38,7 +38,7 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	createInfo.textureWidth = texWidth;
 	createInfo.textureHeight = texHeight;
 	createInfo.pTextureData = imageData;
-	createInfo.dataType = EDataType::UnsignedByte;
+	createInfo.dataType = EDataType::UByte;
 	createInfo.format = ETextureFormat::RGBA32F;
 	createInfo.textureType = ETextureType::SampledImage;
 

@@ -175,6 +175,8 @@ namespace Engine
 		uint32_t m_programID;
 		DrawingDevice* m_pDevice;
 		uint32_t m_shaderStages; // This is a bitmap
+
+		// TODO: move this field into OpenGL device
 		std::unordered_map<const char*, unsigned int> m_paramLocations; // This is only useful in OpenGL device
 	};
 
@@ -188,19 +190,19 @@ namespace Engine
 		
 		struct ShaderParameterTableEntry
 		{
-			ShaderParameterTableEntry(unsigned int loc, EGLShaderParamType paramType, const void* val)
+			ShaderParameterTableEntry(unsigned int loc, EShaderParamType paramType, const void* val)
 				: location(loc), type(paramType), value(val)
 			{
 			}
 
 			unsigned int location;
-			EGLShaderParamType type;
+			EShaderParamType type;
 			const void* value;
 		};
 
 		std::vector<ShaderParameterTableEntry> m_table;
 
-		inline void AddEntry(unsigned int loc, EGLShaderParamType type, const void* val)
+		inline void AddEntry(unsigned int loc, EShaderParamType type, const void* val)
 		{
 			m_table.emplace_back(loc, type, val);
 		}

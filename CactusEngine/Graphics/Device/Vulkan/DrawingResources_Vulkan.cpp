@@ -378,6 +378,176 @@ void ShaderProgram_Vulkan::ReflectResourceBinding(const std::shared_ptr<RawShade
 
 	for (auto& buffer : shaderRes.uniform_buffers)
 	{
+		ResourceDescription desc = {};
+		desc.type = EShaderResourceType_Vulkan::Uniform;
+		desc.slot = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
+		desc.name = spvCompiler.get_name(buffer.id).c_str(); //	Alert: this is incorrect for finding corresponding resource by name
+		m_resourceTable.emplace(desc.name, desc);
 
+		ProcessVariables(spvCompiler, buffer);
 	}
+}
+
+void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource)
+{
+
+}
+
+EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType& type, uint32_t size)
+{
+	// Alert: we are over simplifying some details in here, e.g. data format and array info
+
+	switch (type.basetype)
+	{
+	case spirv_cross::SPIRType::BaseType::Image:
+	case spirv_cross::SPIRType::BaseType::SampledImage:
+		return EShaderParamType::Texture2D;
+
+	case spirv_cross::SPIRType::BaseType::Sampler:
+		return EShaderParamType::Sampler;
+
+	case spirv_cross::SPIRType::BaseType::Boolean:
+	case spirv_cross::SPIRType::BaseType::SByte:
+	case spirv_cross::SPIRType::BaseType::UByte:
+	case spirv_cross::SPIRType::BaseType::Short:
+	case spirv_cross::SPIRType::BaseType::UShort:
+	case spirv_cross::SPIRType::BaseType::Half:
+	case spirv_cross::SPIRType::BaseType::Int:
+	case spirv_cross::SPIRType::BaseType::UInt:
+	case spirv_cross::SPIRType::BaseType::Float:
+	case spirv_cross::SPIRType::BaseType::Int64:
+	case spirv_cross::SPIRType::BaseType::UInt64:
+	case spirv_cross::SPIRType::BaseType::Double:
+	{
+		if (type.columns > 1)
+		{
+			// Alert: only square matrices are handled
+			uint32_t rows = size / (type.columns * GetParamTypeSize(type));
+			assert(type.columns == rows);
+			switch (type.columns)
+			{
+			case 2U:
+				return EShaderParamType::Mat2;
+
+			case 3U:
+				return EShaderParamType::Mat3;
+
+			case 4U:
+				return EShaderParamType::Mat4;
+
+			default:
+				throw std::runtime_error("Vulkan: unhandled irregular shader parameter matrix.");
+				break;
+			}
+		}
+		else if (type.vecsize > 1)
+		{
+			switch (type.vecsize)
+			{
+			case 2U:
+				return EShaderParamType::Vec2;
+
+			case 3U:
+				return EShaderParamType::Vec3;
+
+			case 4U:
+				return EShaderParamType::Vec4;
+
+			default:
+				throw std::runtime_error("Vulkan: unhandled irregular shader parameter matrix.");
+				break;
+			}
+		}
+		else
+		{
+			// TODO: finish type conversion
+		}
+	}
+
+	default:
+		throw std::runtime_error("Vulkan: unhandled shader parameter type.");
+		break;
+	}
+
+	return EShaderParamType::Invalid;
+}
+
+uint32_t ShaderProgram_Vulkan::GetParamTypeSize(const spirv_cross::SPIRType& type)
+{
+	switch (type.basetype)
+	{
+	case spirv_cross::SPIRType::BaseType::Boolean:
+	case spirv_cross::SPIRType::BaseType::SByte:
+	case spirv_cross::SPIRType::BaseType::UByte:
+		return 1U;
+
+	case spirv_cross::SPIRType::BaseType::Short:
+	case spirv_cross::SPIRType::BaseType::UShort:
+	case spirv_cross::SPIRType::BaseType::Half:
+		return 2U;
+
+	case spirv_cross::SPIRType::BaseType::Int:
+	case spirv_cross::SPIRType::BaseType::UInt:
+	case spirv_cross::SPIRType::BaseType::Float:
+		return 4U;
+
+	case spirv_cross::SPIRType::BaseType::Int64:
+	case spirv_cross::SPIRType::BaseType::UInt64:
+	case spirv_cross::SPIRType::BaseType::Double:
+		return 8U;
+
+	default:
+		throw std::runtime_error("Vulkan: unhandled shader parameter type.");
+		break;
+	}
+
+	return 0U;
+}
+
+EDataType ShaderProgram_Vulkan::BasicTypeConvert(const spirv_cross::SPIRType& type)
+{
+	switch (type.basetype)
+	{
+	case spirv_cross::SPIRType::BaseType::Boolean:
+		return EDataType::Boolean;
+
+	case spirv_cross::SPIRType::BaseType::Int:
+		return EDataType::Int32;
+
+	case spirv_cross::SPIRType::BaseType::UInt:
+		return EDataType::UInt32;
+
+	case spirv_cross::SPIRType::BaseType::Float:
+		return EDataType::Float32;
+
+	case spirv_cross::SPIRType::BaseType::Double:
+		return EDataType::Double;
+
+	case spirv_cross::SPIRType::BaseType::SByte:
+		return EDataType::SByte;
+
+	case spirv_cross::SPIRType::BaseType::UByte:
+		return EDataType::UByte;
+
+	case spirv_cross::SPIRType::BaseType::Short:
+		return EDataType::Short;
+
+	case spirv_cross::SPIRType::BaseType::UShort:
+		return EDataType::UShort;
+
+	case spirv_cross::SPIRType::BaseType::Half:
+		return EDataType::Half;
+
+	case spirv_cross::SPIRType::BaseType::Int64:
+		return EDataType::Int64;
+
+	case spirv_cross::SPIRType::BaseType::UInt64:
+		return EDataType::UInt64;
+
+	default:
+		throw std::runtime_error("Vulkan: unhandled shader parameter base type.");
+		break;
+	}
+
+	return EDataType::Float32;
 }

@@ -76,17 +76,20 @@ namespace Engine
 		COUNT
 	};
 
-	enum class EGLShaderParamType
+	enum class EShaderParamType
 	{
-		Int1 = 0,
+		Invalid = 0,
+		Int1,
 		Float1,
+		Bool,
 		Vec2,
 		Vec3,
 		Vec4,
 		Mat2,
 		Mat3,
 		Mat4,
-		Texture2D
+		Texture2D,
+		Sampler
 	};
 
 	enum class ECameraProjectionType
@@ -118,8 +121,18 @@ namespace Engine
 
 	enum class EDataType
 	{
-		Float = 0,
-		UnsignedByte,
+		Float32 = 0,
+		Double,
+		Boolean,
+		UByte,
+		SByte,	
+		Int32,
+		UInt32,
+		Int64,
+		UInt64,
+		Half,
+		Short,
+		UShort,
 	};
 
 	enum class EBlendFactor

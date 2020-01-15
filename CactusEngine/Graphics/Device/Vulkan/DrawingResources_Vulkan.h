@@ -6,6 +6,7 @@
 #include "DrawingSyncObjectManager_Vulkan.h"
 
 #include <spirv_cross.hpp>
+#include <unordered_map>
 
 namespace Engine
 {
@@ -200,6 +201,20 @@ namespace Engine
 		std::shared_ptr<RawShader_Vulkan> m_pShaderImpl;
 	};
 
+	enum class EShaderResourceType_Vulkan
+	{
+		Uniform = 0,
+		PushConstant,
+		SeparateSampler,
+		SeparateImage,
+		SampledImage,
+		StorageBuffer,
+		StorageImage,
+		SubpassInput,
+		AccelerationStructure,
+		COUNT
+	};
+
 	class ShaderProgram_Vulkan : public ShaderProgram
 	{
 	public:
@@ -209,11 +224,28 @@ namespace Engine
 	private:
 		void ReflectResourceBinding(const std::shared_ptr<RawShader_Vulkan> pShader);
 		void ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource);
+		EShaderParamType GetParamType(const spirv_cross::SPIRType& type, uint32_t size);
+		uint32_t GetParamTypeSize(const spirv_cross::SPIRType& type);
+		EDataType BasicTypeConvert(const spirv_cross::SPIRType& type);
 
 	private:
-		struct ResourceTable
+		struct ResourceDescription
 		{
-
+			EShaderResourceType_Vulkan type;
+			unsigned int slot;
+			const char* name;
 		};
+
+		struct VariableDescription
+		{
+			const char* uniformName;
+			const char* variableName;
+			uint32_t offset;
+			uint32_t uniformSize;
+			uint32_t variableSize;
+			EShaderParamType paramType;
+		};
+
+		std::unordered_map<const char*, std::shared_ptr<ResourceDescription>> m_resourceTable;
 	};
 }

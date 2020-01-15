@@ -81,9 +81,9 @@ namespace Engine
 	{
 		switch (type)
 		{
-		case EDataType::Float:
+		case EDataType::Float32:
 			return GL_FLOAT;
-		case EDataType::UnsignedByte:
+		case EDataType::UByte:
 			return GL_UNSIGNED_BYTE;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;
@@ -96,9 +96,9 @@ namespace Engine
 	{
 		switch (type)
 		{
-		case EDataType::Float:
+		case EDataType::Float32:
 			return 4;
-		case EDataType::UnsignedByte:
+		case EDataType::UByte:
 			return 1;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;

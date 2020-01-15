@@ -166,35 +166,35 @@ GLuint ShaderProgram_OpenGL::GetGLProgramID() const
 	return m_glProgramID;
 }
 
-void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EGLShaderParamType type, const void* value)
+void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EShaderParamType type, const void* value)
 {
 	switch (type)
 	{
-	case EGLShaderParamType::Int1:
+	case EShaderParamType::Int1:
 		glUniform1i(location, *(int*)value);
 		break;
-	case EGLShaderParamType::Float1:
+	case EShaderParamType::Float1:
 		glUniform1f(location, *(float*)value);
 		break;
-	case EGLShaderParamType::Vec2:
+	case EShaderParamType::Vec2:
 		glUniform2fv(location, 1, (float*)value);
 		break;
-	case EGLShaderParamType::Vec3:
+	case EShaderParamType::Vec3:
 		glUniform3fv(location, 1, (float*)value);
 		break;
-	case EGLShaderParamType::Vec4:
+	case EShaderParamType::Vec4:
 		glUniform4fv(location, 1, (float*)value);
 		break;
-	case EGLShaderParamType::Mat2:
+	case EShaderParamType::Mat2:
 		glUniformMatrix2fv(location, 1, false, (float*)value);
 		break;
-	case EGLShaderParamType::Mat3:
+	case EShaderParamType::Mat3:
 		glUniformMatrix3fv(location, 1, false, (float*)value);
 		break;
-	case EGLShaderParamType::Mat4:
+	case EShaderParamType::Mat4:
 		glUniformMatrix4fv(location, 1, false, (float*)value);
 		break;
-	case EGLShaderParamType::Texture2D:
+	case EShaderParamType::Texture2D:
 		glActiveTexture(GL_TEXTURE0 + m_activeTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, *(unsigned int*)value);
 		glUniform1i(location, m_activeTextureUnit);
