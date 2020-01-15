@@ -84,11 +84,6 @@ bool DrawingUploadAllocator_Vulkan::CreateTexture2D(const Texture2DCreateInfo_Vu
 	return false;
 }
 
-bool DrawingUploadAllocator_Vulkan::CopyBuffer_Immediate(const VkBuffer& src, VkBuffer& dst, const VkDeviceSize size)
-{
-
-}
-
 bool DrawingUploadAllocator_Vulkan::MapMemory(VmaAllocation& allocation, void** mappedData)
 {
 	return vmaMapMemory(m_allocator, allocation, mappedData) == VK_SUCCESS;

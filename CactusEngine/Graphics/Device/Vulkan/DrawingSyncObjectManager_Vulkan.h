@@ -1,5 +1,6 @@
 #pragma once
 #include "NoCopy.h"
+
 #include <vulkan.h>
 #include <memory>
 #include <vector>

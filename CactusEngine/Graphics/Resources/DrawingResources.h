@@ -14,6 +14,9 @@ namespace Engine
 	public:
 		RawResourceData() = default;
 		virtual ~RawResourceData() = default;
+
+		std::shared_ptr<void> m_pData;
+		uint32_t m_sizeInBytes;
 	};
 
 	class RawResource
@@ -34,7 +37,7 @@ namespace Engine
 	protected:
 		uint32_t m_resourceID;
 		uint32_t m_sizeInBytes;
-		std::shared_ptr<RawResourceData> m_pData;
+		std::shared_ptr<RawResourceData> m_pRawData;
 
 	private:
 		static uint32_t m_assignedID;
@@ -162,7 +165,7 @@ namespace Engine
 		uint32_t GetProgramID() const;
 		uint32_t GetShaderStages() const;
 
-		unsigned int GetParamLocation(const char* paramName) const;
+		virtual unsigned int GetParamLocation(const char* paramName) const;
 		virtual void Reset() = 0;
 
 	protected:
@@ -172,7 +175,7 @@ namespace Engine
 		uint32_t m_programID;
 		DrawingDevice* m_pDevice;
 		uint32_t m_shaderStages; // This is a bitmap
-		std::unordered_map<const char*, unsigned int> m_paramLocations;
+		std::unordered_map<const char*, unsigned int> m_paramLocations; // This is only useful in OpenGL device
 	};
 
 	struct ShaderParameterTable

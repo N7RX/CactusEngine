@@ -2,22 +2,40 @@
 #include "DrawingResources.h"
 #include "DrawingUploadAllocator_Vulkan.h"
 #include "DrawingUtil_Vulkan.h"
-#include <vulkan.h>
-#include <memory>
+#include "DrawingExtensionWrangler_Vulkan.h"
+#include "DrawingSyncObjectManager_Vulkan.h"
+
+#include <spirv_cross.hpp>
 
 namespace Engine
 {
-	class  DrawingDevice_Vulkan;
 	struct LogicalDevice_Vulkan;
+	class DrawingDevice_Vulkan;
+	class DrawingCommandBuffer_Vulkan;	
+
+	enum class EAllocatorType_Vulkan
+	{
+		None = 0,
+		VK,
+		VMA,
+		COUNT
+	};
 
 	class Texture2D_Vulkan : public Texture2D
 	{
 	public:
 		Texture2D_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDrawingDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const Texture2DCreateInfo_Vulkan& createInfo);
-		Texture2D_Vulkan(const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
-		~Texture2D_Vulkan();
+		virtual ~Texture2D_Vulkan();
 
-	private:
+		uint32_t GetTextureID() const override;
+
+	protected:
+		Texture2D_Vulkan() = default;
+
+	protected:
+		std::shared_ptr<DrawingDevice_Vulkan> m_pDrawingDevice;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
+
 		VkImage			m_image = VK_NULL_HANDLE;
 		VkImageView		m_imageView = VK_NULL_HANDLE;
 		VkImageLayout	m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -26,12 +44,18 @@ namespace Engine
 		VkFormat		m_format = VK_FORMAT_UNDEFINED;
 		uint32_t		m_mipLevels = 0;
 
-		std::shared_ptr<DrawingDevice_Vulkan> m_pDrawingDevice;
-		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
+		EAllocatorType_Vulkan m_allocatorType;
 
 		friend class DrawingDevice_Vulkan;
 		friend class DrawingCommandBuffer_Vulkan;
 		friend class DrawingUploadAllocator_Vulkan;
+	};
+
+	class RenderTarget2D_Vulkan : public Texture2D_Vulkan
+	{
+	public:
+		RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
+		~RenderTarget2D_Vulkan();
 	};
 
 	class RawBuffer_Vulkan : public RawResource
@@ -41,13 +65,155 @@ namespace Engine
 		virtual ~RawBuffer_Vulkan();
 
 	protected:
-		VkBuffer m_buffer;
-		VmaAllocation m_allocation;
-		VkDeviceSize m_deviceSize;
-
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+
+		VkBuffer		m_buffer;
+		VmaAllocation	m_allocation;
+		VkDeviceSize	m_deviceSize;		
 
 		friend class DrawingCommandBuffer_Vulkan;
 		friend class DrawingUploadAllocator_Vulkan;
+	};
+
+	enum class EUniformBufferType_Vulkan
+	{
+		Undefined = 0,
+		Uniform,
+		PushConstant,
+		COUNT
+	};
+
+	struct UniformBufferCreateInfo_Vulkan
+	{
+		EUniformBufferType_Vulkan type;
+		uint32_t size;
+		uint32_t layoutParamIndex;
+		VkShaderStageFlags appliedStages;
+	};
+
+	class UniformBuffer_Vulkan : public RawBuffer_Vulkan
+	{
+	public:
+		UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo);
+		~UniformBuffer_Vulkan();
+
+		void UpdateBufferData(const std::shared_ptr<void> pData);
+		void UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer = nullptr);
+
+		EUniformBufferType_Vulkan GetType() const;
+		uint32_t GetBindingIndex() const;
+
+	private:
+		uint32_t m_layoutParamIndex;
+		EUniformBufferType_Vulkan m_eType;
+		VkShaderStageFlags m_appliedShaderStage;
+
+		bool m_memoryMapped;
+		void* m_pHostData; // Pointer to mapped host memory location	
+	};
+
+	class FrameBuffer_Vulkan : public FrameBuffer
+	{
+	public:
+		~FrameBuffer_Vulkan();
+
+		uint32_t GetFrameBufferID() const override;
+		// TODO: finish constructing Vulkan framebuffer wrapper class
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		VkFramebuffer m_frameBuffer;
+	};
+
+	struct DrawingSwapchainCreateInfo_Vulkan
+	{
+		VkSurfaceKHR				surface;
+		VkSurfaceFormatKHR			surfaceFormat;
+		VkPresentModeKHR			presentMode;
+		VkExtent2D					swapExtent;
+		SwapchainSupportDetails_VK	supportDetails;
+		QueueFamilyIndices_VK		queueFamilyIndices;
+		uint32_t					maxFramesInFlight;
+	};
+
+	class DrawingSwapchain_Vulkan
+	{
+	public:
+		DrawingSwapchain_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDrawingDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const DrawingSwapchainCreateInfo_Vulkan& createInfo);
+		~DrawingSwapchain_Vulkan();
+
+		bool UpdateBackBuffer(std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore, uint64_t timeout);
+		bool Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores, uint32_t syncInterval);
+
+		uint32_t GetTargetCount() const;
+		std::shared_ptr<FrameBuffer_Vulkan> GetTargetFrameBuffer() const;
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
+		VkSwapchainKHR m_swapchain;
+		VkQueue m_presentQueue;
+
+		std::vector<std::shared_ptr<RenderTarget2D_Vulkan>> m_renderTargets;
+		std::vector<std::shared_ptr<FrameBuffer_Vulkan>> m_swapchainFrameBuffers;
+		uint32_t m_frameBufferIndex;
+	};
+
+	class RawShader_Vulkan
+	{
+	public:
+		RawShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry);
+		~RawShader_Vulkan();
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		VkShaderModule			m_shaderModule;
+		VkShaderStageFlagBits	m_shaderStage;
+		const char*				m_entryName;
+		std::vector<char>		m_rawCode; // For reflection
+
+		friend class ShaderProgram_Vulkan;
+		friend class VertexShader_Vulkan;
+		friend class FragmentShader_Vulkan;	
+	};
+
+	class VertexShader_Vulkan : public VertexShader
+	{
+	public:
+		VertexShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
+		~VertexShader_Vulkan() = default;
+
+		std::shared_ptr<RawShader_Vulkan> GetShaderImpl() const;
+
+	private:
+		std::shared_ptr<RawShader_Vulkan> m_pShaderImpl;
+	};
+
+	class FragmentShader_Vulkan : public FragmentShader
+	{
+	public:
+		FragmentShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
+		~FragmentShader_Vulkan() = default;
+
+		std::shared_ptr<RawShader_Vulkan> GetShaderImpl() const;
+
+	private:
+		std::shared_ptr<RawShader_Vulkan> m_pShaderImpl;
+	};
+
+	class ShaderProgram_Vulkan : public ShaderProgram
+	{
+	public:
+		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
+		~ShaderProgram_Vulkan();
+
+	private:
+		void ReflectResourceBinding(const std::shared_ptr<RawShader_Vulkan> pShader);
+		void ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource);
+
+	private:
+		struct ResourceTable
+		{
+
+		};
 	};
 }

@@ -20,15 +20,15 @@ namespace Engine
 
 	struct RawBufferCreateInfo_Vulkan
 	{
-		VkBufferUsageFlags usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
-		VkDeviceSize size = 0;
-		VkDeviceSize stride = 0;
+		VkBufferUsageFlags	usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		VmaMemoryUsage		memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
+		VkDeviceSize		size = 0;
+		VkDeviceSize		stride = 0;
 	};
 
-	class Texture2D_Vulkan;	
-	class RawBuffer_Vulkan;
 	struct LogicalDevice_Vulkan;
+	class Texture2D_Vulkan;	
+	class RawBuffer_Vulkan;	
 	class DrawingCommandManager_Vulkan;
 	class DrawingUploadAllocator_Vulkan
 	{
@@ -38,9 +38,6 @@ namespace Engine
 
 		bool CreateBuffer(const RawBufferCreateInfo_Vulkan& createInfo, RawBuffer_Vulkan& rawBuffer);
 		bool CreateTexture2D(const Texture2DCreateInfo_Vulkan& createInfo, Texture2D_Vulkan& texture2d);
-
-		bool CopyBuffer_Immediate(const VkBuffer& src, VkBuffer& dst, const VkDeviceSize size);
-		bool CopyBufferToImage_Immediate(const VkBuffer& buffer, VkImage& image, const std::vector<VkBufferImageCopy>& regions);
 
 		bool MapMemory(VmaAllocation& allocation, void** mappedData);
 		void UnmapMemory(VmaAllocation& allocation);

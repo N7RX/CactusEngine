@@ -4,6 +4,7 @@
 							   // Therefore, it will be disabled for now
 #define ENABLE_HETEROGENEOUS_GPUS_VK
 #define VK_USE_PLATFORM_WIN32_KHR
+#define ENABLE_SHADER_REFLECT_OUTPUT_VK
 
 #include <vulkan.h>
 #include <vector>

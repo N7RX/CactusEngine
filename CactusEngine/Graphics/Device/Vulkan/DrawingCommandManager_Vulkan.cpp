@@ -87,7 +87,7 @@ void DrawingCommandBuffer_Vulkan::BindPipelineLayout(const VkPipelineLayout pipe
 	m_pipelineLayout = pipelineLayout;
 }
 
-void DrawingCommandBuffer_Vulkan::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0)
+void DrawingCommandBuffer_Vulkan::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset)
 {
 	assert(m_isRecording);
 	vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
@@ -100,7 +100,7 @@ void DrawingCommandBuffer_Vulkan::BindDescriptorSets(const VkPipelineBindPoint b
 	// Alert: dynamic offset is not handled
 }
 
-void DrawingCommandBuffer_Vulkan::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0)
+void DrawingCommandBuffer_Vulkan::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 {
 	assert(m_inRenderPass);
 	if (indexCount > 0 && instanceCount > 0)
@@ -217,12 +217,12 @@ std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandManager_Vulkan::Reque
 {
 	std::shared_ptr<DrawingCommandBuffer_Vulkan> pCommandBuffer;
 
-	if (m_freeCommandBuffers.Size() == 0)
+	if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
 	{
 		AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
+		m_freeCommandBuffers.TryPop(pCommandBuffer);
 	}
-
-	m_freeCommandBuffers.TryPop(pCommandBuffer);
+	
 	m_inUseCommandBuffers.Push(pCommandBuffer);
 
 	pCommandBuffer->BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We only submit the command buffer once
@@ -240,8 +240,27 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
 	while (!inUseBuffers.empty())
 	{
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inUseBuffers.front();
+
+		if (ptrCopy->m_inExecution || !ptrCopy->m_isRecording)
+		{
+			inUseBuffers.pop();
+			continue;
+		}
+
 		ptrCopy->m_isRecording = false;
 		ptrCopy->m_inExecution = true;
+
+		if (ptrCopy->m_inRenderPass)
+		{
+			ptrCopy->m_inRenderPass = false;
+			vkCmdEndRenderPass(ptrCopy->m_commandBuffer);		
+		}
+
+		if (vkEndCommandBuffer(ptrCopy->m_commandBuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Vulkan: couldn't end one or more command buffers.");
+			continue;
+		}
 
 		pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
 
@@ -275,6 +294,40 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
 	pSubmitInfo->fence = fence;
 
 	m_commandSubmissionQueue.Push(pSubmitInfo);
+}
+
+void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
+{
+	assert(pCmdBuffer->m_isRecording);
+
+	pCmdBuffer->m_isRecording = false;
+
+	if (pCmdBuffer->m_inRenderPass)
+	{
+		pCmdBuffer->m_inRenderPass = false;
+		vkCmdEndRenderPass(pCmdBuffer->m_commandBuffer);
+	}
+
+	if (vkEndCommandBuffer(pCmdBuffer->m_commandBuffer) == VK_SUCCESS)
+	{
+		pCmdBuffer->m_inExecution = true;
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &pCmdBuffer->m_commandBuffer;
+		submitInfo.pWaitDstStageMask = 0;
+
+		vkQueueSubmit(m_workingQueue.queue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(m_workingQueue.queue);
+
+		pCmdBuffer->m_inExecution = false;
+		m_freeCommandBuffers.Push(pCmdBuffer);
+	}
+	else
+	{
+		throw std::runtime_error("Vulkan: couldn't end a command buffer.");
+	}
 }
 
 void DrawingCommandManager_Vulkan::CreateCommandPool()
@@ -371,7 +424,8 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 		while (!inExecutionCmdBufferQueue.empty())
 		{
 			std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inExecutionCmdBufferQueue.front();
-			fenceMappings[ptrCopy->m_pAssociatedFence].emplace_back(ptrCopy);
+			assert(ptrCopy->m_pAssociatedFence);
+			fenceMappings[ptrCopy->m_pAssociatedFence].emplace_back(ptrCopy);				
 			inExecutionCmdBufferQueue.pop();
 		}
 
@@ -386,6 +440,7 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 					{
 						pCmdBuffer->m_pAssociatedFence = nullptr;
 						pCmdBuffer->m_inExecution = false;
+						m_freeCommandBuffers.Push(pCmdBuffer);
 					}
 					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
 				}

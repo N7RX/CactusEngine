@@ -5,6 +5,7 @@
 #include "SafeBasicTypes.h"
 #include "NoCopy.h"
 #include "BasicMathTypes.h"
+
 #include <vulkan.h>
 #include <memory>
 #include <vector>
@@ -153,6 +154,7 @@ namespace Engine
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
 		void SubmitCommandBuffers(VkFence fence);
+		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This would stall the queue, use with caution
 
 	private:
 		void CreateCommandPool();

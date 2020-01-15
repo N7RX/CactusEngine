@@ -22,12 +22,17 @@ uint32_t RawResource::GetSize() const
 
 std::shared_ptr<RawResourceData> RawResource::GetData() const
 {
-	return m_pData;
+	return m_pRawData;
 }
 
 void RawResource::SetData(const std::shared_ptr<RawResourceData> pData, uint32_t size)
 {
-	m_pData = pData;
+	m_pRawData = pData;
+
+	if (m_pRawData)
+	{
+		m_pRawData->m_sizeInBytes = size;
+	}
 	m_sizeInBytes = size;
 }
 

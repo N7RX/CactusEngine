@@ -30,9 +30,9 @@ namespace Engine
 		std::shared_ptr<DrawingCommandManager_Vulkan> pCopyCommandManager;
 #endif
 
-		std::shared_ptr<DrawingUploadAllocator_Vulkan> pUploadAllocator;
-		std::shared_ptr<DrawingDescriptorAllocator_Vulkan> pDescriptorAllocator;
-		std::shared_ptr<DrawingSyncObjectManager_Vulkan> pSyncObjectManager;
+		std::shared_ptr<DrawingUploadAllocator_Vulkan>		pUploadAllocator;
+		std::shared_ptr<DrawingDescriptorAllocator_Vulkan>	pDescriptorAllocator;
+		std::shared_ptr<DrawingSyncObjectManager_Vulkan>	pSyncObjectManager;
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice

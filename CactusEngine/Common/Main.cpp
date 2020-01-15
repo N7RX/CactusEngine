@@ -71,8 +71,9 @@ void ConfigSetup()
 	gpGlobal->CreateConfiguration<AppConfiguration>(EConfigurationType::App);
 	gpGlobal->CreateConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics);
 
+	// TODO: read setitings from file
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetDeviceType(EGraphicsDeviceType::Vulkan);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetDeviceType(EGraphicsDeviceType::OpenGL);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1280, 720);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(true);
 }
@@ -88,9 +89,9 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
 
 	// Read scene from file
-	//ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
+	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
 	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
-	ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
 
 	// Or manually add contents here
 	// ...
