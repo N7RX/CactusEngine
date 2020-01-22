@@ -336,7 +336,7 @@ std::shared_ptr<RawShader_Vulkan> FragmentShader_Vulkan::GetShaderImpl() const
 	return std::shared_ptr<RawShader_Vulkan>();
 }
 
-ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...)
+ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...)
 	: ShaderProgram(0)
 {
 	m_pDevice = pDevice;
@@ -345,17 +345,21 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, uint32
 	va_start(vaShaders, shaderCount); // shaderCount is the parameter preceding the first variable parameter 
 	std::shared_ptr<RawShader_Vulkan> shaderPtr = nullptr;
 
+	uint32_t shaderStages = 0;
 	while (shaderCount > 0)
 	{
 		shaderPtr = va_arg(vaShaders, std::shared_ptr<RawShader_Vulkan>);
-		ReflectResourceBinding(shaderPtr);		
+		ReflectResources(shaderPtr);
+		shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
+
 		shaderCount--; // When there are no more arguments in ap, the behavior of va_arg is undefined, therefore we need to keep a count
 	}
 
+	m_shaderStages = shaderStages;
 	va_end(vaShaders);
 }
 
-void ShaderProgram_Vulkan::ReflectResourceBinding(const std::shared_ptr<RawShader_Vulkan> pShader)
+void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader)
 {
 	size_t wordCount = pShader->m_rawCode.size() * sizeof(char) / sizeof(uint32_t);
 	assert(wordCount > 0);
@@ -363,7 +367,6 @@ void ShaderProgram_Vulkan::ReflectResourceBinding(const std::shared_ptr<RawShade
 	memcpy(rawCode.data(), pShader->m_rawCode.data(), pShader->m_rawCode.size() * sizeof(char));
 
 	spirv_cross::Compiler spvCompiler(std::move(rawCode));
-
 	spirv_cross::ShaderResources shaderRes = spvCompiler.get_shader_resources();
 
 	// Query only active variables
@@ -374,21 +377,143 @@ void ShaderProgram_Vulkan::ReflectResourceBinding(const std::shared_ptr<RawShade
 	std::cout << "SPIRV: Shader Stage: " << pShader->m_shaderStage << std::endl;
 	std::cout << "Active Uniform Buffer Count: " << shaderRes.uniform_buffers.size() << std::endl;
 	std::cout << "Active Push Constant Count: " << shaderRes.push_constant_buffers.size() << std::endl;
+	std::cout << "Sampled Image Count: " << shaderRes.sampled_images.size() << std::endl;
+	std::cout << "Separate Image Count: " << shaderRes.separate_images.size() << std::endl;
+	std::cout << "Separate Sample Count: " << shaderRes.separate_samplers.size() << std::endl;
 #endif
 
+	// TODO: replace this as input parameter
+	uint32_t maxDescSetsCount = 64;
+
+	LoadResourceBinding(spvCompiler, shaderRes);
+	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), maxDescSetsCount);
+}
+
+void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource)
+{
+	auto resType = spvCompiler.get_type(resource.base_type_id);
+	uint32_t memberCount = (uint32_t)resType.member_types.size();
+	uint32_t resSize = (uint32_t)spvCompiler.get_declared_struct_size(resType);
+
+	for (uint32_t i = 0; i < memberCount; ++i)
+	{
+		VariableDescription desc = {};
+
+		desc.variableName = spvCompiler.get_member_name(resource.base_type_id, i).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.uniformName = spvCompiler.get_name(resource.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.offset = spvCompiler.type_struct_member_offset(resType, i);
+		desc.variableSize = (uint32_t)spvCompiler.get_declared_struct_member_size(resType, i);
+		desc.uniformSize = resSize;
+
+		auto varType = spvCompiler.get_type(resType.member_types[i]);
+		uint32_t varSize = i < (memberCount - 1) ? (spvCompiler.type_struct_member_offset(resType, i) - desc.offset) : (resSize - desc.offset);
+
+		desc.paramType = GetParamType(varType, varSize);
+
+		m_variableTable.emplace(desc.variableName, desc);
+	}
+}
+
+void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes)
+{
 	for (auto& buffer : shaderRes.uniform_buffers)
 	{
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::Uniform;
 		desc.slot = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(buffer.id).c_str(); //	Alert: this is incorrect for finding corresponding resource by name
-		m_resourceTable.emplace(desc.name, desc);
+		desc.name = spvCompiler.get_name(buffer.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
 
+		m_resourceTable.emplace(desc.name, desc);
 		ProcessVariables(spvCompiler, buffer);
 	}
+
+#if defined(_DEBUG)
+	uint32_t accumulatePushConstSize = 0;
+#endif
+	for (auto& constant : shaderRes.push_constant_buffers)
+	{
+#if defined(_DEBUG)
+		accumulatePushConstSize += spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
+#endif	
+		ResourceDescription desc = {};
+		desc.type = EShaderResourceType_Vulkan::PushConstant;
+		desc.slot = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
+		desc.name = spvCompiler.get_name(constant.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+
+		m_resourceTable.emplace(desc.name, desc);
+		ProcessVariables(spvCompiler, constant);
+	}
+#if defined(_DEBUG)
+	assert(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
+#endif
+
+	for (auto& separateImage : shaderRes.separate_images)
+	{
+		ResourceDescription desc = {};
+		desc.type = EShaderResourceType_Vulkan::SeparateImage;
+		desc.slot = spvCompiler.get_decoration(separateImage.id, spv::DecorationBinding);
+		desc.name = spvCompiler.get_name(separateImage.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+
+		m_resourceTable.emplace(desc.name, desc);
+	}
+
+	for (auto& separateSampler : shaderRes.separate_samplers)
+	{
+		ResourceDescription desc = {};
+		desc.type = EShaderResourceType_Vulkan::SeparateSampler;
+		desc.slot = spvCompiler.get_decoration(separateSampler.id, spv::DecorationBinding);
+		desc.name = spvCompiler.get_name(separateSampler.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+
+		m_resourceTable.emplace(desc.name, desc);
+	}
+
+	for (auto& sampledImage : shaderRes.sampled_images)
+	{
+		ResourceDescription desc = {};
+		desc.type = EShaderResourceType_Vulkan::SampledImage;
+		desc.slot = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
+		desc.name = spvCompiler.get_name(sampledImage.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+
+		m_resourceTable.emplace(desc.name, desc);
+	}
+
+	// TODO: handle storage buffers
+	// TODO: handle storage textures
+	// TODO: handle subpass inputs
+	// TODO: handle acceleration structures
 }
 
-void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource)
+void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+{
+	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
+	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
+	LoadSeparateImage(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
+	LoadSampledImage(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
+
+
+}
+
+void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+{
+
+}
+
+void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+{
+
+}
+
+void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+{
+
+}
+
+void ShaderProgram_Vulkan::LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+{
+
+}
+
+void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType)
 {
 
 }
@@ -460,7 +585,7 @@ EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType&
 		}
 		else
 		{
-			// TODO: finish type conversion
+			return EShaderParamType::Scalar;
 		}
 	}
 
@@ -550,4 +675,44 @@ EDataType ShaderProgram_Vulkan::BasicTypeConvert(const spirv_cross::SPIRType& ty
 	}
 
 	return EDataType::Float32;
+}
+
+EShaderType ShaderProgram_Vulkan::ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits)
+{
+	switch (vkShaderStageBits)
+	{
+	case VK_SHADER_STAGE_VERTEX_BIT:
+		return EShaderType::Vertex;
+
+	case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+		return EShaderType::TessControl;
+
+	case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
+		return EShaderType::TessEvaluation;
+
+	case VK_SHADER_STAGE_GEOMETRY_BIT:
+		return EShaderType::Geometry;
+
+	case VK_SHADER_STAGE_FRAGMENT_BIT:
+		return EShaderType::Fragment;
+
+	case VK_SHADER_STAGE_COMPUTE_BIT:
+		return EShaderType::Compute;
+
+	case VK_SHADER_STAGE_ALL_GRAPHICS:
+	case VK_SHADER_STAGE_ALL:
+	case VK_SHADER_STAGE_RAYGEN_BIT_NV:
+	case VK_SHADER_STAGE_ANY_HIT_BIT_NV:
+	case VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV:
+	case VK_SHADER_STAGE_MISS_BIT_NV:
+	case VK_SHADER_STAGE_INTERSECTION_BIT_NV:
+	case VK_SHADER_STAGE_CALLABLE_BIT_NV:
+	case VK_SHADER_STAGE_TASK_BIT_NV:
+	case VK_SHADER_STAGE_MESH_BIT_NV:
+	default:
+		throw std::runtime_error("Vulkan: unhandled shader stage bit.");
+		break;
+	}
+
+	return EShaderType::Vertex; // Alert: returning unhandled stage as vertex stage could cause problem
 }

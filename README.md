@@ -27,6 +27,8 @@ Currently working on:
 - Eigen
 - stb_image
 - jsoncpp
+- VMA
+- SPIRV-Cross
 
 
 
@@ -37,3 +39,9 @@ Currently working on:
 <img src="/README_pix/Screenshot_2.png" width="640" height="360">
 
 <img src="/README_pix/Screenshot_3.png" width="640" height="360">
+
+Model Copyright:
+
+- Crytek Sponza & Serapis Bust from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
+- Unity-Chan from [Unity-Chan Official Website](https://unity-chan.com/)
+- Lucy from [Stanford 3D Scanning Repository](http://graphics.stanford.edu/data/3Dscanrep/)

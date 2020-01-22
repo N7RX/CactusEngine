@@ -79,9 +79,16 @@ namespace Engine
 	enum class EShaderParamType
 	{
 		Invalid = 0,
+
+		// OpenGL
 		Int1,
 		Float1,
 		Bool,
+
+		// Vulkan
+		Scalar,
+
+		// OpenGL & Vulkan
 		Vec2,
 		Vec3,
 		Vec4,
