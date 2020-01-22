@@ -222,31 +222,6 @@ namespace Engine
 		~ShaderProgram_Vulkan() = default;
 
 	private:
-		// Shader reflection functions
-		void ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader);
-		void ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource);
-		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
-		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount);
-		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount);
-		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount);
-		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount);
-		void LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount);
-		void LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType);
-		// TODO: handle storage buffers
-		// TODO: handle storage textures
-		// TODO: handle subpass inputs
-		// TODO: handle acceleration structures
-
-		// Converter functions
-		EShaderParamType GetParamType(const spirv_cross::SPIRType& type, uint32_t size);
-		uint32_t GetParamTypeSize(const spirv_cross::SPIRType& type);
-		EDataType BasicTypeConvert(const spirv_cross::SPIRType& type);
-		EShaderType ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits);
-
-		// Descriptor functions
-
-
-	private:
 		struct ResourceDescription
 		{
 			EShaderResourceType_Vulkan type;
@@ -264,6 +239,40 @@ namespace Engine
 			EShaderParamType paramType;
 		};
 
+		struct DescriptorSetCreateInfo
+		{
+			std::vector<VkDescriptorSetLayoutBinding> descSetLayoutBindings;
+			std::vector<VkDescriptorPoolSize> descSetPoolSizes;
+			uint32_t maxDescSetCount;
+		};
+
+	private:
+		// Shader reflection functions
+		void ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader);
+		void ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource);
+		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
+		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetCount);
+		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType);
+		// TODO: handle storage buffers
+		// TODO: handle storage textures
+		// TODO: handle subpass inputs
+		// TODO: handle acceleration structures
+
+		// Converter functions
+		EShaderParamType GetParamType(const spirv_cross::SPIRType& type, uint32_t size);
+		uint32_t GetParamTypeSize(const spirv_cross::SPIRType& type);
+		EDataType BasicTypeConvert(const spirv_cross::SPIRType& type);
+		EShaderType ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits);
+		VkShaderStageFlagBits ShaderTypeConvertToStageBits(EShaderType shaderType);
+
+		// Descriptor functions
+
+
+	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
 		std::unordered_map<const char*, VariableDescription> m_variableTable;

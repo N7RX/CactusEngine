@@ -483,34 +483,125 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	// TODO: handle acceleration structures
 }
 
-void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetCount)
 {
-	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
-	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
-	LoadSeparateImage(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
-	LoadSampledImage(spvCompiler, shaderRes, shaderType, maxDescSetsCount);
+	DescriptorSetCreateInfo descSetCreateInfo = {};
+	descSetCreateInfo.maxDescSetCount = maxDescSetCount;
+
+	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+	LoadSeparateImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+	LoadSampledImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 
 
 }
 
-void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
+	uint32_t count = 0;
 
+	for (auto& buffer : shaderRes.uniform_buffers)
+	{
+		VkDescriptorSetLayoutBinding binding = {};
+		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
+		binding.pImmutableSamplers = nullptr;
+
+		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+		count++;
+	}
+
+	if (count > 0)
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+
+		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+	}
 }
 
-void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
+	uint32_t count = 0;
 
+	for (auto& sampler : shaderRes.separate_samplers)
+	{
+		VkDescriptorSetLayoutBinding binding = {};
+		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.binding = spvCompiler.get_decoration(sampler.id, spv::DecorationBinding);
+		binding.pImmutableSamplers = nullptr;
+
+		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+		count++;
+	}
+
+	if (count > 0)
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+
+		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+	}
 }
 
-void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
+	uint32_t count = 0;
 
+	for (auto& image : shaderRes.separate_images)
+	{
+		VkDescriptorSetLayoutBinding binding = {};
+		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // Alert: not sure if it's equivalent to separate image
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.binding = spvCompiler.get_decoration(image.id, spv::DecorationBinding);
+		binding.pImmutableSamplers = nullptr;
+
+		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+		count++;
+	}
+
+	if (count > 0)
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+
+		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+	}
 }
 
-void ShaderProgram_Vulkan::LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetsCount)
+void ShaderProgram_Vulkan::LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
+	uint32_t count = 0;
 
+	for (auto& sampledImage : shaderRes.sampled_images)
+	{
+		VkDescriptorSetLayoutBinding binding = {};
+		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
+		binding.pImmutableSamplers = nullptr;
+
+		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+		count++;
+	}
+
+	if (count > 0)
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+
+		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+	}
 }
 
 void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType)
@@ -715,4 +806,34 @@ EShaderType ShaderProgram_Vulkan::ShaderStageBitsConvert(VkShaderStageFlagBits v
 	}
 
 	return EShaderType::Vertex; // Alert: returning unhandled stage as vertex stage could cause problem
+}
+
+VkShaderStageFlagBits ShaderProgram_Vulkan::ShaderTypeConvertToStageBits(EShaderType shaderType)
+{
+	switch (shaderType)
+	{
+	case EShaderType::Vertex:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+
+	case EShaderType::TessControl:
+		return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+
+	case EShaderType::TessEvaluation:
+		return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+
+	case EShaderType::Geometry:
+		return VK_SHADER_STAGE_GEOMETRY_BIT;
+
+	case EShaderType::Fragment:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	case EShaderType::Compute:
+		return VK_SHADER_STAGE_COMPUTE_BIT;
+
+	default:
+		throw std::runtime_error("Vulkan: unhandled shader type.");
+		break;
+	}
+
+	return VK_SHADER_STAGE_VERTEX_BIT; // Alert: returning unhandled stage as vertex stage could cause problem
 }
