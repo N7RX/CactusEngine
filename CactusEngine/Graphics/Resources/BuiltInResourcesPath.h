@@ -4,6 +4,9 @@ namespace Engine
 {
 	namespace BuiltInResourcesPath
 	{
+		//========
+		// OpenGL
+
 		static const char* SHADER_VERTEX_BASIC_OPENGL = "Assets/Shader/GLSL/Basic.vert";
 		static const char* SHADER_FRAGMENT_BASIC_OPENGL = "Assets/Shader/GLSL/Basic.frag";
 		static const char* SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL = "Assets/Shader/GLSL/Basic_Transparent.frag";
@@ -27,5 +30,12 @@ namespace Engine
 
 		static const char* SHADER_VERTEX_SHADOWMAP_OPENGL = "Assets/Shader/GLSL/ShadowMap.vert";
 		static const char* SHADER_FRAGMENT_SHADOWMAP_OPENGL = "Assets/Shader/GLSL/ShadowMap.frag";
+
+		//========
+		// Vulkan
+
+		static const char* SHADER_VERTEX_BASIC_VK = "Assets/Shader/GLSL/BasicVert.spv"; // Alert: these are placeholder, files are not created yet
+		static const char* SHADER_FRAGMENT_BASIC_VK = "Assets/Shader/GLSL/BasicFrag.spv";
+
 	}
 }

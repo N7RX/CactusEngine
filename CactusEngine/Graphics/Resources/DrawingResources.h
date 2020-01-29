@@ -191,13 +191,13 @@ namespace Engine
 		struct ShaderParameterTableEntry
 		{
 			ShaderParameterTableEntry(unsigned int loc, EShaderParamType paramType, const void* val)
-				: location(loc), type(paramType), value(val)
+				: location(loc), type(paramType), pValue(val)
 			{
 			}
 
-			unsigned int location;
-			EShaderParamType type;
-			const void* value;
+			unsigned int		location;
+			EShaderParamType	type;
+			const void*			pValue;
 		};
 
 		std::vector<ShaderParameterTableEntry> m_table;

@@ -28,6 +28,12 @@ std::shared_ptr<ShaderProgram> DrawingDevice_OpenGL::CreateShaderProgramFromFile
 	return std::make_shared<ShaderProgram_OpenGL>(this, pVertexShader, pFragmentShader);
 }
 
+std::shared_ptr<ShaderProgram> DrawingDevice_OpenGL::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType)
+{
+	// GPU type specification will be ignored in OpenGL implementation
+	return CreateShaderProgramFromFile(vertexShaderFilePath, fragmentShaderFilePath);
+}
+
 bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
 {
 	std::shared_ptr<VertexBuffer_OpenGL> pVertexBuffer = std::make_shared<VertexBuffer_OpenGL>();
@@ -80,7 +86,13 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	pVertexBuffer->SetNumberOfIndices(createInfo.indexDataCount);
-	pVertexBuffer->SetData(nullptr, static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount + sizeof(float) * createInfo.positionDataCount + sizeof(float) * createInfo.normalDataCount + sizeof(float) * createInfo.texcoordDataCount));
+	pVertexBuffer->SetData(nullptr, static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount 
+		+ sizeof(float) * createInfo.positionDataCount 
+		+ sizeof(float) * createInfo.normalDataCount 
+		+ sizeof(float) * createInfo.texcoordDataCount 
+		+ sizeof(float) * createInfo.tangentDataCount 
+		+ sizeof(float) * createInfo.bitangentDataCount
+		));
 
 	pOutput = pVertexBuffer;
 	return true;
@@ -253,7 +265,7 @@ void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 
 	for (auto& entry : pTable->m_table)
 	{
-		pProgram->UpdateParameterValue(entry.location, entry.type, entry.value);
+		pProgram->UpdateParameterValue(entry.location, entry.type, entry.pValue);
 	}
 }
 

@@ -23,7 +23,9 @@ namespace Engine
 		VkBufferUsageFlags	usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		VmaMemoryUsage		memoryUsage = VMA_MEMORY_USAGE_UNKNOWN;
 		VkDeviceSize		size = 0;
+
 		VkDeviceSize		stride = 0;
+		VkIndexType			indexFormat = VK_INDEX_TYPE_UINT32;
 	};
 
 	struct LogicalDevice_Vulkan;

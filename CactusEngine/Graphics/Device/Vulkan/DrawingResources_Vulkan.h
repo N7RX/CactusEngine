@@ -4,6 +4,7 @@
 #include "DrawingUtil_Vulkan.h"
 #include "DrawingExtensionWrangler_Vulkan.h"
 #include "DrawingSyncObjectManager_Vulkan.h"
+#include "DrawingDescriptorAllocator_Vulkan.h"
 
 #include <spirv_cross.hpp>
 #include <unordered_map>
@@ -17,9 +18,47 @@ namespace Engine
 	enum class EAllocatorType_Vulkan
 	{
 		None = 0,
-		VK,
-		VMA,
+		VK, // Native Vulkan allocation
+		VMA,// Managed by Vulkan Memory Allocator library
 		COUNT
+	};
+
+	class RawBuffer_Vulkan : public RawResource
+	{
+	public:
+		RawBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo);
+		virtual ~RawBuffer_Vulkan();
+
+	protected:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+
+		VkBuffer		m_buffer;
+		VmaAllocation	m_allocation;
+		VkDeviceSize	m_deviceSize;
+
+		friend class DrawingCommandBuffer_Vulkan;
+		friend class DrawingUploadAllocator_Vulkan;
+	};
+
+	class VertexBuffer_Vulkan : public VertexBuffer
+	{
+	public:
+		VertexBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& vertexBufferCreateInfo, const RawBufferCreateInfo_Vulkan& indexBufferCreateInfo);
+		~VertexBuffer_Vulkan() = default;
+
+		std::shared_ptr<RawBuffer_Vulkan> GetBufferImpl() const;
+		std::shared_ptr<RawBuffer_Vulkan> GetIndexBufferImpl() const;
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		
+		std::shared_ptr<RawBuffer_Vulkan> m_pVertexBufferImpl;
+		VkVertexInputBindingDescription   m_vertexBindingDesc;
+		VkVertexInputAttributeDescription m_vertexAttribDesc;
+		VkPipelineVertexInputStateCreateInfo m_pipelineInputStateInfo;
+
+		std::shared_ptr<RawBuffer_Vulkan> m_pIndexBufferImpl;
+		VkIndexType m_indexType;
 	};
 
 	class Texture2D_Vulkan : public Texture2D
@@ -57,23 +96,6 @@ namespace Engine
 	public:
 		RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
 		~RenderTarget2D_Vulkan();
-	};
-
-	class RawBuffer_Vulkan : public RawResource
-	{
-	public:
-		RawBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo);
-		virtual ~RawBuffer_Vulkan();
-
-	protected:
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
-
-		VkBuffer		m_buffer;
-		VmaAllocation	m_allocation;
-		VkDeviceSize	m_deviceSize;		
-
-		friend class DrawingCommandBuffer_Vulkan;
-		friend class DrawingUploadAllocator_Vulkan;
 	};
 
 	enum class EUniformBufferType_Vulkan
@@ -221,7 +243,12 @@ namespace Engine
 		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
 		~ShaderProgram_Vulkan() = default;
 
+	public:
+		void Reset() override {};
+
 	private:
+		const float MAX_DESCRIPTOR_SET_COUNT = 32;
+
 		struct ResourceDescription
 		{
 			EShaderResourceType_Vulkan type;
@@ -255,26 +282,32 @@ namespace Engine
 		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType);
+		void LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, std::vector<VkPushConstantRange>& outRanges);
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
 		// TODO: handle acceleration structures
+
+		// Descriptor functions
+		void CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo);
+		void CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo);
+		void AllocateDescriptorSet(uint32_t count);
 
 		// Converter functions
 		EShaderParamType GetParamType(const spirv_cross::SPIRType& type, uint32_t size);
 		uint32_t GetParamTypeSize(const spirv_cross::SPIRType& type);
 		EDataType BasicTypeConvert(const spirv_cross::SPIRType& type);
 		EShaderType ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits);
-		VkShaderStageFlagBits ShaderTypeConvertToStageBits(EShaderType shaderType);
-
-		// Descriptor functions
+		VkShaderStageFlagBits ShaderTypeConvertToStageBits(EShaderType shaderType);	
 
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
 		std::unordered_map<const char*, VariableDescription> m_variableTable;
+		std::shared_ptr<DrawingDescriptorSetLayout_Vulkan> m_pDescriptorSetLayout;
+		std::shared_ptr<DrawingDescriptorPool_Vulkan> m_pDescriptorPool;
+		std::vector<VkDescriptorSet> m_descriptorSets;
 	};
 }

@@ -38,11 +38,102 @@ void DrawingDevice_Vulkan::ShutDown()
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
 {
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	std::cerr << "Vulkan: must specify GPU type when creating shader in heterogeneous-GPU rendering mode.\n";
 	return nullptr;
+#else
+	VkShaderModule vertexModule = VK_NULL_HANDLE;
+	VkShaderModule fragmentModule = VK_NULL_HANDLE;
+
+	std::vector<char> vertexRawCode;
+	std::vector<char> fragmentRawCode;
+
+	CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
+	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
+
+	auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_0, vertexModule, vertexRawCode);
+	auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_0, fragmentModule, fragmentRawCode);
+
+	auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+
+	return pShaderProgram;
+#endif
+}
+
+std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType)
+{
+	VkShaderModule vertexModule = VK_NULL_HANDLE;
+	VkShaderModule fragmentModule = VK_NULL_HANDLE;
+
+	std::vector<char> vertexRawCode;
+	std::vector<char> fragmentRawCode;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	switch (gpuType)
+	{
+	case EGPUType::Discrete:
+	{
+		CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
+		CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
+
+		auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_0, vertexModule, vertexRawCode);
+		auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_0, fragmentModule, fragmentRawCode);
+
+		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+
+		return pShaderProgram;
+	}
+	case EGPUType::Integrated:
+	{
+		CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_1, vertexModule, vertexRawCode);
+		CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_1, fragmentModule, fragmentRawCode);
+		
+		auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_1, vertexModule, vertexRawCode);
+		auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_1, fragmentModule, fragmentRawCode);
+
+		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_1, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+
+		return pShaderProgram;
+	}
+	default:
+		std::cerr << "Vulkan: unhandled GPU type.\n";
+		return nullptr;
+	}
+#else
+	// GPU type specification will be ignored
+	CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
+	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
+
+	auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_0, vertexModule, vertexRawCode);
+	auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_0, fragmentModule, fragmentRawCode);
+
+	auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+
+	return pShaderProgram;
+#endif
 }
 
 bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
 {
+	RawBufferCreateInfo_Vulkan vertexBufferCreateInfo = {};
+	vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	vertexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	vertexBufferCreateInfo.size = sizeof(float) * createInfo.positionDataCount
+		+ sizeof(float) * createInfo.normalDataCount
+		+ sizeof(float) * createInfo.texcoordDataCount
+		+ sizeof(float) * createInfo.tangentDataCount
+		+ sizeof(float) * createInfo.bitangentDataCount;
+	vertexBufferCreateInfo.stride = (3 + 3 + 2 + 3 + 3) * sizeof(float);
+
+	RawBufferCreateInfo_Vulkan indexBufferCreateInfo = {};
+	indexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	indexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	indexBufferCreateInfo.size = sizeof(int) * createInfo.indexDataCount;
+	indexBufferCreateInfo.indexFormat = VK_INDEX_TYPE_UINT32;
+
+	// Need to re-combine [position, normal, texcoord, tangent, bitangent] into per vertex data
+	
+
 	return false;
 }
 
@@ -96,6 +187,8 @@ void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
 {
+	auto pProgram = std::static_pointer_cast<ShaderProgram_Vulkan>(pShaderProgram);
+
 
 }
 
@@ -443,6 +536,35 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 #if defined(_DEBUG)
 	std::cout << "Vulkan: Logical device created on " << pDevice->deviceProperties.deviceName << "\n";
 #endif
+}
+
+void DrawingDevice_Vulkan::CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode)
+{
+	std::ifstream file(shaderFilePath, std::ios::ate | std::ios::binary | std::ios::in);
+
+	if (!file.is_open())
+	{
+		throw std::runtime_error("Vulkan: failed to open " + *shaderFilePath);
+		return;
+	}
+
+	size_t fileSize = (size_t)file.tellg();
+	assert(fileSize > 0);
+	outRawCode.resize(fileSize);
+
+	file.seekg(0, std::ios::beg);
+	file.read(outRawCode.data(), fileSize);
+
+	file.close();
+	assert(outRawCode.size() > 0);
+
+	VkShaderModuleCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+	createInfo.codeSize = fileSize;
+	createInfo.pCode = reinterpret_cast<uint32_t*>(outRawCode.data());
+
+	vkCreateShaderModule(pLogicalDevice->logicalDevice, &createInfo, nullptr, &outModule);
+	assert(outModule != VK_NULL_HANDLE);
 }
 
 void DrawingDevice_Vulkan::SetupCommandManager()

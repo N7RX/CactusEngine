@@ -76,6 +76,13 @@ namespace Engine
 		COUNT
 	};
 
+	enum class EGPUType
+	{
+		Discrete = 0,
+		Integrated,
+		COUNT
+	};
+
 	enum class EShaderParamType
 	{
 		Invalid = 0,

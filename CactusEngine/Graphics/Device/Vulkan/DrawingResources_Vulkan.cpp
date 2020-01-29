@@ -6,6 +6,53 @@
 
 using namespace Engine;
 
+RawBuffer_Vulkan::RawBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo)
+	: m_pDevice(pDevice), m_deviceSize(createInfo.size)
+{
+	assert(pDevice);
+
+	m_buffer = VK_NULL_HANDLE;
+	m_allocation = VK_NULL_HANDLE;
+	m_sizeInBytes = (uint32_t)createInfo.size;
+
+	if (m_deviceSize > 0)
+	{
+		m_pDevice->pUploadAllocator->CreateBuffer(createInfo, *this);
+	}
+}
+
+RawBuffer_Vulkan::~RawBuffer_Vulkan()
+{
+	if (m_buffer != VK_NULL_HANDLE)
+	{
+		m_pDevice->pUploadAllocator->FreeBuffer(m_buffer, m_allocation);
+	}
+}
+
+VertexBuffer_Vulkan::VertexBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& vertexBufferCreateInfo, const RawBufferCreateInfo_Vulkan& indexBufferCreateInfo)
+	: m_pDevice(pDevice)
+{
+	m_pVertexBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, vertexBufferCreateInfo);	
+	m_vertexBindingDesc.stride = vertexBufferCreateInfo.stride;
+	m_vertexBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+
+	m_pIndexBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, indexBufferCreateInfo);
+	m_indexType = indexBufferCreateInfo.indexFormat;
+
+	m_sizeInBytes = vertexBufferCreateInfo.size + indexBufferCreateInfo.size;
+}
+
+std::shared_ptr<RawBuffer_Vulkan> VertexBuffer_Vulkan::GetBufferImpl() const
+{
+	return m_pVertexBufferImpl;
+}
+
+std::shared_ptr<RawBuffer_Vulkan> VertexBuffer_Vulkan::GetIndexBufferImpl() const
+{
+	return m_pIndexBufferImpl;
+}
+
 Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDrawingDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const Texture2DCreateInfo_Vulkan& createInfo)
 	: m_pDrawingDevice(pDrawingDevice), m_pLogicalDevice(pLogicalDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
 {
@@ -75,29 +122,6 @@ RenderTarget2D_Vulkan::~RenderTarget2D_Vulkan()
 	if (m_imageView != VK_NULL_HANDLE)
 	{
 		vkDestroyImageView(m_pLogicalDevice->logicalDevice, m_imageView, nullptr);
-	}
-}
-
-RawBuffer_Vulkan::RawBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo)
-	: m_pDevice(pDevice), m_deviceSize(createInfo.size)
-{
-	assert(pDevice);
-
-	m_buffer = VK_NULL_HANDLE;
-	m_allocation = VK_NULL_HANDLE;
-	m_sizeInBytes = (uint32_t)createInfo.size;
-
-	if (m_deviceSize > 0)
-	{
-		m_pDevice->pUploadAllocator->CreateBuffer(createInfo, *this);
-	}
-}
-
-RawBuffer_Vulkan::~RawBuffer_Vulkan()
-{
-	if (m_buffer != VK_NULL_HANDLE)
-	{
-		m_pDevice->pUploadAllocator->FreeBuffer(m_buffer, m_allocation);
 	}
 }
 
@@ -383,7 +407,7 @@ void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulk
 #endif
 
 	// TODO: replace this as input parameter
-	uint32_t maxDescSetsCount = 64;
+	uint32_t maxDescSetsCount = 32;
 
 	LoadResourceBinding(spvCompiler, shaderRes);
 	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), maxDescSetsCount);
@@ -433,7 +457,7 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	for (auto& constant : shaderRes.push_constant_buffers)
 	{
 #if defined(_DEBUG)
-		accumulatePushConstSize += spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
+		accumulatePushConstSize += (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
 #endif	
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::PushConstant;
@@ -487,11 +511,13 @@ void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& s
 {
 	DescriptorSetCreateInfo descSetCreateInfo = {};
 	descSetCreateInfo.maxDescSetCount = maxDescSetCount;
+	std::vector<VkPushConstantRange> pushConstantRanges;
 
 	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadSeparateImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-	LoadSampledImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+	LoadImageSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+	LoadPushConstantBuffer(spvCompiler, shaderRes, shaderType, pushConstantRanges);
 
 
 }
@@ -558,7 +584,7 @@ void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCom
 	{
 		VkDescriptorSetLayoutBinding binding = {};
 		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
-		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // Alert: not sure if it's equivalent to separate image
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
 		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
 		binding.binding = spvCompiler.get_decoration(image.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
@@ -577,7 +603,7 @@ void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCom
 	}
 }
 
-void ShaderProgram_Vulkan::LoadSampledImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+void ShaderProgram_Vulkan::LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
 	uint32_t count = 0;
 
@@ -604,9 +630,43 @@ void ShaderProgram_Vulkan::LoadSampledImage(const spirv_cross::Compiler& spvComp
 	}
 }
 
-void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType)
+void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, std::vector<VkPushConstantRange>& outRanges)
 {
+	for (auto& constant : shaderRes.push_constant_buffers)
+	{
+		VkPushConstantRange range = {};
+		range.offset = spvCompiler.get_decoration(constant.id, spv::DecorationOffset);
+		range.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
+		range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
 
+		outRanges.emplace_back(range);
+	}
+}
+
+void ShaderProgram_Vulkan::CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo)
+{
+	m_pDescriptorSetLayout = std::make_shared<DrawingDescriptorSetLayout_Vulkan>(m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
+}
+
+void ShaderProgram_Vulkan::CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo)
+{
+	m_pDescriptorPool = m_pLogicalDevice->pDescriptorAllocator->CreateDescriptorPool(descSetCreateInfo.maxDescSetCount, descSetCreateInfo.descSetPoolSizes);
+}
+
+void ShaderProgram_Vulkan::AllocateDescriptorSet(uint32_t count)
+{
+	assert(m_pDescriptorPool);
+	assert(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
+
+	std::vector<VkDescriptorSetLayout> layouts(count, m_pDescriptorSetLayout->GetSetLayout());
+	std::vector<VkDescriptorSet> newDescSets;
+
+	m_pDescriptorPool->AllocateDescriptorSets(layouts, newDescSets);
+
+	for (auto& descSet : newDescSets)
+	{
+		m_descriptorSets.emplace_back(descSet);
+	}
 }
 
 EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType& type, uint32_t size)

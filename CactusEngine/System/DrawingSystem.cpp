@@ -1,5 +1,6 @@
 #include "DrawingSystem.h"
 #include "ForwardRenderer.h"
+#include "HPForwardRenderer.h"
 #include "DrawingDevice_OpenGL.h"
 #include "DrawingDevice_Vulkan.h"
 #include "MeshRendererComponent.h"
@@ -8,14 +9,15 @@
 #include "BuiltInResourcesPath.h"
 #include <assert.h>
 
+#define ENABLE_HETEROGENEOUS_GPUS_CE
+
 using namespace Engine;
 
 DrawingSystem::DrawingSystem(ECSWorld* pWorld)
 	: m_pECSWorld(pWorld)
 {
 	CreateDevice();
-
-	RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
+	RegisterRenderers();
 
 	m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT);
 }
@@ -90,10 +92,29 @@ bool DrawingSystem::CreateDevice()
 		break;
 	default:
 		throw std::runtime_error("Unsupported drawing device type.");
+		return false;
 	}
 
 	m_pDevice->Initialize();
 	std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->SetDrawingDevice(m_pDevice);
+
+	return true;
+}
+
+bool DrawingSystem::RegisterRenderers()
+{
+	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
+	{
+	case EGraphicsDeviceType::OpenGL:
+		RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
+		break;
+	case EGraphicsDeviceType::Vulkan:
+		RegisterRenderer<HPForwardRenderer>(ERendererType::Forward, 1);
+		break;
+	default:
+		throw std::runtime_error("Unsupported drawing device type.");
+		return false;
+	}
 
 	return true;
 }
@@ -119,6 +140,13 @@ bool DrawingSystem::LoadShaders()
 		break;
 	}
 	case EGraphicsDeviceType::Vulkan:
+#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK, EGPUType::Discrete);
+
+#else
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
+
+#endif
 		break;
 	}
 	return true;

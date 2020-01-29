@@ -70,6 +70,7 @@ namespace Engine
 		void ShutDown() override;
 
 		std::shared_ptr<ShaderProgram> CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) override;
+		std::shared_ptr<ShaderProgram> CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType) override;
 
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput) override;
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
@@ -104,6 +105,7 @@ namespace Engine
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
 		void CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice);
+		void CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode);
 
 		void SetupCommandManager();
 		void SetupUploadAllocator();
