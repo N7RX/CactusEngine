@@ -18,8 +18,8 @@ namespace Engine
 
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput) override;
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
-		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;
-
+		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;	
+	
 		void ClearRenderTarget() override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
@@ -31,9 +31,15 @@ namespace Engine
 		void DrawFullScreenQuad() override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
-		void Present() override;
-
 		EGraphicsDeviceType GetDeviceType() const override;
+
+		// Low-level functions that shouldn't be called on OpenGL device
+		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
+		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
+
+		void SwitchCmdGPUContext(EGPUType type) override;
+		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
+		void Present() override;
 
 		void ConfigureStates_Test() override;
 
@@ -57,7 +63,7 @@ namespace Engine
 		{		
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			{
-				throw std::runtime_error("Failed to initialize GLAD");
+				throw std::runtime_error("OpenGL: Failed to initialize GLAD");
 			}
 		}
 

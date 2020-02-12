@@ -5,18 +5,14 @@
 using namespace Engine;
 
 VertexBuffer_OpenGL::VertexBuffer_OpenGL()
-	: m_vao(-1), m_vboIndices(-1), m_vboPositions(-1), m_vboNormals(-1), m_vboTexcoords(-1), m_vboTangents(-1), m_vboBitangents(-1)
+	: m_vao(-1), m_vboIndices(-1), m_vboVertices(-1)
 {
 }
 
 VertexBuffer_OpenGL::~VertexBuffer_OpenGL()
 {
 	glDeleteBuffers(1, &m_vboIndices);
-	glDeleteBuffers(1, &m_vboPositions);
-	glDeleteBuffers(1, &m_vboNormals);
-	glDeleteBuffers(1, &m_vboTexcoords);
-	glDeleteBuffers(1, &m_vboTangents);
-	glDeleteBuffers(1, &m_vboBitangents);
+	glDeleteBuffers(1, &m_vboVertices);
 	glDeleteVertexArrays(1, &m_vao);
 }
 

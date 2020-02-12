@@ -13,11 +13,7 @@ namespace Engine
 	public:
 		unsigned int m_vao;
 		unsigned int m_vboIndices;
-		unsigned int m_vboPositions;
-		unsigned int m_vboNormals;
-		unsigned int m_vboTexcoords;
-		unsigned int m_vboTangents;
-		unsigned int m_vboBitangents;
+		unsigned int m_vboVertices;
 	};
 
 	class Texture2D_OpenGL : public Texture2D

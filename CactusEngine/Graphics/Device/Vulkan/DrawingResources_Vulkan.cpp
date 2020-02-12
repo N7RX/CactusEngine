@@ -33,9 +33,6 @@ VertexBuffer_Vulkan::VertexBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vul
 	: m_pDevice(pDevice)
 {
 	m_pVertexBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, vertexBufferCreateInfo);	
-	m_vertexBindingDesc.stride = vertexBufferCreateInfo.stride;
-	m_vertexBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
 
 	m_pIndexBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, indexBufferCreateInfo);
 	m_indexType = indexBufferCreateInfo.indexFormat;
@@ -53,17 +50,22 @@ std::shared_ptr<RawBuffer_Vulkan> VertexBuffer_Vulkan::GetIndexBufferImpl() cons
 	return m_pIndexBufferImpl;
 }
 
-Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDrawingDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const Texture2DCreateInfo_Vulkan& createInfo)
-	: m_pDrawingDevice(pDrawingDevice), m_pLogicalDevice(pLogicalDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
+VkIndexType VertexBuffer_Vulkan::GetIndexFormat() const
 {
-	assert(pLogicalDevice);
-	assert(pDrawingDevice);
+	return m_indexType;
+}
 
-	pLogicalDevice->pUploadAllocator->CreateTexture2D(createInfo, *this);
+Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo)
+	: m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
+{
+	assert(pDevice);
+
+	m_pDevice->pUploadAllocator->CreateTexture2D(createInfo, *this);
 
 	m_format = createInfo.format;
 	m_extent = createInfo.extent;
 	m_mipLevels = createInfo.mipLevels;
+	m_aspect = createInfo.aspect;
 
 	VkImageViewCreateInfo viewCreateInfo = {};
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -80,30 +82,28 @@ Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> p
 	viewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	viewCreateInfo.subresourceRange.layerCount = 1;
 
-	m_pDrawingDevice->CreateImageView(pLogicalDevice, viewCreateInfo, m_imageView);
+	if (vkCreateImageView(m_pDevice->logicalDevice, &viewCreateInfo, nullptr, &m_imageView) != VK_SUCCESS)
+	{
+		std::cerr << "Vulkan: failed to create image view for texture 2D.\n";
+	}
 }
 
 Texture2D_Vulkan::~Texture2D_Vulkan()
 {
 	if (m_allocatorType == EAllocatorType_Vulkan::VMA)
 	{
-		m_pLogicalDevice->pUploadAllocator->FreeImage(m_image, m_allocation);
+		m_pDevice->pUploadAllocator->FreeImage(m_image, m_allocation);
 	}
 
 	if (m_imageView != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(m_pLogicalDevice->logicalDevice, m_imageView, nullptr);
+		vkDestroyImageView(m_pDevice->logicalDevice, m_imageView, nullptr);
 	}
 }
 
-uint32_t Texture2D_Vulkan::GetTextureID() const
+RenderTarget2D_Vulkan::RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
 {
-	return -1; // This is currently not used in Vulkan device
-}
-
-RenderTarget2D_Vulkan::RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
-{
-	m_pLogicalDevice = pLogicalDevice;
+	m_pDevice = pDevice;
 
 	m_image = targetImage;
 	m_imageView = targetView;
@@ -117,11 +117,11 @@ RenderTarget2D_Vulkan::~RenderTarget2D_Vulkan()
 {
 	if (m_image != VK_NULL_HANDLE)
 	{
-		vkDestroyImage(m_pLogicalDevice->logicalDevice, m_image, nullptr);
+		vkDestroyImage(m_pDevice->logicalDevice, m_image, nullptr);
 	}
 	if (m_imageView != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(m_pLogicalDevice->logicalDevice, m_imageView, nullptr);
+		vkDestroyImageView(m_pDevice->logicalDevice, m_imageView, nullptr);
 	}
 }
 
@@ -189,6 +189,12 @@ uint32_t UniformBuffer_Vulkan::GetBindingIndex() const
 	return m_layoutParamIndex;
 }
 
+FrameBuffer_Vulkan::FrameBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
+	: m_pDevice(pDevice)
+{
+
+}
+
 FrameBuffer_Vulkan::~FrameBuffer_Vulkan()
 {
 	vkDestroyFramebuffer(m_pDevice->logicalDevice, m_frameBuffer, nullptr);
@@ -199,14 +205,16 @@ uint32_t FrameBuffer_Vulkan::GetFrameBufferID() const
 	return -1; // Vulkan device does not make use of this ID
 }
 
-DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<DrawingDevice_Vulkan> pDrawingDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const DrawingSwapchainCreateInfo_Vulkan& createInfo)
-	: m_pLogicalDevice(pLogicalDevice), m_presentQueue(VK_NULL_HANDLE), m_frameBufferIndex(0)
+DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingSwapchainCreateInfo_Vulkan& createInfo)
+	: m_pDevice(pDevice), m_presentQueue(VK_NULL_HANDLE), m_targetImageIndex(0)
 {
 	uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
 	if (createInfo.supportDetails.capabilities.maxImageCount > 0 && imageCount > createInfo.supportDetails.capabilities.maxImageCount)
 	{
 		imageCount = createInfo.supportDetails.capabilities.maxImageCount;
 	}
+
+	m_swapExtent = createInfo.swapExtent;
 
 	VkSwapchainCreateInfoKHR createInfoKHR;
 	createInfoKHR.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -235,16 +243,16 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<DrawingDe
 		createInfoKHR.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	}
 
-	if (vkCreateSwapchainKHR(pLogicalDevice->logicalDevice, &createInfoKHR, nullptr, &m_swapchain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(m_pDevice->logicalDevice, &createInfoKHR, nullptr, &m_swapchain) != VK_SUCCESS)
 	{
 		std::cerr << "Vulkan: failed to create swapchain.\n";
 		return;
 	}
 
-	vkGetDeviceQueue(pLogicalDevice->logicalDevice, queueFamilyIndices[1], 0, &m_presentQueue);
+	vkGetDeviceQueue(m_pDevice->logicalDevice, queueFamilyIndices[1], 0, &m_presentQueue);
 
 	std::vector<VkImage> swapchainImages(imageCount, VK_NULL_HANDLE);
-	vkGetSwapchainImagesKHR(pLogicalDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data());
+	vkGetSwapchainImagesKHR(m_pDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data());
 
 	for (unsigned int i = 0; i < imageCount; ++i)
 	{
@@ -264,27 +272,26 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<DrawingDe
 		imageViewCreateInfo.subresourceRange.layerCount = 1;
 
 		VkImageView swapchainImageView = VK_NULL_HANDLE;
-		if (pDrawingDevice->CreateImageView(pLogicalDevice, imageViewCreateInfo, swapchainImageView) != VK_SUCCESS)
+		if (vkCreateImageView(m_pDevice->logicalDevice, &imageViewCreateInfo, nullptr, &swapchainImageView) != VK_SUCCESS)
 		{
 			std::cerr << "Vulkan: failed to create image view for swapchain image.\n";
 			return;
 		}
 
-		m_renderTargets.emplace_back(std::make_shared<RenderTarget2D_Vulkan>(pLogicalDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format));
+		m_renderTargets.emplace_back(std::make_shared<RenderTarget2D_Vulkan>(m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format));
 	}
 }
 
 DrawingSwapchain_Vulkan::~DrawingSwapchain_Vulkan()
 {
 	m_renderTargets.clear();
-	m_swapchainFrameBuffers.clear();
 
-	vkDestroySwapchainKHR(m_pLogicalDevice->logicalDevice, m_swapchain, nullptr);
+	vkDestroySwapchainKHR(m_pDevice->logicalDevice, m_swapchain, nullptr);
 }
 
 bool DrawingSwapchain_Vulkan::UpdateBackBuffer(std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore, uint64_t timeout)
 {
-	return vkAcquireNextImageKHR(m_pLogicalDevice->logicalDevice, m_swapchain, timeout, pSemaphore->semaphore, VK_NULL_HANDLE, &m_frameBufferIndex) == VK_SUCCESS;
+	return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, timeout, pSemaphore->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
 }
 
 bool DrawingSwapchain_Vulkan::Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores, uint32_t syncInterval)
@@ -306,20 +313,25 @@ bool DrawingSwapchain_Vulkan::Present(const std::vector<std::shared_ptr<DrawingS
 	// TODO: we can present multiple swapchains at once if needed
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &m_swapchain;
-	presentInfo.pImageIndices = &m_frameBufferIndex;
+	presentInfo.pImageIndices = &m_targetImageIndex;
 
 	return vkQueuePresentKHR(m_presentQueue, &presentInfo) == VK_SUCCESS;
 }
 
-uint32_t DrawingSwapchain_Vulkan::GetTargetCount() const
+uint32_t DrawingSwapchain_Vulkan::GetSwapchainImageCount() const
 {
 	return (uint32_t)m_renderTargets.size();
 }
 
-std::shared_ptr<FrameBuffer_Vulkan> DrawingSwapchain_Vulkan::GetTargetFrameBuffer() const
+std::shared_ptr<RenderTarget2D_Vulkan> DrawingSwapchain_Vulkan::GetTargetImage() const
 {
-	assert(m_frameBufferIndex < m_swapchainFrameBuffers.size());
-	return m_swapchainFrameBuffers[m_frameBufferIndex];
+	assert(m_targetImageIndex < m_renderTargets.size());
+	return m_renderTargets[m_targetImageIndex];
+}
+
+VkExtent2D DrawingSwapchain_Vulkan::GetSwapExtent() const
+{
+	return m_swapExtent;
 }
 
 RawShader_Vulkan::RawShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry)
@@ -896,4 +908,111 @@ VkShaderStageFlagBits ShaderProgram_Vulkan::ShaderTypeConvertToStageBits(EShader
 	}
 
 	return VK_SHADER_STAGE_VERTEX_BIT; // Alert: returning unhandled stage as vertex stage could cause problem
+}
+
+GraphicsPipeline_Vulkan::GraphicsPipeline_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const std::shared_ptr<ShaderProgram_Vulkan> pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo)
+	: m_pDevice(pDevice), m_pShaderProgram(pShaderProgram)
+{
+	// TODO: support creation from cache & batched creations to reduce startup time
+
+	m_pipelineLayout = createInfo.layout;
+	m_pipeline = VK_NULL_HANDLE;
+
+	if (vkCreateGraphicsPipelines(pDevice->logicalDevice, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline) != VK_SUCCESS)
+	{
+		std::cerr << "Vulkan: failed to create graphics pipeline.\n";
+	}
+}
+
+GraphicsPipeline_Vulkan::~GraphicsPipeline_Vulkan()
+{
+	assert(m_pipeline != VK_NULL_HANDLE);
+}
+
+VkPipeline GraphicsPipeline_Vulkan::GetPipeline() const
+{
+	return m_pipeline;
+}
+
+VkPipelineLayout GraphicsPipeline_Vulkan::GetPipelineLayout() const
+{
+	return m_pipelineLayout;
+}
+
+PipelineVertexInputState_Vulkan::PipelineVertexInputState_Vulkan(const std::vector<VkVertexInputBindingDescription>& bindingDescs, const std::vector<VkVertexInputAttributeDescription>& attributeDescs)
+	: m_vertexBindingDesc(bindingDescs), m_vertexAttributeDesc(attributeDescs)
+{
+	m_pipelineVertexInputStateCreateInfo = {};
+	m_pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	m_pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)m_vertexBindingDesc.size();
+	m_pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = m_vertexBindingDesc.data();
+	m_pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)m_vertexAttributeDesc.size();
+	m_pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = m_vertexAttributeDesc.data();
+}
+
+const VkPipelineVertexInputStateCreateInfo* PipelineVertexInputState_Vulkan::GetVertexInputStateCreateInfo() const
+{
+	return &m_pipelineVertexInputStateCreateInfo;
+}
+
+PipelineColorBlendState_Vulkan::PipelineColorBlendState_Vulkan(const std::vector<VkPipelineColorBlendAttachmentState>& blendAttachmentStates)
+	: m_colorBlendAttachmentStates(blendAttachmentStates)
+{
+	m_pipelineColorBlendStateCreateInfo = {};
+	m_pipelineColorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	m_pipelineColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+	m_pipelineColorBlendStateCreateInfo.attachmentCount = (uint32_t)m_colorBlendAttachmentStates.size();
+	m_pipelineColorBlendStateCreateInfo.pAttachments = m_colorBlendAttachmentStates.data();
+	// Alert: these values might need to change according to blend factor
+	m_pipelineColorBlendStateCreateInfo.blendConstants[0] = 0.0f;
+	m_pipelineColorBlendStateCreateInfo.blendConstants[1] = 0.0f;
+	m_pipelineColorBlendStateCreateInfo.blendConstants[2] = 0.0f;
+	m_pipelineColorBlendStateCreateInfo.blendConstants[3] = 0.0f;
+}
+
+const VkPipelineColorBlendStateCreateInfo* PipelineColorBlendState_Vulkan::GetColorBlendStateCreateInfo() const
+{
+	return &m_pipelineColorBlendStateCreateInfo;
+}
+
+void PipelineColorBlendState_Vulkan::EnableLogicOperation()
+{
+	// Applied only for signed and unsigned integer and normalized integer framebuffers
+	m_pipelineColorBlendStateCreateInfo.logicOpEnable = VK_TRUE;
+}
+
+void PipelineColorBlendState_Vulkan::DisableLogicOpeartion()
+{
+	m_pipelineColorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
+}
+
+void PipelineColorBlendState_Vulkan::SetLogicOpeartion(VkLogicOp logicOp)
+{
+	m_pipelineColorBlendStateCreateInfo.logicOp = logicOp;
+}
+
+PipelineViewportState_Vulkan::PipelineViewportState_Vulkan(uint32_t width, uint32_t height)
+{
+	m_viewport = {};
+	m_viewport.x = 0.0f;
+	m_viewport.y = 0.0f;
+	m_viewport.width = (float)width;
+	m_viewport.height = (float)height;
+	m_viewport.minDepth = 0.0f;
+	m_viewport.maxDepth = 1.0f;
+
+	m_scissor.offset = { 0, 0 };
+	m_scissor.extent = { width, height };
+
+	m_pipelineViewportStateCreateInfo = {};
+	m_pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	m_pipelineViewportStateCreateInfo.viewportCount = 1;
+	m_pipelineViewportStateCreateInfo.pViewports = &m_viewport;
+	m_pipelineViewportStateCreateInfo.scissorCount = 1;
+	m_pipelineViewportStateCreateInfo.pScissors = &m_scissor;
+}
+
+const VkPipelineViewportStateCreateInfo* PipelineViewportState_Vulkan::GetViewportStateCreateInfo() const
+{
+	return &m_pipelineViewportStateCreateInfo;
 }

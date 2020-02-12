@@ -66,7 +66,7 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for shadow map pass
 
 	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
-	shadowMapFBCreateInfo.bindTextures.emplace_back(m_pShadowMapPassDepthOutput);
+	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
 	shadowMapFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	shadowMapFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -95,9 +95,9 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for normal-only pass
 
 	FrameBufferCreateInfo normalOnlyFBCreateInfo = {};
-	normalOnlyFBCreateInfo.bindTextures.emplace_back(m_pNormalOnlyPassNormalOutput);
-	normalOnlyFBCreateInfo.bindTextures.emplace_back(m_pNormalOnlyPassPositionOutput);
-	normalOnlyFBCreateInfo.bindTextures.emplace_back(m_pNormalOnlyPassDepthOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassNormalOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassPositionOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassDepthOutput);
 	normalOnlyFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	normalOnlyFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -130,9 +130,9 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for opaque pass
 
 	FrameBufferCreateInfo opaqueFBCreateInfo = {};
-	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassColorOutput);
-	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassShadowOutput);
-	opaqueFBCreateInfo.bindTextures.emplace_back(m_pOpaquePassDepthOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassColorOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassShadowOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassDepthOutput);
 	opaqueFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	opaqueFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -155,8 +155,8 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for Gaussian blur pass
 
 	FrameBufferCreateInfo blurFBCreateInfo = {};
-	blurFBCreateInfo.bindTextures.emplace_back(m_pBlurPassHorizontalColorOutput);
-	blurFBCreateInfo.bindTextures.emplace_back(m_pBlurPassFinalColorOutput);
+	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassHorizontalColorOutput);
+	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassFinalColorOutput);
 	blurFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	blurFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -189,9 +189,9 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for line drawing pass
 
 	FrameBufferCreateInfo lineDrawFBCreateInfo = {};
-	lineDrawFBCreateInfo.bindTextures.emplace_back(m_pLineDrawingPassCurvatureOutput);
-	lineDrawFBCreateInfo.bindTextures.emplace_back(m_pLineDrawingPassColorOutput);
-	lineDrawFBCreateInfo.bindTextures.emplace_back(m_pLineDrawingPassBlurredOutput);
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassColorOutput);
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassBlurredOutput);
 	lineDrawFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	lineDrawFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -216,8 +216,8 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for transparent pass
 
 	FrameBufferCreateInfo transpFBCreateInfo = {};
-	transpFBCreateInfo.bindTextures.emplace_back(m_pTranspPassColorOutput);
-	transpFBCreateInfo.bindTextures.emplace_back(m_pTranspPassDepthOutput);
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassColorOutput);
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassDepthOutput);
 	transpFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	transpFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -234,7 +234,7 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for blend pass
 
 	FrameBufferCreateInfo blendFBCreateInfo = {};
-	blendFBCreateInfo.bindTextures.emplace_back(m_pBlendPassColorOutput);
+	blendFBCreateInfo.attachments.emplace_back(m_pBlendPassColorOutput);
 	blendFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	blendFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 
@@ -251,7 +251,7 @@ void ForwardRenderer::BuildFrameResources()
 	// Frame buffer for DOF pass
 
 	FrameBufferCreateInfo dofFBCreateInfo = {};
-	dofFBCreateInfo.bindTextures.emplace_back(m_pDOFPassHorizontalOutput);
+	dofFBCreateInfo.attachments.emplace_back(m_pDOFPassHorizontalOutput);
 	dofFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
 	dofFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
 

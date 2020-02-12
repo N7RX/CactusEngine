@@ -8,15 +8,9 @@
 
 namespace Engine
 {
-	enum class PhysicalDeviceType_Vulkan
-	{
-		Integrated = 0,
-		Discrete
-	};
-
 	struct LogicalDevice_Vulkan
 	{
-		PhysicalDeviceType_Vulkan  type;
+		EGPUType type;
 		VkPhysicalDevice		   physicalDevice;
 		VkDevice				   logicalDevice;
 		VkPhysicalDeviceProperties deviceProperties;
@@ -33,6 +27,8 @@ namespace Engine
 		std::shared_ptr<DrawingUploadAllocator_Vulkan>		pUploadAllocator;
 		std::shared_ptr<DrawingDescriptorAllocator_Vulkan>	pDescriptorAllocator;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan>	pSyncObjectManager;
+
+		std::shared_ptr<DrawingCommandBuffer_Vulkan> pWorkingCmdBuffer;
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice
@@ -65,7 +61,6 @@ namespace Engine
 	public:
 		~DrawingDevice_Vulkan();
 
-		void SetupDevice();
 		void Initialize() override;
 		void ShutDown() override;
 
@@ -75,7 +70,6 @@ namespace Engine
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput) override;
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput) override;
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;
-		bool CreateImageView(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImageViewCreateInfo& createInfo, VkImageView& outImageView);
 
 		void ClearRenderTarget() override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
@@ -88,16 +82,23 @@ namespace Engine
 		void DrawFullScreenQuad() override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
-		void Present() override;
-
 		EGraphicsDeviceType GetDeviceType() const override;
 
-		VkPhysicalDevice GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const;
-		VkDevice GetLogicalDevice(PhysicalDeviceType_Vulkan type) const;
+		// Low-level functions exclusive to Vulkan device
+		void SetupDevice();
+		std::shared_ptr<LogicalDevice_Vulkan> GetLogicalDevice(EGPUType type) const;
+
+		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
+		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
+
+		void SwitchCmdGPUContext(EGPUType type) override;
+		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
+		void Present() override;		
 
 		void ConfigureStates_Test() override;
 
 	private:
+		// Initialization functions
 		void GetRequiredExtensions();
 		void CreateInstance();
 		void SetupDebugMessenger();
@@ -105,8 +106,20 @@ namespace Engine
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
 		void CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice);
+		
+		// Shader-related functions
 		void CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode);
+		
+		// Pipeline state functions
+		void CreatePipelineVertexInputState(std::shared_ptr<PipelineVertexInputState_Vulkan> pOutInputState);
+		void CreatePipelineInputAssemblyState(std::shared_ptr<VkPipelineInputAssemblyStateCreateInfo> pOutAssemblyState);
+		void CreatePipelineColorBlendState(std::shared_ptr<PipelineColorBlendState_Vulkan> pOutBlendState);
+		void CreatePipelineRasterizationState(std::shared_ptr<VkPipelineRasterizationStateCreateInfo> pOutRasterizationState);
+		void CreatePipelineDepthStencilState(std::shared_ptr<VkPipelineDepthStencilStateCreateInfo> pOutDepthStencilState);
+		void CreatePipelineMultisampleState(std::shared_ptr<VkPipelineMultisampleStateCreateInfo> pOutMultisampleState);
+		void CreatePipelineViewportState(std::shared_ptr<PipelineViewportState_Vulkan> pOutViewportState);
 
+		// Manager setup functions
 		void SetupCommandManager();
 		void SetupUploadAllocator();
 		void SetupDescriptorAllocator();
@@ -125,18 +138,21 @@ namespace Engine
 	private:
 		VkInstance m_instance;
 
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0; // Discrete GPU
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_1; // Integrated GPU
-#endif
+#endif		
 
 		VkApplicationInfo m_appInfo;
 		std::vector<const char*> m_requiredExtensions;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
+		EGPUType m_cmdGPUType;
 		VkSurfaceKHR m_presentationSurface;
+		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
 
 		VkDebugUtilsMessengerEXT m_debugMessenger;
+		std::vector<VkClearValue> m_clearValues; // Color + Depth stencil
 	};
 
 	template<>

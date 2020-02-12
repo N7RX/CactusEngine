@@ -109,4 +109,164 @@ namespace Engine
 			return;
 		}
 	}
+
+	inline uint32_t DetermineMipmapLevels_VK(uint32_t inputSize)
+	{
+		uint32_t ans = 0;
+		
+		while (ans < 32) // Maximum of 32 miplevels
+		{
+			if ((1 << ans) >= inputSize)
+			{
+				break;
+			}
+			ans++;
+		}
+
+		return ans + 1;
+	}
+
+	inline VkFormat VulkanImageFormat(ETextureFormat format)
+	{
+		switch (format)
+		{
+		case ETextureFormat::RGBA32F:
+			return VK_FORMAT_R32G32B32A32_SFLOAT;
+
+		case ETextureFormat::Depth:
+			return VK_FORMAT_D32_SFLOAT; // Alert: this could be incompatible with current device without checking
+
+		default:
+			return VK_FORMAT_UNDEFINED;
+		}
+	}
+
+	inline VkDeviceSize VulkanFormatUnitSize(ETextureFormat format)
+	{
+		switch (format)
+		{
+		case ETextureFormat::RGBA32F:
+		case ETextureFormat::Depth:
+			return 4U;
+
+		default:
+			std::cerr << "Vulkan: Unhandled texture format: " << (unsigned int)format << std::endl;
+			return 4U;
+		}
+	}
+
+	inline VkImageLayout VulkanImageLayout(EImageLayout layout)
+	{
+		switch (layout)
+		{
+		case EImageLayout::Undefined:
+			return VK_IMAGE_LAYOUT_UNDEFINED;
+
+		case EImageLayout::General:
+			return VK_IMAGE_LAYOUT_GENERAL;
+
+		case EImageLayout::ColorAttachment:
+			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		case EImageLayout::DepthStencilAttachment:
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		case EImageLayout::DepthStencilReadOnly:
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+
+		case EImageLayout::DepthReadOnlyStencilAttachment:
+			return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+
+		case EImageLayout::DepthAttachmentStencilReadOnly:
+			return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+
+		case EImageLayout::ShaderReadOnly:
+			return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		case EImageLayout::TransferSrc:
+			return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+		case EImageLayout::TransferDst:
+			return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+		case EImageLayout::Preinitialized:
+			return VK_IMAGE_LAYOUT_PREINITIALIZED;
+
+		case EImageLayout::PresentSrc:
+			return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		case EImageLayout::SharedPresent:
+			return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+
+		default:
+			std::cerr << "Vulkan: Unhandled image layout: " << (unsigned int)layout << std::endl;
+			return VK_IMAGE_LAYOUT_UNDEFINED;
+		}
+	}
+
+	inline VkAttachmentLoadOp VulkanLoadOp(EAttachmentOperation op)
+	{
+		switch (op)
+		{
+		case EAttachmentOperation::None:
+			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+
+		case EAttachmentOperation::Clear:
+			return VK_ATTACHMENT_LOAD_OP_CLEAR;
+
+		case EAttachmentOperation::Load:
+			return VK_ATTACHMENT_LOAD_OP_LOAD;
+
+		default:
+			std::cerr << "Vulkan: Unhandled load operation: " << (unsigned int)op << std::endl;
+			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		}
+	}
+
+	inline VkAttachmentStoreOp VulkanStoreOp(EAttachmentOperation op)
+	{
+		switch (op)
+		{
+		case EAttachmentOperation::None:
+			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+		case EAttachmentOperation::Store:
+			return VK_ATTACHMENT_STORE_OP_STORE;
+
+		default:
+			std::cerr << "Vulkan: Unhandled store operation: " << (unsigned int)op << std::endl;
+			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		}
+	}
+
+	inline VkSampleCountFlagBits VulkanSampleCount(uint32_t sampleCount)
+	{
+		switch (sampleCount)
+		{
+		case 1U:
+			return VK_SAMPLE_COUNT_1_BIT;
+
+		case 2U:
+			return VK_SAMPLE_COUNT_2_BIT;
+
+		case 4U:
+			return VK_SAMPLE_COUNT_4_BIT;
+
+		case 8U:
+			return VK_SAMPLE_COUNT_8_BIT;
+
+		case 16U:
+			return VK_SAMPLE_COUNT_16_BIT;
+
+		case 32U:
+			return VK_SAMPLE_COUNT_32_BIT;
+
+		case 64U:
+			return VK_SAMPLE_COUNT_64_BIT;
+
+		default:
+			std::cerr << "Vulkan: sample count out of range: " << sampleCount << std::endl;
+			return VK_SAMPLE_COUNT_1_BIT;
+		}
+	}
 }

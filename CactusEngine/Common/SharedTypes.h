@@ -161,4 +161,40 @@ namespace Engine
 		Plane,
 		COUNT
 	};
+
+	enum class EAttachmentOperation
+	{
+		None = 0,
+		Clear,
+		Load,
+		Store,
+		COUNT
+	};
+
+	enum class EImageLayout
+	{
+		// This is strictly modeled after Vulkan specification, may not be versatile
+		Undefined = 0,
+		General,
+		ColorAttachment,
+		DepthStencilAttachment,
+		DepthStencilReadOnly,
+		DepthReadOnlyStencilAttachment,
+		DepthAttachmentStencilReadOnly,
+		ShaderReadOnly,
+		TransferSrc,
+		TransferDst,
+		Preinitialized,
+		PresentSrc,
+		SharedPresent,
+		COUNT
+	};
+
+	enum class EAttachmentType
+	{
+		Undefined = 0,
+		Color,
+		Depth,
+		COUNT
+	};
 }

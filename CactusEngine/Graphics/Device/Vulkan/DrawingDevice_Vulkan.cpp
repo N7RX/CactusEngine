@@ -14,16 +14,6 @@ DrawingDevice_Vulkan::~DrawingDevice_Vulkan()
 	ShutDown();
 }
 
-void DrawingDevice_Vulkan::SetupDevice()
-{
-	GetRequiredExtensions();
-	CreateInstance();
-	SetupDebugMessenger();
-	CreatePresentationSurface();
-	SelectPhysicalDevice();
-	CreateLogicalDevice();
-}
-
 void DrawingDevice_Vulkan::Initialize()
 {
 	SetupCommandManager();
@@ -115,6 +105,9 @@ std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile
 
 bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
 {
+	// Alert: we are using directly mapped buffer instead of staging buffer
+	// TODO: use staging pool for discrete device and CPU_TO_GPU for integrated device
+
 	RawBufferCreateInfo_Vulkan vertexBufferCreateInfo = {};
 	vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	vertexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -123,7 +116,7 @@ bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 		+ sizeof(float) * createInfo.texcoordDataCount
 		+ sizeof(float) * createInfo.tangentDataCount
 		+ sizeof(float) * createInfo.bitangentDataCount;
-	vertexBufferCreateInfo.stride = (3 + 3 + 2 + 3 + 3) * sizeof(float);
+	vertexBufferCreateInfo.stride = createInfo.interleavedStride * sizeof(float);
 
 	RawBufferCreateInfo_Vulkan indexBufferCreateInfo = {};
 	indexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -131,33 +124,105 @@ bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	indexBufferCreateInfo.size = sizeof(int) * createInfo.indexDataCount;
 	indexBufferCreateInfo.indexFormat = VK_INDEX_TYPE_UINT32;
 
-	// Need to re-combine [position, normal, texcoord, tangent, bitangent] into per vertex data
-	
+	// By default vertex data will be created on discrete device, since integrated device will only handle post processing
+	// The alternative is to add a device specifier in VertexBufferCreateInfo
+	pOutput = std::make_shared<VertexBuffer_Vulkan>(m_pDevice_0, vertexBufferCreateInfo, indexBufferCreateInfo);
 
-	return false;
+	std::vector<float> interleavedVertices = createInfo.ConvertToInterleavedData();
+	void* ppIndexData;
+	void* ppVertexData;
+
+	m_pDevice_0->pUploadAllocator->MapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetIndexBufferImpl()->m_allocation, &ppIndexData);
+	memcpy(ppIndexData, createInfo.pIndexData, indexBufferCreateInfo.size);
+	m_pDevice_0->pUploadAllocator->UnmapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetIndexBufferImpl()->m_allocation);
+
+	m_pDevice_0->pUploadAllocator->MapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetBufferImpl()->m_allocation, &ppVertexData);
+	memcpy(ppVertexData, interleavedVertices.data(), vertexBufferCreateInfo.size);
+	m_pDevice_0->pUploadAllocator->UnmapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetBufferImpl()->m_allocation);
+
+	return true;
 }
 
 bool DrawingDevice_Vulkan::CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput)
 {
-	return false;
+	Texture2DCreateInfo_Vulkan tex2dCreateInfo = {};
+	tex2dCreateInfo.extent = { createInfo.textureWidth, createInfo.textureHeight };
+	tex2dCreateInfo.format = VulkanImageFormat(createInfo.format);
+	tex2dCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL; // Alert: TILING_OPTIMAL could be incompatible with certain formats on certain devices
+	tex2dCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	tex2dCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+	tex2dCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	tex2dCreateInfo.aspect = createInfo.format == ETextureFormat::Depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	tex2dCreateInfo.mipLevels = DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight));
+	
+	auto pDevice = createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
+	pOutput = std::make_shared<Texture2D_Vulkan>(pDevice, tex2dCreateInfo);
+
+	RawBufferCreateInfo_Vulkan bufferCreateInfo = {};
+	bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
+	bufferCreateInfo.size = (VkDeviceSize)createInfo.textureWidth * createInfo.textureHeight * VulkanFormatUnitSize(createInfo.format); // Alert: this size might be incorrect
+
+	auto pStagingBuffer = std::make_shared<RawBuffer_Vulkan>(pDevice, bufferCreateInfo);
+
+	void* ppData;
+	pDevice->pUploadAllocator->MapMemory(pStagingBuffer->m_allocation, &ppData);
+	memcpy(ppData, createInfo.pTextureData, bufferCreateInfo.size);
+	pDevice->pUploadAllocator->UnmapMemory(pStagingBuffer->m_allocation);
+
+	std::vector<VkBufferImageCopy> copyRegions;
+	// Only has one level of data
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;  // Tightly packed
+	region.bufferImageHeight = 0;// Tightly packed
+	region.imageSubresource.aspectMask = createInfo.format == ETextureFormat::Depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { createInfo.textureWidth, createInfo.textureHeight, 1 };
+	copyRegions.emplace_back(region);
+
+	// Alert: might have better strategy here
+	auto pCmdBuffer = pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+
+	pCmdBuffer->CopyBufferToTexture2D(pStagingBuffer, std::static_pointer_cast<Texture2D_Vulkan>(pOutput), copyRegions);
+	pCmdBuffer->GenerateMipmap(std::static_pointer_cast<Texture2D_Vulkan>(pOutput));
+
+	pDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
+
+	return true;
 }
 
 bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
 {
-	return false;
-}
+	assert(pOutput == nullptr);
 
-bool DrawingDevice_Vulkan::CreateImageView(const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const VkImageViewCreateInfo& createInfo, VkImageView& outImageView)
-{
-	assert(pLogicalDevice);
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pOutput = std::make_shared<FrameBuffer_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1);
+#else
+	pOutput = std::make_shared<FrameBuffer_Vulkan>(m_pDevice_0);
+#endif
+	auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_Vulkan>(pOutput);
 
-	if (vkCreateImageView(pLogicalDevice->logicalDevice, &createInfo, nullptr, &outImageView) == VK_SUCCESS)
+	std::vector<VkImageView> viewAttachments;
+	for (const auto& pAttachment : createInfo.attachments)
 	{
-		return true;
+		viewAttachments.emplace_back(std::static_pointer_cast<Texture2D_Vulkan>(pAttachment)->m_imageView);
+		pFrameBuffer->m_bufferAttachments.emplace_back(std::static_pointer_cast<Texture2D_Vulkan>(pAttachment));
 	}
 
-	outImageView = VK_NULL_HANDLE;
-	return false;
+	VkFramebufferCreateInfo frameBufferInfo = {};
+	frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	frameBufferInfo.renderPass = std::static_pointer_cast<RenderPass_Vulkan>(createInfo.pRenderPass)->m_renderPass;
+	frameBufferInfo.attachmentCount = (uint32_t)viewAttachments.size();
+	frameBufferInfo.pAttachments = viewAttachments.data();
+	frameBufferInfo.width = createInfo.framebufferWidth;
+	frameBufferInfo.height = createInfo.framebufferHeight;
+	frameBufferInfo.layers = 1;
+
+	return vkCreateFramebuffer(pFrameBuffer->m_pDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
 }
 
 void DrawingDevice_Vulkan::ClearRenderTarget()
@@ -167,17 +232,19 @@ void DrawingDevice_Vulkan::ClearRenderTarget()
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
 {
-
+	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device. Call BeginRenderPass instead.\n";
 }
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
-
+	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device. Call BeginRenderPass instead.\n";
 }
 
 void DrawingDevice_Vulkan::SetClearColor(Color4 color)
 {
-
+	m_clearValues.resize(2);
+	m_clearValues[0].color = { color.r, color.g, color.b, color.a };
+	m_clearValues[1].depthStencil = { 1.0f, 0 };
 }
 
 void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
@@ -194,12 +261,28 @@ void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 
 void DrawingDevice_Vulkan::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer)
 {
+	auto pBuffer = std::static_pointer_cast<VertexBuffer_Vulkan>(pVertexBuffer);
 
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
+#else
+	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
+#endif
+
+	pCmdBuffer->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, 0);
+	pCmdBuffer->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
 }
 
 void DrawingDevice_Vulkan::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
 {
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
+#else
+	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
+#endif
+	assert(pCmdBuffer->InRenderPass());
 
+	pCmdBuffer->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
 }
 
 void DrawingDevice_Vulkan::DrawFullScreenQuad()
@@ -212,48 +295,144 @@ void DrawingDevice_Vulkan::ResizeViewPort(uint32_t width, uint32_t height)
 
 }
 
-void DrawingDevice_Vulkan::Present()
-{
-
-}
-
 EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const
 {
 	return EGraphicsDeviceType::Vulkan;
 }
 
-VkPhysicalDevice DrawingDevice_Vulkan::GetPhysicalDevice(PhysicalDeviceType_Vulkan type) const
+std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGPUType type) const
 {
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	switch (type)
 	{
-	case PhysicalDeviceType_Vulkan::Integrated:
-		return m_pDevice_1->physicalDevice;
-	case PhysicalDeviceType_Vulkan::Discrete:
-		return m_pDevice_0->physicalDevice;
+	case EGPUType::Integrated:
+		return m_pDevice_1;
+	case EGPUType::Discrete:
+		return m_pDevice_0;
 	default:
-		return VK_NULL_HANDLE;
+		return nullptr;
 	}
 #else
-	return m_pDevice_0->physicalDevice;
+	return m_pDevice_0;
 #endif
 }
 
-VkDevice DrawingDevice_Vulkan::GetLogicalDevice(PhysicalDeviceType_Vulkan type) const
+void DrawingDevice_Vulkan::SetupDevice()
+{
+	GetRequiredExtensions();
+	CreateInstance();
+	SetupDebugMessenger();
+	CreatePresentationSurface();
+	SelectPhysicalDevice();
+	CreateLogicalDevice();
+}
+
+bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
+{
+	pOutput = std::make_shared<RenderPass_Vulkan>();
+
+	std::vector<VkAttachmentDescription> attachmentDescs;
+	std::vector<VkAttachmentReference> colorAttachmentRefs;
+	VkAttachmentReference depthAttachmentRef = {};
+	bool duplicateDepthAttachment = false;
+
+	for (int i = 0; i < createInfo.attachmentDescriptions.size(); i++)
+	{
+		VkAttachmentDescription desc = {};
+		desc.format = VulkanImageFormat(createInfo.attachmentDescriptions[i].format);
+		desc.samples = VulkanSampleCount(createInfo.attachmentDescriptions[i].sampleCount);
+		desc.loadOp = VulkanLoadOp(createInfo.attachmentDescriptions[i].loadOp);
+		desc.storeOp = VulkanStoreOp(createInfo.attachmentDescriptions[i].storeOp);
+		desc.stencilLoadOp = VulkanLoadOp(createInfo.attachmentDescriptions[i].stencilLoadOp);
+		desc.stencilStoreOp = VulkanStoreOp(createInfo.attachmentDescriptions[i].storeOp);
+		desc.initialLayout = VulkanImageLayout(createInfo.attachmentDescriptions[i].initialLayout);
+		desc.finalLayout = VulkanImageLayout(createInfo.attachmentDescriptions[i].finalLayout);
+
+		attachmentDescs.emplace_back(desc);
+
+		if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Color)
+		{
+			VkAttachmentReference ref = {};
+			ref.attachment = createInfo.attachmentDescriptions[i].index;
+			ref.attachment = VulkanImageLayout(createInfo.attachmentDescriptions[i].usageLayout);
+
+			colorAttachmentRefs.emplace_back(ref);
+		}
+		else if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Depth)
+		{
+			assert(!duplicateDepthAttachment);
+			duplicateDepthAttachment = true;
+
+			depthAttachmentRef.attachment = createInfo.attachmentDescriptions[i].index;
+			depthAttachmentRef.layout = VulkanImageLayout(createInfo.attachmentDescriptions[i].usageLayout);
+		}
+	}
+
+	// TODO: add support for multiple subpasses
+
+	VkSubpassDescription subpassDesc = {};
+	subpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpassDesc.colorAttachmentCount = (uint32_t)colorAttachmentRefs.size();
+	subpassDesc.pColorAttachments = colorAttachmentRefs.data();
+	subpassDesc.pDepthStencilAttachment = &depthAttachmentRef;
+
+	VkSubpassDependency subpassDependency = {};
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	subpassDependency.dstSubpass = 0;
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.srcAccessMask = 0;
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+	VkRenderPassCreateInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = (uint32_t)attachmentDescs.size();
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpassDesc;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &subpassDependency;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	return vkCreateRenderPass(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0->logicalDevice : m_pDevice_1->logicalDevice,
+		&renderPassInfo, nullptr, &std::static_pointer_cast<RenderPass_Vulkan>(pOutput)->m_renderPass) == VK_SUCCESS;
+#else
+	return vkCreateRenderPass(m_pDevice_0->logicalDevice,
+		&renderPassInfo, nullptr, &std::static_pointer_cast<RenderPass_Vulkan>(pOutput)->m_renderPass) == VK_SUCCESS;
+#endif
+}
+
+bool DrawingDevice_Vulkan::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
+{
+	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+
+	return false;
+}
+
+void DrawingDevice_Vulkan::SwitchCmdGPUContext(EGPUType type)
+{
+	m_cmdGPUType = type;
+}
+
+void DrawingDevice_Vulkan::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	switch (type)
-	{
-	case PhysicalDeviceType_Vulkan::Integrated:
-		return m_pDevice_1->logicalDevice;
-	case PhysicalDeviceType_Vulkan::Discrete:
-		return m_pDevice_0->logicalDevice;
-	default:
-		return VK_NULL_HANDLE;
-	}
+	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
 #else
-	return m_pDevice_0->logicalDevice;
+	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
 #endif
+	assert(!pCmdBuffer->InRenderPass());
+
+	// Currently we are only rendering to full window
+	pCmdBuffer->BeginRenderPass(std::static_pointer_cast<RenderPass_Vulkan>(pRenderPass)->m_renderPass,
+		std::static_pointer_cast<FrameBuffer_Vulkan>(pFrameBuffer)->m_frameBuffer,
+		m_clearValues, m_pSwapchain->GetSwapExtent());
+}
+
+void DrawingDevice_Vulkan::Present()
+{
+
 }
 
 void DrawingDevice_Vulkan::ConfigureStates_Test()

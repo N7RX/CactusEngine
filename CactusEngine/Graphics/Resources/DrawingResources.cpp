@@ -46,6 +46,52 @@ uint32_t FrameBuffer::GetHeight() const
 	return m_height;
 }
 
+std::vector<float> VertexBufferCreateInfo::ConvertToInterleavedData() const
+{
+	unsigned int elementStride = 14;
+	std::vector<float> interleavedVertices(elementStride * (size_t)(positionDataCount / 3));
+
+	// Layout : [ position | normal | texcoord | tangent | bitengent ]
+
+	// TODO: optimize this process
+
+	for (uint32_t i = 0; i < positionDataCount / 3; i++)
+	{
+		interleavedVertices[(size_t)elementStride * i] = pPositionData[i * 3];
+		interleavedVertices[(size_t)elementStride * i + 1] = pPositionData[i * 3 + 1];
+		interleavedVertices[(size_t)elementStride * i + 2] = pPositionData[i * 3 + 2];
+	}
+
+	for (uint32_t i = 0; i < normalDataCount / 3; i++)
+	{
+		interleavedVertices[(size_t)elementStride * i + 3] = pNormalData[i * 3];
+		interleavedVertices[(size_t)elementStride * i + 4] = pNormalData[i * 3 + 1];
+		interleavedVertices[(size_t)elementStride * i + 5] = pNormalData[i * 3 + 2];
+	}
+
+	for (uint32_t i = 0; i < texcoordDataCount / 2; i++)
+	{
+		interleavedVertices[(size_t)elementStride * i + 6] = pTexcoordData[i * 2];
+		interleavedVertices[(size_t)elementStride * i + 7] = pTexcoordData[i * 2 + 1];
+	}
+
+	for (uint32_t i = 0; i < tangentDataCount / 3; i++)
+	{
+		interleavedVertices[(size_t)elementStride * i + 8] = pTangentData[i * 3];
+		interleavedVertices[(size_t)elementStride * i + 9] = pTangentData[i * 3 + 1];
+		interleavedVertices[(size_t)elementStride * i + 10] = pTangentData[i * 3 + 2];
+	}
+
+	for (uint32_t i = 0; i < bitangentDataCount / 3; i++)
+	{
+		interleavedVertices[(size_t)elementStride * i + 11] = pBitangentData[i * 3];
+		interleavedVertices[(size_t)elementStride * i + 12] = pBitangentData[i * 3 + 1];
+		interleavedVertices[(size_t)elementStride * i + 13] = pBitangentData[i * 3 + 2];
+	}
+
+	return interleavedVertices;
+}
+
 void VertexBuffer::SetNumberOfIndices(uint32_t count)
 {
 	m_numberOfIndices = count;

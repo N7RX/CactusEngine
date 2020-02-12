@@ -14,9 +14,9 @@ namespace Engine
 {
 	struct DrawingCommandQueue_Vulkan
 	{		
-		EQueueType type;
-		uint32_t queueFamilyIndex;
-		VkQueue queue;
+		EQueueType	type;
+		uint32_t	queueFamilyIndex;
+		VkQueue		queue;
 	};
 
 	class Texture2D_Vulkan;
@@ -34,7 +34,7 @@ namespace Engine
 
 		void BeginCommandBuffer(VkCommandBufferUsageFlags usage);
 
-		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer vertexBuffer, const VkDeviceSize offsets);
+		void BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pVertexBuffers, const VkDeviceSize* pOffsets);
 		void BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type);
 		void BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset = { 0, 0 });
 		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
@@ -45,6 +45,7 @@ namespace Engine
 		void EndRenderPass();
 
 		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderType = EShaderType::Fragment);
+		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage);
 		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region);
 		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);
 

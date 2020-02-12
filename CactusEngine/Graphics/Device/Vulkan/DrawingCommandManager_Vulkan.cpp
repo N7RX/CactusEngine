@@ -47,10 +47,10 @@ void DrawingCommandBuffer_Vulkan::BeginCommandBuffer(VkCommandBufferUsageFlags u
 	m_inExecution = false;
 }
 
-void DrawingCommandBuffer_Vulkan::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer vertexBuffer, const VkDeviceSize offsets)
+void DrawingCommandBuffer_Vulkan::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pVertexBuffers, const VkDeviceSize* pOffsets)
 {
 	assert(m_isRecording);
-	vkCmdBindVertexBuffers(m_commandBuffer, firstBinding, bindingCount, &vertexBuffer, &offsets);
+	vkCmdBindVertexBuffers(m_commandBuffer, firstBinding, bindingCount, pVertexBuffers, pOffsets);
 }
 
 void DrawingCommandBuffer_Vulkan::BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type)
@@ -161,6 +161,105 @@ void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
 
 	pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
+}
+
+void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage)
+{
+#if defined(_DEBUG)
+	// Check whether linear blitting on given image's format is supported
+	VkFormatProperties formatProperties;
+	vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
+	assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
+#endif
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.image = pImage->m_image;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = pImage->m_aspect;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	uint32_t mipWidth = pImage->m_width;
+	uint32_t mipHeight = pImage->m_height;
+
+	for (uint32_t i = 1; i < pImage->m_mipLevels; i++)
+	{
+		barrier.subresourceRange.baseMipLevel = i - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		vkCmdPipelineBarrier(m_commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0, 
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+
+		VkImageBlit blitRegion = {};
+		blitRegion.srcOffsets[0] = { 0, 0, 0 };
+		blitRegion.srcOffsets[1] = { (int32_t)mipWidth, (int32_t)mipHeight, 1 };
+		blitRegion.srcSubresource.aspectMask = pImage->m_aspect;
+		blitRegion.srcSubresource.mipLevel = i - 1;
+		blitRegion.srcSubresource.baseArrayLayer = 0;
+		blitRegion.srcSubresource.layerCount = 1;
+		blitRegion.dstOffsets[0] = { 0, 0, 0 };
+		blitRegion.dstOffsets[1] = { mipWidth > 1 ? (int32_t)mipWidth / 2 : 1, mipHeight > 1 ? (int32_t)mipHeight / 2 : 1, 1 };
+		blitRegion.dstSubresource.aspectMask = pImage->m_aspect;
+		blitRegion.dstSubresource.mipLevel = i;
+		blitRegion.dstSubresource.baseArrayLayer = 0;
+		blitRegion.dstSubresource.layerCount = 1;
+
+		vkCmdBlitImage(m_commandBuffer,
+			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &blitRegion, 
+			VK_FILTER_LINEAR);
+
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(m_commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Alert: cannot guarantee that the texture would only be sampled in fragment shader, better pass in as parameter
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+
+		if (mipWidth > 1)
+		{
+			mipWidth /= 2;
+		}
+		if (mipHeight > 1)
+		{
+			mipHeight /= 2;
+		}
+	}
+
+	barrier.subresourceRange.baseMipLevel = pImage->m_mipLevels - 1;
+	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+	vkCmdPipelineBarrier(m_commandBuffer,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Alert: cannot guarantee that the texture would only be sampled in fragment shader, better pass in as parameter
+		0,
+		0, nullptr,
+		0, nullptr,
+		1, &barrier
+	);
 }
 
 void DrawingCommandBuffer_Vulkan::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region)

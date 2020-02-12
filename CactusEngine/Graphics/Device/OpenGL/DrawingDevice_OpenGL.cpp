@@ -46,40 +46,31 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, pVertexBuffer->m_vboIndices);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * createInfo.indexDataCount, createInfo.pIndexData, GL_STATIC_DRAW);
 
+	std::vector<float> interleavedVertices = createInfo.ConvertToInterleavedData();
+
+	glGenBuffers(1, &pVertexBuffer->m_vboVertices);
+	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboVertices);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * interleavedVertices.size(), interleavedVertices.data(), GL_STATIC_DRAW);
+
 	// Position
-	glGenBuffers(1, &pVertexBuffer->m_vboPositions);
-	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboPositions);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.positionDataCount, createInfo.pPositionData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_POSITION_LOCATION);
-	glVertexAttribPointer(ATTRIB_POSITION_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+	glVertexAttribPointer(ATTRIB_POSITION_LOCATION, 3, GL_FLOAT, GL_FALSE, createInfo.interleavedStride, (void*)createInfo.positionOffset);
 
 	// Normal
-	glGenBuffers(1, &pVertexBuffer->m_vboNormals);
-	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboNormals);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.normalDataCount, createInfo.pNormalData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_NORMAL_LOCATION);
-	glVertexAttribPointer(ATTRIB_NORMAL_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+	glVertexAttribPointer(ATTRIB_NORMAL_LOCATION, 3, GL_FLOAT, GL_FALSE, createInfo.interleavedStride, (void*)createInfo.normalOffset);
 
 	// TexCoord
-	glGenBuffers(1, &pVertexBuffer->m_vboTexcoords);
-	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboTexcoords);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.texcoordDataCount, createInfo.pTexcoordData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_TEXCOORD_LOCATION);
-	glVertexAttribPointer(ATTRIB_TEXCOORD_LOCATION, 2, GL_FLOAT, 0, 0, 0);
+	glVertexAttribPointer(ATTRIB_TEXCOORD_LOCATION, 2, GL_FLOAT, GL_FALSE, createInfo.interleavedStride, (void*)createInfo.texcoordOffset);
 
 	// Tangent
-	glGenBuffers(1, &pVertexBuffer->m_vboTangents);
-	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboTangents);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.tangentDataCount, createInfo.pTangentData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_TANGENT_LOCATION);
-	glVertexAttribPointer(ATTRIB_TANGENT_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+	glVertexAttribPointer(ATTRIB_TANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, createInfo.interleavedStride, (void*)createInfo.tangentOffset);
 
 	// Bitangent
-	glGenBuffers(1, &pVertexBuffer->m_vboBitangents);
-	glBindBuffer(GL_ARRAY_BUFFER, pVertexBuffer->m_vboBitangents);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * createInfo.bitangentDataCount, createInfo.pBitangentData, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(ATTRIB_BITANGENT_LOCATION);
-	glVertexAttribPointer(ATTRIB_BITANGENT_LOCATION, 3, GL_FLOAT, 0, 0, 0);
+	glVertexAttribPointer(ATTRIB_BITANGENT_LOCATION, 3, GL_FLOAT, GL_FALSE, createInfo.interleavedStride, (void*)createInfo.bitangentOffset);
 
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -163,17 +154,17 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
 	int colorAttachmentCount = 0;
-	for (int i = 0; i < createInfo.bindTextures.size(); ++i)
+	for (int i = 0; i < createInfo.attachments.size(); ++i)
 	{
-		switch (createInfo.bindTextures[i]->GetTextureType())
+		switch (createInfo.attachments[i]->GetTextureType())
 		{
 		case ETextureType::ColorAttachment:
 			pFrameBuffer->AddColorAttachment(GL_COLOR_ATTACHMENT0 + colorAttachmentCount); // Alert: this could cause the framebuffer to be partially "initialized" when creation failed
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, createInfo.attachments[i]->GetTextureID(), 0);
 			colorAttachmentCount++;
 			break;
 		case ETextureType::DepthAttachment:
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.bindTextures[i]->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.attachments[i]->GetTextureID(), 0);
 			break;
 		default:
 			std::cerr << "OpenGL: Unhandled framebuffer attachment type.\n";
@@ -297,14 +288,36 @@ void DrawingDevice_OpenGL::ResizeViewPort(uint32_t width, uint32_t height)
 	glViewport(0, 0, width, height);
 }
 
-void DrawingDevice_OpenGL::Present()
-{
-
-}
-
 EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const
 {
 	return EGraphicsDeviceType::OpenGL;
+}
+
+bool DrawingDevice_OpenGL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreateRenderPassObject on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreateGraphicsPipelineObject on OpenGL device.\n";
+	return false;
+}
+
+void DrawingDevice_OpenGL::SwitchCmdGPUContext(EGPUType type)
+{
+	std::cerr << "OpenGL: shouldn't call SwitchCmdGPUContext on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call BeginRenderPass on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::Present()
+{
+	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
 }
 
 void DrawingDevice_OpenGL::ConfigureStates_Test()

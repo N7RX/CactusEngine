@@ -7,18 +7,12 @@
 
 namespace Engine
 {
-	struct DeviceBlendStateInfo
-	{
-		bool enabled;
-		EBlendFactor srcFactor;
-		EBlendFactor dstFactor;
-	};
-
 	class DrawingDevice : std::enable_shared_from_this<DrawingDevice>, public NoCopy
 	{
 	public:
 		virtual ~DrawingDevice() = default;
 
+		// Generic functions for all devices
 		virtual void Initialize() = 0;
 		virtual void ShutDown() = 0;
 
@@ -40,11 +34,18 @@ namespace Engine
 		virtual void DrawFullScreenQuad() = 0;
 		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
-		virtual void Present() = 0;
-
 		virtual EGraphicsDeviceType GetDeviceType() const = 0;
 
-		virtual void ConfigureStates_Test() = 0; // Alert: this function will be broke down in the future, this one is for temporary test
+		// For low-level devices, e.g. Vulkan
+		virtual bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) = 0;
+		virtual bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) = 0;
+
+		virtual void SwitchCmdGPUContext(EGPUType type) = 0;
+		virtual void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
+		virtual void Present() = 0;
+
+		// TODO: discard this function in the future, it's for temporary test
+		virtual void ConfigureStates_Test() = 0;
 	};
 
 	template<EGraphicsDeviceType>

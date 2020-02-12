@@ -50,18 +50,26 @@ namespace Engine
 
 		float*	 pPositionData;
 		uint32_t positionDataCount;
+		const uint32_t positionOffset = 0;
 
 		float*	 pNormalData;
 		uint32_t normalDataCount;
+		const uint32_t normalOffset = 3 * sizeof(float);
 
 		float*	 pTexcoordData;
 		uint32_t texcoordDataCount;
+		const uint32_t texcoordOffset = 6 * sizeof(float);
 
 		float*	 pTangentData;
 		uint32_t tangentDataCount;
+		const uint32_t tangentOffset = 8 * sizeof(float);
 
 		float*	 pBitangentData;
 		uint32_t bitangentDataCount;
+		const uint32_t bitangentOffset = 11 * sizeof(float);
+
+		const uint32_t interleavedStride = 14 * sizeof(float); // 3 + 3 + 2 + 3 + 3
+		std::vector<float> ConvertToInterleavedData() const; // This would not pack index
 	};
 
 	class VertexBuffer : public RawResource
@@ -82,6 +90,8 @@ namespace Engine
 		EDataType	   dataType;
 		ETextureFormat format;
 		ETextureType   textureType;
+
+		EGPUType	   deviceType;
 	};
 
 	class Texture2D : public RawResource
@@ -108,11 +118,44 @@ namespace Engine
 		std::string m_filePath;
 	};
 
+	struct RenderPassAttachmentDescription
+	{
+		// This is strictly modeled after Vulkan specification, may not be versatile
+		ETextureFormat			format;
+		uint32_t				sampleCount;
+		EAttachmentOperation	loadOp;
+		EAttachmentOperation	storeOp;
+		EAttachmentOperation	stencilLoadOp;
+		EAttachmentOperation	stencilStoreOp;
+		EImageLayout			initialLayout;
+		EImageLayout			usageLayout;
+		EImageLayout			finalLayout;
+
+		EAttachmentType			type;
+		uint32_t				index;
+	};
+
+	struct RenderPassCreateInfo
+	{
+		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
+		EGPUType deviceType;
+
+		// Subpass description is not added
+	};
+
+	class RenderPassObject
+	{
+
+	};
+
 	struct FrameBufferCreateInfo
 	{
 		uint32_t framebufferWidth;
 		uint32_t framebufferHeight;
-		std::vector<std::shared_ptr<Texture2D>> bindTextures;
+		std::vector<std::shared_ptr<Texture2D>> attachments;
+
+		EGPUType deviceType;
+		std::shared_ptr<RenderPassObject> pRenderPass;
 	};
 
 	class FrameBuffer : public RawResource
@@ -211,5 +254,22 @@ namespace Engine
 		{
 			m_table.clear();
 		}
+	};
+
+	struct DeviceBlendStateInfo
+	{
+		bool enabled;
+		EBlendFactor srcFactor;
+		EBlendFactor dstFactor;
+	};
+
+	struct GraphicsPipelineCreateInfo
+	{
+
+	};
+
+	class GraphicsPipelineObject
+	{
+
 	};
 }
