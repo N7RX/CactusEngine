@@ -57,6 +57,6 @@ namespace Engine
 
 	private:
 		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
-		std::queue<std::shared_ptr<RenderNode>>  m_startingNodes; // Nodes that has no previous dependencies
+		std::queue<std::shared_ptr<RenderNode>> m_startingNodes; // Nodes that has no previous dependencies
 	};
 }

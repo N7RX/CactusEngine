@@ -103,7 +103,7 @@ namespace Engine
 		Mat3,
 		Mat4,
 		Texture2D,
-		Sampler
+		Sampler,
 	};
 
 	enum class ECameraProjectionType
@@ -147,12 +147,26 @@ namespace Engine
 		Half,
 		Short,
 		UShort,
+		COUNT
 	};
 
 	enum class EBlendFactor
 	{
 		SrcAlpha = 0,
-		OneMinusSrcAlpha
+		OneMinusSrcAlpha,
+		COUNT
+	};
+
+	enum class EBlendOperation
+	{
+		Add = 0,
+		Subtract,
+		Min,
+		Max,
+		Zero,
+		Src,
+		Dst,
+		COUNT
 	};
 
 	enum class EBuiltInMeshType
@@ -195,6 +209,92 @@ namespace Engine
 		Undefined = 0,
 		Color,
 		Depth,
+		COUNT
+	};
+
+	enum class EAssemblyTopology
+	{
+		PointList = 0,
+		LineList,
+		LineStrip,
+		TriangleList,
+		TriangleStrip,
+		TriangleFan,
+		COUNT
+	};
+
+	enum class EPolygonMode
+	{
+		Fill = 0,
+		Line,
+		Point,
+		COUNT
+	};
+
+	enum class ECullMode
+	{
+		None = 0,
+		Front,
+		Back,
+		FrontAndBack,
+		COUNT
+	};
+
+	enum class ECompareOperation
+	{
+		Never = 0,
+		Less,
+		Equal,
+		LessOrEqual,
+		Greater,
+		NotEqual,
+		GreaterOrEqual,
+		Always,
+		COUNT
+	};
+
+	enum class EVertexInputRate
+	{
+		PerVertex = 0,
+		PerInstance,
+		COUNT
+	};
+
+	enum class EDescriptorType
+	{
+		UniformBuffer = 0,
+		UniformTexelBuffer,
+		SampledImage,
+		Sampler,
+		CombinedImageSampler,
+		StorageImage,
+		StorageBuffer,
+		StorageTexelBuffer,
+		COUNT
+	};
+
+	enum class ESamplerFilterMode
+	{
+		Nearest = 0,
+		Linear,
+		Cubic,
+		COUNT
+	};
+
+	enum class ESamplerAddressMode
+	{
+		Repeat = 0,
+		MirroredRepeat,
+		ClampToEdge,
+		ClampToBorder,
+		MirrorClampToEdge,
+		COUNT
+	};
+
+	enum class ESamplerMipmapMode
+	{
+		Nearest = 0,
+		Linear,
 		COUNT
 	};
 }

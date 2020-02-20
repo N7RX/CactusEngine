@@ -22,6 +22,21 @@ DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shar
 
 }
 
+DrawingSyncObjectManager_Vulkan::~DrawingSyncObjectManager_Vulkan()
+{
+	for (auto& pSemaphore : m_semaphorePool)
+	{
+		assert(pSemaphore->semaphore != VK_NULL_HANDLE);
+		vkDestroySemaphore(m_pDevice->logicalDevice, pSemaphore->semaphore, nullptr);
+	}
+
+	for (auto& pFence : m_fencePool)
+	{
+		assert(pFence->fence != VK_NULL_HANDLE);
+		vkDestroyFence(m_pDevice->logicalDevice, pFence->fence, nullptr);
+	}
+}
+
 std::shared_ptr<DrawingSemaphore_Vulkan> DrawingSyncObjectManager_Vulkan::RequestSemaphore()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);

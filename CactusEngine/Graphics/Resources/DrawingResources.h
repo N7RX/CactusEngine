@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <cassert>
 
 namespace Engine
 {
@@ -15,7 +16,7 @@ namespace Engine
 		RawResourceData() = default;
 		virtual ~RawResourceData() = default;
 
-		std::shared_ptr<void> m_pData;
+		const void* m_pData; // Alert: careful with resource memory management
 		uint32_t m_sizeInBytes;
 	};
 
@@ -80,6 +81,27 @@ namespace Engine
 
 	protected:
 		uint32_t m_numberOfIndices;
+	};
+
+	struct TextureSamplerCreateInfo
+	{
+		EGPUType			deviceType;
+		ESamplerFilterMode	magMode;
+		ESamplerFilterMode	minMode;
+		ESamplerAddressMode	addressMode;
+		bool				enableAnisotropy;
+		float				maxAnisotropy;
+		bool				enableCompareOp;
+		ECompareOperation	compareOp;
+		ESamplerMipmapMode	mipmapMode;
+		float				minLod;
+		float				maxLod;
+		float				minLodBias;
+	};
+
+	class TextureSampler
+	{
+
 	};
 
 	struct Texture2DCreateInfo
@@ -208,8 +230,11 @@ namespace Engine
 		uint32_t GetProgramID() const;
 		uint32_t GetShaderStages() const;
 
-		virtual unsigned int GetParamLocation(const char* paramName) const;
+		// Works on higher level APIs like OpenGL
+		virtual unsigned int GetParamLocation(const char* paramName) const = 0;
 		virtual void Reset() = 0;
+
+		// For lower level APIs like Vulkan, update shader resources individually
 
 	protected:
 		ShaderProgram(uint32_t shaderStages);
@@ -218,9 +243,6 @@ namespace Engine
 		uint32_t m_programID;
 		DrawingDevice* m_pDevice;
 		uint32_t m_shaderStages; // This is a bitmap
-
-		// TODO: move this field into OpenGL device
-		std::unordered_map<const char*, unsigned int> m_paramLocations; // This is only useful in OpenGL device
 	};
 
 	struct ShaderParameterTable
@@ -231,10 +253,11 @@ namespace Engine
 			Clear();
 		}
 		
+		// For high-level APIs like OpenGL
 		struct ShaderParameterTableEntry
 		{
-			ShaderParameterTableEntry(unsigned int loc, EShaderParamType paramType, const void* val)
-				: location(loc), type(paramType), pValue(val)
+			ShaderParameterTableEntry(unsigned int loc, EShaderParamType paramType, const void* pVal)
+				: location(loc), type(paramType), pValue(pVal)
 			{
 			}
 
@@ -245,17 +268,51 @@ namespace Engine
 
 		std::vector<ShaderParameterTableEntry> m_table;
 
-		inline void AddEntry(unsigned int loc, EShaderParamType type, const void* val)
+		void AddEntry(unsigned int loc, EShaderParamType type, const void* pVal)
 		{
-			m_table.emplace_back(loc, type, val);
+			m_table.emplace_back(loc, type, pVal);
 		}
 
-		inline void Clear()
+		// For low-level APIs like Vulkan
+		struct DescriptorUpdateTableEntry
+		{
+			DescriptorUpdateTableEntry(unsigned int loc, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+				: location(loc), type(descType), pResource(pRes), pValue(nullptr)
+			{
+			}
+
+			DescriptorUpdateTableEntry(unsigned int loc, EDescriptorType descType, const void* pVal)
+				: location(loc), type(descType), pValue(pVal), pResource(nullptr)
+			{
+			}
+
+			unsigned int					location;
+			EDescriptorType					type;
+			std::shared_ptr<RawResource>	pResource;
+			const void*						pValue;
+		};
+
+		std::vector<DescriptorUpdateTableEntry> m_hpTable;
+
+		void AddEntry(unsigned int loc, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+		{		
+			m_hpTable.emplace_back(loc, descType, pRes);
+		}
+
+		void AddEntry(unsigned int loc, EDescriptorType descType, const void* pVal) // For numerical uniform buffer only
+		{
+			assert(descType == EDescriptorType::UniformBuffer); // Uniform buffers are managed by (Vulkan) shader program internally
+			m_hpTable.emplace_back(loc, descType, pVal);
+		}
+
+		void Clear()
 		{
 			m_table.clear();
+			m_hpTable.clear();
 		}
 	};
 
+	// TODO: remove this legacy struct
 	struct DeviceBlendStateInfo
 	{
 		bool enabled;
@@ -263,9 +320,131 @@ namespace Engine
 		EBlendFactor dstFactor;
 	};
 
-	struct GraphicsPipelineCreateInfo
+	struct VertexInputBindingDescription
+	{
+		uint32_t			binding;
+		uint32_t			stride;
+		EVertexInputRate	inputRate;
+	};
+
+	struct VertexInputAttributeDescription
+	{
+		uint32_t		location;
+		uint32_t		binding;
+		ETextureFormat	format;
+		uint32_t		offset;
+	};
+
+	struct PipelineVertexInputStateCreateInfo
+	{
+		std::vector<VertexInputBindingDescription> bindingDescs;
+		std::vector<VertexInputAttributeDescription> attributeDescs;
+	};
+
+	class PipelineVertexInputState
 	{
 
+	};
+
+	struct PipelineInputAssemblyStateCreateInfo
+	{
+		EAssemblyTopology	topology;
+		bool				enablePrimitiveRestart;
+	};
+
+	class PipelineInputAssemblyState
+	{
+
+	};
+
+	struct AttachmentColorBlendStateDescription
+	{
+		std::shared_ptr<Texture2D> pAttachment;
+
+		bool enableBlend;
+		EBlendFactor	srcColorBlendFactor;
+		EBlendFactor	dstColorBlendFactor;
+		EBlendOperation	colorBlendOp;
+		EBlendFactor	srcAlphaBlendFactor;
+		EBlendFactor	dstAlphaBlendFactor;
+		EBlendOperation	alphaBlendOp;
+
+		// TODO: support for color write mask
+	};
+
+	struct PipelineColorBlendStateCreateInfo
+	{
+		std::vector<AttachmentColorBlendStateDescription> blendStateDescs;
+	};
+
+	class PipelineColorBlendState
+	{
+
+	};
+
+	struct PipelineRasterizationStateCreateInfo
+	{
+		bool			enableDepthClamp;
+		EPolygonMode	polygonMode;
+		ECullMode		cullMode;
+	};
+
+	class PipelineRasterizationState
+	{
+
+	};
+
+	struct PipelineDepthStencilStateCreateInfo
+	{
+		bool				enableDepthTest;
+		bool				enableDepthWrite;
+		bool				enableStencilTest;
+		ECompareOperation	depthCompareOP;
+		// TODO: include stencil compare op
+	};
+
+	class PipelineDepthStencilState
+	{
+
+	};
+
+	struct PipelineMultisampleStateCreateInfo
+	{
+		uint32_t	sampleCount;
+		bool		enableSampleShading;
+	};
+
+	class PipelineMultisampleState
+	{
+
+	};
+
+	struct PipelineViewportStateCreateInfo
+	{
+		uint32_t width;
+		uint32_t height;
+
+		// TODO: add support for multi-viewport and scissor control
+	};
+
+	class PipelineViewportState
+	{
+
+	};
+
+	struct GraphicsPipelineCreateInfo
+	{
+		EGPUType									deviceType;
+		std::shared_ptr<ShaderProgram>				pShaderProgram;
+		std::shared_ptr<PipelineVertexInputState>	pVertexInputState;
+		std::shared_ptr<PipelineInputAssemblyState>	pInputAssemblyState;
+		std::shared_ptr<PipelineColorBlendState>	pColorBlendState;
+		std::shared_ptr<PipelineRasterizationState>	pRasterizationState;
+		std::shared_ptr<PipelineDepthStencilState>	pDepthStencilState;
+		std::shared_ptr<PipelineMultisampleState>	pMultisampleState;
+		std::shared_ptr<PipelineViewportState>		pViewportState;
+		std::shared_ptr<RenderPassObject>			pRenderPass;
+		//uint32_t									subpassIndex; // TODO: add subpass support
 	};
 
 	class GraphicsPipelineObject

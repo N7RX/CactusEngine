@@ -55,6 +55,23 @@ VkIndexType VertexBuffer_Vulkan::GetIndexFormat() const
 	return m_indexType;
 }
 
+Sampler_Vulkan::Sampler_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const VkSamplerCreateInfo& createInfo)
+	: m_pDevice(pDevice)
+{
+	m_sampler = VK_NULL_HANDLE;
+
+	if (vkCreateSampler(m_pDevice->logicalDevice, &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
+	{
+		std::cerr << "Vulkan: failed to create image sampler.\n";
+	}
+}
+
+Sampler_Vulkan::~Sampler_Vulkan()
+{
+	assert(m_sampler != VK_NULL_HANDLE);
+	vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
+}
+
 Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo)
 	: m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
 {
@@ -101,6 +118,27 @@ Texture2D_Vulkan::~Texture2D_Vulkan()
 	}
 }
 
+uint32_t Texture2D_Vulkan::GetTextureID() const
+{
+	std::cerr << "Vulkan: shouldn't call GetTextureID on Vulkan texture 2D.\n";
+	return -1;
+}
+
+bool Texture2D_Vulkan::HasSampler() const
+{
+	return m_pSampler != nullptr;
+}
+
+void Texture2D_Vulkan::SetSampler(const std::shared_ptr<Sampler_Vulkan> pSampler)
+{
+	m_pSampler = pSampler;
+}
+
+std::shared_ptr<Sampler_Vulkan> Texture2D_Vulkan::GetSampler() const
+{
+	return m_pSampler;
+}
+
 RenderTarget2D_Vulkan::RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
 {
 	m_pDevice = pDevice;
@@ -140,7 +178,7 @@ UniformBuffer_Vulkan::~UniformBuffer_Vulkan()
 	}
 }
 
-void UniformBuffer_Vulkan::UpdateBufferData(const std::shared_ptr<void> pData)
+void UniformBuffer_Vulkan::UpdateBufferData(const void* pData)
 {
 	m_pRawData->m_pData = pData;
 }
@@ -154,7 +192,7 @@ void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_V
 	{
 	case EUniformBufferType_Vulkan::PushConstant:
 		assert(pCmdBuffer);
-		pCmdBuffer->UpdatePushConstant(m_appliedShaderStage, m_sizeInBytes, m_pRawData->m_pData.get());
+		pCmdBuffer->UpdatePushConstant(m_appliedShaderStage, m_sizeInBytes, m_pRawData->m_pData);
 		break;
 
 	case EUniformBufferType_Vulkan::Uniform:
@@ -164,7 +202,7 @@ void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_V
 		}
 		if (m_memoryMapped)
 		{
-			memcpy(m_pHostData, m_pRawData->m_pData.get(), m_sizeInBytes);
+			memcpy(m_pHostData, m_pRawData->m_pData, m_sizeInBytes);
 		}
 		else
 		{
@@ -280,6 +318,12 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 
 		m_renderTargets.emplace_back(std::make_shared<RenderTarget2D_Vulkan>(m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format));
 	}
+
+	m_imageAvailableSemaphores.reserve(DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT);
+	for (unsigned int i = 0; i < DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT; i++)
+	{
+		m_imageAvailableSemaphores[i] = m_pDevice->pSyncObjectManager->RequestSemaphore();
+	}
 }
 
 DrawingSwapchain_Vulkan::~DrawingSwapchain_Vulkan()
@@ -289,12 +333,13 @@ DrawingSwapchain_Vulkan::~DrawingSwapchain_Vulkan()
 	vkDestroySwapchainKHR(m_pDevice->logicalDevice, m_swapchain, nullptr);
 }
 
-bool DrawingSwapchain_Vulkan::UpdateBackBuffer(std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore, uint64_t timeout)
+bool DrawingSwapchain_Vulkan::UpdateBackBuffer(unsigned int currentFrame)
 {
-	return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, timeout, pSemaphore->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
+	assert(currentFrame < DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT);
+	return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, ACQUIRE_IMAGE_TIMEOUT, m_imageAvailableSemaphores[currentFrame]->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
 }
 
-bool DrawingSwapchain_Vulkan::Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores, uint32_t syncInterval)
+bool DrawingSwapchain_Vulkan::Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores)
 {
 	assert(m_swapchain != VK_NULL_HANDLE);
 	assert(m_presentQueue != VK_NULL_HANDLE);
@@ -332,6 +377,12 @@ std::shared_ptr<RenderTarget2D_Vulkan> DrawingSwapchain_Vulkan::GetTargetImage()
 VkExtent2D DrawingSwapchain_Vulkan::GetSwapExtent() const
 {
 	return m_swapExtent;
+}
+
+std::shared_ptr<DrawingSemaphore_Vulkan> DrawingSwapchain_Vulkan::GetImageAvailableSemaphore(unsigned int currentFrame) const
+{
+	assert(currentFrame < DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT);
+	return m_imageAvailableSemaphores[currentFrame];
 }
 
 RawShader_Vulkan::RawShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry)
@@ -388,11 +439,60 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const 
 		ReflectResources(shaderPtr);
 		shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
 
+		VkPipelineShaderStageCreateInfo shaderStageInfo = {};
+		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shaderStageInfo.stage = shaderPtr->m_shaderStage;
+		shaderStageInfo.module = shaderPtr->m_shaderModule;
+		shaderStageInfo.pName = shaderPtr->m_entryName;
+		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
+
 		shaderCount--; // When there are no more arguments in ap, the behavior of va_arg is undefined, therefore we need to keep a count
 	}
 
 	m_shaderStages = shaderStages;
 	va_end(vaShaders);
+}
+
+unsigned int ShaderProgram_Vulkan::GetParamLocation(const char* paramName) const
+{
+	std::cerr << "Vulkan: shouldn't call GetParamLocation on Vulkan shader program.\n";
+	return -1;
+}
+
+void ShaderProgram_Vulkan::Reset()
+{
+	std::cerr << "Vulkan: shouldn't call Reset on Vulkan shader program.\n";
+}
+
+uint32_t ShaderProgram_Vulkan::GetStageCount() const
+{
+	return (uint32_t)m_pipelineShaderStageCreateInfos.size();
+}
+
+const VkPipelineShaderStageCreateInfo* ShaderProgram_Vulkan::GetShaderStageCreateInfos() const
+{
+	return m_pipelineShaderStageCreateInfos.data();
+}
+
+uint32_t ShaderProgram_Vulkan::GetPushConstantRangeCount() const
+{
+	return (uint32_t)m_pipelineShaderStageCreateInfos.size();
+}
+
+const VkPushConstantRange* ShaderProgram_Vulkan::GetPushConstantRanges() const
+{
+	return m_pushConstantRanges.data();
+}
+
+VkDescriptorSet ShaderProgram_Vulkan::GetDescriptorSet(unsigned int index) const
+{
+	assert(index < m_descriptorSets.size());
+	return m_descriptorSets[index];
+}
+
+const DrawingDescriptorSetLayout_Vulkan* ShaderProgram_Vulkan::GetDescriptorSetLayout() const
+{
+	return m_pDescriptorSetLayout.get();
 }
 
 void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader)
@@ -413,16 +513,13 @@ void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulk
 	std::cout << "SPIRV: Shader Stage: " << pShader->m_shaderStage << std::endl;
 	std::cout << "Active Uniform Buffer Count: " << shaderRes.uniform_buffers.size() << std::endl;
 	std::cout << "Active Push Constant Count: " << shaderRes.push_constant_buffers.size() << std::endl;
-	std::cout << "Sampled Image Count: " << shaderRes.sampled_images.size() << std::endl;
-	std::cout << "Separate Image Count: " << shaderRes.separate_images.size() << std::endl;
-	std::cout << "Separate Sample Count: " << shaderRes.separate_samplers.size() << std::endl;
+	std::cout << "Active Combined Image Sampler Count: " << shaderRes.sampled_images.size() << std::endl;
+	std::cout << "Active Separate Image Count: " << shaderRes.separate_images.size() << std::endl;
+	std::cout << "Active Separate Sampler Count: " << shaderRes.separate_samplers.size() << std::endl;
 #endif
 
-	// TODO: replace this as input parameter
-	uint32_t maxDescSetsCount = 32;
-
 	LoadResourceBinding(spvCompiler, shaderRes);
-	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), maxDescSetsCount);
+	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), MAX_DESCRIPTOR_SET_COUNT);
 }
 
 void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource)
@@ -463,14 +560,11 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ProcessVariables(spvCompiler, buffer);
 	}
 
-#if defined(_DEBUG)
 	uint32_t accumulatePushConstSize = 0;
-#endif
 	for (auto& constant : shaderRes.push_constant_buffers)
 	{
-#if defined(_DEBUG)
 		accumulatePushConstSize += (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
-#endif	
+
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::PushConstant;
 		desc.slot = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
@@ -479,9 +573,7 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		m_resourceTable.emplace(desc.name, desc);
 		ProcessVariables(spvCompiler, constant);
 	}
-#if defined(_DEBUG)
 	assert(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
-#endif
 
 	for (auto& separateImage : shaderRes.separate_images)
 	{
@@ -523,15 +615,17 @@ void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& s
 {
 	DescriptorSetCreateInfo descSetCreateInfo = {};
 	descSetCreateInfo.maxDescSetCount = maxDescSetCount;
-	std::vector<VkPushConstantRange> pushConstantRanges;
 
 	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadSeparateImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadImageSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-	LoadPushConstantBuffer(spvCompiler, shaderRes, shaderType, pushConstantRanges);
+	LoadPushConstantBuffer(spvCompiler, shaderRes, shaderType, m_pushConstantRanges);
 
+	CreateDescriptorSetLayout(descSetCreateInfo);
+	CreateDescriptorPool(descSetCreateInfo);
 
+	AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT); // TODO: figure out the optimal allocation count in here
 }
 
 void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
@@ -549,13 +643,22 @@ void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCom
 
 		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
 		count++;
+
+		// Generate uniform buffer objects
+		UniformBufferCreateInfo_Vulkan ubCreateInfo = {};
+		ubCreateInfo.appliedStages = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		ubCreateInfo.layoutParamIndex = binding.binding;
+		ubCreateInfo.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(buffer.base_type_id));
+		ubCreateInfo.type = EUniformBufferType_Vulkan::Uniform;
+
+		m_uniformBuffers[binding.binding] = std::make_shared<UniformBuffer_Vulkan>(m_pLogicalDevice, ubCreateInfo);
 	}
 
 	if (count > 0)
 	{
 		VkDescriptorPoolSize poolSize = {};
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
 		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 	}
@@ -568,9 +671,9 @@ void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvC
 	for (auto& sampler : shaderRes.separate_samplers)
 	{
 		VkDescriptorSetLayoutBinding binding = {};
-		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the sampler is bind with multiple shader stages
 		binding.binding = spvCompiler.get_decoration(sampler.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
@@ -582,7 +685,7 @@ void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvC
 	{
 		VkDescriptorPoolSize poolSize = {};
 		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
 		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 	}
@@ -595,9 +698,9 @@ void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCom
 	for (auto& image : shaderRes.separate_images)
 	{
 		VkDescriptorSetLayoutBinding binding = {};
-		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the image is bind with multiple shader stages
 		binding.binding = spvCompiler.get_decoration(image.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
@@ -609,7 +712,7 @@ void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCom
 	{
 		VkDescriptorPoolSize poolSize = {};
 		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
 		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 	}
@@ -622,9 +725,9 @@ void ShaderProgram_Vulkan::LoadImageSampler(const spirv_cross::Compiler& spvComp
 	for (auto& sampledImage : shaderRes.sampled_images)
 	{
 		VkDescriptorSetLayoutBinding binding = {};
-		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
+		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the combined sampler is bind with multiple shader stages
 		binding.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
@@ -636,7 +739,7 @@ void ShaderProgram_Vulkan::LoadImageSampler(const spirv_cross::Compiler& spvComp
 	{
 		VkDescriptorPoolSize poolSize = {};
 		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count; // Alert: this could be incorrect
+		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
 		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 	}
@@ -649,9 +752,18 @@ void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& s
 		VkPushConstantRange range = {};
 		range.offset = spvCompiler.get_decoration(constant.id, spv::DecorationOffset);
 		range.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
-		range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the push constant is bind with multiple shader stages
 
 		outRanges.emplace_back(range);
+
+		// Generate push constant buffer objects
+		UniformBufferCreateInfo_Vulkan pcbCreateInfo = {};
+		pcbCreateInfo.appliedStages = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		pcbCreateInfo.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
+		pcbCreateInfo.type = EUniformBufferType_Vulkan::PushConstant;
+		// Push constant buffer does not require layout binding
+
+		m_pushConstantBuffers.emplace_back(std::make_shared<UniformBuffer_Vulkan>(m_pLogicalDevice, pcbCreateInfo));
 	}
 }
 
@@ -670,7 +782,7 @@ void ShaderProgram_Vulkan::AllocateDescriptorSet(uint32_t count)
 	assert(m_pDescriptorPool);
 	assert(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
 
-	std::vector<VkDescriptorSetLayout> layouts(count, m_pDescriptorSetLayout->GetSetLayout());
+	std::vector<VkDescriptorSetLayout> layouts(count, *m_pDescriptorSetLayout->GetDescriptorSetLayout());
 	std::vector<VkDescriptorSet> newDescSets;
 
 	m_pDescriptorPool->AllocateDescriptorSets(layouts, newDescSets);
@@ -679,6 +791,17 @@ void ShaderProgram_Vulkan::AllocateDescriptorSet(uint32_t count)
 	{
 		m_descriptorSets.emplace_back(descSet);
 	}
+}
+
+void ShaderProgram_Vulkan::UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos)
+{
+	m_pDescriptorPool->UpdateDescriptorSets(updateInfos);
+}
+
+void ShaderProgram_Vulkan::UpdateUniformBufferData(unsigned int loc, const void* pData)
+{
+	assert(m_uniformBuffers.find((uint32_t)loc) != m_uniformBuffers.end());
+	m_uniformBuffers.at(loc)->UpdateBufferData(pData);
 }
 
 EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType& type, uint32_t size)
@@ -914,7 +1037,6 @@ GraphicsPipeline_Vulkan::GraphicsPipeline_Vulkan(const std::shared_ptr<LogicalDe
 	: m_pDevice(pDevice), m_pShaderProgram(pShaderProgram)
 {
 	// TODO: support creation from cache & batched creations to reduce startup time
-
 	m_pipelineLayout = createInfo.layout;
 	m_pipeline = VK_NULL_HANDLE;
 
@@ -927,6 +1049,9 @@ GraphicsPipeline_Vulkan::GraphicsPipeline_Vulkan(const std::shared_ptr<LogicalDe
 GraphicsPipeline_Vulkan::~GraphicsPipeline_Vulkan()
 {
 	assert(m_pipeline != VK_NULL_HANDLE);
+
+	vkDestroyPipelineLayout(m_pDevice->logicalDevice, m_pipelineLayout, nullptr);
+	vkDestroyPipeline(m_pDevice->logicalDevice, m_pipeline, nullptr);
 }
 
 VkPipeline GraphicsPipeline_Vulkan::GetPipeline() const
@@ -937,6 +1062,11 @@ VkPipeline GraphicsPipeline_Vulkan::GetPipeline() const
 VkPipelineLayout GraphicsPipeline_Vulkan::GetPipelineLayout() const
 {
 	return m_pipelineLayout;
+}
+
+VkPipelineBindPoint GraphicsPipeline_Vulkan::GetBindPoint() const
+{
+	return VK_PIPELINE_BIND_POINT_GRAPHICS;
 }
 
 PipelineVertexInputState_Vulkan::PipelineVertexInputState_Vulkan(const std::vector<VkVertexInputBindingDescription>& bindingDescs, const std::vector<VkVertexInputAttributeDescription>& attributeDescs)
@@ -953,6 +1083,19 @@ PipelineVertexInputState_Vulkan::PipelineVertexInputState_Vulkan(const std::vect
 const VkPipelineVertexInputStateCreateInfo* PipelineVertexInputState_Vulkan::GetVertexInputStateCreateInfo() const
 {
 	return &m_pipelineVertexInputStateCreateInfo;
+}
+
+PipelineInputAssemblyState_Vulkan::PipelineInputAssemblyState_Vulkan(const PipelineInputAssemblyStateCreateInfo& createInfo)
+{
+	m_pipelineInputAssemblyStateCreateInfo = {};
+	m_pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	m_pipelineInputAssemblyStateCreateInfo.topology = VulkanPrimitiveTopology(createInfo.topology);
+	m_pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = createInfo.enablePrimitiveRestart ? VK_TRUE : VK_FALSE;
+}
+
+const VkPipelineInputAssemblyStateCreateInfo* PipelineInputAssemblyState_Vulkan::GetInputAssemblyStateCreateInfo() const
+{
+	return &m_pipelineInputAssemblyStateCreateInfo;
 }
 
 PipelineColorBlendState_Vulkan::PipelineColorBlendState_Vulkan(const std::vector<VkPipelineColorBlendAttachmentState>& blendAttachmentStates)
@@ -991,18 +1134,69 @@ void PipelineColorBlendState_Vulkan::SetLogicOpeartion(VkLogicOp logicOp)
 	m_pipelineColorBlendStateCreateInfo.logicOp = logicOp;
 }
 
-PipelineViewportState_Vulkan::PipelineViewportState_Vulkan(uint32_t width, uint32_t height)
+PipelineRasterizationState_Vulkan::PipelineRasterizationState_Vulkan(const PipelineRasterizationStateCreateInfo& createInfo)
+{
+	m_pipelineRasterizationStateCreateInfo = {};
+	m_pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	m_pipelineRasterizationStateCreateInfo.depthClampEnable = createInfo.enableDepthClamp ? VK_TRUE : VK_FALSE;
+	m_pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_TRUE;
+	m_pipelineRasterizationStateCreateInfo.polygonMode = VulkanPolygonMode(createInfo.polygonMode);
+	m_pipelineRasterizationStateCreateInfo.cullMode = VulkanCullMode(createInfo.cullMode);
+	m_pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // TODO: configure this in create info
+	m_pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
+	m_pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
+}
+
+const VkPipelineRasterizationStateCreateInfo* PipelineRasterizationState_Vulkan::GetRasterizationStateCreateInfo() const
+{
+	return &m_pipelineRasterizationStateCreateInfo;
+}
+
+PipelineDepthStencilState_Vulkan::PipelineDepthStencilState_Vulkan(const PipelineDepthStencilStateCreateInfo& createInfo)
+{
+	m_pipelineDepthStencilStateCreateInfo = {};
+	m_pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	m_pipelineDepthStencilStateCreateInfo.depthTestEnable = createInfo.enableDepthTest ? VK_TRUE : VK_FALSE;
+	m_pipelineDepthStencilStateCreateInfo.depthWriteEnable = createInfo.enableDepthWrite ? VK_TRUE : VK_FALSE;
+	m_pipelineDepthStencilStateCreateInfo.depthCompareOp = VulkanCompareOp(createInfo.depthCompareOP);
+	m_pipelineDepthStencilStateCreateInfo.depthBoundsTestEnable = VK_FALSE;
+	m_pipelineDepthStencilStateCreateInfo.stencilTestEnable = createInfo.enableStencilTest ? VK_TRUE : VK_FALSE;
+	
+	// TODO: add support for stencil operations and depth bounds test
+}
+
+const VkPipelineDepthStencilStateCreateInfo* PipelineDepthStencilState_Vulkan::GetDepthStencilStateCreateInfo() const
+{
+	return &m_pipelineDepthStencilStateCreateInfo;
+}
+
+PipelineMultisampleState_Vulkan::PipelineMultisampleState_Vulkan(const PipelineMultisampleStateCreateInfo& createInfo)
+{
+	m_pipelineMultisampleStateCreateInfo = {};
+	m_pipelineMultisampleStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	m_pipelineMultisampleStateCreateInfo.rasterizationSamples = VulkanSampleCount(createInfo.sampleCount);
+	m_pipelineMultisampleStateCreateInfo.sampleShadingEnable = createInfo.enableSampleShading ? VK_TRUE : VK_FALSE;
+	
+	// TODO: add support for sample mask and alpha config
+}
+
+const VkPipelineMultisampleStateCreateInfo* PipelineMultisampleState_Vulkan::GetMultisampleStateCreateInfo() const
+{
+	return &m_pipelineMultisampleStateCreateInfo;
+}
+
+PipelineViewportState_Vulkan::PipelineViewportState_Vulkan(const PipelineViewportStateCreateInfo& createInfo)
 {
 	m_viewport = {};
 	m_viewport.x = 0.0f;
 	m_viewport.y = 0.0f;
-	m_viewport.width = (float)width;
-	m_viewport.height = (float)height;
+	m_viewport.width = (float)createInfo.width;
+	m_viewport.height = (float)createInfo.height;
 	m_viewport.minDepth = 0.0f;
 	m_viewport.maxDepth = 1.0f;
 
 	m_scissor.offset = { 0, 0 };
-	m_scissor.extent = { width, height };
+	m_scissor.extent = { createInfo.width, createInfo.height };
 
 	m_pipelineViewportStateCreateInfo = {};
 	m_pipelineViewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

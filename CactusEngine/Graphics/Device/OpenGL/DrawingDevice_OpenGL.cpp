@@ -299,6 +299,54 @@ bool DrawingDevice_OpenGL::CreateRenderPassObject(const RenderPassCreateInfo& cr
 	return false;
 }
 
+bool DrawingDevice_OpenGL::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreateSampler on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineVertexInputState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, std::shared_ptr<PipelineInputAssemblyState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineInputAssemblyState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, std::shared_ptr<PipelineColorBlendState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineColorBlendState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, std::shared_ptr<PipelineRasterizationState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineRasterizationState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, std::shared_ptr<PipelineDepthStencilState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineDepthStencilState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineMultisampleState on OpenGL device.\n";
+	return false;
+}
+
+bool DrawingDevice_OpenGL::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreatePipelineViewportState on OpenGL device.\n";
+	return false;
+}
+
 bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
 {
 	std::cerr << "OpenGL: shouldn't call CreateGraphicsPipelineObject on OpenGL device.\n";
@@ -308,6 +356,11 @@ bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 void DrawingDevice_OpenGL::SwitchCmdGPUContext(EGPUType type)
 {
 	std::cerr << "OpenGL: shouldn't call SwitchCmdGPUContext on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline)
+{
+	std::cerr << "OpenGL: shouldn't call BindGraphicsPipeline on OpenGL device.\n";
 }
 
 void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)

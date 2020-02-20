@@ -164,6 +164,15 @@ GLuint ShaderProgram_OpenGL::GetGLProgramID() const
 	return m_glProgramID;
 }
 
+unsigned int ShaderProgram_OpenGL::GetParamLocation(const char* paramName) const
+{
+	if (m_paramLocations.find(paramName) != m_paramLocations.end())
+	{
+		return m_paramLocations.at(paramName);
+	}
+	return -1;
+}
+
 void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EShaderParamType type, const void* value)
 {
 	switch (type)

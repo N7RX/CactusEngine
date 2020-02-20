@@ -19,11 +19,13 @@ void DrawingDevice_Vulkan::Initialize()
 	SetupCommandManager();
 	SetupUploadAllocator();
 	SetupDescriptorAllocator();
+
+	m_currentFrame = 0;
 }
 
 void DrawingDevice_Vulkan::ShutDown()
 {
-
+	// TODO: clean up resources
 }
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
@@ -227,17 +229,17 @@ bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& create
 
 void DrawingDevice_Vulkan::ClearRenderTarget()
 {
-
+	std::cerr << "Vulkan: shouldn't call ClearRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
 {
-	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device. Call BeginRenderPass instead.\n";
+	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
-	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device. Call BeginRenderPass instead.\n";
+	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetClearColor(Color4 color)
@@ -249,14 +251,84 @@ void DrawingDevice_Vulkan::SetClearColor(Color4 color)
 
 void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 {
-
+	std::cerr << "Vulkan: shouldn't call SetBlendState on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
 {
-	auto pProgram = std::static_pointer_cast<ShaderProgram_Vulkan>(pShaderProgram);
+	auto pVkShader = std::static_pointer_cast<ShaderProgram_Vulkan>(pShaderProgram);
 
+	std::vector<DesciptorUpdateInfo_Vulkan> updateInfos;
 
+	for (auto& item : pTable->m_hpTable)
+	{
+		if (item.type == EDescriptorType::UniformBuffer)
+		{
+			// Update uniform buffer memory
+			pVkShader->UpdateUniformBufferData(item.location, item.pValue);
+			continue; // Uniform buffers are managed by shader program internally
+		}
+
+		DesciptorUpdateInfo_Vulkan updateInfo = {};
+		updateInfo.hasContent = true;
+		updateInfo.infoType = VulkanDescriptorResourceType(item.type);
+		updateInfo.dstDescriptorType = VulkanDescriptorType(item.type);
+		updateInfo.dstDescriptorBinding = item.location;
+		updateInfo.dstDescriptorSet = pVkShader->GetDescriptorSet(m_currentFrame);
+		updateInfo.dstArrayElement = 0; // Alert: incorrect if it contains array
+
+		switch (updateInfo.infoType)
+		{
+		case EDescriptorResourceType_Vulkan::Buffer:
+		{
+			auto pBuffer = std::static_pointer_cast<RawBuffer_Vulkan>(item.pResource);
+
+			VkDescriptorBufferInfo bufferInfo = {};
+			bufferInfo.buffer = pBuffer->m_buffer;
+			bufferInfo.offset = 0; // Alert: incorrect if it contains sub-buffer division
+			bufferInfo.range = VK_WHOLE_SIZE;
+
+			updateInfo.bufferInfos.emplace_back(bufferInfo);
+
+			break;
+		}
+		case EDescriptorResourceType_Vulkan::Image:
+		{
+			auto pImage = std::static_pointer_cast<Texture2D_Vulkan>(item.pResource);
+
+			VkDescriptorImageInfo imageInfo = {};
+			imageInfo.imageView = pImage->m_imageView;
+			imageInfo.imageLayout = pImage->m_layout;
+			if (pImage->HasSampler())
+			{
+				imageInfo.sampler = pImage->GetSampler()->m_sampler;
+			}
+			else
+			{
+				imageInfo.sampler = VK_NULL_HANDLE;
+			}
+
+			updateInfo.imageInfos.emplace_back(imageInfo);
+
+			break;
+		}
+		case EDescriptorResourceType_Vulkan::TexelBuffer:
+		{
+			std::cerr << "Vulkan: TexelBuffer is unhandled.\n";
+			updateInfo.hasContent = false;
+
+			break;
+		}
+		default:
+			std::cerr << "Vulkan: Unhandled descriptor resource type: " << (unsigned int)updateInfo.infoType << std::endl;
+			updateInfo.hasContent = false;
+			break;
+		}
+
+		updateInfos.emplace_back(updateInfo);
+	}
+
+	pVkShader->UpdateDescriptorSets(updateInfos);
 }
 
 void DrawingDevice_Vulkan::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer)
@@ -287,17 +359,27 @@ void DrawingDevice_Vulkan::DrawPrimitive(uint32_t indicesCount, uint32_t baseInd
 
 void DrawingDevice_Vulkan::DrawFullScreenQuad()
 {
-
+	// TODO: draw full-screen quad attributelessly
 }
 
 void DrawingDevice_Vulkan::ResizeViewPort(uint32_t width, uint32_t height)
 {
-
+	// TODO: recreate swapchain
 }
 
 EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const
 {
 	return EGraphicsDeviceType::Vulkan;
+}
+
+void DrawingDevice_Vulkan::SetupDevice()
+{
+	GetRequiredExtensions();
+	CreateInstance();
+	SetupDebugMessenger();
+	CreatePresentationSurface();
+	SelectPhysicalDevice();
+	CreateLogicalDevice();
 }
 
 std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGPUType type) const
@@ -310,21 +392,12 @@ std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGP
 	case EGPUType::Discrete:
 		return m_pDevice_0;
 	default:
+		std::cerr << "Vulkan: Unhandled GPU type: " << (unsigned int)type << std::endl;
 		return nullptr;
 	}
 #else
 	return m_pDevice_0;
 #endif
-}
-
-void DrawingDevice_Vulkan::SetupDevice()
-{
-	GetRequiredExtensions();
-	CreateInstance();
-	SetupDebugMessenger();
-	CreatePresentationSurface();
-	SelectPhysicalDevice();
-	CreateLogicalDevice();
 }
 
 bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
@@ -401,18 +474,206 @@ bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& cr
 #endif
 }
 
+bool DrawingDevice_Vulkan::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)
+{
+	VkSamplerCreateInfo samplerCreateInfo = {};
+	samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerCreateInfo.magFilter = VulkanSamplerFilterMode(createInfo.magMode);
+	samplerCreateInfo.minFilter = VulkanSamplerFilterMode(createInfo.minMode);
+	samplerCreateInfo.mipmapMode = VulkanSamplerMipmapMode(createInfo.mipmapMode);
+	samplerCreateInfo.addressModeU = VulkanSamplerAddressMode(createInfo.addressMode);
+	samplerCreateInfo.addressModeV = samplerCreateInfo.addressModeU; // Same address mode is applied to all axes
+	samplerCreateInfo.addressModeW = samplerCreateInfo.addressModeU;
+	samplerCreateInfo.mipLodBias = createInfo.minLodBias;
+	samplerCreateInfo.anisotropyEnable = createInfo.enableAnisotropy ? VK_TRUE : VK_FALSE;
+	samplerCreateInfo.maxAnisotropy = createInfo.maxAnisotropy;
+	samplerCreateInfo.compareEnable = createInfo.enableCompareOp ? VK_TRUE : VK_FALSE;
+	samplerCreateInfo.compareOp = VulkanCompareOp(createInfo.compareOp);
+	samplerCreateInfo.minLod = createInfo.minLod;
+	samplerCreateInfo.maxLod = createInfo.maxLod;
+	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pOutput = std::make_shared<Sampler_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1, samplerCreateInfo);
+#else
+	pOutput = std::make_shared<Sampler_Vulkan>(m_pDevice_0, samplerCreateInfo);
+#endif
+
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput)
+{
+	std::vector<VkVertexInputBindingDescription> bindingDescs;
+	std::vector<VkVertexInputAttributeDescription> attributeDescs;
+
+	for (auto& desc : createInfo.bindingDescs)
+	{
+		VkVertexInputBindingDescription bindingDesc = {};
+		bindingDesc.binding = desc.binding;
+		bindingDesc.stride = desc.stride;
+		bindingDesc.inputRate = VulkanVertexInputRate(desc.inputRate);
+
+		bindingDescs.emplace_back(bindingDesc);
+	}
+
+	for (auto& desc : createInfo.attributeDescs)
+	{
+		VkVertexInputAttributeDescription attribDesc = {};
+		attribDesc.location = desc.location;
+		attribDesc.binding = desc.binding;
+		attribDesc.offset = desc.offset;
+		attribDesc.format = VulkanImageFormat(desc.format);
+
+		attributeDescs.emplace_back(attribDesc);
+	}
+
+	pOutput = std::make_shared<PipelineVertexInputState_Vulkan>(bindingDescs, attributeDescs);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, std::shared_ptr<PipelineInputAssemblyState>& pOutput)
+{
+	pOutput = std::make_shared<PipelineInputAssemblyState_Vulkan>(createInfo);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, std::shared_ptr<PipelineColorBlendState>& pOutput)
+{
+	std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates;
+
+	for (auto& desc : createInfo.blendStateDescs)
+	{
+		auto pTexture = std::static_pointer_cast<Texture2D_Vulkan>(desc.pAttachment);
+
+		pTexture->m_pColorBlendAttachmentState->blendEnable = desc.enableBlend ? VK_TRUE : VK_FALSE;
+		pTexture->m_pColorBlendAttachmentState = std::make_shared<VkPipelineColorBlendAttachmentState>();
+		pTexture->m_pColorBlendAttachmentState->srcColorBlendFactor = VulkanBlendFactor(desc.srcColorBlendFactor);
+		pTexture->m_pColorBlendAttachmentState->dstColorBlendFactor = VulkanBlendFactor(desc.dstColorBlendFactor);
+		pTexture->m_pColorBlendAttachmentState->colorBlendOp = VulkanBlendOp(desc.colorBlendOp);
+		pTexture->m_pColorBlendAttachmentState->srcAlphaBlendFactor = VulkanBlendFactor(desc.srcAlphaBlendFactor);
+		pTexture->m_pColorBlendAttachmentState->dstAlphaBlendFactor = VulkanBlendFactor(desc.dstAlphaBlendFactor);
+		pTexture->m_pColorBlendAttachmentState->alphaBlendOp = VulkanBlendOp(desc.alphaBlendOp);
+
+		blendAttachmentStates.emplace_back(*pTexture->m_pColorBlendAttachmentState);
+	}
+
+	pOutput = std::make_shared<PipelineColorBlendState_Vulkan>(blendAttachmentStates);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, std::shared_ptr<PipelineRasterizationState>& pOutput)
+{
+	pOutput = std::make_shared<PipelineRasterizationState_Vulkan>(createInfo);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, std::shared_ptr<PipelineDepthStencilState>& pOutput)
+{
+	pOutput = std::make_shared<PipelineDepthStencilState_Vulkan>(createInfo);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput)
+{
+	pOutput = std::make_shared<PipelineMultisampleState_Vulkan>(createInfo);
+	return pOutput != nullptr;
+}
+
+bool DrawingDevice_Vulkan::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput)
+{
+	pOutput = std::make_shared<PipelineViewportState_Vulkan>(createInfo);
+	return pOutput != nullptr;
+}
+
 bool DrawingDevice_Vulkan::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
 {
+	auto pShaderProgram = std::static_pointer_cast<ShaderProgram_Vulkan>(createInfo.pShaderProgram);
+
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+
+	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pushConstantRangeCount = pShaderProgram->GetPushConstantRangeCount();
+	pipelineLayoutCreateInfo.pPushConstantRanges = pShaderProgram->GetPushConstantRanges();
+	pipelineLayoutCreateInfo.pSetLayouts = pShaderProgram->GetDescriptorSetLayout()->GetDescriptorSetLayout();
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	if (vkCreatePipelineLayout(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0->logicalDevice : m_pDevice_1->logicalDevice,
+		&pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+#else
+	if (vkCreatePipelineLayout(m_pDevice_0->logicalDevice,
+		&pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+#endif
+	{
+		throw std::runtime_error("Vulkan: failed to create graphics pipeline layout.\n");
+		return false;
+	}
+
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 	pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
+	pipelineCreateInfo.stageCount = pShaderProgram->GetStageCount();
+	pipelineCreateInfo.pStages = pShaderProgram->GetShaderStageCreateInfos();
 
-	return false;
+	pipelineCreateInfo.pVertexInputState = std::static_pointer_cast<PipelineVertexInputState_Vulkan>(createInfo.pVertexInputState)->GetVertexInputStateCreateInfo();
+	pipelineCreateInfo.pInputAssemblyState = std::static_pointer_cast<PipelineInputAssemblyState_Vulkan>(createInfo.pInputAssemblyState)->GetInputAssemblyStateCreateInfo();
+	// ...(Tessellation State)
+	pipelineCreateInfo.pViewportState = std::static_pointer_cast<PipelineViewportState_Vulkan>(createInfo.pViewportState)->GetViewportStateCreateInfo();
+	pipelineCreateInfo.pRasterizationState = std::static_pointer_cast<PipelineRasterizationState_Vulkan>(createInfo.pRasterizationState)->GetRasterizationStateCreateInfo();
+	pipelineCreateInfo.pMultisampleState = std::static_pointer_cast<PipelineMultisampleState_Vulkan>(createInfo.pMultisampleState)->GetMultisampleStateCreateInfo();
+	pipelineCreateInfo.pColorBlendState = std::static_pointer_cast<PipelineColorBlendState_Vulkan>(createInfo.pColorBlendState)->GetColorBlendStateCreateInfo();
+	pipelineCreateInfo.pDepthStencilState = std::static_pointer_cast<PipelineDepthStencilState_Vulkan>(createInfo.pDepthStencilState)->GetDepthStencilStateCreateInfo();
+	// ...(Dynamics State)
+
+	pipelineCreateInfo.layout = pipelineLayout;
+	pipelineCreateInfo.renderPass = std::static_pointer_cast<RenderPass_Vulkan>(createInfo.pRenderPass)->m_renderPass;	
+	//pipelineCreateInfo.subpass = createInfo.subpassIndex;
+	pipelineCreateInfo.subpass = 0;
+	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pOutput = std::make_shared<GraphicsPipeline_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1,
+		pShaderProgram, pipelineCreateInfo);
+#else
+	pOutput = std::make_shared<GraphicsPipeline_Vulkan>(m_pDevice_0,
+		pShaderProgram, pipelineCreateInfo);
+#endif
+
+	return pOutput != nullptr;
 }
 
 void DrawingDevice_Vulkan::SwitchCmdGPUContext(EGPUType type)
 {
 	m_cmdGPUType = type;
+}
+
+void DrawingDevice_Vulkan::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline)
+{
+	auto pVkPipeline = std::static_pointer_cast<GraphicsPipeline_Vulkan>(pPipeline);
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	switch (m_cmdGPUType)
+	{
+	case EGPUType::Discrete:
+		m_pDevice_0->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
+		m_pDevice_0->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
+		break;
+
+	case EGPUType::Integrated:
+		m_pDevice_1->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
+		m_pDevice_1->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
+		break;
+
+	default:
+		throw std::runtime_error("Vulkan: unhandled GPU type.\n");
+	}
+#else
+	m_pDevice_0->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
+	m_pDevice_0->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
+#endif
 }
 
 void DrawingDevice_Vulkan::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)
@@ -432,7 +693,36 @@ void DrawingDevice_Vulkan::BeginRenderPass(const std::shared_ptr<RenderPassObjec
 
 void DrawingDevice_Vulkan::Present()
 {
+	assert(m_pSwapchain);
 
+	// Present current frame
+
+	auto pRenderFinishSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestSemaphore();
+	m_pSwapchain->m_pDevice->pWorkingCmdBuffer->SignalSemaphore(pRenderFinishSemaphore);
+
+	m_pSwapchain->m_pDevice->pGraphicsCommandManager->WaitFrameFenceSubmission();
+
+	auto pFrameFence = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestFence();
+	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameFence->fence);
+
+	if (vkWaitForFences(m_pSwapchain->m_pDevice->logicalDevice, 1, &pFrameFence->fence, VK_TRUE, FRAME_TIMEOUT) != VK_SUCCESS)
+	{
+		std::cerr << "Vulkan: frame timeout.\n";
+	}
+
+	std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> presentWaitSemaphores = { pRenderFinishSemaphore };
+	m_pSwapchain->Present(presentWaitSemaphores);
+
+	m_pSwapchain->m_pDevice->pSyncObjectManager->ReturnSemaphore(pRenderFinishSemaphore);
+
+	// TODO: release resources hold by command manager
+	// ...
+
+	// Preparation for next frame
+
+	m_currentFrame = (m_currentFrame + 1) % MAX_FRAME_IN_FLIGHT;
+
+	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
 }
 
 void DrawingDevice_Vulkan::ConfigureStates_Test()
@@ -775,6 +1065,28 @@ void DrawingDevice_Vulkan::SetupDescriptorAllocator()
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	m_pDevice_1->pDescriptorAllocator = std::make_shared<DrawingDescriptorAllocator_Vulkan>(m_pDevice_1);
 #endif
+}
 
-	system("pause");
+EDescriptorResourceType_Vulkan DrawingDevice_Vulkan::VulkanDescriptorResourceType(EDescriptorType type) const
+{
+	switch (type)
+	{
+	case EDescriptorType::UniformBuffer:
+	case EDescriptorType::StorageBuffer:
+		return EDescriptorResourceType_Vulkan::Buffer;
+
+	case EDescriptorType::SampledImage:
+	case EDescriptorType::CombinedImageSampler:
+	case EDescriptorType::Sampler: // Alert: could be wrong to classify as image
+	case EDescriptorType::StorageImage:
+		return EDescriptorResourceType_Vulkan::Image;
+
+	case EDescriptorType::UniformTexelBuffer:
+	case EDescriptorType::StorageTexelBuffer:
+		return EDescriptorResourceType_Vulkan::TexelBuffer;
+
+	default:
+		std::cerr << "Vulkan: Unhandled descriptor type: " << (unsigned int)type << std::endl;
+		return EDescriptorResourceType_Vulkan::Buffer;
+	}
 }

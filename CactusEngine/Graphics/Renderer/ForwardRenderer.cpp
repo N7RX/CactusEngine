@@ -48,8 +48,8 @@ void ForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList
 // TODO: rewrite this function, this is way too long and high-coupling
 void ForwardRenderer::BuildFrameResources()
 {
-	auto screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-	auto screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+	uint32_t screenWidth  = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+	uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 
 	Texture2DCreateInfo texCreateInfo = {};
 

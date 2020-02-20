@@ -18,8 +18,8 @@ namespace Engine
 	enum class EAllocatorType_Vulkan
 	{
 		None = 0,
-		VK, // Native Vulkan allocation
-		VMA,// Managed by Vulkan Memory Allocator library
+		VK,  // Native Vulkan allocation
+		VMA, // Managed by Vulkan Memory Allocator (VMA) library
 		COUNT
 	};
 
@@ -58,13 +58,31 @@ namespace Engine
 		VkIndexType m_indexType;
 	};
 
+	class Sampler_Vulkan : public TextureSampler
+	{
+	public:
+		Sampler_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const VkSamplerCreateInfo& createInfo);
+		~Sampler_Vulkan();
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		VkSampler m_sampler;
+
+		friend class DrawingDevice_Vulkan;
+		friend class Texture2D_Vulkan;
+	};
+
 	class Texture2D_Vulkan : public Texture2D
 	{
 	public:
 		Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo);
 		virtual ~Texture2D_Vulkan();
 
-		uint32_t GetTextureID() const override { return -1; };// This is currently not used in Vulkan device
+		uint32_t GetTextureID() const override; // Not used in Vulkan device
+
+		bool HasSampler() const;
+		void SetSampler(const std::shared_ptr<Sampler_Vulkan> pSampler);
+		std::shared_ptr<Sampler_Vulkan> GetSampler() const;
 
 	protected:
 		Texture2D_Vulkan() = default;
@@ -82,6 +100,10 @@ namespace Engine
 		VkImageAspectFlags	m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 
 		EAllocatorType_Vulkan m_allocatorType;
+
+		std::shared_ptr<VkPipelineColorBlendAttachmentState> m_pColorBlendAttachmentState;
+
+		std::shared_ptr<Sampler_Vulkan> m_pSampler;
 
 		friend class DrawingDevice_Vulkan;
 		friend class DrawingCommandBuffer_Vulkan;
@@ -105,10 +127,10 @@ namespace Engine
 
 	struct UniformBufferCreateInfo_Vulkan
 	{
-		EUniformBufferType_Vulkan type;
-		uint32_t size;
-		uint32_t layoutParamIndex;
-		VkShaderStageFlags appliedStages;
+		EUniformBufferType_Vulkan	type;
+		uint32_t					size;
+		uint32_t					layoutParamIndex;
+		VkShaderStageFlags			appliedStages;
 	};
 
 	class UniformBuffer_Vulkan : public RawBuffer_Vulkan
@@ -117,7 +139,7 @@ namespace Engine
 		UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo);
 		~UniformBuffer_Vulkan();
 
-		void UpdateBufferData(const std::shared_ptr<void> pData);
+		void UpdateBufferData(const void* pData);
 		void UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer = nullptr);
 
 		EUniformBufferType_Vulkan GetType() const;
@@ -148,7 +170,6 @@ namespace Engine
 		~FrameBuffer_Vulkan();
 
 		uint32_t GetFrameBufferID() const override;
-		// TODO: finish constructing Vulkan framebuffer wrapper class
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
@@ -175,12 +196,16 @@ namespace Engine
 		DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingSwapchainCreateInfo_Vulkan& createInfo);
 		~DrawingSwapchain_Vulkan();
 
-		bool UpdateBackBuffer(std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore, uint64_t timeout);
-		bool Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores, uint32_t syncInterval);
+		bool UpdateBackBuffer(unsigned int currentFrame);
+		bool Present(const std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>>& waitSemaphores);
 
 		uint32_t GetSwapchainImageCount() const;
 		std::shared_ptr<RenderTarget2D_Vulkan> GetTargetImage() const;
 		VkExtent2D GetSwapExtent() const;
+		std::shared_ptr<DrawingSemaphore_Vulkan> GetImageAvailableSemaphore(unsigned int currentFrame) const;
+
+	public:
+		const uint64_t ACQUIRE_IMAGE_TIMEOUT = 3e9; // 3 seconds
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
@@ -190,6 +215,9 @@ namespace Engine
 
 		std::vector<std::shared_ptr<RenderTarget2D_Vulkan>> m_renderTargets; // Swapchain images
 		uint32_t m_targetImageIndex;
+		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_imageAvailableSemaphores;
+
+		friend class DrawingDevice_Vulkan;
 	};
 
 	class RawShader_Vulkan
@@ -254,34 +282,48 @@ namespace Engine
 		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
 		~ShaderProgram_Vulkan() = default;
 
-	public:
-		void Reset() override {};
+		// These two functions do not work on Vulkan shader program
+		unsigned int GetParamLocation(const char* paramName) const override;
+		void Reset() override;
+
+		uint32_t GetStageCount() const;
+		const VkPipelineShaderStageCreateInfo* GetShaderStageCreateInfos() const;
+
+		uint32_t GetPushConstantRangeCount() const;
+		const VkPushConstantRange* GetPushConstantRanges() const;
+
+		VkDescriptorSet GetDescriptorSet(unsigned int index) const;
+		const DrawingDescriptorSetLayout_Vulkan* GetDescriptorSetLayout() const;
+		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
+
+		unsigned int GetUniformLocationByName(const char* name) const;
+		void UpdateUniformBufferData(unsigned int loc, const void* pData);
 
 	private:
-		const float MAX_DESCRIPTOR_SET_COUNT = 32;
+		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 3; // TODO: figure out the proper value for this limit
 
 		struct ResourceDescription
 		{
-			EShaderResourceType_Vulkan type;
-			unsigned int slot;
-			const char* name;
+			EShaderResourceType_Vulkan	type;
+			unsigned int				slot;
+			const char*					name;
 		};
 
 		struct VariableDescription
 		{
-			const char* uniformName;
-			const char* variableName;
-			uint32_t offset;
-			uint32_t uniformSize;
-			uint32_t variableSize;
-			EShaderParamType paramType;
+			const char*			uniformName;
+			const char*			variableName;
+			uint32_t			offset;
+			uint32_t			uniformSize;
+			uint32_t			variableSize;
+			EShaderParamType	paramType;
 		};
 
 		struct DescriptorSetCreateInfo
 		{
-			std::vector<VkDescriptorSetLayoutBinding> descSetLayoutBindings;
-			std::vector<VkDescriptorPoolSize> descSetPoolSizes;
-			uint32_t maxDescSetCount;
+			std::vector<VkDescriptorSetLayoutBinding>	descSetLayoutBindings;
+			std::vector<VkDescriptorPoolSize>			descSetPoolSizes;
+			uint32_t									maxDescSetCount;
 		};
 
 	private:
@@ -312,14 +354,21 @@ namespace Engine
 		EShaderType ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits);
 		VkShaderStageFlagBits ShaderTypeConvertToStageBits(EShaderType shaderType);	
 
-
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
+
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
-		std::unordered_map<const char*, VariableDescription> m_variableTable;
+		std::unordered_map<const char*, VariableDescription> m_variableTable; // TODO: figure out the proper use of this table
+		std::vector<VkPushConstantRange> m_pushConstantRanges;
+
+		std::unordered_map<uint32_t, std::shared_ptr<UniformBuffer_Vulkan>> m_uniformBuffers;
+		std::vector<std::shared_ptr<UniformBuffer_Vulkan>> m_pushConstantBuffers;
+
 		std::shared_ptr<DrawingDescriptorSetLayout_Vulkan> m_pDescriptorSetLayout;
 		std::shared_ptr<DrawingDescriptorPool_Vulkan> m_pDescriptorPool;
 		std::vector<VkDescriptorSet> m_descriptorSets;
+
+		std::vector<VkPipelineShaderStageCreateInfo> m_pipelineShaderStageCreateInfos;
 	};
 
 	class GraphicsPipeline_Vulkan : public GraphicsPipelineObject
@@ -330,6 +379,7 @@ namespace Engine
 
 		VkPipeline GetPipeline() const;
 		VkPipelineLayout GetPipelineLayout() const;
+		VkPipelineBindPoint GetBindPoint() const;
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
@@ -339,7 +389,7 @@ namespace Engine
 		VkPipelineLayout m_pipelineLayout;
 	};
 
-	class PipelineVertexInputState_Vulkan
+	class PipelineVertexInputState_Vulkan : public PipelineVertexInputState
 	{
 	public:
 		PipelineVertexInputState_Vulkan(const std::vector<VkVertexInputBindingDescription>& bindingDescs, const std::vector<VkVertexInputAttributeDescription>& attributeDescs);
@@ -353,7 +403,19 @@ namespace Engine
 		VkPipelineVertexInputStateCreateInfo			m_pipelineVertexInputStateCreateInfo;
 	};
 
-	class PipelineColorBlendState_Vulkan
+	class PipelineInputAssemblyState_Vulkan : public PipelineInputAssemblyState
+	{
+	public:
+		PipelineInputAssemblyState_Vulkan(const PipelineInputAssemblyStateCreateInfo& createInfo);
+		~PipelineInputAssemblyState_Vulkan() = default;
+
+		const VkPipelineInputAssemblyStateCreateInfo* GetInputAssemblyStateCreateInfo() const;
+
+	private:
+		VkPipelineInputAssemblyStateCreateInfo m_pipelineInputAssemblyStateCreateInfo;
+	};
+
+	class PipelineColorBlendState_Vulkan : public PipelineColorBlendState
 	{
 	public:
 		PipelineColorBlendState_Vulkan(const std::vector<VkPipelineColorBlendAttachmentState>& blendAttachmentStates);
@@ -370,10 +432,46 @@ namespace Engine
 		VkPipelineColorBlendStateCreateInfo m_pipelineColorBlendStateCreateInfo;
 	};
 
-	class PipelineViewportState_Vulkan
+	class PipelineRasterizationState_Vulkan : public PipelineRasterizationState
 	{
 	public:
-		PipelineViewportState_Vulkan(uint32_t width, uint32_t height);
+		PipelineRasterizationState_Vulkan(const PipelineRasterizationStateCreateInfo& createInfo);
+		~PipelineRasterizationState_Vulkan() = default;
+
+		const VkPipelineRasterizationStateCreateInfo* GetRasterizationStateCreateInfo() const;
+
+	private:
+		VkPipelineRasterizationStateCreateInfo m_pipelineRasterizationStateCreateInfo;
+	};
+
+	class PipelineDepthStencilState_Vulkan : public PipelineDepthStencilState
+	{
+	public:
+		PipelineDepthStencilState_Vulkan(const PipelineDepthStencilStateCreateInfo& createInfo);
+		~PipelineDepthStencilState_Vulkan() = default;
+
+		const VkPipelineDepthStencilStateCreateInfo* GetDepthStencilStateCreateInfo() const;
+
+	private:
+		VkPipelineDepthStencilStateCreateInfo m_pipelineDepthStencilStateCreateInfo;
+	};
+
+	class PipelineMultisampleState_Vulkan : public PipelineMultisampleState
+	{
+	public:
+		PipelineMultisampleState_Vulkan(const PipelineMultisampleStateCreateInfo& createInfo);
+		~PipelineMultisampleState_Vulkan() = default;
+
+		const VkPipelineMultisampleStateCreateInfo* GetMultisampleStateCreateInfo() const;
+
+	private:
+		VkPipelineMultisampleStateCreateInfo m_pipelineMultisampleStateCreateInfo;
+	};
+
+	class PipelineViewportState_Vulkan : public PipelineViewportState
+	{
+	public:
+		PipelineViewportState_Vulkan(const PipelineViewportStateCreateInfo& createInfo);
 		~PipelineViewportState_Vulkan() = default;
 
 		const VkPipelineViewportStateCreateInfo* GetViewportStateCreateInfo() const;

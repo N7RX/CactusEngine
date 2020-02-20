@@ -285,12 +285,12 @@ void DrawingCommandBuffer_Vulkan::SignalSemaphore(const std::shared_ptr<DrawingS
 }
 
 DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
-	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE)
+	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE), m_waitFrameFenceSubmission(false)
 {
 	m_frameFenceLock = std::unique_lock<std::mutex>(m_frameFenceMutex, std::defer_lock);
 	m_frameFenceLock.lock();
-	m_commandBufferSubmissionThread = std::thread(&DrawingCommandManager_Vulkan::SubmitCommandBufferAsync, this);
 
+	m_commandBufferSubmissionThread = std::thread(&DrawingCommandManager_Vulkan::SubmitCommandBufferAsync, this);
 	m_commandBufferRecycleThread = std::thread(&DrawingCommandManager_Vulkan::RecycleCommandBufferAsync, this);
 
 	m_isRunning = true;
@@ -305,6 +305,12 @@ DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
 void DrawingCommandManager_Vulkan::Destroy()
 {
 	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
+}
+
+void DrawingCommandManager_Vulkan::WaitFrameFenceSubmission()
+{
+	m_waitFrameFenceSubmission = true;
+	m_frameFenceCv.wait(m_frameFenceLock);
 }
 
 EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
@@ -391,6 +397,8 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
 	pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
 
 	pSubmitInfo->fence = fence;
+	pSubmitInfo->waitFrameFenceSubmission = m_waitFrameFenceSubmission;
+	m_waitFrameFenceSubmission = false;
 
 	m_commandSubmissionQueue.Push(pSubmitInfo);
 }

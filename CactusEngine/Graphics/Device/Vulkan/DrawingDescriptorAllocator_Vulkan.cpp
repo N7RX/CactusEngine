@@ -57,17 +57,17 @@ bool DrawingDescriptorPool_Vulkan::UpdateDescriptorSets(const std::vector<Descip
 
 		switch (updateInfos[i].infoType)
 		{
-		case EDescriptorInfoType_Vulkan::Buffer:
+		case EDescriptorResourceType_Vulkan::Buffer:
 			descriptorWrite.descriptorCount = (uint32_t)updateInfos[i].bufferInfos.size();
 			descriptorWrite.pBufferInfo = updateInfos[i].bufferInfos.data();
 			break;
 
-		case EDescriptorInfoType_Vulkan::Image:
+		case EDescriptorResourceType_Vulkan::Image:
 			descriptorWrite.descriptorCount = (uint32_t)updateInfos[i].imageInfos.size();
 			descriptorWrite.pImageInfo = updateInfos[i].imageInfos.data();
 			break;
 
-		case EDescriptorInfoType_Vulkan::TexelBuffer:
+		case EDescriptorResourceType_Vulkan::TexelBuffer:
 			descriptorWrite.descriptorCount = (uint32_t)updateInfos[i].imageInfos.size();
 			descriptorWrite.pTexelBufferView = updateInfos[i].texelBufferViews.data();
 			break;
@@ -80,7 +80,10 @@ bool DrawingDescriptorPool_Vulkan::UpdateDescriptorSets(const std::vector<Descip
 		descriptorWrites.emplace_back(descriptorWrite);
 	}
 
-	vkUpdateDescriptorSets(m_pDevice->logicalDevice, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+	if (descriptorWrites.size() > 0)
+	{
+		vkUpdateDescriptorSets(m_pDevice->logicalDevice, (uint32_t)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+	}
 
 	return true;
 }
@@ -88,14 +91,14 @@ bool DrawingDescriptorPool_Vulkan::UpdateDescriptorSets(const std::vector<Descip
 DrawingDescriptorSetLayout_Vulkan::DrawingDescriptorSetLayout_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 	: m_pDevice(pDevice)
 {
-	m_setLayout = VK_NULL_HANDLE;
+	m_descriptorSetLayout = VK_NULL_HANDLE;
 
 	VkDescriptorSetLayoutCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	createInfo.bindingCount = (uint32_t)bindings.size();
 	createInfo.pBindings = bindings.data();
 
-	if (vkCreateDescriptorSetLayout(m_pDevice->logicalDevice, &createInfo, nullptr, &m_setLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(m_pDevice->logicalDevice, &createInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
 	{
 		std::cerr << "Vulkan: failed to create descriptor set layout.\n";
 	}
@@ -103,12 +106,12 @@ DrawingDescriptorSetLayout_Vulkan::DrawingDescriptorSetLayout_Vulkan(const std::
 
 DrawingDescriptorSetLayout_Vulkan::~DrawingDescriptorSetLayout_Vulkan()
 {
-	vkDestroyDescriptorSetLayout(m_pDevice->logicalDevice, m_setLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_pDevice->logicalDevice, m_descriptorSetLayout, nullptr);
 }
 
-VkDescriptorSetLayout DrawingDescriptorSetLayout_Vulkan::GetSetLayout() const
+const VkDescriptorSetLayout* DrawingDescriptorSetLayout_Vulkan::GetDescriptorSetLayout() const
 {
-	return m_setLayout;
+	return &m_descriptorSetLayout;
 }
 
 DrawingDescriptorAllocator_Vulkan::DrawingDescriptorAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)

@@ -171,12 +171,3 @@ uint32_t ShaderProgram::GetShaderStages() const
 {
 	return m_shaderStages;
 }
-
-unsigned int ShaderProgram::GetParamLocation(const char* paramName) const
-{
-	if (m_paramLocations.find(paramName) != m_paramLocations.end())
-	{
-		return m_paramLocations.at(paramName);
-	}
-	return -1;
-}

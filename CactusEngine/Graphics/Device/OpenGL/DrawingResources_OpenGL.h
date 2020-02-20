@@ -80,6 +80,7 @@ namespace Engine
 		ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader);
 
 		GLuint GetGLProgramID() const;
+		unsigned int GetParamLocation(const char* paramName) const override;
 
 		void UpdateParameterValue(GLuint location, EShaderParamType type, const void* value);
 		void Reset() override;
@@ -90,5 +91,6 @@ namespace Engine
 	private:
 		GLuint m_glProgramID;
 		uint32_t m_activeTextureUnit;
+		std::unordered_map<const char*, unsigned int> m_paramLocations;
 	};
 }

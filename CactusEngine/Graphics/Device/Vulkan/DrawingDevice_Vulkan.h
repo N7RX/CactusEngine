@@ -10,7 +10,7 @@ namespace Engine
 {
 	struct LogicalDevice_Vulkan
 	{
-		EGPUType type;
+		EGPUType				   type;
 		VkPhysicalDevice		   physicalDevice;
 		VkDevice				   logicalDevice;
 		VkPhysicalDeviceProperties deviceProperties;
@@ -89,9 +89,18 @@ namespace Engine
 		std::shared_ptr<LogicalDevice_Vulkan> GetLogicalDevice(EGPUType type) const;
 
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
+		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) override;
+		bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput) override;
+		bool CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, std::shared_ptr<PipelineInputAssemblyState>& pOutput) override;
+		bool CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, std::shared_ptr<PipelineColorBlendState>& pOutput) override;
+		bool CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, std::shared_ptr<PipelineRasterizationState>& pOutput) override;
+		bool CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, std::shared_ptr<PipelineDepthStencilState>& pOutput) override;
+		bool CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput) override;
+		bool CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput) override;
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
 
 		void SwitchCmdGPUContext(EGPUType type) override;
+		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) override;
 		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
 		void Present() override;		
 
@@ -109,50 +118,48 @@ namespace Engine
 		
 		// Shader-related functions
 		void CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode);
-		
-		// Pipeline state functions
-		void CreatePipelineVertexInputState(std::shared_ptr<PipelineVertexInputState_Vulkan> pOutInputState);
-		void CreatePipelineInputAssemblyState(std::shared_ptr<VkPipelineInputAssemblyStateCreateInfo> pOutAssemblyState);
-		void CreatePipelineColorBlendState(std::shared_ptr<PipelineColorBlendState_Vulkan> pOutBlendState);
-		void CreatePipelineRasterizationState(std::shared_ptr<VkPipelineRasterizationStateCreateInfo> pOutRasterizationState);
-		void CreatePipelineDepthStencilState(std::shared_ptr<VkPipelineDepthStencilStateCreateInfo> pOutDepthStencilState);
-		void CreatePipelineMultisampleState(std::shared_ptr<VkPipelineMultisampleStateCreateInfo> pOutMultisampleState);
-		void CreatePipelineViewportState(std::shared_ptr<PipelineViewportState_Vulkan> pOutViewportState);
 
 		// Manager setup functions
 		void SetupCommandManager();
 		void SetupUploadAllocator();
 		void SetupDescriptorAllocator();
 
+		// Converter functions
+		EDescriptorResourceType_Vulkan VulkanDescriptorResourceType(EDescriptorType type) const;
+
+	public:
+		const uint64_t FRAME_TIMEOUT = 5e9; // 5 seconds
+		const static unsigned int MAX_FRAME_IN_FLIGHT = 2;
+
 	private:
-#if defined(_DEBUG)
-		const bool m_enableValidationLayers = true;
-#else
-		const bool m_enableValidationLayers = false;
-#endif
 		// Shader locations
 		const uint32_t ATTRIB_POSITION_LOCATION = 0;
 		const uint32_t ATTRIB_NORMAL_LOCATION = 1;
 		const uint32_t ATTRIB_TEXCOORD_LOCATION = 2;
 
-	private:
-		VkInstance m_instance;
+#if defined(_DEBUG)
+		const bool m_enableValidationLayers = true;
+#else
+		const bool m_enableValidationLayers = false;
+#endif
 
+	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0; // Discrete GPU
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_1; // Integrated GPU
 #endif		
-
+		VkInstance m_instance;
+		VkSurfaceKHR m_presentationSurface;
+		VkDebugUtilsMessengerEXT m_debugMessenger;
+		
 		VkApplicationInfo m_appInfo;
 		std::vector<const char*> m_requiredExtensions;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
 		EGPUType m_cmdGPUType;
-		VkSurfaceKHR m_presentationSurface;
+		std::vector<VkClearValue> m_clearValues; // Color + DepthStencil
 		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
-
-		VkDebugUtilsMessengerEXT m_debugMessenger;
-		std::vector<VkClearValue> m_clearValues; // Color + Depth stencil
+		unsigned int m_currentFrame;
 	};
 
 	template<>

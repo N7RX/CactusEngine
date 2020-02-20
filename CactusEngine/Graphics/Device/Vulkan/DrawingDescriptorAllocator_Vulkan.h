@@ -5,7 +5,7 @@
 
 namespace Engine
 {
-	enum class EDescriptorInfoType_Vulkan
+	enum class EDescriptorResourceType_Vulkan
 	{
 		Buffer = 0,
 		Image,
@@ -15,7 +15,7 @@ namespace Engine
 
 	struct DesciptorUpdateInfo_Vulkan
 	{
-		EDescriptorInfoType_Vulkan			infoType;
+		EDescriptorResourceType_Vulkan		infoType;
 		bool								hasContent;
 		VkDescriptorSet						dstDescriptorSet;
 		uint32_t							dstDescriptorBinding;
@@ -61,11 +61,11 @@ namespace Engine
 		DrawingDescriptorSetLayout_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
 		~DrawingDescriptorSetLayout_Vulkan();
 
-		VkDescriptorSetLayout GetSetLayout() const;
+		const VkDescriptorSetLayout* GetDescriptorSetLayout() const;
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
-		VkDescriptorSetLayout m_setLayout;
+		VkDescriptorSetLayout m_descriptorSetLayout;
 	};
 	
 	class DrawingDescriptorAllocator_Vulkan

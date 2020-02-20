@@ -21,6 +21,7 @@ namespace Engine
 
 	class Texture2D_Vulkan;
 	class RawBuffer_Vulkan;
+	struct LogicalDevice_Vulkan;
 
 	class DrawingCommandBuffer_Vulkan
 	{
@@ -38,7 +39,7 @@ namespace Engine
 		void BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type);
 		void BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset = { 0, 0 });
 		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
-		void BindPipelineLayout(const VkPipelineLayout pipelineLayout);
+		void BindPipelineLayout(const VkPipelineLayout pipelineLayout); // TODO: integrate this function with BindPipeline
 		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
 		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<VkDescriptorSet>& descriptorSets, uint32_t firstSet = 0);
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
@@ -142,7 +143,6 @@ namespace Engine
 		friend class DrawingCommandManager_Vulkan;
 	};
 
-	struct LogicalDevice_Vulkan;
 	class DrawingCommandManager_Vulkan : public NoCopy
 	{
 	public:
@@ -150,6 +150,7 @@ namespace Engine
 		~DrawingCommandManager_Vulkan();
 
 		void Destroy();
+		void WaitFrameFenceSubmission();
 
 		EQueueType GetWorkingQueueType() const;
 
@@ -166,6 +167,7 @@ namespace Engine
 
 	public:
 		const uint32_t MAX_COMMAND_BUFFER_COUNT = 64;
+		const uint64_t RECYCLE_TIMEOUT = 3e9; // 3 seconds
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
@@ -184,13 +186,12 @@ namespace Engine
 		std::mutex m_frameFenceMutex;
 		std::unique_lock<std::mutex> m_frameFenceLock;
 		std::condition_variable m_frameFenceCv;
-		bool m_waitFrameFenceSubmission = false;
+		bool m_waitFrameFenceSubmission;
 
 		// Asyn command buffer recycle
 		std::thread m_commandBufferRecycleThread;
 		std::mutex m_commandBufferRecycleMutex;
 		std::condition_variable m_commandBufferRecycleCv;
-		SafeBool m_commandBufferRecycleFlag;
-		const uint64_t RECYCLE_TIMEOUT = UINT64_MAX;
+		SafeBool m_commandBufferRecycleFlag;		
 	};
 }

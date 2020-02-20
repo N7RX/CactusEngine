@@ -198,5 +198,5 @@ void DrawingSystem::ExecuteRenderTask()
 		}
 	}
 
-	m_pDevice->Present();
+	//m_pDevice->Present();
 }
