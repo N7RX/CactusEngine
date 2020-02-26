@@ -8,14 +8,34 @@
 using namespace Engine;
 
 DrawingCommandBuffer_Vulkan::DrawingCommandBuffer_Vulkan(const VkCommandBuffer& cmdBuffer)
-	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedFence(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE)
+	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedFence(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE), 
+	m_pSyncObjectManager(nullptr)
 {
 
 }
 
 DrawingCommandBuffer_Vulkan::~DrawingCommandBuffer_Vulkan()
 {
-	// TODO: release resources
+	if (!m_inExecution)
+	{
+		assert(m_pSyncObjectManager != nullptr);
+
+		// Alert: freeing the semaphores here may result in conflicts
+		while (!m_waitSemaphores.empty())
+		{
+			m_pSyncObjectManager->ReturnSemaphore(m_waitSemaphores.front());
+			m_waitSemaphores.pop();
+		}
+		while (!m_signalSemaphores.empty())
+		{
+			m_pSyncObjectManager->ReturnSemaphore(m_signalSemaphores.front());
+			m_signalSemaphores.pop();
+		}
+	}
+	else
+	{
+		throw std::runtime_error("Vulkan: shouldn't destroy command buffer that is in execution.");
+	}
 }
 
 bool DrawingCommandBuffer_Vulkan::IsRecording() const
@@ -307,12 +327,15 @@ DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr
 
 DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
 {
-	m_isRunning = false;
-	Destroy();
+	if (m_isRunning)
+	{
+		Destroy();
+	}
 }
 
 void DrawingCommandManager_Vulkan::Destroy()
 {
+	m_isRunning = false;
 	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
 }
 
@@ -474,7 +497,10 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 	{
 		for (auto& cmdBuffer : cmdBufferHandles)
 		{
-			m_freeCommandBuffers.Push(std::make_shared<DrawingCommandBuffer_Vulkan>(cmdBuffer));
+			auto pNewCmdBuffer = std::make_shared<DrawingCommandBuffer_Vulkan>(cmdBuffer);
+			pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
+
+			m_freeCommandBuffers.Push(pNewCmdBuffer);
 		}
 		return true;
 	}

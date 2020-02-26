@@ -232,6 +232,18 @@ uint32_t UniformBuffer_Vulkan::GetBindingIndex() const
 	return m_layoutParamIndex;
 }
 
+RenderPass_Vulkan::RenderPass_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
+	: m_pDevice(pDevice)
+{
+
+}
+
+RenderPass_Vulkan::~RenderPass_Vulkan()
+{
+	assert(m_renderPass != VK_NULL_HANDLE);
+	vkDestroyRenderPass(m_pDevice->logicalDevice, m_renderPass, nullptr);
+}
+
 FrameBuffer_Vulkan::FrameBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
 	: m_pDevice(pDevice)
 {

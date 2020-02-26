@@ -159,6 +159,7 @@ namespace Engine
 		VkInstance m_instance;
 		VkSurfaceKHR m_presentationSurface;
 		VkDebugUtilsMessengerEXT m_debugMessenger;
+		bool m_isRunning;
 		
 		VkApplicationInfo m_appInfo;
 		std::vector<const char*> m_requiredExtensions;

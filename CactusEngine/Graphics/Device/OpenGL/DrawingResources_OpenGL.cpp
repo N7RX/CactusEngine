@@ -192,7 +192,10 @@ unsigned int ShaderProgram_OpenGL::GetParamLocation(const char* paramName) const
 
 unsigned int ShaderProgram_OpenGL::GetParamBinding(const char* paramName) const
 {
-	std::cerr << "OpenGL: shouldn't call GetParamBinding on OpenGL shader program.\n";
+	if (m_paramBindings.find(paramName) != m_paramBindings.end())
+	{
+		return m_paramBindings.at(paramName);
+	}
 	return -1;
 }
 
@@ -285,4 +288,6 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 
 	// For line drawing
 	m_paramLocations.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SAMPLE_MATRIX_TEXTURE));
+
+	// TODO: get resource bindings
 }

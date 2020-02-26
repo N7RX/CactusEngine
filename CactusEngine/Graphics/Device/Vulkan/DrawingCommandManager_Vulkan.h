@@ -61,6 +61,7 @@ namespace Engine
 		std::shared_ptr<DrawingFence_Vulkan> m_pAssociatedFence;
 		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitSemaphores;
 		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalSemaphores;
+		std::shared_ptr<DrawingSyncObjectManager_Vulkan> m_pSyncObjectManager;
 
 		bool m_isRecording;
 		bool m_inRenderPass;

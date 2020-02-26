@@ -156,8 +156,12 @@ namespace Engine
 
 	class RenderPass_Vulkan : public RenderPassObject
 	{
+	public:
+		RenderPass_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
+		~RenderPass_Vulkan();
 
 	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		VkRenderPass m_renderPass;
 
 		friend class DrawingDevice_Vulkan;

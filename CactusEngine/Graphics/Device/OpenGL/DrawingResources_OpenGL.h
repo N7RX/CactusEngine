@@ -99,5 +99,6 @@ namespace Engine
 		GLuint m_glProgramID;
 		uint32_t m_activeTextureUnit;
 		std::unordered_map<const char*, unsigned int> m_paramLocations;
+		std::unordered_map<const char*, unsigned int> m_paramBindings;
 	};
 }

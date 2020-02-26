@@ -11,7 +11,10 @@ using namespace Engine;
 
 DrawingDevice_Vulkan::~DrawingDevice_Vulkan()
 {
-	ShutDown();
+	if (m_isRunning)
+	{
+		ShutDown();
+	}
 }
 
 void DrawingDevice_Vulkan::Initialize()
@@ -23,11 +26,14 @@ void DrawingDevice_Vulkan::Initialize()
 	CreateDefaultSampler();
 
 	m_currentFrame = 0;
+	m_isRunning = true;
 }
 
 void DrawingDevice_Vulkan::ShutDown()
 {
-	// TODO: clean up resources
+	// TODO: correctly organize the sequence of resource release
+
+	m_isRunning = false;
 }
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
@@ -420,7 +426,11 @@ std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGP
 
 bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
-	pOutput = std::make_shared<RenderPass_Vulkan>();
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pOutput = std::make_shared<RenderPass_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1);
+#else
+	pOutput = std::make_shared<RenderPass_Vulkan>(m_pDevice_0);
+#endif
 
 	std::vector<VkAttachmentDescription> attachmentDescs;
 	std::vector<VkAttachmentReference> colorAttachmentRefs;
@@ -483,13 +493,8 @@ bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& cr
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &subpassDependency;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	return vkCreateRenderPass(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0->logicalDevice : m_pDevice_1->logicalDevice,
+	return vkCreateRenderPass(std::static_pointer_cast<RenderPass_Vulkan>(pOutput)->m_pDevice->logicalDevice,
 		&renderPassInfo, nullptr, &std::static_pointer_cast<RenderPass_Vulkan>(pOutput)->m_renderPass) == VK_SUCCESS;
-#else
-	return vkCreateRenderPass(m_pDevice_0->logicalDevice,
-		&renderPassInfo, nullptr, &std::static_pointer_cast<RenderPass_Vulkan>(pOutput)->m_renderPass) == VK_SUCCESS;
-#endif
 }
 
 bool DrawingDevice_Vulkan::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)

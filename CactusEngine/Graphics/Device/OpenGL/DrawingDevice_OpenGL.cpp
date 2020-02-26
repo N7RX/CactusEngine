@@ -11,7 +11,6 @@ DrawingDevice_OpenGL::~DrawingDevice_OpenGL()
 
 void DrawingDevice_OpenGL::Initialize()
 {
-	glGenerateMipmap(GL_TEXTURE_2D);
 	glGenVertexArrays(1, &m_attributeless_vao);
 }
 
@@ -118,6 +117,10 @@ bool DrawingDevice_OpenGL::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	if (createInfo.format == ETextureFormat::Depth)
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+	}
+	if (createInfo.generateMipmap)
+	{
+		glGenerateMipmap(GL_TEXTURE_2D);
 	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
