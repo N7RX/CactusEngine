@@ -37,6 +37,23 @@ void Texture2D_OpenGL::MarkTextureSize(uint32_t width, uint32_t height)
 	m_height = height;
 }
 
+bool Texture2D_OpenGL::HasSampler() const
+{
+	std::cerr << "OpenGL: shouldn't call HasSampler on OpenGL texture 2D.\n";
+	return false;
+}
+
+void Texture2D_OpenGL::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+{
+	std::cerr << "OpenGL: shouldn't call SetSampler on OpenGL texture 2D.\n";
+}
+
+std::shared_ptr<TextureSampler> Texture2D_OpenGL::GetSampler() const
+{
+	std::cerr << "OpenGL: shouldn't call GetSampler on OpenGL texture 2D.\n";
+	return nullptr;
+}
+
 FrameBuffer_OpenGL::~FrameBuffer_OpenGL()
 {
 	glDeleteFramebuffers(1, &m_glFrameBufferID);
@@ -170,6 +187,12 @@ unsigned int ShaderProgram_OpenGL::GetParamLocation(const char* paramName) const
 	{
 		return m_paramLocations.at(paramName);
 	}
+	return -1;
+}
+
+unsigned int ShaderProgram_OpenGL::GetParamBinding(const char* paramName) const
+{
+	std::cerr << "OpenGL: shouldn't call GetParamBinding on OpenGL shader program.\n";
 	return -1;
 }
 

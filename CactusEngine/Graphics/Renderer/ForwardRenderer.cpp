@@ -113,10 +113,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	// Shadow color output from opaque pass
 
-	texCreateInfo.dataType = EDataType::Float32;
-	texCreateInfo.format = ETextureFormat::RGBA32F;
-	texCreateInfo.textureType = ETextureType::ColorAttachment;
-
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassShadowOutput);
 
 	// Depth output from opaque pass
@@ -145,11 +141,6 @@ void ForwardRenderer::BuildFrameResources()
 	texCreateInfo.textureType = ETextureType::ColorAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassHorizontalColorOutput);
-
-	texCreateInfo.dataType = EDataType::Float32;
-	texCreateInfo.format = ETextureFormat::RGBA32F;
-	texCreateInfo.textureType = ETextureType::ColorAttachment;
-
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassFinalColorOutput);
 
 	// Frame buffer for Gaussian blur pass
@@ -172,17 +163,9 @@ void ForwardRenderer::BuildFrameResources()
 
 	// Blurred output from line drawing pass
 
-	texCreateInfo.dataType = EDataType::Float32;
-	texCreateInfo.format = ETextureFormat::RGBA32F;
-	texCreateInfo.textureType = ETextureType::ColorAttachment;
-
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineDrawingPassBlurredOutput);
 
 	// Color output from line drawing pass
-
-	texCreateInfo.dataType = EDataType::Float32;
-	texCreateInfo.format = ETextureFormat::RGBA32F;
-	texCreateInfo.textureType = ETextureType::ColorAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineDrawingPassColorOutput);
 

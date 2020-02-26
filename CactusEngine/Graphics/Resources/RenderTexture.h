@@ -15,6 +15,10 @@ namespace Engine
 		std::shared_ptr<Texture2D> GetTexture() const;
 		uint32_t GetTextureID() const override;
 
+		bool HasSampler() const override;
+		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
+		std::shared_ptr<TextureSampler> GetSampler() const override;
+
 	private:
 		std::shared_ptr<DrawingDevice> m_pDevice;
 		std::shared_ptr<Texture2D> m_pTextureImpl;

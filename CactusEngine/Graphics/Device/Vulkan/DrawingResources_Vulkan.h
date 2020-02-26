@@ -80,9 +80,9 @@ namespace Engine
 
 		uint32_t GetTextureID() const override; // Not used in Vulkan device
 
-		bool HasSampler() const;
-		void SetSampler(const std::shared_ptr<Sampler_Vulkan> pSampler);
-		std::shared_ptr<Sampler_Vulkan> GetSampler() const;
+		bool HasSampler() const override;
+		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
+		std::shared_ptr<TextureSampler> GetSampler() const override;
 
 	protected:
 		Texture2D_Vulkan() = default;
@@ -201,6 +201,8 @@ namespace Engine
 
 		uint32_t GetSwapchainImageCount() const;
 		std::shared_ptr<RenderTarget2D_Vulkan> GetTargetImage() const;
+		uint32_t GetTargetImageIndex() const;
+		std::shared_ptr<RenderTarget2D_Vulkan> GetSwapchainImageByIndex(unsigned int index) const;
 		VkExtent2D GetSwapExtent() const;
 		std::shared_ptr<DrawingSemaphore_Vulkan> GetImageAvailableSemaphore(unsigned int currentFrame) const;
 
@@ -282,9 +284,10 @@ namespace Engine
 		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
 		~ShaderProgram_Vulkan() = default;
 
-		// These two functions do not work on Vulkan shader program
 		unsigned int GetParamLocation(const char* paramName) const override;
-		void Reset() override;
+		void Reset() override; // Does not work on Vulkan shader program
+
+		unsigned int GetParamBinding(const char* paramName) const override;
 
 		uint32_t GetStageCount() const;
 		const VkPipelineShaderStageCreateInfo* GetShaderStageCreateInfos() const;
@@ -296,8 +299,7 @@ namespace Engine
 		const DrawingDescriptorSetLayout_Vulkan* GetDescriptorSetLayout() const;
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
 
-		unsigned int GetUniformLocationByName(const char* name) const;
-		void UpdateUniformBufferData(unsigned int loc, const void* pData);
+		void UpdateUniformBufferData(unsigned int binding, const void* pData);
 
 	private:
 		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 3; // TODO: figure out the proper value for this limit
@@ -305,14 +307,15 @@ namespace Engine
 		struct ResourceDescription
 		{
 			EShaderResourceType_Vulkan	type;
-			unsigned int				slot;
+			unsigned int				binding;
+			unsigned int				location;
 			const char*					name;
 		};
 
 		struct VariableDescription
 		{
 			const char*			uniformName;
-			const char*			variableName;
+			std::string			variableName;
 			uint32_t			offset;
 			uint32_t			uniformSize;
 			uint32_t			variableSize;
@@ -357,8 +360,9 @@ namespace Engine
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pLogicalDevice;
 
+		// Using char pointer as key would benefit runtime performance, but would reduce initialization speed as we need to match pointer by string contents
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
-		std::unordered_map<const char*, VariableDescription> m_variableTable; // TODO: figure out the proper use of this table
+		std::unordered_map<std::string, VariableDescription> m_variableTable; // TODO: figure out the proper use of this table
 		std::vector<VkPushConstantRange> m_pushConstantRanges;
 
 		std::unordered_map<uint32_t, std::shared_ptr<UniformBuffer_Vulkan>> m_uniformBuffers;

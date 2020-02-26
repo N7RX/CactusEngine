@@ -100,9 +100,18 @@ namespace Engine
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
 
 		void SwitchCmdGPUContext(EGPUType type) override;
+		void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
+		void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
+		void ResizeSwapchain(uint32_t width, uint32_t height) override;
 		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) override;
 		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
-		void Present() override;		
+		void EndRenderPass() override;
+		void Present() override;	
+		void FlushCommands(bool waitExecution) override;
+
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const override;
+		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
+		uint32_t GetSwapchainPresentImageIndex() const override;
 
 		void ConfigureStates_Test() override;
 
@@ -115,7 +124,10 @@ namespace Engine
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
 		void CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice);
-		
+		void SetupSwapchain();
+		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+		void CreateDefaultSampler();
+
 		// Shader-related functions
 		void CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode);
 
@@ -132,10 +144,6 @@ namespace Engine
 		const static unsigned int MAX_FRAME_IN_FLIGHT = 2;
 
 	private:
-		// Shader locations
-		const uint32_t ATTRIB_POSITION_LOCATION = 0;
-		const uint32_t ATTRIB_NORMAL_LOCATION = 1;
-		const uint32_t ATTRIB_TEXCOORD_LOCATION = 2;
 
 #if defined(_DEBUG)
 		const bool m_enableValidationLayers = true;
@@ -160,6 +168,11 @@ namespace Engine
 		std::vector<VkClearValue> m_clearValues; // Color + DepthStencil
 		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
 		unsigned int m_currentFrame;
+
+		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_0;
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_1; // For integrated GPU
+#endif
 	};
 
 	template<>

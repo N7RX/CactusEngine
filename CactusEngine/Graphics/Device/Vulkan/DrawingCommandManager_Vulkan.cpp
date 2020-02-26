@@ -15,7 +15,7 @@ DrawingCommandBuffer_Vulkan::DrawingCommandBuffer_Vulkan(const VkCommandBuffer& 
 
 DrawingCommandBuffer_Vulkan::~DrawingCommandBuffer_Vulkan()
 {
-
+	// TODO: release resources
 }
 
 bool DrawingCommandBuffer_Vulkan::IsRecording() const
@@ -109,6 +109,15 @@ void DrawingCommandBuffer_Vulkan::DrawPrimitiveIndexed(uint32_t indexCount, uint
 	}
 }
 
+void DrawingCommandBuffer_Vulkan::DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+	assert(m_inRenderPass);
+	if (vertexCount > 0 && instanceCount > 0)
+	{
+		vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+	}
+}
+
 void DrawingCommandBuffer_Vulkan::EndRenderPass()
 {
 	assert(m_inRenderPass);
@@ -116,7 +125,7 @@ void DrawingCommandBuffer_Vulkan::EndRenderPass()
 	m_inRenderPass = false;
 }
 
-void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderType)
+void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderStage)
 {
 	assert(m_isRecording);
 
@@ -155,8 +164,8 @@ void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2
 
 	VkPipelineStageFlags srcStage, dstStage;
 
-	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, shaderType);
-	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, shaderType);
+	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, shaderStage);
+	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, shaderStage);
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
 
@@ -548,6 +557,12 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 						pCmdBuffer->m_pAssociatedFence = nullptr;
 						pCmdBuffer->m_inExecution = false;
 						m_freeCommandBuffers.Push(pCmdBuffer);
+
+						while (!pCmdBuffer->m_waitSemaphores.empty())
+						{
+							m_pDevice->pSyncObjectManager->ReturnSemaphore(pCmdBuffer->m_waitSemaphores.front());
+							pCmdBuffer->m_waitSemaphores.pop();
+						}
 					}
 					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
 				}

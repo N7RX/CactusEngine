@@ -358,6 +358,21 @@ void DrawingDevice_OpenGL::SwitchCmdGPUContext(EGPUType type)
 	std::cerr << "OpenGL: shouldn't call SwitchCmdGPUContext on OpenGL device.\n";
 }
 
+void DrawingDevice_OpenGL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage)
+{
+	std::cerr << "OpenGL: shouldn't call TransitionImageLayout on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage)
+{
+	std::cerr << "OpenGL: shouldn't call TransitionImageLayout_Immediate on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::ResizeSwapchain(uint32_t width, uint32_t height)
+{
+	std::cerr << "OpenGL: shouldn't call ResizeSwapchain on OpenGL device.\n";
+}
+
 void DrawingDevice_OpenGL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline)
 {
 	std::cerr << "OpenGL: shouldn't call BindGraphicsPipeline on OpenGL device.\n";
@@ -368,9 +383,36 @@ void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObjec
 	std::cerr << "OpenGL: shouldn't call BeginRenderPass on OpenGL device.\n";
 }
 
+void DrawingDevice_OpenGL::EndRenderPass()
+{
+	std::cerr << "OpenGL: shouldn't call EndRenderPass on OpenGL device.\n";
+}
+
 void DrawingDevice_OpenGL::Present()
 {
 	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::FlushCommands(bool waitExecution)
+{
+	glFlush();
+}
+
+std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType) const
+{
+	std::cerr << "OpenGL: shouldn't call GetDefaultTextureSampler on OpenGL device.\n";
+	return nullptr;
+}
+
+void DrawingDevice_OpenGL::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
+{
+	std::cerr << "OpenGL: shouldn't call GetSwapchainImages on OpenGL device.\n";
+}
+
+uint32_t DrawingDevice_OpenGL::GetSwapchainPresentImageIndex() const
+{
+	std::cerr << "OpenGL: shouldn't call GetSwapchainPresentImageIndex on OpenGL device.\n";
+	return -1;
 }
 
 void DrawingDevice_OpenGL::ConfigureStates_Test()

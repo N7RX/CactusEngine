@@ -25,6 +25,11 @@ namespace Engine
 		void SetGLTextureID(GLuint id);
 		void MarkTextureSize(uint32_t width, uint32_t height);
 
+		// Not used in OpenGL device
+		bool HasSampler() const override;
+		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
+		std::shared_ptr<TextureSampler> GetSampler() const override;
+
 	private:
 		GLuint m_glTextureID = -1;
 	};
@@ -80,7 +85,9 @@ namespace Engine
 		ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader);
 
 		GLuint GetGLProgramID() const;
+
 		unsigned int GetParamLocation(const char* paramName) const override;
+		unsigned int GetParamBinding(const char* paramName) const override;
 
 		void UpdateParameterValue(GLuint location, EShaderParamType type, const void* value);
 		void Reset() override;

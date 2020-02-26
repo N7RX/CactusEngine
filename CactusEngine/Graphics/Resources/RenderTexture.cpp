@@ -26,8 +26,14 @@ void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFor
 	createInfo.pTextureData = pData;
 	createInfo.dataType = dataType;
 	createInfo.format = format;
+	createInfo.generateMipmap = false; // TODO: test out the effect
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
+
+	if (m_pDevice->GetDeviceType() == EGraphicsDeviceType::Vulkan)
+	{
+		m_pDevice->TransitionImageLayout_Immediate(m_pTextureImpl, EImageLayout::ShaderReadOnly, EShaderType::Fragment); // TODO: add support for multiple shader stages read
+	}
 }
 
 std::shared_ptr<Texture2D> RenderTexture::GetTexture() const
@@ -38,4 +44,19 @@ std::shared_ptr<Texture2D> RenderTexture::GetTexture() const
 uint32_t RenderTexture::GetTextureID() const
 {
 	return m_pTextureImpl->GetTextureID();
+}
+
+bool RenderTexture::HasSampler() const
+{
+	return m_pTextureImpl->HasSampler();
+}
+
+void RenderTexture::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+{
+	m_pTextureImpl->SetSampler(pSampler);
+}
+
+std::shared_ptr<TextureSampler> RenderTexture::GetSampler() const
+{
+	return m_pTextureImpl->GetSampler();
 }

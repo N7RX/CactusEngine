@@ -51,25 +51,26 @@ namespace Engine
 
 		float*	 pPositionData;
 		uint32_t positionDataCount;
-		const uint32_t positionOffset = 0;
+		static const uint32_t positionOffset = 0;
 
 		float*	 pNormalData;
 		uint32_t normalDataCount;
-		const uint32_t normalOffset = 3 * sizeof(float);
+		static const uint32_t normalOffset = 3 * sizeof(float);
 
 		float*	 pTexcoordData;
 		uint32_t texcoordDataCount;
-		const uint32_t texcoordOffset = 6 * sizeof(float);
+		static const uint32_t texcoordOffset = 6 * sizeof(float);
 
 		float*	 pTangentData;
 		uint32_t tangentDataCount;
-		const uint32_t tangentOffset = 8 * sizeof(float);
+		static const uint32_t tangentOffset = 8 * sizeof(float);
 
 		float*	 pBitangentData;
 		uint32_t bitangentDataCount;
-		const uint32_t bitangentOffset = 11 * sizeof(float);
+		static const uint32_t bitangentOffset = 11 * sizeof(float);
 
-		const uint32_t interleavedStride = 14 * sizeof(float); // 3 + 3 + 2 + 3 + 3
+		static const uint32_t interleavedStride = 14 * sizeof(float); // 3 + 3 + 2 + 3 + 3
+
 		std::vector<float> ConvertToInterleavedData() const; // This would not pack index
 	};
 
@@ -112,6 +113,8 @@ namespace Engine
 		EDataType	   dataType;
 		ETextureFormat format;
 		ETextureType   textureType;
+		bool		   generateMipmap;
+		std::shared_ptr<TextureSampler> pSampler;
 
 		EGPUType	   deviceType;
 	};
@@ -132,12 +135,16 @@ namespace Engine
 		void SetFilePath(const char* filePath);
 		const char* GetFilePath() const;
 
+		virtual bool HasSampler() const = 0;
+		virtual void SetSampler(const std::shared_ptr<TextureSampler> pSampler) = 0;
+		virtual std::shared_ptr<TextureSampler> GetSampler() const = 0;
+
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
 
 		ETextureType m_type;
-		std::string m_filePath;
+		std::string m_filePath; // TODO: remove this property
 	};
 
 	struct RenderPassAttachmentDescription
@@ -162,10 +169,10 @@ namespace Engine
 		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
 		EGPUType deviceType;
 
-		// Subpass description is not added
+		// TODO: add subpass description
 	};
 
-	class RenderPassObject
+	class RenderPassObject : public RawResource
 	{
 
 	};
@@ -193,6 +200,11 @@ namespace Engine
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
+	};
+
+	struct SwapchainFrameBuffers : public RawResource
+	{
+		std::vector<std::shared_ptr<FrameBuffer>> frameBuffers;
 	};
 
 	class Shader
@@ -234,7 +246,8 @@ namespace Engine
 		virtual unsigned int GetParamLocation(const char* paramName) const = 0;
 		virtual void Reset() = 0;
 
-		// For lower level APIs like Vulkan, update shader resources individually
+		// For lower level APIs like Vulkan
+		virtual unsigned int GetParamBinding(const char* paramName) const = 0;
 
 	protected:
 		ShaderProgram(uint32_t shaderStages);
@@ -276,17 +289,17 @@ namespace Engine
 		// For low-level APIs like Vulkan
 		struct DescriptorUpdateTableEntry
 		{
-			DescriptorUpdateTableEntry(unsigned int loc, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
-				: location(loc), type(descType), pResource(pRes), pValue(nullptr)
+			DescriptorUpdateTableEntry(unsigned int bindingIndex, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+				: binding(bindingIndex), type(descType), pResource(pRes), pValue(nullptr)
 			{
 			}
 
-			DescriptorUpdateTableEntry(unsigned int loc, EDescriptorType descType, const void* pVal)
-				: location(loc), type(descType), pValue(pVal), pResource(nullptr)
+			DescriptorUpdateTableEntry(unsigned int bindingIndex, EDescriptorType descType, const void* pVal)
+				: binding(bindingIndex), type(descType), pValue(pVal), pResource(nullptr)
 			{
 			}
 
-			unsigned int					location;
+			unsigned int					binding;
 			EDescriptorType					type;
 			std::shared_ptr<RawResource>	pResource;
 			const void*						pValue;
@@ -294,15 +307,15 @@ namespace Engine
 
 		std::vector<DescriptorUpdateTableEntry> m_hpTable;
 
-		void AddEntry(unsigned int loc, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+		void AddEntry(unsigned int binding, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
 		{		
-			m_hpTable.emplace_back(loc, descType, pRes);
+			m_hpTable.emplace_back(binding, descType, pRes);
 		}
 
-		void AddEntry(unsigned int loc, EDescriptorType descType, const void* pVal) // For numerical uniform buffer only
+		void AddEntry(unsigned int binding, EDescriptorType descType, const void* pVal) // For numerical uniform buffer only
 		{
 			assert(descType == EDescriptorType::UniformBuffer); // Uniform buffers are managed by (Vulkan) shader program internally
-			m_hpTable.emplace_back(loc, descType, pVal);
+			m_hpTable.emplace_back(binding, descType, pVal);
 		}
 
 		void Clear()
@@ -447,7 +460,7 @@ namespace Engine
 		//uint32_t									subpassIndex; // TODO: add subpass support
 	};
 
-	class GraphicsPipelineObject
+	class GraphicsPipelineObject : public RawResource
 	{
 
 	};

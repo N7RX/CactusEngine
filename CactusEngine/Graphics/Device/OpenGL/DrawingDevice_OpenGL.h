@@ -46,21 +46,25 @@ namespace Engine
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
 
 		void SwitchCmdGPUContext(EGPUType type) override;
+		void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
+		void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
+		void ResizeSwapchain(uint32_t width, uint32_t height) override;
 		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) override;
 		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
+		void EndRenderPass() override;
 		void Present() override;
+		void FlushCommands(bool waitExecution) override;
+
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const override;
+		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
+		uint32_t GetSwapchainPresentImageIndex() const override;
 
 		void ConfigureStates_Test() override;
 
 	private:
-		// Shader locations
-		const GLuint ATTRIB_POSITION_LOCATION = 0;
-		const GLuint ATTRIB_NORMAL_LOCATION = 1;
-		const GLuint ATTRIB_TEXCOORD_LOCATION = 2;
-		const GLuint ATTRIB_TANGENT_LOCATION = 3;
-		const GLuint ATTRIB_BITANGENT_LOCATION = 4;
 
 		GLuint m_attributeless_vao = -1;
+
 	};
 
 	template<>

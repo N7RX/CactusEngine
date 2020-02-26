@@ -28,43 +28,43 @@ namespace Engine
 		void CreateLineDrawingMatrices();
 
 	private:
-		std::shared_ptr<FrameBuffer> m_pShadowMapPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pShadowMapPassDepthOutput;
+		std::shared_ptr<FrameBuffer>	m_pShadowMapPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pShadowMapPassDepthOutput;
 
-		std::shared_ptr<FrameBuffer> m_pNormalOnlyPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pNormalOnlyPassNormalOutput;
-		std::shared_ptr<Texture2D> m_pNormalOnlyPassPositionOutput;
-		std::shared_ptr<Texture2D> m_pNormalOnlyPassDepthOutput;
+		std::shared_ptr<FrameBuffer>	m_pNormalOnlyPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pNormalOnlyPassNormalOutput;
+		std::shared_ptr<Texture2D>		m_pNormalOnlyPassPositionOutput;
+		std::shared_ptr<Texture2D>		m_pNormalOnlyPassDepthOutput;
 
-		std::shared_ptr<FrameBuffer> m_pOpaquePassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pOpaquePassColorOutput;
-		std::shared_ptr<Texture2D> m_pOpaquePassShadowOutput;
-		std::shared_ptr<Texture2D> m_pOpaquePassDepthOutput;
+		std::shared_ptr<FrameBuffer>	m_pOpaquePassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pOpaquePassColorOutput;
+		std::shared_ptr<Texture2D>		m_pOpaquePassShadowOutput;
+		std::shared_ptr<Texture2D>		m_pOpaquePassDepthOutput;
 
-		std::shared_ptr<FrameBuffer> m_pBlurPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pBlurPassHorizontalColorOutput;
-		std::shared_ptr<Texture2D> m_pBlurPassFinalColorOutput;
+		std::shared_ptr<FrameBuffer>	m_pBlurPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pBlurPassHorizontalColorOutput;
+		std::shared_ptr<Texture2D>		m_pBlurPassFinalColorOutput;
 
-		std::shared_ptr<FrameBuffer> m_pLineDrawingPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pLineDrawingPassCurvatureOutput;
-		std::shared_ptr<Texture2D> m_pLineDrawingPassBlurredOutput;
-		std::shared_ptr<Texture2D> m_pLineDrawingPassColorOutput;
-		std::shared_ptr<RenderTexture> m_pLineDrawingMatrixTexture;
+		std::shared_ptr<FrameBuffer>	m_pLineDrawingPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pLineDrawingPassCurvatureOutput;
+		std::shared_ptr<Texture2D>		m_pLineDrawingPassBlurredOutput;
+		std::shared_ptr<Texture2D>		m_pLineDrawingPassColorOutput;
+		std::shared_ptr<RenderTexture>	m_pLineDrawingMatrixTexture;
 
-		std::shared_ptr<FrameBuffer> m_pTranspPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pTranspPassColorOutput;
-		std::shared_ptr<Texture2D> m_pTranspPassDepthOutput;
+		std::shared_ptr<FrameBuffer>	m_pTranspPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pTranspPassColorOutput;
+		std::shared_ptr<Texture2D>		m_pTranspPassDepthOutput;
 
-		std::shared_ptr<FrameBuffer> m_pBlendPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pBlendPassColorOutput;
+		std::shared_ptr<FrameBuffer>	m_pBlendPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pBlendPassColorOutput;
 
-		std::shared_ptr<FrameBuffer> m_pDOFPassFrameBuffer;
-		std::shared_ptr<Texture2D> m_pDOFPassHorizontalOutput;
+		std::shared_ptr<FrameBuffer>	m_pDOFPassFrameBuffer;
+		std::shared_ptr<Texture2D>		m_pDOFPassHorizontalOutput;
 
-		std::shared_ptr<Texture2D> m_pBrushMaskImageTexture_1;
-		std::shared_ptr<Texture2D> m_pBrushMaskImageTexture_2;
-		std::shared_ptr<Texture2D> m_pPencilMaskImageTexture_1;
-		std::shared_ptr<Texture2D> m_pPencilMaskImageTexture_2;
+		std::shared_ptr<Texture2D>		m_pBrushMaskImageTexture_1;
+		std::shared_ptr<Texture2D>		m_pBrushMaskImageTexture_2;
+		std::shared_ptr<Texture2D>		m_pPencilMaskImageTexture_1;
+		std::shared_ptr<Texture2D>		m_pPencilMaskImageTexture_2;
 	};
 
 	namespace ForwardGraphRes

@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include <string>
 
 namespace Engine
 {
@@ -73,5 +75,125 @@ namespace Engine
 
 		// For line drawing
 		static const char* SAMPLE_MATRIX_TEXTURE = "SampleMatrixTexture";
+	}
+
+	// TODO: optimize the speed of the matching process, this linear search is very slow
+	static const char* MatchShaderParamName(const char* cstr)
+	{
+		if (std::strcmp(ShaderParamNames::MODEL_MATRIX, cstr) == 0)
+		{
+			return ShaderParamNames::MODEL_MATRIX;
+		}
+		if (std::strcmp(ShaderParamNames::VIEW_MATRIX, cstr) == 0)
+		{
+			return ShaderParamNames::VIEW_MATRIX;
+		}
+		if (std::strcmp(ShaderParamNames::PROJECTION_MATRIX, cstr) == 0)
+		{
+			return ShaderParamNames::PROJECTION_MATRIX;
+		}
+		if (std::strcmp(ShaderParamNames::NORMAL_MATRIX, cstr) == 0)
+		{
+			return ShaderParamNames::NORMAL_MATRIX;
+		}
+		if (std::strcmp(ShaderParamNames::LIGHT_SPACE_MATRIX, cstr) == 0)
+		{
+			return ShaderParamNames::LIGHT_SPACE_MATRIX;
+		}
+		if (std::strcmp(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::CAMERA_POSITION, cstr) == 0)
+		{
+			return ShaderParamNames::CAMERA_POSITION;
+		}
+		if (std::strcmp(ShaderParamNames::CAMERA_APERTURE, cstr) == 0)
+		{
+			return ShaderParamNames::CAMERA_APERTURE;
+		}
+		if (std::strcmp(ShaderParamNames::CAMERA_FOCALDISTANCE, cstr) == 0)
+		{
+			return ShaderParamNames::CAMERA_FOCALDISTANCE;
+		}
+		if (std::strcmp(ShaderParamNames::CAMERA_IMAGEDISTANCE, cstr) == 0)
+		{
+			return ShaderParamNames::CAMERA_IMAGEDISTANCE;
+		}
+		if (std::strcmp(ShaderParamNames::TIME, cstr) == 0)
+		{
+			return ShaderParamNames::TIME;
+		}
+		if (std::strcmp(ShaderParamNames::ALBEDO_COLOR, cstr) == 0)
+		{
+			return ShaderParamNames::ALBEDO_COLOR;
+		}
+		if (std::strcmp(ShaderParamNames::ANISOTROPY, cstr) == 0)
+		{
+			return ShaderParamNames::ANISOTROPY;
+		}
+		if (std::strcmp(ShaderParamNames::ROUGHNESS, cstr) == 0)
+		{
+			return ShaderParamNames::ROUGHNESS;
+		}
+		if (std::strcmp(ShaderParamNames::ALBEDO_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::ALBEDO_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::GNORMAL_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::GNORMAL_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::GPOSITION_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::GPOSITION_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::DEPTH_TEXTURE_1, cstr) == 0)
+		{
+			return ShaderParamNames::DEPTH_TEXTURE_1;
+		}
+		if (std::strcmp(ShaderParamNames::DEPTH_TEXTURE_2, cstr) == 0)
+		{
+			return ShaderParamNames::DEPTH_TEXTURE_2;
+		}
+		if (std::strcmp(ShaderParamNames::COLOR_TEXTURE_1, cstr) == 0)
+		{
+			return ShaderParamNames::COLOR_TEXTURE_1;
+		}
+		if (std::strcmp(ShaderParamNames::COLOR_TEXTURE_2, cstr) == 0)
+		{
+			return ShaderParamNames::COLOR_TEXTURE_2;
+		}
+		if (std::strcmp(ShaderParamNames::TONE_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::TONE_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::NOISE_TEXTURE_1, cstr) == 0)
+		{
+			return ShaderParamNames::NOISE_TEXTURE_1;
+		}
+		if (std::strcmp(ShaderParamNames::NOISE_TEXTURE_2, cstr) == 0)
+		{
+			return ShaderParamNames::NOISE_TEXTURE_2;
+		}
+		if (std::strcmp(ShaderParamNames::MASK_TEXTURE_1, cstr) == 0)
+		{
+			return ShaderParamNames::MASK_TEXTURE_1;
+		}
+		if (std::strcmp(ShaderParamNames::MASK_TEXTURE_2, cstr) == 0)
+		{
+			return ShaderParamNames::MASK_TEXTURE_2;
+		}
+		if (std::strcmp(ShaderParamNames::BOOL_1, cstr) == 0)
+		{
+			return ShaderParamNames::BOOL_1;
+		}
+		if (std::strcmp(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::SAMPLE_MATRIX_TEXTURE;
+		}
+
+		std::cerr << "Unmatched shader parameter name: " << cstr << std::endl;
+		return nullptr;
 	}
 }

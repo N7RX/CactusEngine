@@ -45,9 +45,9 @@ namespace Engine
 		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 	}
 
-	inline VkPipelineStageFlags DetermineShaderPipelineStage_VK(EShaderType shaderType)
+	inline VkPipelineStageFlagBits DetermineShaderPipelineStage_VK(EShaderType shaderStage)
 	{
-		switch (shaderType)
+		switch (shaderStage)
 		{
 		case EShaderType::Vertex:
 			return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
@@ -68,12 +68,13 @@ namespace Engine
 			return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled shader type: " << (unsigned int)shaderType << std::endl;
+			std::cerr << "Vulkan: Unhandled shader stage: " << (unsigned int)shaderStage << std::endl;
 			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		}
 	}
 
-	inline void GetAccessAndStageFromImageLayout_VK(const VkImageLayout layout, VkAccessFlags& accessMask, VkPipelineStageFlags& pipelineStage, EShaderType shaderType)
+	// TODO: add support for multiple shader stages
+	inline void GetAccessAndStageFromImageLayout_VK(const VkImageLayout layout, VkAccessFlags& accessMask, VkPipelineStageFlags& pipelineStage, EShaderType shaderStage)
 	{
 		switch (layout)
 		{
@@ -89,7 +90,7 @@ namespace Engine
 
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			accessMask = VK_ACCESS_SHADER_READ_BIT;
-			pipelineStage = DetermineShaderPipelineStage_VK(shaderType);
+			pipelineStage = DetermineShaderPipelineStage_VK(shaderStage);
 			return;
 
 		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:

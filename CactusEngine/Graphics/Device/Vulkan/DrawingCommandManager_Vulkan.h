@@ -43,9 +43,10 @@ namespace Engine
 		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
 		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<VkDescriptorSet>& descriptorSets, uint32_t firstSet = 0);
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
+		void DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void EndRenderPass();
 
-		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderType = EShaderType::Fragment);
+		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderStage = EShaderType::Fragment);
 		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage);
 		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region);
 		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);

@@ -41,11 +41,17 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	createInfo.dataType = EDataType::UByte;
 	createInfo.format = ETextureFormat::RGBA32F;
 	createInfo.textureType = ETextureType::SampledImage;
+	createInfo.generateMipmap = true;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 
 	m_filePath.assign(filePath);
 	stbi_image_free(imageData);
+
+	if (m_pDevice->GetDeviceType() == EGraphicsDeviceType::Vulkan)
+	{
+		m_pDevice->TransitionImageLayout_Immediate(m_pTextureImpl, EImageLayout::ShaderReadOnly, EShaderType::Fragment); // TODO: add support for multiple shader stages read
+	}
 }
 
 std::shared_ptr<Texture2D> ImageTexture::GetTexture() const
@@ -56,4 +62,19 @@ std::shared_ptr<Texture2D> ImageTexture::GetTexture() const
 uint32_t ImageTexture::GetTextureID() const
 {
 	return m_pTextureImpl->GetTextureID();
+}
+
+bool ImageTexture::HasSampler() const
+{
+	return m_pTextureImpl->HasSampler();
+}
+
+void ImageTexture::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+{
+	m_pTextureImpl->SetSampler(pSampler);
+}
+
+std::shared_ptr<TextureSampler> ImageTexture::GetSampler() const
+{
+	return m_pTextureImpl->GetSampler();
 }

@@ -129,12 +129,12 @@ bool Texture2D_Vulkan::HasSampler() const
 	return m_pSampler != nullptr;
 }
 
-void Texture2D_Vulkan::SetSampler(const std::shared_ptr<Sampler_Vulkan> pSampler)
+void Texture2D_Vulkan::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
 {
-	m_pSampler = pSampler;
+	m_pSampler = std::static_pointer_cast<Sampler_Vulkan>(pSampler);
 }
 
-std::shared_ptr<Sampler_Vulkan> Texture2D_Vulkan::GetSampler() const
+std::shared_ptr<TextureSampler> Texture2D_Vulkan::GetSampler() const
 {
 	return m_pSampler;
 }
@@ -180,7 +180,12 @@ UniformBuffer_Vulkan::~UniformBuffer_Vulkan()
 
 void UniformBuffer_Vulkan::UpdateBufferData(const void* pData)
 {
-	m_pRawData->m_pData = pData;
+	m_pRawData->m_pData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
+
+	if (m_eType == EUniformBufferType_Vulkan::Uniform)
+	{
+		UpdateToDevice();
+	}
 }
 
 void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
@@ -374,6 +379,17 @@ std::shared_ptr<RenderTarget2D_Vulkan> DrawingSwapchain_Vulkan::GetTargetImage()
 	return m_renderTargets[m_targetImageIndex];
 }
 
+uint32_t DrawingSwapchain_Vulkan::GetTargetImageIndex() const
+{
+	return m_targetImageIndex;
+}
+
+std::shared_ptr<RenderTarget2D_Vulkan> DrawingSwapchain_Vulkan::GetSwapchainImageByIndex(unsigned int index) const
+{
+	assert(index < m_renderTargets.size());
+	return m_renderTargets[index];
+}
+
 VkExtent2D DrawingSwapchain_Vulkan::GetSwapExtent() const
 {
 	return m_swapExtent;
@@ -455,13 +471,25 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const 
 
 unsigned int ShaderProgram_Vulkan::GetParamLocation(const char* paramName) const
 {
-	std::cerr << "Vulkan: shouldn't call GetParamLocation on Vulkan shader program.\n";
+	if (m_resourceTable.find(paramName) != m_resourceTable.end())
+	{
+		return m_resourceTable.at(paramName).location;
+	}
 	return -1;
 }
 
 void ShaderProgram_Vulkan::Reset()
 {
 	std::cerr << "Vulkan: shouldn't call Reset on Vulkan shader program.\n";
+}
+
+unsigned int ShaderProgram_Vulkan::GetParamBinding(const char* paramName) const
+{
+	if (m_resourceTable.find(paramName) != m_resourceTable.end())
+	{
+		return m_resourceTable.at(paramName).binding;
+	}
+	return -1;
 }
 
 uint32_t ShaderProgram_Vulkan::GetStageCount() const
@@ -532,8 +560,8 @@ void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvComp
 	{
 		VariableDescription desc = {};
 
-		desc.variableName = spvCompiler.get_member_name(resource.base_type_id, i).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
-		desc.uniformName = spvCompiler.get_name(resource.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.variableName = spvCompiler.get_member_name(resource.base_type_id, i);
+		desc.uniformName = MatchShaderParamName(spvCompiler.get_name(resource.id).c_str());
 		desc.offset = spvCompiler.type_struct_member_offset(resType, i);
 		desc.variableSize = (uint32_t)spvCompiler.get_declared_struct_member_size(resType, i);
 		desc.uniformSize = resSize;
@@ -553,8 +581,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	{
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::Uniform;
-		desc.slot = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(buffer.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
+		desc.location = spvCompiler.get_decoration(buffer.id, spv::DecorationLocation);
+		desc.name = MatchShaderParamName(spvCompiler.get_name(buffer.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 		ProcessVariables(spvCompiler, buffer);
@@ -567,8 +596,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::PushConstant;
-		desc.slot = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(constant.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.binding = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
+		desc.location = spvCompiler.get_decoration(constant.id, spv::DecorationLocation);
+		desc.name = MatchShaderParamName(spvCompiler.get_name(constant.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 		ProcessVariables(spvCompiler, constant);
@@ -579,8 +609,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	{
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SeparateImage;
-		desc.slot = spvCompiler.get_decoration(separateImage.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(separateImage.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.binding = spvCompiler.get_decoration(separateImage.id, spv::DecorationBinding);
+		desc.location = spvCompiler.get_decoration(separateImage.id, spv::DecorationLocation);
+		desc.name = MatchShaderParamName(spvCompiler.get_name(separateImage.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 	}
@@ -589,8 +620,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	{
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SeparateSampler;
-		desc.slot = spvCompiler.get_decoration(separateSampler.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(separateSampler.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.binding = spvCompiler.get_decoration(separateSampler.id, spv::DecorationBinding);
+		desc.location = spvCompiler.get_decoration(separateSampler.id, spv::DecorationLocation);
+		desc.name = MatchShaderParamName(spvCompiler.get_name(separateSampler.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 	}
@@ -599,8 +631,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	{
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SampledImage;
-		desc.slot = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
-		desc.name = spvCompiler.get_name(sampledImage.id).c_str(); // Alert: this is incorrect for finding corresponding resource by const char*
+		desc.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
+		desc.location = spvCompiler.get_decoration(sampledImage.id, spv::DecorationLocation);
+		desc.name = MatchShaderParamName(spvCompiler.get_name(sampledImage.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 	}
@@ -798,10 +831,10 @@ void ShaderProgram_Vulkan::UpdateDescriptorSets(const std::vector<DesciptorUpdat
 	m_pDescriptorPool->UpdateDescriptorSets(updateInfos);
 }
 
-void ShaderProgram_Vulkan::UpdateUniformBufferData(unsigned int loc, const void* pData)
+void ShaderProgram_Vulkan::UpdateUniformBufferData(unsigned int binding, const void* pData)
 {
-	assert(m_uniformBuffers.find((uint32_t)loc) != m_uniformBuffers.end());
-	m_uniformBuffers.at(loc)->UpdateBufferData(pData);
+	assert(m_uniformBuffers.find((uint32_t)binding) != m_uniformBuffers.end());
+	m_uniformBuffers.at(binding)->UpdateBufferData(pData);
 }
 
 EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType& type, uint32_t size)

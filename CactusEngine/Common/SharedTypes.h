@@ -131,6 +131,8 @@ namespace Engine
 	{
 		RGBA32F = 0,
 		Depth,
+		UNDEFINED,
+		COUNT
 	};
 
 	enum class EDataType
