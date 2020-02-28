@@ -1,27 +1,27 @@
 #version 430
 
-in vec2 v2fTexCoord;
+layout(location = 0) in vec2 v2fTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2D ColorTexture_1;
-uniform sampler2D DepthTexture_1;
-uniform sampler2D ColorTexture_2;
-uniform sampler2D DepthTexture_2;
+layout(binding = 6) uniform sampler2D ColorTexture_1;
+layout(binding = 4) uniform sampler2D DepthTexture_1;
+layout(binding = 7) uniform sampler2D ColorTexture_2;
+layout(binding = 5) uniform sampler2D DepthTexture_2;
 
-uniform float CameraGamma = 0.6f;
-uniform float Exposure = 2.0f;
+const float CameraGamma = 0.6f;
+const float Exposure = 2.0f;
 
 
 void main(void)
 {
-	float depthFromOpaque = texture2D(DepthTexture_1, v2fTexCoord).r;
-	float depthFromTransp = texture2D(DepthTexture_2, v2fTexCoord).r;
+	float depthFromOpaque = texture(DepthTexture_1, v2fTexCoord).r;
+	float depthFromTransp = texture(DepthTexture_2, v2fTexCoord).r;
 
 	float alpha = step(0, depthFromOpaque - depthFromTransp);
 
-	vec4 colorFromOpaque = texture2D(ColorTexture_1, v2fTexCoord);
-	vec4 colorFromTransp = texture2D(ColorTexture_2, v2fTexCoord);
+	vec4 colorFromOpaque = texture(ColorTexture_1, v2fTexCoord);
+	vec4 colorFromTransp = texture(ColorTexture_2, v2fTexCoord);
 
 	outColor = colorFromTransp * alpha + (1.0f - alpha) * colorFromOpaque;
 

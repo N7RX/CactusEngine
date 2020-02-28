@@ -1,8 +1,8 @@
 #version 430
 
-in vec2 v2fTexCoord;
+layout(location = 0) in vec2 v2fTexCoord;
 
-uniform sampler2D AlbedoTexture;
+layout(binding = 1) uniform sampler2D AlbedoTexture;
 
 
 void main(void)
@@ -10,7 +10,7 @@ void main(void)
 	gl_FragDepth = gl_FragCoord.z;
 
 	// Transparent cutout
-	vec4 colorFromTexture = texture2D(AlbedoTexture, v2fTexCoord);
+	vec4 colorFromTexture = texture(AlbedoTexture, v2fTexCoord);
 	if (colorFromTexture.a <= 0)
 	{
 		gl_FragDepth = 1;

@@ -1,13 +1,13 @@
 #version 430
 
-in vec2 v2fTexCoord;
+layout(location = 0) in vec2 v2fTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2D ColorTexture_1; // Blurred tone value (stored in alpha channel)
-// Containing the 5x9 sample parameter matrix
-uniform sampler2D SampleMatrixTexture;
-uniform int LineWidth = 1;
+layout(binding = 6) uniform sampler2D ColorTexture_1; // Blurred tone value (stored in alpha channel)
+layout(binding = 13) uniform sampler2D SampleMatrixTexture; // Containing the 5x9 sample parameter matrix
+
+const int LineWidth = 1;
 
 
 vec2 findCurvature(in vec2 position)
@@ -22,7 +22,7 @@ vec2 findCurvature(in vec2 position)
 	{
 		for (int j = -LineWidth; j < LineWidth + 1; j += LineWidth)
 		{
-			sampleColor[sampleIndex] = texture2D(ColorTexture_1, position + i*xTexOffset + j*yTexOffset);
+			sampleColor[sampleIndex] = texture(ColorTexture_1, position + i*xTexOffset + j*yTexOffset);
 			sampleIndex++;
 		}
 	}
@@ -44,7 +44,7 @@ vec2 findCurvature(in vec2 position)
 	vec4 H[12];
 	for (int i = 0; i < 12; ++i)
 	{
-		H[i] = texture2D(SampleMatrixTexture, matrixTexOffset * i);
+		H[i] = texture(SampleMatrixTexture, matrixTexOffset * i);
 	}
 
 	float a0 = dot(H[0], T1) + dot(H[1], T2) + H[10][0] * t3;

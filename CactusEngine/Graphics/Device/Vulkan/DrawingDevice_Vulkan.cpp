@@ -2,6 +2,9 @@
 #include "DrawingDevice_Vulkan.h"
 #include "DrawingResources_Vulkan.h"
 #include "DrawingUtil_Vulkan.h"
+#include "ImageTexture.h"
+#include "RenderTexture.h"
+
 #include <set>
 #if defined(GLFW_IMPLEMENTATION_CACTUS)
 #include <GLFW/glfw3.h>
@@ -31,9 +34,12 @@ void DrawingDevice_Vulkan::Initialize()
 
 void DrawingDevice_Vulkan::ShutDown()
 {
-	// TODO: correctly organize the sequence of resource release
+	if (m_isRunning)
+	{
+		// TODO: correctly organize the sequence of resource release
 
-	m_isRunning = false;
+		m_isRunning = false;
+	}
 }
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
@@ -244,6 +250,22 @@ bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	return vkCreateFramebuffer(pFrameBuffer->m_pDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
 }
 
+bool DrawingDevice_Vulkan::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput)
+{
+	UniformBufferCreateInfo_Vulkan vkUniformBufferCreateInfo = {};
+	vkUniformBufferCreateInfo.size = createInfo.sizeInBytes;
+	vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
+	vkUniformBufferCreateInfo.type = EUniformBufferType_Vulkan::Uniform;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pOutput = std::make_shared<UniformBuffer_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1, vkUniformBufferCreateInfo);
+#else
+	pOutput = std::make_shared<FrameBuffer_Vulkan>(m_pDevice_0, vkUniformBufferCreateInfo);
+#endif
+
+	return pOutput != nullptr;
+}
+
 void DrawingDevice_Vulkan::ClearRenderTarget()
 {
 	std::cerr << "Vulkan: shouldn't call ClearRenderTarget on Vulkan device.\n";
@@ -277,15 +299,8 @@ void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 
 	std::vector<DesciptorUpdateInfo_Vulkan> updateInfos;
 
-	for (auto& item : pTable->m_hpTable)
+	for (auto& item : pTable->m_table)
 	{
-		if (item.type == EDescriptorType::UniformBuffer)
-		{
-			// Update uniform buffer memory
-			pVkShader->UpdateUniformBufferData(item.binding, item.pValue);
-			continue; // Uniform buffers are managed by shader program internally
-		}
-
 		DesciptorUpdateInfo_Vulkan updateInfo = {};
 		updateInfo.hasContent = true;
 		updateInfo.infoType = VulkanDescriptorResourceType(item.type);
@@ -311,7 +326,25 @@ void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 		}
 		case EDescriptorResourceType_Vulkan::Image:
 		{
-			auto pImage = std::static_pointer_cast<Texture2D_Vulkan>(item.pResource);
+			std::shared_ptr<Texture2D_Vulkan> pImage = nullptr;
+			switch (std::static_pointer_cast<Texture2D>(item.pResource)->QuerySource())
+			{
+			case ETexture2DSource::ImageTexture:
+				pImage = std::static_pointer_cast<Texture2D_Vulkan>(std::static_pointer_cast<ImageTexture>(item.pResource)->GetTexture());
+				break;
+
+			case ETexture2DSource::RenderTexture:
+				pImage = std::static_pointer_cast<Texture2D_Vulkan>(std::static_pointer_cast<RenderTexture>(item.pResource)->GetTexture());
+				break;
+
+			case ETexture2DSource::RawDeviceTexture:
+				pImage = std::static_pointer_cast<Texture2D_Vulkan>(item.pResource);
+				break;
+
+			default:
+				throw std::runtime_error("Vulkan: Unhandled texture 2D source type.");
+				return;
+			}
 
 			VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageView = pImage->m_imageView;

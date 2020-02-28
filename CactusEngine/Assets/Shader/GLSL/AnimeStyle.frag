@@ -1,48 +1,61 @@
 #version 430
 
-in vec2 v2fTexCoord;
-in vec3 v2fNormal;
-in vec3 v2fPosition;
-in vec3 v2fLightSpacePosition;
-in mat3 v2fTBNMatrix;
-in vec3 v2fTangent;
-in vec3 v2fBitangent;
+layout(location = 0) in vec2 v2fTexCoord;
+layout(location = 1) in vec3 v2fNormal;
+layout(location = 2) in vec3 v2fPosition;
+layout(location = 3) in vec3 v2fLightSpacePosition;
+layout(location = 4) in vec3 v2fTangent;
+layout(location = 5) in vec3 v2fBitangent;
+layout(location = 6) in mat3 v2fTBNMatrix;
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outShadow;
 
-uniform mat4 ProjectionMatrix;
-uniform mat4 ViewMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
 
-uniform vec3 CameraPosition;
+layout(binding = 1) uniform sampler2D AlbedoTexture;
+layout(binding = 5) uniform sampler2D GNormalTexture;
+layout(binding = 8) uniform sampler2D ToneTexture;
+layout(binding = 0) uniform sampler2D ShadowMapDepthTexture;
 
-uniform sampler2D AlbedoTexture;
-uniform sampler2D GNormalTexture;
-uniform sampler2D ToneTexture;
-uniform sampler2D ShadowMapDepthTexture;
+layout(std140, binding = 2) uniform MaterialNumericalProperties
+{
+	vec4  AlbedoColor;
+	float Anisotropy;
+	float Roughness;
+};
 
-uniform vec4 AlbedoColor;
+layout(std140, binding = 3) uniform CameraProperties
+{
+	vec3  CameraPosition;
+	float Aperture;
+	float FocalDistance;
+	float ImageDistance;
+};
 
-uniform float Anisotropy = 0.0f;
-uniform float Roughness = 0.8f;
-
-uniform vec3  LightDirection = vec3(0.0f, 0.6f, -0.8f);
-uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 1.15f;
+const vec3  LightDirection = vec3(0.0f, 0.6f, -0.8f);
+const vec4  LightColor = vec4(1, 1, 1, 1);
+const float LightIntensity = 1.15f;
 
 // TODO: Pass in camera parameters
-uniform float CameraZFar = 1000.0f;
-uniform float CameraZNear = 0.3f;
+const float CameraZFar = 1000.0f;
+const float CameraZNear = 0.3f;
 
-uniform float ZMin = 1.f;
+const float ZMin = 1.f;
 
-uniform float Tao = 0.9f;
-uniform float Beta = 0.5f;
-uniform int	  Gamma = 2;
+const float Tao = 0.9f;
+const float Beta = 0.5f;
+const int	Gamma = 2;
 
-uniform float Mu = 0.3f;
-uniform float Lambda = 0.5f;
-uniform float Kai = 0.7f;
+const float Mu = 0.3f;
+const float Lambda = 0.5f;
+const float Kai = 0.7f;
 
 const float PI = 3.1415926536;
 
@@ -96,7 +109,7 @@ float ComputeShadow(vec4 fragPosLightSpace, vec3 normal)
 
 void main(void)
 {
-	vec4 colorFromAlbedoTexture = texture2D(AlbedoTexture, v2fTexCoord);
+	vec4 colorFromAlbedoTexture = texture(AlbedoTexture, v2fTexCoord);
 	if (colorFromAlbedoTexture.a <= 0)
 	{
 		discard;
@@ -136,10 +149,10 @@ void main(void)
 	vec2 screenCoord = (ProjectionMatrix * ViewMatrix * vec4(v2fPosition, 1)).xy / (ProjectionMatrix * ViewMatrix * vec4(v2fPosition, 1)).w * 0.5f + 0.5f;
 
 	// Depth gradient based on normal
-	vec3 rightNormal = texture2D(GNormalTexture, screenCoord + xTexOffset).xyz;
-	vec3 leftNormal = texture2D(GNormalTexture, screenCoord - xTexOffset).xyz;
-	vec3 topNormal = texture2D(GNormalTexture, screenCoord + yTexOffset).xyz;
-	vec3 bottomNormal = texture2D(GNormalTexture, screenCoord - yTexOffset).xyz;
+	vec3 rightNormal = texture(GNormalTexture, screenCoord + xTexOffset).xyz;
+	vec3 leftNormal = texture(GNormalTexture, screenCoord - xTexOffset).xyz;
+	vec3 topNormal = texture(GNormalTexture, screenCoord + yTexOffset).xyz;
+	vec3 bottomNormal = texture(GNormalTexture, screenCoord - yTexOffset).xyz;
 	vec2 gRight = vec2(-rightNormal.x / rightNormal.z, -rightNormal.y / rightNormal.z);
 	vec2 gLeft = vec2(-leftNormal.x / leftNormal.z, -leftNormal.y / leftNormal.z);
 	vec2 gTop = vec2(-topNormal.x / topNormal.z, -topNormal.y / topNormal.z);
@@ -202,7 +215,7 @@ void main(void)
 	float fragDepth = (2.0f * CameraZNear * CameraZFar) / (CameraZNear + CameraZFar - (2.0f * gl_FragCoord.z - 1.0f) * (CameraZFar - CameraZNear));
 	float D = clamp(1.0f - log2(fragDepth / ZMin), 0, 1); // Scale factor (r) is set to 2
 	vec2 toonCoord = vec2(clamp(dot(v2fNormal, LightDirection), 0.01f, 1), D);
-	vec4 toneColor = texture2D(ToneTexture, toonCoord) * AlbedoColor * LightIntensity * LightColor;
+	vec4 toneColor = texture(ToneTexture, toonCoord) * AlbedoColor * LightIntensity * LightColor;
 
 	// Applying shadow map
 	float shadowValue = ComputeShadow(vec4(v2fLightSpacePosition, 1.0f), v2fNormal);

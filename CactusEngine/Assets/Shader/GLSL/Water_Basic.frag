@@ -1,47 +1,67 @@
 #version 430
 
-in vec2 v2fTexCoord;
-in vec3 v2fNormal;
-in vec3 v2fPosition;
+layout(location = 0) in vec2 v2fTexCoord;
+layout(location = 1) in vec3 v2fNormal;
+layout(location = 2) in vec3 v2fPosition;
 
 layout(location = 0) out vec4 outColor;
 
-uniform mat4 ProjectionMatrix;
-uniform mat4 ViewMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
 
-uniform vec3 CameraPosition;
+layout(std140, binding = 4) uniform SystemVariables
+{
+	float Time;
+};
 
-uniform float Time;
+layout(std140, binding = 3) uniform CameraProperties
+{
+	vec3  CameraPosition;
+	float Aperture;
+	float FocalDistance;
+	float ImageDistance;
+};
 
-uniform sampler2D AlbedoTexture;
-uniform vec4 AlbedoColor;
+layout(binding = 1) uniform sampler2D AlbedoTexture;
 
-uniform sampler2D DepthTexture_1;
-uniform sampler2D ColorTexture_1;
+layout(std140, binding = 2) uniform MaterialNumericalProperties
+{
+	vec4  AlbedoColor;
+	float Anisotropy;
+	float Roughness;
+};
+
+layout(binding = 4) uniform sampler2D DepthTexture_1;
+layout(binding = 6) uniform sampler2D ColorTexture_1;
 
 // TODO: replace Phong model with PBR
-uniform vec3  LightDirection = vec3(0.0f, 0.8660254f, -0.5f);
-uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 1.5f;
+const vec3  LightDirection = vec3(0.0f, 0.8660254f, -0.5f);
+const vec4  LightColor = vec4(1, 1, 1, 1);
+const float LightIntensity = 1.5f;
 
-uniform float Ka = 0.25f;
-uniform float Kd = 0.9f;
-uniform float Ks = 1.0f;
-uniform int   Shininess = 64;
+const float Ka = 0.25f;
+const float Kd = 0.9f;
+const float Ks = 1.0f;
+const int   Shininess = 64;
 
-uniform float FoamHeight = 0.15f;
-uniform float FoamRange = 0.09f;
-uniform vec4  FoamColor = vec4(1, 1, 1, 1);
+const float FoamHeight = 0.15f;
+const float FoamRange = 0.09f;
+const vec4  FoamColor = vec4(1, 1, 1, 1);
 
-uniform float BlendDepthRange = 0.18f;
+const float BlendDepthRange = 0.18f;
 
-// TODO: Pass in camera parameters
-uniform float CameraZFar = 1000.0f;
-uniform float CameraZNear = 0.3f;
+// TODO: pass in camera parameters
+const float CameraZFar = 1000.0f;
+const float CameraZNear = 0.3f;
 
-uniform float DistortionAmount = 0.005f;
-uniform float DistortionFreq = 2.0f;
-uniform float DistortionDensity = 10.0f;
+const float DistortionAmount = 0.005f;
+const float DistortionFreq = 2.0f;
+const float DistortionDensity = 10.0f;
 
 
 void main(void)
@@ -53,7 +73,7 @@ void main(void)
 
 	// Acquire Z-depth
 	// Ref: http://web.archive.org/web/20130416194336/http://olivers.posterous.com/linear-depth-in-glsl-for-real
-	float backgroundDepth_linear = texture2D(DepthTexture_1, distortedCoord).r;
+	float backgroundDepth_linear = texture(DepthTexture_1, distortedCoord).r;
 	float backgroundDepth_env = (2.0f * CameraZNear * CameraZFar) / (CameraZNear + CameraZFar - (2.0f * backgroundDepth_linear - 1.0f) * (CameraZFar - CameraZNear));
 	float fragDepth_env = (2.0f * CameraZNear * CameraZFar) / (CameraZNear + CameraZFar - (2.0f * gl_FragCoord.z - 1.0f) * (CameraZFar - CameraZNear));
 	if (backgroundDepth_env < fragDepth_env)
@@ -62,7 +82,7 @@ void main(void)
 	}
 
 	// Color with foam approximation
-	vec4 colorFromAlbedoTexture = texture2D(AlbedoTexture, v2fTexCoord);
+	vec4 colorFromAlbedoTexture = texture(AlbedoTexture, v2fTexCoord);
 	vec4 waterColor = (AlbedoColor * colorFromAlbedoTexture * LightColor);
 	float foamFactor = pow(10.0f * clamp(v2fPosition.y - FoamHeight, 0, FoamRange), 2);
 	waterColor = foamFactor * FoamColor + (1.0f - foamFactor) * waterColor;
@@ -80,7 +100,7 @@ void main(void)
 
 	// Blend with background color
 	waterColor.xyz *= illumination;
-	waterColor.xyz = (1.0f - waterColor.a) * texture2D(ColorTexture_1, distortedCoord).xyz + waterColor.a * waterColor.xyz;
+	waterColor.xyz = (1.0f - waterColor.a) * texture(ColorTexture_1, distortedCoord).xyz + waterColor.a * waterColor.xyz;
 
 	outColor = vec4(waterColor.xyz, 1.0f);
 }

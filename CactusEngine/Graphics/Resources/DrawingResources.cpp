@@ -15,24 +15,13 @@ uint32_t RawResource::GetResourceID() const
 	return m_resourceID;
 }
 
-uint32_t RawResource::GetSize() const
+uint32_t RawResource::GetSizeInByte() const
 {
 	return m_sizeInBytes;
 }
 
-std::shared_ptr<RawResourceData> RawResource::GetData() const
+void RawResource::MarkSizeInByte(uint32_t size)
 {
-	return m_pRawData;
-}
-
-void RawResource::SetData(const std::shared_ptr<RawResourceData> pData, uint32_t size)
-{
-	m_pRawData = pData;
-
-	if (m_pRawData)
-	{
-		m_pRawData->m_sizeInBytes = size;
-	}
 	m_sizeInBytes = size;
 }
 
@@ -102,6 +91,12 @@ uint32_t VertexBuffer::GetNumberOfIndices() const
 	return m_numberOfIndices;
 }
 
+Texture2D::Texture2D(ETexture2DSource source)
+	: m_source(source), m_height(0), m_width(0), m_type(ETextureType::SampledImage)
+{
+
+}
+
 uint32_t Texture2D::GetWidth() const
 {
 	return m_width;
@@ -130,6 +125,11 @@ void Texture2D::SetFilePath(const char* filePath)
 const char* Texture2D::GetFilePath() const
 {
 	return m_filePath.c_str();
+}
+
+ETexture2DSource Texture2D::QuerySource() const
+{
+	return m_source;
 }
 
 Shader::Shader(EShaderType type)

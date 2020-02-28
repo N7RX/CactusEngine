@@ -3,10 +3,20 @@
 layout(location = 0) in vec3 inPosition;
 layout(location = 2) in vec2 inTexCoord;
 
-out vec2 v2fTexCoord;
+layout(location = 0) out vec2 v2fTexCoord;
 
-uniform mat4 ModelMatrix;
-uniform mat4 LightSpaceMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
+
+layout(std140, binding = 1) uniform LightSpaceTransformMatrix
+{
+	mat4 LightSpaceMatrix;
+};
 
 
 void main(void)

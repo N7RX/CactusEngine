@@ -19,10 +19,12 @@ namespace Engine
 	class Texture2D_OpenGL : public Texture2D
 	{
 	public:
-		GLuint GetGLTextureID() const;
-		uint32_t GetTextureID() const override;
+		Texture2D_OpenGL();
+		~Texture2D_OpenGL();
 
+		GLuint GetGLTextureID() const;
 		void SetGLTextureID(GLuint id);
+
 		void MarkTextureSize(uint32_t width, uint32_t height);
 
 		// Not used in OpenGL device
@@ -31,7 +33,22 @@ namespace Engine
 		std::shared_ptr<TextureSampler> GetSampler() const override;
 
 	private:
-		GLuint m_glTextureID = -1;
+		GLuint m_glTextureID;
+	};
+
+	class UniformBuffer_OpenGL : public UniformBuffer
+	{
+	public:
+		~UniformBuffer_OpenGL();
+
+		void SetGLBufferID(GLuint id);
+		GLuint GetGLBufferID() const;
+
+		void UpdateBufferData(const void* pData) override;
+		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
+
+	private:
+		GLuint m_glBufferID = -1;
 	};
 
 	class FrameBuffer_OpenGL : public FrameBuffer
@@ -86,19 +103,16 @@ namespace Engine
 
 		GLuint GetGLProgramID() const;
 
-		unsigned int GetParamLocation(const char* paramName) const override;
 		unsigned int GetParamBinding(const char* paramName) const override;
-
-		void UpdateParameterValue(GLuint location, EShaderParamType type, const void* value);
 		void Reset() override;
+
+		void UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes);
 
 	private:
 		void ReflectParamLocations();
 
 	private:
 		GLuint m_glProgramID;
-		uint32_t m_activeTextureUnit;
-		std::unordered_map<const char*, unsigned int> m_paramLocations;
 		std::unordered_map<const char*, unsigned int> m_paramBindings;
 	};
 }

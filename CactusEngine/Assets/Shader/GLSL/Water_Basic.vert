@@ -4,28 +4,34 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 
-out vec2 v2fTexCoord;
-out vec3 v2fNormal;
-out vec3 v2fPosition;
+layout(location = 0) out vec2 v2fTexCoord;
+layout(location = 1) out vec3 v2fNormal;
+layout(location = 2) out vec3 v2fPosition;
 
-uniform mat4 ModelMatrix;
-uniform mat4 ViewMatrix;
-uniform mat4 ProjectionMatrix;
-uniform mat3 NormalMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
 
-uniform float Time;
+layout(std140, binding = 4) uniform SystemVariables
+{
+	float Time;
+};
 
-uniform sampler2D NoiseTexture_1;
+layout(binding = 9) uniform sampler2D NoiseTexture_1;
 
-uniform vec2  NoiseDirection = vec2(1.0f, 1.0f); // This should not be normalized
-uniform float NoiseIntensity = 1.0f;
-uniform float NoiseFrequency = 0.05f;
+const vec2  NoiseDirection = vec2(1.0f, 1.0f); // This should not be normalized
+const float NoiseIntensity = 1.0f;
+const float NoiseFrequency = 0.05f;
 
-uniform float WaveLength = 0.08f;
-uniform float Steepness = 0.5f;
-uniform float Amplitude = 0.06f;
-uniform float Speed = 0.12f;
-uniform vec2  Direction = vec2(-0.7071068f, -0.7071068f);
+const float WaveLength = 0.08f;
+const float Steepness = 0.5f;
+const float Amplitude = 0.06f;
+const float Speed = 0.12f;
+const vec2  Direction = vec2(-0.7071068f, -0.7071068f);
 
 
 void main(void)
@@ -33,7 +39,7 @@ void main(void)
 	v2fTexCoord = inTexCoord + vec2(fract(-0.05f * Time));
 
 	vec2 noiseTexCoord = inTexCoord + vec2(fract(NoiseFrequency * Time)) * NoiseDirection;
-	float noisedTime = Time + NoiseIntensity * texture2D(NoiseTexture_1, noiseTexCoord).r;
+	float noisedTime = Time + NoiseIntensity * texture(NoiseTexture_1, noiseTexCoord).r;
 
 	// Gerstner Wave
 
@@ -52,7 +58,7 @@ void main(void)
 	float yNormal = -(Direction.y * frequency * Amplitude * cos(frequency * dot(Direction, vPosition.xy) + phi * noisedTime));
 	float zNormal = 1 - (Steepness * frequency * Amplitude * sin(frequency * dot(Direction, vPosition.xy) + phi * noisedTime));
 
-	v2fNormal = normalize(NormalMatrix * vec3(xNormal, yNormal, zNormal));
+	v2fNormal = normalize(mat3(NormalMatrix) * vec3(xNormal, yNormal, zNormal));
 
 	v2fPosition = (ModelMatrix * vec4(vPosition, 1.0)).xyz;
 

@@ -1,6 +1,8 @@
 #include "DrawingResources_OpenGL.h"
 #include "DrawingUtil_OpenGL.h"
 #include "BuiltInShaderType.h"
+#include "ImageTexture.h"
+#include "RenderTexture.h";
 
 using namespace Engine;
 
@@ -16,14 +18,25 @@ VertexBuffer_OpenGL::~VertexBuffer_OpenGL()
 	glDeleteVertexArrays(1, &m_vao);
 }
 
-GLuint Texture2D_OpenGL::GetGLTextureID() const
+Texture2D_OpenGL::Texture2D_OpenGL()
+	: Texture2D(ETexture2DSource::RawDeviceTexture), m_glTextureID(-1)
 {
-	return m_glTextureID;
+
 }
 
-uint32_t Texture2D_OpenGL::GetTextureID() const
+Texture2D_OpenGL::~Texture2D_OpenGL()
 {
-	return static_cast<uint32_t>(m_glTextureID);
+	glDeleteTextures(1, &m_glTextureID);
+}
+
+GLuint Texture2D_OpenGL::GetGLTextureID() const
+{
+	if (m_glTextureID > 100000)
+	{
+		std::cout << m_glTextureID << "\n";
+	}
+
+	return m_glTextureID;
 }
 
 void Texture2D_OpenGL::SetGLTextureID(GLuint id)
@@ -52,6 +65,41 @@ std::shared_ptr<TextureSampler> Texture2D_OpenGL::GetSampler() const
 {
 	std::cerr << "OpenGL: shouldn't call GetSampler on OpenGL texture 2D.\n";
 	return nullptr;
+}
+
+UniformBuffer_OpenGL::~UniformBuffer_OpenGL()
+{
+	glDeleteBuffers(1, &m_glBufferID);
+}
+
+void UniformBuffer_OpenGL::SetGLBufferID(GLuint id)
+{
+	m_glBufferID = id;
+}
+
+GLuint UniformBuffer_OpenGL::GetGLBufferID() const
+{
+	return m_glBufferID;
+}
+
+void UniformBuffer_OpenGL::UpdateBufferData(const void* pData)
+{
+	assert(m_sizeInBytes != 0);
+	assert(m_glBufferID != -1);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
+	glBufferData(GL_UNIFORM_BUFFER, m_sizeInBytes, pData, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+void UniformBuffer_OpenGL::UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size)
+{
+	assert(m_sizeInBytes != 0 && size != 0 && offset + size <= m_sizeInBytes);
+	assert(m_glBufferID != -1);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
+	glBufferSubData(GL_UNIFORM_BUFFER, offset, size, pData);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 FrameBuffer_OpenGL::~FrameBuffer_OpenGL()
@@ -155,7 +203,7 @@ GLuint FragmentShader_OpenGL::GetGLShaderID() const
 }
 
 ShaderProgram_OpenGL::ShaderProgram_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<VertexShader_OpenGL> pVertexShader, const std::shared_ptr<FragmentShader_OpenGL> pFragmentShader)
-	: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment), m_activeTextureUnit(0)
+	: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment)
 {
 	m_pDevice = pDevice;
 	m_glProgramID = glCreateProgram();
@@ -181,15 +229,6 @@ GLuint ShaderProgram_OpenGL::GetGLProgramID() const
 	return m_glProgramID;
 }
 
-unsigned int ShaderProgram_OpenGL::GetParamLocation(const char* paramName) const
-{
-	if (m_paramLocations.find(paramName) != m_paramLocations.end())
-	{
-		return m_paramLocations.at(paramName);
-	}
-	return -1;
-}
-
 unsigned int ShaderProgram_OpenGL::GetParamBinding(const char* paramName) const
 {
 	if (m_paramBindings.find(paramName) != m_paramBindings.end())
@@ -199,95 +238,92 @@ unsigned int ShaderProgram_OpenGL::GetParamBinding(const char* paramName) const
 	return -1;
 }
 
-void ShaderProgram_OpenGL::UpdateParameterValue(GLuint location, EShaderParamType type, const void* value)
-{
-	switch (type)
-	{
-	case EShaderParamType::Int1:
-		glUniform1i(location, *(int*)value);
-		break;
-	case EShaderParamType::Float1:
-		glUniform1f(location, *(float*)value);
-		break;
-	case EShaderParamType::Vec2:
-		glUniform2fv(location, 1, (float*)value);
-		break;
-	case EShaderParamType::Vec3:
-		glUniform3fv(location, 1, (float*)value);
-		break;
-	case EShaderParamType::Vec4:
-		glUniform4fv(location, 1, (float*)value);
-		break;
-	case EShaderParamType::Mat2:
-		glUniformMatrix2fv(location, 1, false, (float*)value);
-		break;
-	case EShaderParamType::Mat3:
-		glUniformMatrix3fv(location, 1, false, (float*)value);
-		break;
-	case EShaderParamType::Mat4:
-		glUniformMatrix4fv(location, 1, false, (float*)value);
-		break;
-	case EShaderParamType::Texture2D:
-		glActiveTexture(GL_TEXTURE0 + m_activeTextureUnit);
-		glBindTexture(GL_TEXTURE_2D, *(unsigned int*)value);
-		glUniform1i(location, m_activeTextureUnit);
-		m_activeTextureUnit += 1;
-		break;
-	default:
-		throw std::runtime_error("OpenGL: Unsupported shader parameter type.");
-		break;
-	}
-}
-
 void ShaderProgram_OpenGL::Reset()
 {
-	m_activeTextureUnit = 0;
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);
 }
 
+void ShaderProgram_OpenGL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes)
+{
+	switch (type)
+	{
+	case EDescriptorType::UniformBuffer:
+	{
+		auto pBuffer = std::static_pointer_cast<UniformBuffer_OpenGL>(pRes);
+		glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
+		break;
+	}
+	case EDescriptorType::CombinedImageSampler:
+	{
+		std::shared_ptr<Texture2D_OpenGL> pTexture = nullptr;
+		switch (std::static_pointer_cast<Texture2D>(pRes)->QuerySource())
+		{
+		case ETexture2DSource::ImageTexture:
+			pTexture = std::static_pointer_cast<Texture2D_OpenGL>(std::static_pointer_cast<ImageTexture>(pRes)->GetTexture());
+			break;
+
+		case ETexture2DSource::RenderTexture:
+			pTexture = std::static_pointer_cast<Texture2D_OpenGL>(std::static_pointer_cast<RenderTexture>(pRes)->GetTexture());
+			break;
+
+		case ETexture2DSource::RawDeviceTexture:
+			pTexture = std::static_pointer_cast<Texture2D_OpenGL>(pRes);
+			break;
+
+		default:
+			throw std::runtime_error("OpenGL: Unhandled texture 2D source type.");
+			return;
+		}
+
+		glActiveTexture(GL_TEXTURE0 + binding);
+		glBindTexture(GL_TEXTURE_2D, pTexture->GetGLTextureID());
+		break;
+	}
+	default:
+		throw std::runtime_error("OpenGL: Unhandled shader parameter type.");
+		break;
+	}
+}
+
 void ShaderProgram_OpenGL::ReflectParamLocations()
 {
-	m_paramLocations.emplace(ShaderParamNames::MODEL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::MODEL_MATRIX));
-	m_paramLocations.emplace(ShaderParamNames::VIEW_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::VIEW_MATRIX));
-	m_paramLocations.emplace(ShaderParamNames::PROJECTION_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::PROJECTION_MATRIX));
-	m_paramLocations.emplace(ShaderParamNames::NORMAL_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::NORMAL_MATRIX));
+	// Binding info cannot be retrieved at runtime, it will be manually assigned for compatibility with Vulkan
 
-	m_paramLocations.emplace(ShaderParamNames::LIGHT_SPACE_MATRIX, glGetUniformLocation(m_glProgramID, ShaderParamNames::LIGHT_SPACE_MATRIX));
-	m_paramLocations.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE));
+	// Uniform blocks
 
-	m_paramLocations.emplace(ShaderParamNames::CAMERA_POSITION, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_POSITION));
-	m_paramLocations.emplace(ShaderParamNames::CAMERA_APERTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_APERTURE));
-	m_paramLocations.emplace(ShaderParamNames::CAMERA_FOCALDISTANCE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_FOCALDISTANCE));
-	m_paramLocations.emplace(ShaderParamNames::CAMERA_IMAGEDISTANCE, glGetUniformLocation(m_glProgramID, ShaderParamNames::CAMERA_IMAGEDISTANCE));
+	m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 0);
+	m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 1);
 
-	m_paramLocations.emplace(ShaderParamNames::TIME, glGetUniformLocation(m_glProgramID, ShaderParamNames::TIME));
+	m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 2);
 
-	m_paramLocations.emplace(ShaderParamNames::ALBEDO_COLOR, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_COLOR));
+	m_paramBindings.emplace(ShaderParamNames::CAMERA_PROPERTIES, 3);
 
-	m_paramLocations.emplace(ShaderParamNames::ANISOTROPY, glGetUniformLocation(m_glProgramID, ShaderParamNames::ANISOTROPY));
-	m_paramLocations.emplace(ShaderParamNames::ROUGHNESS, glGetUniformLocation(m_glProgramID, ShaderParamNames::ROUGHNESS));
+	m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 4);
+	m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 5);
 
-	m_paramLocations.emplace(ShaderParamNames::ALBEDO_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::ALBEDO_TEXTURE));
+	// Combined image samplers
 
-	m_paramLocations.emplace(ShaderParamNames::GNORMAL_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GNORMAL_TEXTURE));
-	m_paramLocations.emplace(ShaderParamNames::GPOSITION_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::GPOSITION_TEXTURE));
+	m_paramBindings.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, 0);
 
-	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_1));
-	m_paramLocations.emplace(ShaderParamNames::DEPTH_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::DEPTH_TEXTURE_2));
-	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_1));
-	m_paramLocations.emplace(ShaderParamNames::COLOR_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::COLOR_TEXTURE_2));
+	m_paramBindings.emplace(ShaderParamNames::ALBEDO_TEXTURE, 1);
 
-	m_paramLocations.emplace(ShaderParamNames::TONE_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::TONE_TEXTURE));
-	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE_1));
-	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE_1));
-	m_paramLocations.emplace(ShaderParamNames::NOISE_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::NOISE_TEXTURE_2));
-	m_paramLocations.emplace(ShaderParamNames::MASK_TEXTURE_2, glGetUniformLocation(m_glProgramID, ShaderParamNames::MASK_TEXTURE_2));
+	m_paramBindings.emplace(ShaderParamNames::GNORMAL_TEXTURE, 2);
+	m_paramBindings.emplace(ShaderParamNames::GPOSITION_TEXTURE, 3);
 
-	m_paramLocations.emplace(ShaderParamNames::BOOL_1, glGetUniformLocation(m_glProgramID, ShaderParamNames::BOOL_1));
+	m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_1, 4);
+	m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_2, 5);
 
-	// For line drawing
-	m_paramLocations.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, glGetUniformLocation(m_glProgramID, ShaderParamNames::SAMPLE_MATRIX_TEXTURE));
+	m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_1, 6);
+	m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_2, 7);
 
-	// TODO: get resource bindings
+	m_paramBindings.emplace(ShaderParamNames::TONE_TEXTURE, 8);
+
+	m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_1, 9);
+	m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_2, 10);
+
+	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_1, 11);
+	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_2, 12);
+
+	m_paramBindings.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, 13);
 }

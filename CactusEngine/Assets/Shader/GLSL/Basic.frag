@@ -1,25 +1,30 @@
 #version 430
 
-in vec2 v2fTexCoord;
-in vec3 v2fNormal;
-in vec3 v2fPosition;
+layout(location = 0) in vec2 v2fTexCoord;
+layout(location = 1) in vec3 v2fNormal;
+layout(location = 2) in vec3 v2fPosition;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2D AlbedoTexture;
-uniform vec4 AlbedoColor;
+layout(binding = 1) uniform sampler2D AlbedoTexture;
+
+layout(std140, binding = 2) uniform MaterialNumericalProperties
+{
+	vec4  AlbedoColor;
+	float Anisotropy;
+	float Roughness;
+};
 
 // TODO: replace Lambertian model with PBR
-uniform vec3  LightDirection = vec3(0.0f, 0.8660254f, -0.5f);
-uniform vec4  LightColor = vec4(1, 1, 1, 1);
-uniform float LightIntensity = 1.5f;
-
+const vec3  LightDirection = vec3(0.0f, 0.8660254f, -0.5f);
+const vec4  LightColor = vec4(1, 1, 1, 1);
+const float LightIntensity = 1.5f;
 const float AmbientIntensity = 0.05f;
 
 
 void main(void)
 {
-	vec4 colorFromAlbedoTexture = texture2D(AlbedoTexture, v2fTexCoord);
+	vec4 colorFromAlbedoTexture = texture(AlbedoTexture, v2fTexCoord);
 	if (colorFromAlbedoTexture.a <= 0)
 	{
 		discard;

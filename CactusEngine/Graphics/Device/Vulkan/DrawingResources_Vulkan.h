@@ -39,6 +39,7 @@ namespace Engine
 		friend class DrawingCommandBuffer_Vulkan;
 		friend class DrawingUploadAllocator_Vulkan;
 		friend class DrawingDevice_Vulkan;
+		friend class UniformBuffer_Vulkan;
 	};
 
 	class VertexBuffer_Vulkan : public VertexBuffer
@@ -52,7 +53,7 @@ namespace Engine
 		VkIndexType GetIndexFormat() const;
 
 	private:
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;	
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		std::shared_ptr<RawBuffer_Vulkan> m_pVertexBufferImpl;
 		std::shared_ptr<RawBuffer_Vulkan> m_pIndexBufferImpl;
 		VkIndexType m_indexType;
@@ -78,14 +79,12 @@ namespace Engine
 		Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo);
 		virtual ~Texture2D_Vulkan();
 
-		uint32_t GetTextureID() const override; // Not used in Vulkan device
-
 		bool HasSampler() const override;
 		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
 		std::shared_ptr<TextureSampler> GetSampler() const override;
 
 	protected:
-		Texture2D_Vulkan() = default;
+		Texture2D_Vulkan();
 
 	protected:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
@@ -129,28 +128,28 @@ namespace Engine
 	{
 		EUniformBufferType_Vulkan	type;
 		uint32_t					size;
-		uint32_t					layoutParamIndex;
 		VkShaderStageFlags			appliedStages;
 	};
 
-	class UniformBuffer_Vulkan : public RawBuffer_Vulkan
+	class UniformBuffer_Vulkan : public UniformBuffer
 	{
 	public:
 		UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo);
 		~UniformBuffer_Vulkan();
 
-		void UpdateBufferData(const void* pData);
+		void UpdateBufferData(const void* pData) override;
+		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
 		void UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer = nullptr);
 
 		EUniformBufferType_Vulkan GetType() const;
-		uint32_t GetBindingIndex() const;
 
 	private:
-		uint32_t m_layoutParamIndex;
+		std::shared_ptr<RawBuffer_Vulkan> m_pBufferImpl;
 		EUniformBufferType_Vulkan m_eType;
 		VkShaderStageFlags m_appliedShaderStage;
 
 		bool m_memoryMapped;
+		const void* m_pRawData;
 		void* m_pHostData; // Pointer to mapped host memory location	
 	};
 
@@ -288,10 +287,8 @@ namespace Engine
 		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
 		~ShaderProgram_Vulkan() = default;
 
-		unsigned int GetParamLocation(const char* paramName) const override;
-		void Reset() override; // Does not work on Vulkan shader program
-
 		unsigned int GetParamBinding(const char* paramName) const override;
+		void Reset() override; // Does not work on Vulkan shader program
 
 		uint32_t GetStageCount() const;
 		const VkPipelineShaderStageCreateInfo* GetShaderStageCreateInfos() const;
@@ -303,8 +300,6 @@ namespace Engine
 		const DrawingDescriptorSetLayout_Vulkan* GetDescriptorSetLayout() const;
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
 
-		void UpdateUniformBufferData(unsigned int binding, const void* pData);
-
 	private:
 		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 3; // TODO: figure out the proper value for this limit
 
@@ -312,18 +307,7 @@ namespace Engine
 		{
 			EShaderResourceType_Vulkan	type;
 			unsigned int				binding;
-			unsigned int				location;
 			const char*					name;
-		};
-
-		struct VariableDescription
-		{
-			const char*			uniformName;
-			std::string			variableName;
-			uint32_t			offset;
-			uint32_t			uniformSize;
-			uint32_t			variableSize;
-			EShaderParamType	paramType;
 		};
 
 		struct DescriptorSetCreateInfo
@@ -336,7 +320,6 @@ namespace Engine
 	private:
 		// Shader reflection functions
 		void ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader);
-		void ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource);
 		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
 		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetCount);
 		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
@@ -355,7 +338,6 @@ namespace Engine
 		void AllocateDescriptorSet(uint32_t count);
 
 		// Converter functions
-		EShaderParamType GetParamType(const spirv_cross::SPIRType& type, uint32_t size);
 		uint32_t GetParamTypeSize(const spirv_cross::SPIRType& type);
 		EDataType BasicTypeConvert(const spirv_cross::SPIRType& type);
 		EShaderType ShaderStageBitsConvert(VkShaderStageFlagBits vkShaderStageBits);
@@ -366,11 +348,7 @@ namespace Engine
 
 		// Using char pointer as key would benefit runtime performance, but would reduce initialization speed as we need to match pointer by string contents
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
-		std::unordered_map<std::string, VariableDescription> m_variableTable; // TODO: figure out the proper use of this table
 		std::vector<VkPushConstantRange> m_pushConstantRanges;
-
-		std::unordered_map<uint32_t, std::shared_ptr<UniformBuffer_Vulkan>> m_uniformBuffers;
-		std::vector<std::shared_ptr<UniformBuffer_Vulkan>> m_pushConstantBuffers;
 
 		std::shared_ptr<DrawingDescriptorSetLayout_Vulkan> m_pDescriptorSetLayout;
 		std::shared_ptr<DrawingDescriptorPool_Vulkan> m_pDescriptorPool;

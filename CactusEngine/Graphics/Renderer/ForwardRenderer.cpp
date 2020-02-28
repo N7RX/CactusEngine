@@ -245,6 +245,27 @@ void ForwardRenderer::BuildFrameResources()
 	m_pBrushMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_2.png");
 	m_pPencilMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_1.jpg");
 	m_pPencilMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_2.jpg");
+
+	// Uniform buffers
+	UniformBufferCreateInfo ubCreateInfo = {};
+
+	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSpaceTransformMatrix_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pMaterialNumericalProperties_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pCameraPropertie_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pSystemVariables_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBControlVariables);
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
 }
 
 void ForwardRenderer::BuildShadowMapPass()
@@ -252,9 +273,11 @@ void ForwardRenderer::BuildShadowMapPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::SHADOWMAP_FB, m_pShadowMapPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::FB_SHADOWMAP, m_pShadowMapPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
+	passInput.Add(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX, m_pLightSpaceTransformMatrix_UB);
 
-	passOutput.Add(ForwardGraphRes::SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
+	passOutput.Add(ForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 
 	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -278,10 +301,15 @@ void ForwardRenderer::BuildShadowMapPass()
 			pDevice->SetBlendState(blendInfo);
 
 			// Set render target
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::SHADOWMAP_FB)));
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_SHADOWMAP)));
 			pDevice->ClearRenderTarget();
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
+
+			UBTransformMatrices ubTransformMatrices;
+			UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix;
+			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
+			auto pLightSpaceTransformMatrixUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX));
 
 			for (auto& entity : *pContext->pDrawList)
 			{
@@ -301,12 +329,17 @@ void ForwardRenderer::BuildShadowMapPass()
 					continue;
 				}
 
-				Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
-				Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
-
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+
+				// Update uniform blocks
+
+				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
+				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+
+				ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
+				pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 				auto subMeshes = pMesh->GetSubMeshes();
 				for (unsigned int i = 0; i < subMeshes->size(); ++i)
@@ -320,14 +353,13 @@ void ForwardRenderer::BuildShadowMapPass()
 
 					pShaderParamTable->Clear();
 
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), EShaderParamType::Mat4, glm::value_ptr(modelMat));
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::LIGHT_SPACE_MATRIX), EShaderParamType::Mat4, glm::value_ptr(lightSpaceMatrix));
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, pLightSpaceTransformMatrixUB);
 
 					auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 					if (pAlbedoTexture)
 					{
-						uint32_t texID = pAlbedoTexture->GetTextureID();
-						pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), EShaderParamType::Texture2D, &texID);
+						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
 
 					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
@@ -342,7 +374,7 @@ void ForwardRenderer::BuildShadowMapPass()
 		passInput,
 		passOutput);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::SHADOWMAP_NODE, pShadowMapPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_SHADOWMAP, pShadowMapPass);
 }
 
 void ForwardRenderer::BuildNormalOnlyPass()
@@ -350,10 +382,11 @@ void ForwardRenderer::BuildNormalOnlyPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::NORMALONLY_FB, m_pNormalOnlyPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::FB_NORMALONLY, m_pNormalOnlyPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
 
-	passOutput.Add(ForwardGraphRes::NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
-	passOutput.Add(ForwardGraphRes::NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
+	passOutput.Add(ForwardGraphRes::TX_NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
+	passOutput.Add(ForwardGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
 
 	auto pNormalOnlyPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -378,11 +411,17 @@ void ForwardRenderer::BuildNormalOnlyPass()
 			pDevice->SetBlendState(blendInfo);
 
 			// Set render target
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::NORMALONLY_FB)));
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_NORMALONLY)));
 			pDevice->ClearRenderTarget();
 
 			// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::NormalOnly);
+
+			UBTransformMatrices ubTransformMatrices;
+			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
+
+			ubTransformMatrices.projectionMatrix = projectionMat;
+			ubTransformMatrices.viewMatrix = viewMat;
 
 			for (auto& entity : *pContext->pDrawList)
 			{
@@ -401,15 +440,12 @@ void ForwardRenderer::BuildNormalOnlyPass()
 					continue;
 				}
 
-				Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
-				Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
-
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), EShaderParamType::Mat4, glm::value_ptr(modelMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), EShaderParamType::Mat4, glm::value_ptr(viewMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), EShaderParamType::Mat4, glm::value_ptr(projectionMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), EShaderParamType::Mat3, glm::value_ptr(normalMat));
+				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
+				ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
+				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
 
 				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
@@ -426,10 +462,10 @@ void ForwardRenderer::BuildNormalOnlyPass()
 		passInput,
 		passOutput);
 
-	auto pShadowMapPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::SHADOWMAP_NODE);
+	auto pShadowMapPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_SHADOWMAP);
 	pShadowMapPass->AddNextNode(pNormalOnlyPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NORMALONLY_NODE, pNormalOnlyPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_NORMALONLY, pNormalOnlyPass);
 }
 
 void ForwardRenderer::BuildOpaquePass()
@@ -437,13 +473,18 @@ void ForwardRenderer::BuildOpaquePass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::OPAQUE_FB, m_pOpaquePassFrameBuffer);
-	passInput.Add(ForwardGraphRes::NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
-	passInput.Add(ForwardGraphRes::SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
+	passInput.Add(ForwardGraphRes::FB_OPAQUE, m_pOpaquePassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
+	passInput.Add(ForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
+	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
+	passInput.Add(ForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
+	passInput.Add(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX, m_pLightSpaceTransformMatrix_UB);
+	passInput.Add(ForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
+	passInput.Add(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES, m_pMaterialNumericalProperties_UB);
 
-	passOutput.Add(ForwardGraphRes::OPAQUE_COLOR, m_pOpaquePassColorOutput);
-	passOutput.Add(ForwardGraphRes::OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
-	passOutput.Add(ForwardGraphRes::OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
+	passOutput.Add(ForwardGraphRes::TX_OPAQUE_COLOR, m_pOpaquePassColorOutput);
+	passOutput.Add(ForwardGraphRes::TX_OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
+	passOutput.Add(ForwardGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
 
 	auto pOpaquePass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -467,7 +508,7 @@ void ForwardRenderer::BuildOpaquePass()
 			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
-			auto shadowMapID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::SHADOWMAP_DEPTH))->GetTextureID();
+			auto pShadowMap = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_SHADOWMAP_DEPTH));
 
 			// Configure blend state
 			DeviceBlendStateInfo blendInfo = {};
@@ -475,10 +516,31 @@ void ForwardRenderer::BuildOpaquePass()
 			pDevice->SetBlendState(blendInfo);
 
 			// Set render target
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::OPAQUE_FB)));
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_OPAQUE)));
 			pDevice->ClearRenderTarget();
 
-			float currTime = Timer::Now();
+			UBTransformMatrices ubTransformMatrices;
+			UBSystemVariables ubSystemVariables;
+			UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix;
+			UBCameraProperties ubCameraProperties;
+			UBMaterialNumericalProperties ubMaterialNumericalProperties;
+			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
+			auto pSystemVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_SYSTEM_VARIABLES));
+			auto pLightSpaceTransformMatrixUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX));
+			auto pCameraPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CAMERA_PROPERTIES));
+			auto pMaterialNumericalPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES));
+
+			ubTransformMatrices.projectionMatrix = projectionMat;
+			ubTransformMatrices.viewMatrix = viewMat;
+
+			ubSystemVariables.timeInSec = Timer::Now();
+			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+
+			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
+			pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+
+			ubCameraProperties.cameraPosition = cameraPos;
+			pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
 
 			for (auto& entity : *pContext->pDrawList)
 			{
@@ -498,8 +560,9 @@ void ForwardRenderer::BuildOpaquePass()
 					continue;
 				}
 
-				Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
-				Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
+				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
+				ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
+				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
 
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
@@ -518,65 +581,56 @@ void ForwardRenderer::BuildOpaquePass()
 					}
 
 					auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
-				pShaderParamTable->Clear();
+					pShaderParamTable->Clear();
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), EShaderParamType::Mat4, glm::value_ptr(modelMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), EShaderParamType::Mat4, glm::value_ptr(viewMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), EShaderParamType::Mat4, glm::value_ptr(projectionMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), EShaderParamType::Mat3, glm::value_ptr(normalMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), EShaderParamType::Vec3, glm::value_ptr(cameraPos));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), EShaderParamType::Float1, &currTime);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMap);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, pLightSpaceTransformMatrixUB);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EShaderParamType::Texture2D, &shadowMapID);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::LIGHT_SPACE_MATRIX), EShaderParamType::Mat4, glm::value_ptr(lightSpaceMatrix));
+					ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
+					ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
+					ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
+					pMaterialNumericalPropertiesUB->UpdateBufferData(&ubMaterialNumericalProperties);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, pMaterialNumericalPropertiesUB);
 
-				auto anisotropy = pMaterial->GetAnisotropy();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ANISOTROPY), EShaderParamType::Float1, &anisotropy);
+					auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
+					if (pAlbedoTexture)
+					{
+						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
+					}
 
-				auto roughness = pMaterial->GetRoughness();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ROUGHNESS), EShaderParamType::Float1, &roughness);
+					auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
+					if (pNoiseTexture)
+					{
+						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
+					}
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), EShaderParamType::Vec4, glm::value_ptr(pMaterial->GetAlbedoColor()));
+					auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);
+					if (pToneTexture)
+					{
+						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TONE_TEXTURE), EDescriptorType::CombinedImageSampler, pToneTexture);
+					}
 
-				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
-				if (pAlbedoTexture)
-				{
-					uint32_t texID = pAlbedoTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), EShaderParamType::Texture2D, &texID);
+					auto gNormalTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_NORMALONLY_NORMAL));
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, gNormalTexture);
+
+					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
+					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+
+					pShaderProgram->Reset();
 				}
-
-				auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-				if (pNoiseTexture)
-				{
-					uint32_t texID = pNoiseTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), EShaderParamType::Texture2D, &texID);
-				}
-
-				auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);
-				if (pToneTexture)
-				{
-					uint32_t texID = pToneTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TONE_TEXTURE), EShaderParamType::Texture2D, &texID);
-				}
-
-				auto gNormalTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::NORMALONLY_NORMAL))->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::GNORMAL_TEXTURE), EShaderParamType::Texture2D, &gNormalTextureID);
-
-				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-				pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
-
-				pShaderProgram->Reset();
-			}
 			
 		}
 	},
 		passInput,
 		passOutput);
 
-	auto pNormalOnlyPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NORMALONLY_NODE);
+	auto pNormalOnlyPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_NORMALONLY);
 	pNormalOnlyPass->AddNextNode(pOpaquePass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::OPAQUE_NODE, pOpaquePass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_OPAQUE, pOpaquePass);
 }
 
 void ForwardRenderer::BuildGaussianBlurPass()
@@ -584,11 +638,12 @@ void ForwardRenderer::BuildGaussianBlurPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::BLUR_FB, m_pBlurPassFrameBuffer);
-	passInput.Add(ForwardGraphRes::OPAQUE_COLOR, m_pOpaquePassColorOutput);
-	passInput.Add(ForwardGraphRes::BLUR_HORIZONTAL_COLOR, m_pBlurPassHorizontalColorOutput);
+	passInput.Add(ForwardGraphRes::FB_BLUR, m_pBlurPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_OPAQUE_COLOR, m_pOpaquePassColorOutput);
+	passInput.Add(ForwardGraphRes::TX_BLUR_HORIZONTAL_COLOR, m_pBlurPassHorizontalColorOutput);
+	passInput.Add(ForwardGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB);
 
-	passOutput.Add(ForwardGraphRes::BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
+	passOutput.Add(ForwardGraphRes::TX_BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
 
 	auto pGaussianBlurPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -600,21 +655,25 @@ void ForwardRenderer::BuildGaussianBlurPass()
 			blendInfo.enabled = false;
 			pDevice->SetBlendState(blendInfo);
 
+			UBControlVariables ubControlVariables;
+			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CONTROL_VARIABLES));
+
 			// Horizontal subpass
 
 			// Set render target to color attachment 0
 			std::vector<uint32_t> attachmentIndex = { 0 };
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::BLUR_FB)), attachmentIndex); // Alert: this won't work for Vulkan
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_BLUR)), attachmentIndex); // Alert: this won't work for Vulkan
 			pDevice->ClearRenderTarget();
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-			auto colorTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID_1);
+			auto colorTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_OPAQUE_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture_1);
 
-			int horizontal = 1;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 1;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -625,15 +684,16 @@ void ForwardRenderer::BuildGaussianBlurPass()
 
 			// Set render target to color attachment 1
 			attachmentIndex[0] = 1;
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::BLUR_FB)), attachmentIndex);
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_BLUR)), attachmentIndex);
 
 			pShaderParamTable->Clear();
 
-			auto colorTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BLUR_HORIZONTAL_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID_2);
+			auto colorTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_BLUR_HORIZONTAL_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture_2);
 
-			horizontal = 0;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 0;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -643,10 +703,10 @@ void ForwardRenderer::BuildGaussianBlurPass()
 		passInput,
 		passOutput);
 
-	auto pOpaquePass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::OPAQUE_NODE);
+	auto pOpaquePass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_OPAQUE);
 	pOpaquePass->AddNextNode(pGaussianBlurPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::BLUR_NODE, pGaussianBlurPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_BLUR, pGaussianBlurPass);
 }
 
 void ForwardRenderer::BuildLineDrawingPass()
@@ -656,15 +716,16 @@ void ForwardRenderer::BuildLineDrawingPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::LINEDRAWING_FB, m_pLineDrawingPassFrameBuffer);
-	passInput.Add(ForwardGraphRes::BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
-	passInput.Add(ForwardGraphRes::OPAQUE_COLOR, m_pOpaquePassColorOutput);	
-	passInput.Add(ForwardGraphRes::LINEDRAWING_MATRIX_TEXTURE, m_pLineDrawingMatrixTexture);
-	passInput.Add(ForwardGraphRes::LINEDRAWING_CURVATURE, m_pLineDrawingPassCurvatureOutput);
-	passInput.Add(ForwardGraphRes::LINEDRAWING_BLURRED, m_pLineDrawingPassBlurredOutput);
-	passInput.Add(ForwardGraphRes::LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
+	passInput.Add(ForwardGraphRes::FB_LINEDRAWING, m_pLineDrawingPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
+	passInput.Add(ForwardGraphRes::TX_OPAQUE_COLOR, m_pOpaquePassColorOutput);	
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_MATRIX_TEXTURE, m_pLineDrawingMatrixTexture);
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_CURVATURE, m_pLineDrawingPassCurvatureOutput);
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_BLURRED, m_pLineDrawingPassBlurredOutput);
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
+	passInput.Add(ForwardGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB);
 
-	passOutput.Add(ForwardGraphRes::LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
+	passOutput.Add(ForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
 
 	auto pLineDrawingPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -676,21 +737,24 @@ void ForwardRenderer::BuildLineDrawingPass()
 			blendInfo.enabled = false;
 			pDevice->SetBlendState(blendInfo);
 
+			UBControlVariables ubControlVariables;
+			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CONTROL_VARIABLES));
+
 			// Curvature computation subpass
 
 			// Set render target
 			std::vector<uint32_t> attachmentIndex = { 0 };
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::LINEDRAWING_FB)), attachmentIndex); // Alert: this won't work for Vulkan
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_LINEDRAWING)), attachmentIndex); // Alert: this won't work for Vulkan
 			pDevice->ClearRenderTarget();
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Curvature);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-			auto colorTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BLUR_FINAL_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID_1);
+			auto colorTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_BLUR_FINAL_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture_1);
 
-			auto matrixTexID = std::static_pointer_cast<RenderTexture>(input.Get(ForwardGraphRes::LINEDRAWING_MATRIX_TEXTURE))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::SAMPLE_MATRIX_TEXTURE), EShaderParamType::Texture2D, &matrixTexID);
+			auto matrixTex = std::static_pointer_cast<RenderTexture>(input.Get(ForwardGraphRes::TX_LINEDRAWING_MATRIX_TEXTURE));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SAMPLE_MATRIX_TEXTURE), EDescriptorType::CombinedImageSampler, matrixTex);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -700,13 +764,13 @@ void ForwardRenderer::BuildLineDrawingPass()
 			// Ridge searching subpass
 
 			attachmentIndex[0] = 1;
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::LINEDRAWING_FB)), attachmentIndex);
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_LINEDRAWING)), attachmentIndex);
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Color);
 			pShaderParamTable->Clear();
 
-			auto curvatureTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_CURVATURE))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &curvatureTextureID);
+			auto curvatureTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_LINEDRAWING_CURVATURE));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, curvatureTexture);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -719,17 +783,18 @@ void ForwardRenderer::BuildLineDrawingPass()
 
 			// Set render target to curvature color attachment
 			attachmentIndex[0] = 0;
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::LINEDRAWING_FB)), attachmentIndex);
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_LINEDRAWING)), attachmentIndex);
 			pDevice->ClearRenderTarget();
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 			pShaderParamTable->Clear();
 
-			auto colorTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID);
+			auto colorTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_LINEDRAWING_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture);
 
-			int horizontal = 1;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 1;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -740,14 +805,15 @@ void ForwardRenderer::BuildLineDrawingPass()
 
 			// Set render target to blurred color attachment
 			attachmentIndex[0] = 2;
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::LINEDRAWING_FB)), attachmentIndex);
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_LINEDRAWING)), attachmentIndex);
 
 			pShaderParamTable->Clear();
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &curvatureTextureID);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, curvatureTexture);
 
-			horizontal = 0;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 0;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -758,16 +824,16 @@ void ForwardRenderer::BuildLineDrawingPass()
 
 			// Set render target to color attachment
 			attachmentIndex[0] = 1;
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::LINEDRAWING_FB)), attachmentIndex);
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_LINEDRAWING)), attachmentIndex);
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 			pShaderParamTable->Clear();
 
-			auto blurredTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_BLURRED))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &blurredTextureID);
+			auto blurredTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_LINEDRAWING_BLURRED));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, blurredTexture);
 
-			auto colorTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_2), EShaderParamType::Texture2D, &colorTextureID_2);
+			auto colorTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_OPAQUE_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler, colorTexture_2);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -778,10 +844,10 @@ void ForwardRenderer::BuildLineDrawingPass()
 		passInput,
 		passOutput);
 
-	auto pBlurPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::BLUR_NODE);
+	auto pBlurPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_BLUR);
 	pBlurPass->AddNextNode(pLineDrawingPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::LINEDRAWING_NODE, pLineDrawingPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_LINEDRAWING, pLineDrawingPass);
 }
 
 void ForwardRenderer::BuildTransparentPass()
@@ -789,12 +855,16 @@ void ForwardRenderer::BuildTransparentPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::TRANSP_FB, m_pTranspPassFrameBuffer);
-	passInput.Add(ForwardGraphRes::LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
-	passInput.Add(ForwardGraphRes::OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
+	passInput.Add(ForwardGraphRes::FB_TRANSP, m_pTranspPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
+	passInput.Add(ForwardGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
+	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
+	passInput.Add(ForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
+	passInput.Add(ForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
+	passInput.Add(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES, m_pMaterialNumericalProperties_UB);
 
-	passOutput.Add(ForwardGraphRes::TRANSP_COLOR, m_pTranspPassColorOutput);
-	passOutput.Add(ForwardGraphRes::TRANSP_DEPTH, m_pTranspPassDepthOutput);
+	passOutput.Add(ForwardGraphRes::TX_TRANSP_COLOR, m_pTranspPassColorOutput);
+	passOutput.Add(ForwardGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
 
 	auto pTransparentPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -811,8 +881,6 @@ void ForwardRenderer::BuildTransparentPass()
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-		float currTime = Timer::Now();
-
 		auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
 		// Configure blend state
@@ -823,8 +891,26 @@ void ForwardRenderer::BuildTransparentPass()
 		pDevice->SetBlendState(blendInfo);
 
 		// Set render target
-		pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::TRANSP_FB)));
+		pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_TRANSP)));
 		pDevice->ClearRenderTarget();
+
+		UBTransformMatrices ubTransformMatrices;
+		UBSystemVariables ubSystemVariables;
+		UBCameraProperties ubCameraProperties;
+		UBMaterialNumericalProperties ubMaterialNumericalProperties;
+		auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
+		auto pSystemVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_SYSTEM_VARIABLES));
+		auto pCameraPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CAMERA_PROPERTIES));
+		auto pMaterialNumericalPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES));
+
+		ubTransformMatrices.projectionMatrix = projectionMat;
+		ubTransformMatrices.viewMatrix = viewMat;
+
+		ubSystemVariables.timeInSec = Timer::Now();
+		pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+
+		ubCameraProperties.cameraPosition = cameraPos;
+		pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
 
 		for (auto& entity : *pContext->pDrawList)
 		{
@@ -844,8 +930,9 @@ void ForwardRenderer::BuildTransparentPass()
 				continue;
 			}
 
-			Matrix4x4 modelMat = pTransformComp->GetModelMatrix();
-			Matrix3x3 normalMat = pTransformComp->GetNormalMatrix();
+			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
+			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
+			pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
 	
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
@@ -866,34 +953,30 @@ void ForwardRenderer::BuildTransparentPass()
 				auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 				pShaderParamTable->Clear();
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MODEL_MATRIX), EShaderParamType::Mat4, glm::value_ptr(modelMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), EShaderParamType::Mat4, glm::value_ptr(viewMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::PROJECTION_MATRIX), EShaderParamType::Mat4, glm::value_ptr(projectionMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NORMAL_MATRIX), EShaderParamType::Mat3, glm::value_ptr(normalMat));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_POSITION), EShaderParamType::Vec3, glm::value_ptr(cameraPos));
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), EShaderParamType::Float1, &currTime);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_COLOR), EShaderParamType::Vec4, glm::value_ptr(pMaterial->GetAlbedoColor()));
+				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
+				pMaterialNumericalPropertiesUB->UpdateBufferData(&ubMaterialNumericalProperties);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, pMaterialNumericalPropertiesUB);
 
-				auto depthTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_DEPTH))->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::DEPTH_TEXTURE_1), EShaderParamType::Texture2D, &depthTextureID);
+				auto depthTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_OPAQUE_DEPTH));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, depthTexture);
 
-				auto colorTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_COLOR))->GetTextureID();
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID);
+				auto colorTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_LINEDRAWING_COLOR));
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture);
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
 				{
-					// Alert: this only works for OpenGL; Vulkan requires doing this through descriptor sets
-					uint32_t texID = pAlbedoTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::ALBEDO_TEXTURE), EShaderParamType::Texture2D, &texID);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 				}
 
 				auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
 				if (pNoiseTexture)
 				{
-					uint32_t texID = pNoiseTexture->GetTextureID();
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), EShaderParamType::Texture2D, &texID);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
 				}
 
 				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
@@ -907,10 +990,10 @@ void ForwardRenderer::BuildTransparentPass()
 		passInput,
 		passOutput);
 
-	auto pLineDrawingPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::LINEDRAWING_NODE);
+	auto pLineDrawingPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_LINEDRAWING);
 	pLineDrawingPass->AddNextNode(pTransparentPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::TRANSP_NODE, pTransparentPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_TRANSP, pTransparentPass);
 }
 
 void ForwardRenderer::BuildOpaqueTranspBlendPass()
@@ -918,13 +1001,13 @@ void ForwardRenderer::BuildOpaqueTranspBlendPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::BLEND_FB, m_pBlendPassFrameBuffer);
-	passInput.Add(ForwardGraphRes::LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
-	passInput.Add(ForwardGraphRes::OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
-	passInput.Add(ForwardGraphRes::TRANSP_COLOR, m_pTranspPassColorOutput);
-	passInput.Add(ForwardGraphRes::TRANSP_DEPTH, m_pTranspPassDepthOutput);
+	passInput.Add(ForwardGraphRes::FB_BLEND, m_pBlendPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
+	passInput.Add(ForwardGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
+	passInput.Add(ForwardGraphRes::TX_TRANSP_COLOR, m_pTranspPassColorOutput);
+	passInput.Add(ForwardGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
 
-	passOutput.Add(ForwardGraphRes::BLEND_COLOR, m_pBlendPassColorOutput);
+	passOutput.Add(ForwardGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
 
 	auto pBlendPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -937,23 +1020,23 @@ void ForwardRenderer::BuildOpaqueTranspBlendPass()
 		pDevice->SetBlendState(blendInfo);
 
 		// Set render target
-		pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::BLEND_FB)));
+		pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_BLEND)));
 		pDevice->ClearRenderTarget();
 
 		auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 		auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-		auto depthTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_DEPTH))->GetTextureID();
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::DEPTH_TEXTURE_1), EShaderParamType::Texture2D, &depthTextureID_1);
+		auto depthTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_OPAQUE_DEPTH));
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, depthTexture_1);
 		
-		auto colorTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::LINEDRAWING_COLOR))->GetTextureID();
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID_1);
+		auto colorTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_LINEDRAWING_COLOR));
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture_1);
 
-		auto depthTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TRANSP_DEPTH))->GetTextureID();
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::DEPTH_TEXTURE_2), EShaderParamType::Texture2D, &depthTextureID_2);
+		auto depthTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_TRANSP_DEPTH));
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_2), EDescriptorType::CombinedImageSampler, depthTexture_2);
 
-		auto colorTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TRANSP_COLOR))->GetTextureID();
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_2), EShaderParamType::Texture2D, &colorTextureID_2);
+		auto colorTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_TRANSP_COLOR));
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler, colorTexture_2);
 
 		pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 		pDevice->DrawFullScreenQuad();
@@ -963,10 +1046,10 @@ void ForwardRenderer::BuildOpaqueTranspBlendPass()
 		passInput,
 		passOutput);
 
-	auto pTransparentPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::TRANSP_NODE);
+	auto pTransparentPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_TRANSP);
 	pTransparentPass->AddNextNode(pBlendPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::COLORBLEND_D2_NODE, pBlendPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_COLORBLEND_D2, pBlendPass);
 }
 
 void ForwardRenderer::BuildDepthOfFieldPass()
@@ -974,15 +1057,19 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
-	passInput.Add(ForwardGraphRes::DOF_FB, m_pDOFPassFrameBuffer);
-	passInput.Add(ForwardGraphRes::BLEND_COLOR, m_pBlendPassColorOutput);
-	passInput.Add(ForwardGraphRes::NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
-	passInput.Add(ForwardGraphRes::DOF_HORIZONTAL, m_pDOFPassHorizontalOutput);
-	passInput.Add(ForwardGraphRes::BRUSH_MASK_TEXTURE_1, m_pBrushMaskImageTexture_1);
-	passInput.Add(ForwardGraphRes::BRUSH_MASK_TEXTURE_2, m_pBrushMaskImageTexture_2);
-	passInput.Add(ForwardGraphRes::PENCIL_MASK_TEXTURE_1, m_pPencilMaskImageTexture_1);
-	passInput.Add(ForwardGraphRes::PENCIL_MASK_TEXTURE_2, m_pPencilMaskImageTexture_2);
-	passInput.Add(ForwardGraphRes::OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
+	passInput.Add(ForwardGraphRes::FB_DOF, m_pDOFPassFrameBuffer);
+	passInput.Add(ForwardGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
+	passInput.Add(ForwardGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
+	passInput.Add(ForwardGraphRes::TX_DOF_HORIZONTAL, m_pDOFPassHorizontalOutput);
+	passInput.Add(ForwardGraphRes::TX_BRUSH_MASK_TEXTURE_1, m_pBrushMaskImageTexture_1);
+	passInput.Add(ForwardGraphRes::TX_BRUSH_MASK_TEXTURE_2, m_pBrushMaskImageTexture_2);
+	passInput.Add(ForwardGraphRes::TX_PENCIL_MASK_TEXTURE_1, m_pPencilMaskImageTexture_1);
+	passInput.Add(ForwardGraphRes::TX_PENCIL_MASK_TEXTURE_2, m_pPencilMaskImageTexture_2);
+	passInput.Add(ForwardGraphRes::TX_OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
+	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
+	passInput.Add(ForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
+	passInput.Add(ForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
+	passInput.Add(ForwardGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB);
 
 	auto pDOFPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
@@ -1003,35 +1090,47 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 			blendInfo.enabled = false;
 			pDevice->SetBlendState(blendInfo);
 
-			float currTime = Timer::Now();
+			UBTransformMatrices ubTransformMatrices;
+			UBSystemVariables ubSystemVariables;
+			UBCameraProperties ubCameraProperties;
+			UBControlVariables ubControlVariables;
+			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
+			auto pSystemVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_SYSTEM_VARIABLES));
+			auto pCameraPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CAMERA_PROPERTIES));
+			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CONTROL_VARIABLES));
+
+			ubTransformMatrices.viewMatrix = viewMat;
+			pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+
+			ubSystemVariables.timeInSec = Timer::Now();
+			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+
+			ubCameraProperties.aperture = pCameraComp->GetAperture();
+			ubCameraProperties.focalDistance = pCameraComp->GetFocalDistance();
+			ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
+			pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
 
 			// Horizontal subpass
 
 			// Set render target
-			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::DOF_FB)));
+			pDevice->SetRenderTarget(std::static_pointer_cast<FrameBuffer>(input.Get(ForwardGraphRes::FB_DOF)));
 			pDevice->ClearRenderTarget();
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), EShaderParamType::Mat4, glm::value_ptr(viewMat));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
 
-			float aperture = pCameraComp->GetAperture();
-			float focalDistance = pCameraComp->GetFocalDistance();
-			float imageDistance = pCameraComp->GetImageDistance();
+			auto colorTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_BLEND_COLOR));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, colorTexture_1);
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_APERTURE), EShaderParamType::Float1, &aperture);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_FOCALDISTANCE), EShaderParamType::Float1, &focalDistance);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::CAMERA_IMAGEDISTANCE), EShaderParamType::Float1, &imageDistance);
+			auto gPositionTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_NORMALONLY_POSITION));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler, gPositionTexture);
 
-			auto colorTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BLEND_COLOR))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &colorTextureID_1);
-
-			auto gPositionTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::NORMALONLY_POSITION))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::GPOSITION_TEXTURE), EShaderParamType::Texture2D, &gPositionTextureID);
-
-			int horizontal = 1;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 1;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1043,32 +1142,29 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 
 			pShaderParamTable->Clear();
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::VIEW_MATRIX), EShaderParamType::Mat4, glm::value_ptr(viewMat));
+			auto horizontalResultTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_DOF_HORIZONTAL));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, horizontalResultTexture);
 
-			auto horizontalResultTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::DOF_HORIZONTAL))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_1), EShaderParamType::Texture2D, &horizontalResultTextureID);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::GPOSITION_TEXTURE), EShaderParamType::Texture2D, &gPositionTextureID);
+			auto brushMaskTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_BRUSH_MASK_TEXTURE_1));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_1), EDescriptorType::CombinedImageSampler, brushMaskTexture_1);
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::TIME), EShaderParamType::Float1, &currTime);
+			auto brushMaskTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_BRUSH_MASK_TEXTURE_2));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, brushMaskTexture_2);
 
-			auto brushMaskTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_1))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MASK_TEXTURE_1), EShaderParamType::Texture2D, &brushMaskTextureID_1);
+			auto pencilMaskTexture_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_PENCIL_MASK_TEXTURE_1));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_2), EDescriptorType::CombinedImageSampler, pencilMaskTexture_1);
 
-			auto brushMaskTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::BRUSH_MASK_TEXTURE_2))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_1), EShaderParamType::Texture2D, &brushMaskTextureID_2);
+			auto pencilMaskTexture_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_PENCIL_MASK_TEXTURE_2));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_2), EDescriptorType::CombinedImageSampler, pencilMaskTexture_2);
 
-			auto pencilMaskTextureID_1 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::PENCIL_MASK_TEXTURE_1))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::MASK_TEXTURE_2), EShaderParamType::Texture2D, &pencilMaskTextureID_1);
+			auto shadowResultTexture = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::TX_OPAQUE_SHADOW));
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler, shadowResultTexture);
 
-			auto pencilMaskTextureID_2 = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::PENCIL_MASK_TEXTURE_2))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::NOISE_TEXTURE_2), EShaderParamType::Texture2D, &pencilMaskTextureID_2);
-
-			auto shadowResultTextureID = std::static_pointer_cast<Texture2D>(input.Get(ForwardGraphRes::OPAQUE_SHADOW))->GetTextureID();
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::COLOR_TEXTURE_2), EShaderParamType::Texture2D, &shadowResultTextureID);
-
-			horizontal = 0;
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamLocation(ShaderParamNames::BOOL_1), EShaderParamType::Int1, &horizontal);
+			ubControlVariables.bool_1 = 0;
+			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1078,10 +1174,10 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 		passInput,
 		passOutput);
 
-	auto pBlendPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::COLORBLEND_D2_NODE);
+	auto pBlendPass = m_pRenderGraph->GetNodeByName(ForwardGraphRes::NODE_COLORBLEND_D2);
 	pBlendPass->AddNextNode(pDOFPass);
 
-	m_pRenderGraph->AddRenderNode(ForwardGraphRes::DOF_NODE, pDOFPass);
+	m_pRenderGraph->AddRenderNode(ForwardGraphRes::NODE_DOF, pDOFPass);
 }
 
 void ForwardRenderer::CreateLineDrawingMatrices()

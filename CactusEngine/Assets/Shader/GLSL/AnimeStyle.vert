@@ -6,30 +6,37 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inTangent;
 layout(location = 4) in vec3 inBitangent;
 
-out vec2 v2fTexCoord;
-out vec3 v2fNormal;
-out vec3 v2fPosition;
-out vec3 v2fLightSpacePosition;
-out mat3 v2fTBNMatrix;
-out vec3 v2fTangent;
-out vec3 v2fBitangent;
+layout(location = 0) out vec2 v2fTexCoord;
+layout(location = 1) out vec3 v2fNormal;
+layout(location = 2) out vec3 v2fPosition;
+layout(location = 3) out vec3 v2fLightSpacePosition;
+layout(location = 4) out vec3 v2fTangent;
+layout(location = 5) out vec3 v2fBitangent;
+layout(location = 6) out mat3 v2fTBNMatrix;
 
-uniform mat4 ModelMatrix;
-uniform mat4 ViewMatrix;
-uniform mat4 ProjectionMatrix;
-uniform mat3 NormalMatrix;
-uniform mat4 LightSpaceMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
+
+layout(std140, binding = 1) uniform LightSpaceTransformMatrix
+{
+	mat4 LightSpaceMatrix;
+};
 
 
 void main(void)
 {
 	v2fTexCoord = inTexCoord;
-	v2fNormal = normalize(NormalMatrix * inNormal);
+	v2fNormal = normalize(mat3(NormalMatrix) * inNormal);
 	v2fPosition = (ModelMatrix * vec4(inPosition, 1.0)).xyz;
 	v2fLightSpacePosition = (LightSpaceMatrix * vec4(v2fPosition, 1.0)).xyz;
-	v2fTBNMatrix = mat3(normalize(NormalMatrix * inTangent), normalize(NormalMatrix * inBitangent), v2fNormal);
 	v2fTangent  = inTangent;
 	v2fBitangent = inBitangent;
+	v2fTBNMatrix = mat3(normalize(mat3(NormalMatrix) * inTangent), normalize(mat3(NormalMatrix) * inBitangent), v2fNormal);
 
 	gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * vec4(inPosition, 1.0);
 }

@@ -530,4 +530,38 @@ namespace Engine
 			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
 	}
+
+	inline VkShaderStageFlags VulkanShaderStageFlags(uint32_t flags)
+	{
+		assert(flags != 0);
+
+		VkShaderStageFlags res = 0;
+
+		if (flags & (uint32_t)EShaderType::Vertex)
+		{
+			res |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Fragment)
+		{
+			res |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessControl)
+		{
+			res |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessEvaluation)
+		{
+			res |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Geometry)
+		{
+			res |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Compute)
+		{
+			res |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
+
+		return res;
+	}
 }

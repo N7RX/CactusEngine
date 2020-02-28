@@ -76,7 +76,7 @@ bool DrawingDevice_OpenGL::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	pVertexBuffer->SetNumberOfIndices(createInfo.indexDataCount);
-	pVertexBuffer->SetData(nullptr, static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount 
+	pVertexBuffer->MarkSizeInByte(static_cast<uint32_t>(sizeof(int) * createInfo.indexDataCount 
 		+ sizeof(float) * createInfo.positionDataCount 
 		+ sizeof(float) * createInfo.normalDataCount 
 		+ sizeof(float) * createInfo.texcoordDataCount 
@@ -128,9 +128,9 @@ bool DrawingDevice_OpenGL::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	pTexture->SetGLTextureID(texID);
 	pTexture->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
 	pTexture->SetTextureType(createInfo.textureType);
-	pTexture->SetData(nullptr, static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(createInfo.dataType)));
+	pTexture->MarkSizeInByte(static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(createInfo.dataType)));
 
-	return true;
+	return texID != -1;
 }
 
 bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
@@ -163,11 +163,11 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 		{
 		case ETextureType::ColorAttachment:
 			pFrameBuffer->AddColorAttachment(GL_COLOR_ATTACHMENT0 + colorAttachmentCount); // Alert: this could cause the framebuffer to be partially "initialized" when creation failed
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, createInfo.attachments[i]->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttachmentCount, GL_TEXTURE_2D, std::static_pointer_cast<Texture2D_OpenGL>(createInfo.attachments[i])->GetGLTextureID(), 0);
 			colorAttachmentCount++;
 			break;
 		case ETextureType::DepthAttachment:
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, createInfo.attachments[i]->GetTextureID(), 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, std::static_pointer_cast<Texture2D_OpenGL>(createInfo.attachments[i])->GetGLTextureID(), 0);
 			break;
 		default:
 			std::cerr << "OpenGL: Unhandled framebuffer attachment type.\n";
@@ -186,7 +186,21 @@ bool DrawingDevice_OpenGL::CreateFrameBuffer(const FrameBufferCreateInfo& create
 	pFrameBuffer->SetGLFrameBufferID(frameBufferID);
 	pFrameBuffer->MarkFrameBufferSize(createInfo.framebufferWidth, createInfo.framebufferHeight);
 
-	return true;
+	return frameBufferID != -1;
+}
+
+bool DrawingDevice_OpenGL::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput)
+{
+	pOutput = std::make_shared<UniformBuffer_OpenGL>();
+
+	auto pBuffer = std::static_pointer_cast<UniformBuffer_OpenGL>(pOutput);
+
+	GLuint bufferID = -1;
+	glGenBuffers(1, &bufferID);
+	pBuffer->SetGLBufferID(bufferID);
+	pBuffer->MarkSizeInByte(createInfo.sizeInBytes);
+
+	return bufferID != -1;
 }
 
 void DrawingDevice_OpenGL::ClearRenderTarget()
@@ -259,7 +273,7 @@ void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 
 	for (auto& entry : pTable->m_table)
 	{
-		pProgram->UpdateParameterValue(entry.location, entry.type, entry.pValue);
+		pProgram->UpdateParameterValue(entry.binding, entry.type, entry.pResource);
 	}
 }
 

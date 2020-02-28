@@ -1,6 +1,6 @@
 #version 430       
 
-out vec2 v2fTexCoord;
+layout(location = 0) out vec2 v2fTexCoord;
 
 // Full-screen quad
 const vec4 quad_pos[4] = vec4[](vec4(-1.0, 1.0, 0.0, 1.0), vec4(-1.0, -1.0, 0.0, 1.0), vec4(1.0, 1.0, 0.0, 1.0), vec4(1.0, -1.0, 0.0, 1.0));

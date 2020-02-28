@@ -1,29 +1,45 @@
 #version 430
 
-in vec2 v2fTexCoord;
+layout(location = 0) in vec2 v2fTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2D ColorTexture_1;
-uniform sampler2D GPositionTexture;
+layout(binding = 6) uniform sampler2D ColorTexture_1;
+layout(binding = 3) uniform sampler2D GPositionTexture;
 
-uniform sampler2D ColorTexture_2; // Shadow values
-uniform sampler2D MaskTexture_1;
-uniform sampler2D NoiseTexture_1;
-uniform sampler2D MaskTexture_2;
-uniform sampler2D NoiseTexture_2;
+layout(binding = 7) uniform sampler2D ColorTexture_2; // Shadow values
+layout(binding = 11) uniform sampler2D MaskTexture_1;
+layout(binding = 9) uniform sampler2D NoiseTexture_1;
+layout(binding = 12) uniform sampler2D MaskTexture_2;
+layout(binding = 10) uniform sampler2D NoiseTexture_2;
 
-uniform float Time;
+layout(std140, binding = 4) uniform SystemVariables
+{
+	float Time;
+};
 
-uniform mat4 ViewMatrix;
+layout(std140, binding = 0) uniform TransformMatrices
+{
+	mat4 ModelMatrix;
+	mat4 ViewMatrix;
+	mat4 ProjectionMatrix;
+	mat4 NormalMatrix;
+};
 
-uniform bool Bool_1;
+layout(std140, binding = 5) uniform ControlVariables
+{
+	int Bool_1;
+};
 
-uniform float Aperture;
-uniform float FocalDistance;
-uniform float ImageDistance;
+layout(std140, binding = 3) uniform CameraProperties
+{
+	vec3  CameraPosition;
+	float Aperture;
+	float FocalDistance;
+	float ImageDistance;
+};
 
-const int SampleRadius = 2;
+const int   SampleRadius = 2;
 const float Weight[10] = float[](0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216, 0.007, 0.003, 0.0012, 0.0005, 0.0003);
 const float PI = 3.1415926536f;
 
@@ -47,7 +63,7 @@ vec3 LevelBlur(int level)
 	}
 	vec3 result = texture(ColorTexture_1, v2fTexCoord).rgb * initWeight; // current fragment's contribution
 
-	if (Bool_1)
+	if (Bool_1 == 1)
 	{
 		for (int i = SampleRadius; i < SampleRadius * level; i += SampleRadius)
 		{
@@ -83,21 +99,21 @@ void main(void)
 	outColor = vec4(result, 1.0);
 
 	// TODO: move this step to an individual shader
-	if (!Bool_1) // Final output (vertical)
+	if (Bool_1 != 1) // Final output (vertical)
 	{
 		// Apply pencil mask
-		float pencilStrength_1 = texture2D(MaskTexture_2, v2fTexCoord).r;
-		float pencilStrength_2 = texture2D(NoiseTexture_2, v2fTexCoord).r;
+		float pencilStrength_1 = texture(MaskTexture_2, v2fTexCoord).r;
+		float pencilStrength_2 = texture(NoiseTexture_2, v2fTexCoord).r;
 
-		float interpVal = texture2D(ColorTexture_2, v2fTexCoord).r; // Interpolate by shadow
+		float interpVal = texture(ColorTexture_2, v2fTexCoord).r; // Interpolate by shadow
 		float interpMin = 0.86f * interpVal + 0.98f * (1.0f - interpVal);
 
 		float coeff = step(0, fract(Time) - 0.5f); // 0-0.5 and 0.5-1.0
 		outColor *= coeff * clamp(pencilStrength_1, interpMin, 1.0f) + (1.0f - coeff) * clamp(pencilStrength_2, interpMin, 1.0f);
 
 		// Apply brush mask
-		float maskStrength_1 = texture2D(MaskTexture_1, v2fTexCoord).r;
-		float maskStrength_2 = texture2D(NoiseTexture_1, v2fTexCoord).r;
+		float maskStrength_1 = texture(MaskTexture_1, v2fTexCoord).r;
+		float maskStrength_2 = texture(NoiseTexture_1, v2fTexCoord).r;
 
 		float portion = abs(sin(fract(0.1f * Time) * 2 * PI));
 		float finalStrength = portion * maskStrength_1 + (1.0f - portion) * maskStrength_2;

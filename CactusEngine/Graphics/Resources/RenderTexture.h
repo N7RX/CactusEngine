@@ -13,7 +13,6 @@ namespace Engine
 		void FlushData(const void* pData, EDataType dataType, ETextureFormat format);
 
 		std::shared_ptr<Texture2D> GetTexture() const;
-		uint32_t GetTextureID() const override;
 
 		bool HasSampler() const override;
 		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;

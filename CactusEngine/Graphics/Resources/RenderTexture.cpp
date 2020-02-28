@@ -6,6 +6,7 @@
 using namespace Engine;
 
 RenderTexture::RenderTexture(uint32_t width, uint32_t height)
+	: Texture2D(ETexture2DSource::RenderTexture)
 {
 	m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice();
 
@@ -39,11 +40,6 @@ void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFor
 std::shared_ptr<Texture2D> RenderTexture::GetTexture() const
 {
 	return m_pTextureImpl;
-}
-
-uint32_t RenderTexture::GetTextureID() const
-{
-	return m_pTextureImpl->GetTextureID();
 }
 
 bool RenderTexture::HasSampler() const

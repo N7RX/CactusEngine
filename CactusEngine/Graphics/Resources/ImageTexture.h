@@ -11,7 +11,6 @@ namespace Engine
 		~ImageTexture() = default;
 
 		std::shared_ptr<Texture2D> GetTexture() const;
-		uint32_t GetTextureID() const override;
 
 		bool HasSampler() const override;
 		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;

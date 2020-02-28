@@ -1,12 +1,12 @@
 #version 430
 
-in vec2 v2fTexCoord;
+layout(location = 0) in vec2 v2fTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-uniform sampler2D ColorTexture_1; // Curvature result (r and b channel)
-uniform int LineWidth = 1;
+layout(binding = 6) uniform sampler2D ColorTexture_1; // Curvature result (r and b channel)
 
+const int   LineWidth = 1;
 const float CurvatureThreshold = 0.03f;
 const float cl = 0.3f;	// Lower bound
 const float cu = 1.2f;	// Upper bound
@@ -28,7 +28,7 @@ float determineLineOpacity(void)
 	{
 		for (int j = -LineWidth; j < LineWidth + 1; j += LineWidth)
 		{
-			sampleCurvature[sampleIndex] = texture2D(ColorTexture_1, v2fTexCoord + i*xTexOffset + j*yTexOffset);
+			sampleCurvature[sampleIndex] = texture(ColorTexture_1, v2fTexCoord + i*xTexOffset + j*yTexOffset);
 			sampleIndex++;
 		}
 	}

@@ -23,7 +23,7 @@ namespace Engine
 		Vector3 GetRightDirection() const;
 
 		Matrix4x4 GetModelMatrix() const;
-		Matrix3x3 GetNormalMatrix() const;
+		Matrix4x4 GetNormalMatrix() const;
 
 	private:
 		Vector3 m_position;

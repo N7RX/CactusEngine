@@ -1,4 +1,6 @@
 #pragma once
+#include "BasicMathTypes.h"
+
 #include <iostream>
 #include <string>
 
@@ -32,27 +34,63 @@ namespace Engine
 		COUNT
 	};
 
+	struct alignas(16) UBTransformMatrices
+	{
+		Matrix4x4 modelMatrix;
+		Matrix4x4 viewMatrix;
+		Matrix4x4 projectionMatrix;
+		Matrix4x4 normalMatrix;
+	};
+
+	// Uniform block structures
+
+	struct alignas(16) UBLightSpaceTransformMatrix
+	{
+		Matrix4x4 lightSpaceMatrix;
+	};
+
+	struct alignas(16) UBMaterialNumericalProperties
+	{
+		Vector4	albedoColor;
+		float	anisotropy;
+		float	roughness;
+	};
+
+	struct alignas(16) UBCameraProperties
+	{
+		Vector3	cameraPosition;
+		float	aperture;
+		float	focalDistance;
+		float	imageDistance;
+	};
+
+	struct alignas(16) UBSystemVariables
+	{
+		float timeInSec;
+	};
+
+	struct alignas(16) UBControlVariables
+	{
+		int bool_1;
+	};
+
 	namespace ShaderParamNames
 	{
-		static const char* MODEL_MATRIX = "ModelMatrix";
-		static const char* VIEW_MATRIX = "ViewMatrix";
-		static const char* PROJECTION_MATRIX = "ProjectionMatrix";
-		static const char* NORMAL_MATRIX = "NormalMatrix";
+		// Uniform blocks
 
-		static const char* LIGHT_SPACE_MATRIX = "LightSpaceMatrix";
+		static const char* TRANSFORM_MATRICES = "TransformMatrices";
+		static const char* LIGHTSPACE_TRANSFORM_MATRIX = "LightSpaceTransformMatrix";
+
+		static const char* MATERIAL_NUMERICAL_PROPERTIES = "MaterialNumericalProperties";
+
+		static const char* CAMERA_PROPERTIES = "CameraProperties";
+
+		static const char* SYSTEM_VARIABLES = "SystemVariables";
+		static const char* CONTROL_VARIABLES = "ControlVariables";
+
+		// Combined image samplers
+
 		static const char* SHADOWMAP_DEPTH_TEXTURE = "ShadowMapDepthTexture";
-
-		static const char* CAMERA_POSITION = "CameraPosition";
-		static const char* CAMERA_APERTURE = "Aperture";
-		static const char* CAMERA_FOCALDISTANCE = "FocalDistance";
-		static const char* CAMERA_IMAGEDISTANCE = "ImageDistance";
-
-		static const char* TIME = "Time";
-
-		static const char* ALBEDO_COLOR = "AlbedoColor";
-
-		static const char* ANISOTROPY = "Anisotropy";
-		static const char* ROUGHNESS = "Roughness";
 
 		static const char* ALBEDO_TEXTURE = "AlbedoTexture";
 
@@ -66,75 +104,47 @@ namespace Engine
 		static const char* COLOR_TEXTURE_2 = "ColorTexture_2";
 
 		static const char* TONE_TEXTURE = "ToneTexture";
+
 		static const char* NOISE_TEXTURE_1 = "NoiseTexture_1";
 		static const char* NOISE_TEXTURE_2 = "NoiseTexture_2";
+
 		static const char* MASK_TEXTURE_1 = "MaskTexture_1";
 		static const char* MASK_TEXTURE_2 = "MaskTexture_2";
 
-		static const char* BOOL_1 = "Bool_1";
-
-		// For line drawing
 		static const char* SAMPLE_MATRIX_TEXTURE = "SampleMatrixTexture";
 	}
 
 	// TODO: optimize the speed of the matching process, this linear search is very slow
 	static const char* MatchShaderParamName(const char* cstr)
 	{
-		if (std::strcmp(ShaderParamNames::MODEL_MATRIX, cstr) == 0)
+		if (std::strcmp(ShaderParamNames::TRANSFORM_MATRICES, cstr) == 0)
 		{
-			return ShaderParamNames::MODEL_MATRIX;
+			return ShaderParamNames::TRANSFORM_MATRICES;
 		}
-		if (std::strcmp(ShaderParamNames::VIEW_MATRIX, cstr) == 0)
+		if (std::strcmp(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, cstr) == 0)
 		{
-			return ShaderParamNames::VIEW_MATRIX;
+			return ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX;
 		}
-		if (std::strcmp(ShaderParamNames::PROJECTION_MATRIX, cstr) == 0)
+		if (std::strcmp(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, cstr) == 0)
 		{
-			return ShaderParamNames::PROJECTION_MATRIX;
+			return ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES;
 		}
-		if (std::strcmp(ShaderParamNames::NORMAL_MATRIX, cstr) == 0)
+		if (std::strcmp(ShaderParamNames::CAMERA_PROPERTIES, cstr) == 0)
 		{
-			return ShaderParamNames::NORMAL_MATRIX;
+			return ShaderParamNames::CAMERA_PROPERTIES;
 		}
-		if (std::strcmp(ShaderParamNames::LIGHT_SPACE_MATRIX, cstr) == 0)
+		if (std::strcmp(ShaderParamNames::SYSTEM_VARIABLES, cstr) == 0)
 		{
-			return ShaderParamNames::LIGHT_SPACE_MATRIX;
+			return ShaderParamNames::SYSTEM_VARIABLES;
 		}
+		if (std::strcmp(ShaderParamNames::CONTROL_VARIABLES, cstr) == 0)
+		{
+			return ShaderParamNames::CONTROL_VARIABLES;
+		}
+
 		if (std::strcmp(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, cstr) == 0)
 		{
 			return ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE;
-		}
-		if (std::strcmp(ShaderParamNames::CAMERA_POSITION, cstr) == 0)
-		{
-			return ShaderParamNames::CAMERA_POSITION;
-		}
-		if (std::strcmp(ShaderParamNames::CAMERA_APERTURE, cstr) == 0)
-		{
-			return ShaderParamNames::CAMERA_APERTURE;
-		}
-		if (std::strcmp(ShaderParamNames::CAMERA_FOCALDISTANCE, cstr) == 0)
-		{
-			return ShaderParamNames::CAMERA_FOCALDISTANCE;
-		}
-		if (std::strcmp(ShaderParamNames::CAMERA_IMAGEDISTANCE, cstr) == 0)
-		{
-			return ShaderParamNames::CAMERA_IMAGEDISTANCE;
-		}
-		if (std::strcmp(ShaderParamNames::TIME, cstr) == 0)
-		{
-			return ShaderParamNames::TIME;
-		}
-		if (std::strcmp(ShaderParamNames::ALBEDO_COLOR, cstr) == 0)
-		{
-			return ShaderParamNames::ALBEDO_COLOR;
-		}
-		if (std::strcmp(ShaderParamNames::ANISOTROPY, cstr) == 0)
-		{
-			return ShaderParamNames::ANISOTROPY;
-		}
-		if (std::strcmp(ShaderParamNames::ROUGHNESS, cstr) == 0)
-		{
-			return ShaderParamNames::ROUGHNESS;
 		}
 		if (std::strcmp(ShaderParamNames::ALBEDO_TEXTURE, cstr) == 0)
 		{
@@ -184,16 +194,12 @@ namespace Engine
 		{
 			return ShaderParamNames::MASK_TEXTURE_2;
 		}
-		if (std::strcmp(ShaderParamNames::BOOL_1, cstr) == 0)
-		{
-			return ShaderParamNames::BOOL_1;
-		}
 		if (std::strcmp(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, cstr) == 0)
 		{
 			return ShaderParamNames::SAMPLE_MATRIX_TEXTURE;
 		}
 
-		std::cerr << "Unmatched shader parameter name: " << cstr << std::endl;
+		std::cerr << "Unhandled shader parameter name: " << cstr << std::endl;
 		return nullptr;
 	}
 }

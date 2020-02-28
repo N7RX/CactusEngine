@@ -65,54 +65,68 @@ namespace Engine
 		std::shared_ptr<Texture2D>		m_pBrushMaskImageTexture_2;
 		std::shared_ptr<Texture2D>		m_pPencilMaskImageTexture_1;
 		std::shared_ptr<Texture2D>		m_pPencilMaskImageTexture_2;
+
+		std::shared_ptr<UniformBuffer>	m_pTransformMatrices_UB;
+		std::shared_ptr<UniformBuffer>	m_pLightSpaceTransformMatrix_UB;
+		std::shared_ptr<UniformBuffer>	m_pMaterialNumericalProperties_UB;
+		std::shared_ptr<UniformBuffer>	m_pCameraPropertie_UB;
+		std::shared_ptr<UniformBuffer>	m_pSystemVariables_UB;
+		std::shared_ptr<UniformBuffer>	m_pControlVariables_UB;
 	};
 
 	namespace ForwardGraphRes
 	{
-		static const char* SHADOWMAP_NODE = "ShadowMapNode";
-		static const char* NORMALONLY_NODE = "NormalOnlyNode";
-		static const char* OPAQUE_NODE = "OpaqueNode";
-		static const char* BLUR_NODE = "BlurNode";
-		static const char* LINEDRAWING_NODE = "LineDrawingNode";
-		static const char* TRANSP_NODE = "TranspNode";
-		static const char* COLORBLEND_D2_NODE = "ColorBlend_DepthBased_2";
-		static const char* DOF_NODE = "DOFNode";
+		static const char* NODE_SHADOWMAP = "ShadowMapNode";
+		static const char* NODE_NORMALONLY = "NormalOnlyNode";
+		static const char* NODE_OPAQUE = "OpaqueNode";
+		static const char* NODE_BLUR = "BlurNode";
+		static const char* NODE_LINEDRAWING = "LineDrawingNode";
+		static const char* NODE_TRANSP = "TranspNode";
+		static const char* NODE_COLORBLEND_D2 = "ColorBlend_DepthBased_2";
+		static const char* NODE_DOF = "DOFNode";
 
-		static const char* SHADOWMAP_FB = "ShadowMapFrameBuffer";
-		static const char* SHADOWMAP_DEPTH = "ShadowMapDepth";
+		static const char* FB_SHADOWMAP = "ShadowMapFrameBuffer";
+		static const char* TX_SHADOWMAP_DEPTH = "ShadowMapDepth";
 
-		static const char* NORMALONLY_FB = "NormalOnlyFrameBuffer";
-		static const char* NORMALONLY_NORMAL = "NormalOnlyNormal";
-		static const char* NORMALONLY_POSITION = "NormalOnlPosition";
+		static const char* FB_NORMALONLY = "NormalOnlyFrameBuffer";
+		static const char* TX_NORMALONLY_NORMAL = "NormalOnlyNormal";
+		static const char* TX_NORMALONLY_POSITION = "NormalOnlPosition";
 
-		static const char* OPAQUE_FB = "OpaqueFrameBuffer";
-		static const char* OPAQUE_COLOR = "OpaqueColor";
-		static const char* OPAQUE_SHADOW = "OpaqueShadow";
-		static const char* OPAQUE_DEPTH = "OpaqueDepth";
+		static const char* FB_OPAQUE = "OpaqueFrameBuffer";
+		static const char* TX_OPAQUE_COLOR = "OpaqueColor";
+		static const char* TX_OPAQUE_SHADOW = "OpaqueShadow";
+		static const char* TX_OPAQUE_DEPTH = "OpaqueDepth";
 
-		static const char* BLUR_FB = "BlurFrameBuffer";
-		static const char* BLUR_HORIZONTAL_COLOR = "BlurHorizontalColor";
-		static const char* BLUR_FINAL_COLOR = "BlurFinalColor";
+		static const char* FB_BLUR = "BlurFrameBuffer";
+		static const char* TX_BLUR_HORIZONTAL_COLOR = "BlurHorizontalColor";
+		static const char* TX_BLUR_FINAL_COLOR = "BlurFinalColor";
 
-		static const char* LINEDRAWING_FB = "LineDrawingFrameBuffer";
-		static const char* LINEDRAWING_MATRIX_TEXTURE = "LineDrawMatrixTexture";
-		static const char* LINEDRAWING_CURVATURE = "LineDrawingCurvature";
-		static const char* LINEDRAWING_BLURRED = "LineDrawingBlurred";
-		static const char* LINEDRAWING_COLOR = "LineDrawingColor";
+		static const char* FB_LINEDRAWING = "LineDrawingFrameBuffer";
+		static const char* TX_LINEDRAWING_MATRIX_TEXTURE = "LineDrawMatrixTexture";
+		static const char* TX_LINEDRAWING_CURVATURE = "LineDrawingCurvature";
+		static const char* TX_LINEDRAWING_BLURRED = "LineDrawingBlurred";
+		static const char* TX_LINEDRAWING_COLOR = "LineDrawingColor";
 
-		static const char* TRANSP_FB = "TranspFrameBuffer";
-		static const char* TRANSP_COLOR = "TranspColor";
-		static const char* TRANSP_DEPTH = "TranspDepth";
+		static const char* FB_TRANSP = "TranspFrameBuffer";
+		static const char* TX_TRANSP_COLOR = "TranspColor";
+		static const char* TX_TRANSP_DEPTH = "TranspDepth";
 
-		static const char* BLEND_FB = "BlendFrameBuffer";
-		static const char* BLEND_COLOR = "BlendColor";
+		static const char* FB_BLEND = "BlendFrameBuffer";
+		static const char* TX_BLEND_COLOR = "BlendColor";
 
-		static const char* DOF_FB = "DOFFrameBuffer";
-		static const char* DOF_HORIZONTAL = "DOFHorizontal";
+		static const char* FB_DOF = "DOFFrameBuffer";
+		static const char* TX_DOF_HORIZONTAL = "DOFHorizontal";
 
-		static const char* BRUSH_MASK_TEXTURE_1 = "BrushMask_1";
-		static const char* BRUSH_MASK_TEXTURE_2 = "BrushMask_2";
-		static const char* PENCIL_MASK_TEXTURE_1 = "PencilMask_1";
-		static const char* PENCIL_MASK_TEXTURE_2 = "PencilMask_2";
+		static const char* TX_BRUSH_MASK_TEXTURE_1 = "BrushMask_1";
+		static const char* TX_BRUSH_MASK_TEXTURE_2 = "BrushMask_2";
+		static const char* TX_PENCIL_MASK_TEXTURE_1 = "PencilMask_1";
+		static const char* TX_PENCIL_MASK_TEXTURE_2 = "PencilMask_2";
+
+		static const char* UB_TRANSFORM_MATRICES = "TransformMatrices";
+		static const char* UB_LIGHTSPACE_TRANSFORM_MATRIX = "LightSpaceTransformMatrix";
+		static const char* UB_MATERIAL_NUMERICAL_PROPERTIES = "MaterialNumericalProperties";
+		static const char* UB_CAMERA_PROPERTIES = "CameraProperties";
+		static const char* UB_SYSTEM_VARIABLES = "SystemVariables";
+		static const char* UB_CONTROL_VARIABLES = "ControlVariables";
 	}
 }

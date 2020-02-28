@@ -10,16 +10,6 @@ namespace Engine
 {
 	class DrawingDevice;
 
-	class RawResourceData
-	{
-	public:
-		RawResourceData() = default;
-		virtual ~RawResourceData() = default;
-
-		const void* m_pData; // Alert: careful with resource memory management
-		uint32_t m_sizeInBytes;
-	};
-
 	class RawResource
 	{
 	public:
@@ -27,10 +17,8 @@ namespace Engine
 
 		virtual uint32_t GetResourceID() const;
 
-		virtual uint32_t GetSize() const;
-		virtual std::shared_ptr<RawResourceData> GetData() const;
-
-		virtual void SetData(const std::shared_ptr<RawResourceData> pData, uint32_t size);
+		virtual void MarkSizeInByte(uint32_t size);
+		virtual uint32_t GetSizeInByte() const;
 
 	protected:
 		RawResource();
@@ -38,7 +26,6 @@ namespace Engine
 	protected:
 		uint32_t m_resourceID;
 		uint32_t m_sizeInBytes;
-		std::shared_ptr<RawResourceData> m_pRawData;
 
 	private:
 		static uint32_t m_assignedID;
@@ -81,6 +68,9 @@ namespace Engine
 		uint32_t GetNumberOfIndices() const;
 
 	protected:
+		VertexBuffer() = default;
+
+	protected:
 		uint32_t m_numberOfIndices;
 	};
 
@@ -102,7 +92,8 @@ namespace Engine
 
 	class TextureSampler
 	{
-
+	protected:
+		TextureSampler() = default;
 	};
 
 	struct Texture2DCreateInfo
@@ -119,6 +110,14 @@ namespace Engine
 		EGPUType	   deviceType;
 	};
 
+	enum class ETexture2DSource
+	{
+		ImageTexture = 0,
+		RenderTexture,
+		RawDeviceTexture,
+		COUNT
+	};
+
 	class Texture2D : public RawResource
 	{
 	public:
@@ -126,8 +125,6 @@ namespace Engine
 
 		uint32_t GetWidth() const;
 		uint32_t GetHeight() const;
-
-		virtual uint32_t GetTextureID() const = 0;
 
 		void SetTextureType(ETextureType type);
 		ETextureType GetTextureType() const;
@@ -139,12 +136,18 @@ namespace Engine
 		virtual void SetSampler(const std::shared_ptr<TextureSampler> pSampler) = 0;
 		virtual std::shared_ptr<TextureSampler> GetSampler() const = 0;
 
+		ETexture2DSource QuerySource() const;
+
+	protected:
+		Texture2D(ETexture2DSource source);
+
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
 
+		const ETexture2DSource m_source;
 		ETextureType m_type;
-		std::string m_filePath; // TODO: remove this property
+		std::string m_filePath;
 	};
 
 	struct RenderPassAttachmentDescription
@@ -174,7 +177,8 @@ namespace Engine
 
 	class RenderPassObject : public RawResource
 	{
-
+	protected:
+		RenderPassObject() = default;
 	};
 
 	struct FrameBufferCreateInfo
@@ -198,13 +202,35 @@ namespace Engine
 		virtual uint32_t GetFrameBufferID() const = 0;
 
 	protected:
+		FrameBuffer() = default;
+
+	protected:
 		uint32_t m_width;
 		uint32_t m_height;
 	};
 
+	// For low-level APIs like Vulkan
 	struct SwapchainFrameBuffers : public RawResource
 	{
 		std::vector<std::shared_ptr<FrameBuffer>> frameBuffers;
+	};
+
+	struct UniformBufferCreateInfo
+	{
+		uint32_t sizeInBytes;
+
+		EGPUType deviceType;
+		uint32_t appliedStages; // Bitmask, required for push constant
+	};
+
+	class UniformBuffer : public RawResource
+	{
+	public:
+		virtual void UpdateBufferData(const void* pData) = 0;
+		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
+
+	protected:
+		UniformBuffer() = default;
 	};
 
 	class Shader
@@ -242,12 +268,8 @@ namespace Engine
 		uint32_t GetProgramID() const;
 		uint32_t GetShaderStages() const;
 
-		// Works on higher level APIs like OpenGL
-		virtual unsigned int GetParamLocation(const char* paramName) const = 0;
-		virtual void Reset() = 0;
-
-		// For lower level APIs like Vulkan
 		virtual unsigned int GetParamBinding(const char* paramName) const = 0;
+		virtual void Reset() = 0;
 
 	protected:
 		ShaderProgram(uint32_t shaderStages);
@@ -269,59 +291,26 @@ namespace Engine
 		// For high-level APIs like OpenGL
 		struct ShaderParameterTableEntry
 		{
-			ShaderParameterTableEntry(unsigned int loc, EShaderParamType paramType, const void* pVal)
-				: location(loc), type(paramType), pValue(pVal)
-			{
-			}
-
-			unsigned int		location;
-			EShaderParamType	type;
-			const void*			pValue;
-		};
-
-		std::vector<ShaderParameterTableEntry> m_table;
-
-		void AddEntry(unsigned int loc, EShaderParamType type, const void* pVal)
-		{
-			m_table.emplace_back(loc, type, pVal);
-		}
-
-		// For low-level APIs like Vulkan
-		struct DescriptorUpdateTableEntry
-		{
-			DescriptorUpdateTableEntry(unsigned int bindingIndex, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
-				: binding(bindingIndex), type(descType), pResource(pRes), pValue(nullptr)
-			{
-			}
-
-			DescriptorUpdateTableEntry(unsigned int bindingIndex, EDescriptorType descType, const void* pVal)
-				: binding(bindingIndex), type(descType), pValue(pVal), pResource(nullptr)
+			ShaderParameterTableEntry(unsigned int binding, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+				: binding(binding), type(descType), pResource(pRes)
 			{
 			}
 
 			unsigned int					binding;
 			EDescriptorType					type;
 			std::shared_ptr<RawResource>	pResource;
-			const void*						pValue;
 		};
 
-		std::vector<DescriptorUpdateTableEntry> m_hpTable;
+		std::vector<ShaderParameterTableEntry> m_table;
 
 		void AddEntry(unsigned int binding, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
-		{		
-			m_hpTable.emplace_back(binding, descType, pRes);
-		}
-
-		void AddEntry(unsigned int binding, EDescriptorType descType, const void* pVal) // For numerical uniform buffer only
 		{
-			assert(descType == EDescriptorType::UniformBuffer); // Uniform buffers are managed by (Vulkan) shader program internally
-			m_hpTable.emplace_back(binding, descType, pVal);
+			m_table.emplace_back(binding, descType, pRes);
 		}
 
 		void Clear()
 		{
 			m_table.clear();
-			m_hpTable.clear();
 		}
 	};
 
@@ -356,7 +345,8 @@ namespace Engine
 
 	class PipelineVertexInputState
 	{
-
+	protected:
+		PipelineVertexInputState() = default;
 	};
 
 	struct PipelineInputAssemblyStateCreateInfo
@@ -367,7 +357,8 @@ namespace Engine
 
 	class PipelineInputAssemblyState
 	{
-
+	protected:
+		PipelineInputAssemblyState() = default;
 	};
 
 	struct AttachmentColorBlendStateDescription
@@ -392,7 +383,8 @@ namespace Engine
 
 	class PipelineColorBlendState
 	{
-
+	protected:
+		PipelineColorBlendState() = default;
 	};
 
 	struct PipelineRasterizationStateCreateInfo
@@ -404,7 +396,8 @@ namespace Engine
 
 	class PipelineRasterizationState
 	{
-
+	protected:
+		PipelineRasterizationState() = default;
 	};
 
 	struct PipelineDepthStencilStateCreateInfo
@@ -418,7 +411,8 @@ namespace Engine
 
 	class PipelineDepthStencilState
 	{
-
+	protected:
+		PipelineDepthStencilState() = default;
 	};
 
 	struct PipelineMultisampleStateCreateInfo
@@ -429,7 +423,8 @@ namespace Engine
 
 	class PipelineMultisampleState
 	{
-
+	protected:
+		PipelineMultisampleState() = default;
 	};
 
 	struct PipelineViewportStateCreateInfo
@@ -442,7 +437,8 @@ namespace Engine
 
 	class PipelineViewportState
 	{
-
+	protected:
+		PipelineViewportState() = default;
 	};
 
 	struct GraphicsPipelineCreateInfo
@@ -462,6 +458,7 @@ namespace Engine
 
 	class GraphicsPipelineObject : public RawResource
 	{
-
+	protected:
+		GraphicsPipelineObject() = default;
 	};
 }

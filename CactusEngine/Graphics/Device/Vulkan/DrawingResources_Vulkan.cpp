@@ -73,7 +73,7 @@ Sampler_Vulkan::~Sampler_Vulkan()
 }
 
 Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo)
-	: m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
+	: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
 {
 	assert(pDevice);
 
@@ -105,6 +105,12 @@ Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> p
 	}
 }
 
+Texture2D_Vulkan::Texture2D_Vulkan()
+	: Texture2D(ETexture2DSource::RawDeviceTexture)
+{
+
+}
+
 Texture2D_Vulkan::~Texture2D_Vulkan()
 {
 	if (m_allocatorType == EAllocatorType_Vulkan::VMA)
@@ -116,12 +122,6 @@ Texture2D_Vulkan::~Texture2D_Vulkan()
 	{
 		vkDestroyImageView(m_pDevice->logicalDevice, m_imageView, nullptr);
 	}
-}
-
-uint32_t Texture2D_Vulkan::GetTextureID() const
-{
-	std::cerr << "Vulkan: shouldn't call GetTextureID on Vulkan texture 2D.\n";
-	return -1;
 }
 
 bool Texture2D_Vulkan::HasSampler() const
@@ -164,9 +164,14 @@ RenderTarget2D_Vulkan::~RenderTarget2D_Vulkan()
 }
 
 UniformBuffer_Vulkan::UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo)
-	: RawBuffer_Vulkan(pDevice, { VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, createInfo.size, 0 }), m_eType(createInfo.type), 
-	m_layoutParamIndex(createInfo.layoutParamIndex), m_appliedShaderStage(createInfo.appliedStages), m_memoryMapped(false), m_pHostData(nullptr)
+	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_memoryMapped(false), m_pHostData(nullptr)
 {
+	RawBufferCreateInfo_Vulkan bufferImplCreateInfo = {};
+	bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	bufferImplCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	bufferImplCreateInfo.size = createInfo.size;
+
+	m_pBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, bufferImplCreateInfo);
 	m_sizeInBytes = createInfo.size;
 }
 
@@ -174,13 +179,13 @@ UniformBuffer_Vulkan::~UniformBuffer_Vulkan()
 {
 	if (m_memoryMapped)
 	{
-		m_pDevice->pUploadAllocator->UnmapMemory(m_allocation);
+		m_pBufferImpl->m_pDevice->pUploadAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
 	}
 }
 
 void UniformBuffer_Vulkan::UpdateBufferData(const void* pData)
 {
-	m_pRawData->m_pData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
+	m_pRawData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
 
 	if (m_eType == EUniformBufferType_Vulkan::Uniform)
 	{
@@ -188,26 +193,51 @@ void UniformBuffer_Vulkan::UpdateBufferData(const void* pData)
 	}
 }
 
+void UniformBuffer_Vulkan::UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size)
+{
+	if (m_eType == EUniformBufferType_Vulkan::Uniform)
+	{
+		if (!m_memoryMapped)
+		{
+			m_memoryMapped = m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData);
+		}
+		if (m_memoryMapped)
+		{
+			void* start = (unsigned char*)m_pHostData + offset; // Alert: could be incorrect
+			memcpy(start, pData, size);
+		}
+		else
+		{
+			throw std::runtime_error("Vulkan: failed to map uniform buffer memory.");
+			return;
+		}
+	}
+	else
+	{
+		throw std::runtime_error("Vulkan: shouldn't call UpdateBufferSubData on push constant buffer.");
+	}
+}
+
 void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
 {
-	assert(m_pDevice);
-	assert(m_pRawData);
+	assert(m_pBufferImpl->m_pDevice);
+	assert(m_pRawData != nullptr);
 
 	switch (m_eType)
 	{
 	case EUniformBufferType_Vulkan::PushConstant:
 		assert(pCmdBuffer);
-		pCmdBuffer->UpdatePushConstant(m_appliedShaderStage, m_sizeInBytes, m_pRawData->m_pData);
+		pCmdBuffer->UpdatePushConstant(m_appliedShaderStage, m_sizeInBytes, m_pRawData);
 		break;
 
 	case EUniformBufferType_Vulkan::Uniform:
 		if (!m_memoryMapped)
 		{
-			m_memoryMapped = m_pDevice->pUploadAllocator->MapMemory(m_allocation, &m_pHostData);
+			m_memoryMapped = m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData);
 		}
 		if (m_memoryMapped)
 		{
-			memcpy(m_pHostData, m_pRawData->m_pData, m_sizeInBytes);
+			memcpy(m_pHostData, m_pRawData, m_sizeInBytes);
 		}
 		else
 		{
@@ -225,11 +255,6 @@ void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_V
 EUniformBufferType_Vulkan UniformBuffer_Vulkan::GetType() const
 {
 	return m_eType;
-}
-
-uint32_t UniformBuffer_Vulkan::GetBindingIndex() const
-{
-	return m_layoutParamIndex;
 }
 
 RenderPass_Vulkan::RenderPass_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
@@ -481,20 +506,6 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const 
 	va_end(vaShaders);
 }
 
-unsigned int ShaderProgram_Vulkan::GetParamLocation(const char* paramName) const
-{
-	if (m_resourceTable.find(paramName) != m_resourceTable.end())
-	{
-		return m_resourceTable.at(paramName).location;
-	}
-	return -1;
-}
-
-void ShaderProgram_Vulkan::Reset()
-{
-	std::cerr << "Vulkan: shouldn't call Reset on Vulkan shader program.\n";
-}
-
 unsigned int ShaderProgram_Vulkan::GetParamBinding(const char* paramName) const
 {
 	if (m_resourceTable.find(paramName) != m_resourceTable.end())
@@ -502,6 +513,11 @@ unsigned int ShaderProgram_Vulkan::GetParamBinding(const char* paramName) const
 		return m_resourceTable.at(paramName).binding;
 	}
 	return -1;
+}
+
+void ShaderProgram_Vulkan::Reset()
+{
+	std::cerr << "Vulkan: shouldn't call Reset on Vulkan shader program.\n";
 }
 
 uint32_t ShaderProgram_Vulkan::GetStageCount() const
@@ -562,31 +578,6 @@ void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulk
 	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), MAX_DESCRIPTOR_SET_COUNT);
 }
 
-void ShaderProgram_Vulkan::ProcessVariables(const spirv_cross::Compiler& spvCompiler, const spirv_cross::Resource& resource)
-{
-	auto resType = spvCompiler.get_type(resource.base_type_id);
-	uint32_t memberCount = (uint32_t)resType.member_types.size();
-	uint32_t resSize = (uint32_t)spvCompiler.get_declared_struct_size(resType);
-
-	for (uint32_t i = 0; i < memberCount; ++i)
-	{
-		VariableDescription desc = {};
-
-		desc.variableName = spvCompiler.get_member_name(resource.base_type_id, i);
-		desc.uniformName = MatchShaderParamName(spvCompiler.get_name(resource.id).c_str());
-		desc.offset = spvCompiler.type_struct_member_offset(resType, i);
-		desc.variableSize = (uint32_t)spvCompiler.get_declared_struct_member_size(resType, i);
-		desc.uniformSize = resSize;
-
-		auto varType = spvCompiler.get_type(resType.member_types[i]);
-		uint32_t varSize = i < (memberCount - 1) ? (spvCompiler.type_struct_member_offset(resType, i) - desc.offset) : (resSize - desc.offset);
-
-		desc.paramType = GetParamType(varType, varSize);
-
-		m_variableTable.emplace(desc.variableName, desc);
-	}
-}
-
 void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes)
 {
 	for (auto& buffer : shaderRes.uniform_buffers)
@@ -594,11 +585,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::Uniform;
 		desc.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
-		desc.location = spvCompiler.get_decoration(buffer.id, spv::DecorationLocation);
 		desc.name = MatchShaderParamName(spvCompiler.get_name(buffer.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
-		ProcessVariables(spvCompiler, buffer);
 	}
 
 	uint32_t accumulatePushConstSize = 0;
@@ -609,11 +598,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::PushConstant;
 		desc.binding = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
-		desc.location = spvCompiler.get_decoration(constant.id, spv::DecorationLocation);
 		desc.name = MatchShaderParamName(spvCompiler.get_name(constant.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
-		ProcessVariables(spvCompiler, constant);
 	}
 	assert(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
 
@@ -622,7 +609,6 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SeparateImage;
 		desc.binding = spvCompiler.get_decoration(separateImage.id, spv::DecorationBinding);
-		desc.location = spvCompiler.get_decoration(separateImage.id, spv::DecorationLocation);
 		desc.name = MatchShaderParamName(spvCompiler.get_name(separateImage.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
@@ -633,7 +619,6 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SeparateSampler;
 		desc.binding = spvCompiler.get_decoration(separateSampler.id, spv::DecorationBinding);
-		desc.location = spvCompiler.get_decoration(separateSampler.id, spv::DecorationLocation);
 		desc.name = MatchShaderParamName(spvCompiler.get_name(separateSampler.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
@@ -644,7 +629,6 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::SampledImage;
 		desc.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
-		desc.location = spvCompiler.get_decoration(sampledImage.id, spv::DecorationLocation);
 		desc.name = MatchShaderParamName(spvCompiler.get_name(sampledImage.id).c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
@@ -688,15 +672,6 @@ void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCom
 
 		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
 		count++;
-
-		// Generate uniform buffer objects
-		UniformBufferCreateInfo_Vulkan ubCreateInfo = {};
-		ubCreateInfo.appliedStages = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
-		ubCreateInfo.layoutParamIndex = binding.binding;
-		ubCreateInfo.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(buffer.base_type_id));
-		ubCreateInfo.type = EUniformBufferType_Vulkan::Uniform;
-
-		m_uniformBuffers[binding.binding] = std::make_shared<UniformBuffer_Vulkan>(m_pLogicalDevice, ubCreateInfo);
 	}
 
 	if (count > 0)
@@ -800,15 +775,6 @@ void ShaderProgram_Vulkan::LoadPushConstantBuffer(const spirv_cross::Compiler& s
 		range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the push constant is bind with multiple shader stages
 
 		outRanges.emplace_back(range);
-
-		// Generate push constant buffer objects
-		UniformBufferCreateInfo_Vulkan pcbCreateInfo = {};
-		pcbCreateInfo.appliedStages = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
-		pcbCreateInfo.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
-		pcbCreateInfo.type = EUniformBufferType_Vulkan::PushConstant;
-		// Push constant buffer does not require layout binding
-
-		m_pushConstantBuffers.emplace_back(std::make_shared<UniformBuffer_Vulkan>(m_pLogicalDevice, pcbCreateInfo));
 	}
 }
 
@@ -841,91 +807,6 @@ void ShaderProgram_Vulkan::AllocateDescriptorSet(uint32_t count)
 void ShaderProgram_Vulkan::UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos)
 {
 	m_pDescriptorPool->UpdateDescriptorSets(updateInfos);
-}
-
-void ShaderProgram_Vulkan::UpdateUniformBufferData(unsigned int binding, const void* pData)
-{
-	assert(m_uniformBuffers.find((uint32_t)binding) != m_uniformBuffers.end());
-	m_uniformBuffers.at(binding)->UpdateBufferData(pData);
-}
-
-EShaderParamType ShaderProgram_Vulkan::GetParamType(const spirv_cross::SPIRType& type, uint32_t size)
-{
-	// Alert: we are over simplifying some details in here, e.g. data format and array info
-
-	switch (type.basetype)
-	{
-	case spirv_cross::SPIRType::BaseType::Image:
-	case spirv_cross::SPIRType::BaseType::SampledImage:
-		return EShaderParamType::Texture2D;
-
-	case spirv_cross::SPIRType::BaseType::Sampler:
-		return EShaderParamType::Sampler;
-
-	case spirv_cross::SPIRType::BaseType::Boolean:
-	case spirv_cross::SPIRType::BaseType::SByte:
-	case spirv_cross::SPIRType::BaseType::UByte:
-	case spirv_cross::SPIRType::BaseType::Short:
-	case spirv_cross::SPIRType::BaseType::UShort:
-	case spirv_cross::SPIRType::BaseType::Half:
-	case spirv_cross::SPIRType::BaseType::Int:
-	case spirv_cross::SPIRType::BaseType::UInt:
-	case spirv_cross::SPIRType::BaseType::Float:
-	case spirv_cross::SPIRType::BaseType::Int64:
-	case spirv_cross::SPIRType::BaseType::UInt64:
-	case spirv_cross::SPIRType::BaseType::Double:
-	{
-		if (type.columns > 1)
-		{
-			// Alert: only square matrices are handled
-			uint32_t rows = size / (type.columns * GetParamTypeSize(type));
-			assert(type.columns == rows);
-			switch (type.columns)
-			{
-			case 2U:
-				return EShaderParamType::Mat2;
-
-			case 3U:
-				return EShaderParamType::Mat3;
-
-			case 4U:
-				return EShaderParamType::Mat4;
-
-			default:
-				throw std::runtime_error("Vulkan: unhandled irregular shader parameter matrix.");
-				break;
-			}
-		}
-		else if (type.vecsize > 1)
-		{
-			switch (type.vecsize)
-			{
-			case 2U:
-				return EShaderParamType::Vec2;
-
-			case 3U:
-				return EShaderParamType::Vec3;
-
-			case 4U:
-				return EShaderParamType::Vec4;
-
-			default:
-				throw std::runtime_error("Vulkan: unhandled irregular shader parameter matrix.");
-				break;
-			}
-		}
-		else
-		{
-			return EShaderParamType::Scalar;
-		}
-	}
-
-	default:
-		throw std::runtime_error("Vulkan: unhandled shader parameter type.");
-		break;
-	}
-
-	return EShaderParamType::Invalid;
 }
 
 uint32_t ShaderProgram_Vulkan::GetParamTypeSize(const spirv_cross::SPIRType& type)

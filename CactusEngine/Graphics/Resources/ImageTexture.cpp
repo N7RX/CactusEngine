@@ -9,6 +9,7 @@
 using namespace Engine;
 
 ImageTexture::ImageTexture(const char* filePath)
+	: Texture2D(ETexture2DSource::ImageTexture)
 {
 	LoadAndCreateTexture(filePath);
 }
@@ -57,11 +58,6 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 std::shared_ptr<Texture2D> ImageTexture::GetTexture() const
 {
 	return m_pTextureImpl;
-}
-
-uint32_t ImageTexture::GetTextureID() const
-{
-	return m_pTextureImpl->GetTextureID();
 }
 
 bool ImageTexture::HasSampler() const
