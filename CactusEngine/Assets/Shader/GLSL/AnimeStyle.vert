@@ -14,7 +14,7 @@ layout(location = 4) out vec3 v2fTangent;
 layout(location = 5) out vec3 v2fBitangent;
 layout(location = 6) out mat3 v2fTBNMatrix;
 
-layout(std140, binding = 0) uniform TransformMatrices
+layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
 	mat4 ViewMatrix;
@@ -22,7 +22,7 @@ layout(std140, binding = 0) uniform TransformMatrices
 	mat4 NormalMatrix;
 };
 
-layout(std140, binding = 1) uniform LightSpaceTransformMatrix
+layout(std140, binding = 15) uniform LightSpaceTransformMatrix
 {
 	mat4 LightSpaceMatrix;
 };

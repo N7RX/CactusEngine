@@ -5,6 +5,7 @@
 #include "SafeBasicTypes.h"
 #include "NoCopy.h"
 #include "BasicMathTypes.h"
+#include "DrawingDescriptorAllocator_Vulkan.h"
 
 #include <vulkan.h>
 #include <memory>
@@ -41,13 +42,13 @@ namespace Engine
 		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
 		void BindPipelineLayout(const VkPipelineLayout pipelineLayout); // TODO: integrate this function with BindPipeline
 		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
-		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<VkDescriptorSet>& descriptorSets, uint32_t firstSet = 0);
+		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>>& descriptorSets, uint32_t firstSet = 0);
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
 		void DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void EndRenderPass();
 
-		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderStage = EShaderType::Fragment);
-		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage);
+		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
+		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
 		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region);
 		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);
 
@@ -59,9 +60,11 @@ namespace Engine
 		VkPipelineLayout m_pipelineLayout;
 
 		std::shared_ptr<DrawingFence_Vulkan> m_pAssociatedFence;
-		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitSemaphores;
-		std::queue<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalSemaphores;
+		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitSemaphores;
+		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalSemaphores;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan> m_pSyncObjectManager;
+
+		std::queue<std::shared_ptr<DrawingDescriptorSet_Vulkan>> m_boundDescriptorSets;
 
 		bool m_isRecording;
 		bool m_inRenderPass;
@@ -113,36 +116,18 @@ namespace Engine
 		std::mutex notifyStateMutex;
 	};
 
-	class CommandSubmitInfo_Vulkan
+	struct CommandSubmitInfo_Vulkan
 	{
-	public:
-		~CommandSubmitInfo_Vulkan()
-		{
-			Clear();
-		}
-
-		void Clear()
-		{
-			buffersAwaitSubmit.clear();		
-			waitStages.clear();
-			semaphoresToWait.clear();
-			semaphoresToSignal.clear();
-		}
-
-	private:
 		VkSubmitInfo submitInfo;
 		VkFence		 fence;
-		bool		 waitFrameFenceSubmission;
-		bool		 initRecycle;
-		std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
+		//std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
+		std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> queuedCmdBuffers;
 
 		// Retained resources
 		std::vector<VkCommandBuffer>	  buffersAwaitSubmit;	
 		std::vector<VkPipelineStageFlags> waitStages;
 		std::vector<VkSemaphore>		  semaphoresToWait;
 		std::vector<VkSemaphore>		  semaphoresToSignal;
-
-		friend class DrawingCommandManager_Vulkan;
 	};
 
 	class DrawingCommandManager_Vulkan : public NoCopy
@@ -152,12 +137,11 @@ namespace Engine
 		~DrawingCommandManager_Vulkan();
 
 		void Destroy();
-		void WaitFrameFenceSubmission();
 
 		EQueueType GetWorkingQueueType() const;
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
-		void SubmitCommandBuffers(VkFence fence);
+		void SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence);
 		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This would stall the queue, use with caution
 
 	private:
@@ -185,10 +169,6 @@ namespace Engine
 
 		// Async command submission
 		std::thread m_commandBufferSubmissionThread;
-		std::mutex m_frameFenceMutex;
-		std::unique_lock<std::mutex> m_frameFenceLock;
-		std::condition_variable m_frameFenceCv;
-		bool m_waitFrameFenceSubmission;
 
 		// Asyn command buffer recycle
 		std::thread m_commandBufferRecycleThread;

@@ -1,4 +1,5 @@
 #pragma once
+#include "SafeBasicTypes.h"
 #include <vulkan.h>
 #include <vector>
 #include <memory>
@@ -38,21 +39,23 @@ namespace Engine
 	};
 
 	struct LogicalDevice_Vulkan;
-	class DrawingDescriptorPool_Vulkan
+
+	class DrawingDescriptorSet_Vulkan
 	{
 	public:
-		DrawingDescriptorPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
-		~DrawingDescriptorPool_Vulkan();
-
-		bool AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<VkDescriptorSet>& outSets, bool clearPrev = false);
-		bool UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
-		// TODO: add set copy support
+		DrawingDescriptorSet_Vulkan(VkDescriptorSet descSet);
+		~DrawingDescriptorSet_Vulkan() = default;
 
 	private:
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
-		VkDescriptorPool m_descriptorPool;
-
+		VkDescriptorSet m_descriptorSet;
+		SafeBool m_isInUse;
+		
+		friend class DrawingDescriptorPool_Vulkan;
 		friend class DrawingDescriptorAllocator_Vulkan;
+		friend class DrawingCommandManager_Vulkan;
+		friend class DrawingCommandBuffer_Vulkan;
+		friend class ShaderProgram_Vulkan;
+		friend class DrawingDevice_Vulkan;
 	};
 
 	class DrawingDescriptorSetLayout_Vulkan
@@ -66,6 +69,26 @@ namespace Engine
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		VkDescriptorSetLayout m_descriptorSetLayout;
+	};
+
+	class DrawingDescriptorPool_Vulkan
+	{
+	public:
+		DrawingDescriptorPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, uint32_t maxSets);
+		~DrawingDescriptorPool_Vulkan();
+
+		bool AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>>& outSets, bool clearPrev = false);
+		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
+		// TODO: add set copy support
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		VkDescriptorPool m_descriptorPool;
+
+		const uint32_t MAX_SETS;
+		uint32_t m_allocatedSetsCount;
+
+		friend class DrawingDescriptorAllocator_Vulkan;
 	};
 	
 	class DrawingDescriptorAllocator_Vulkan

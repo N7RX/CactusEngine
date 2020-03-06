@@ -6,7 +6,7 @@ layout(location = 2) in vec3 v2fPosition;
 
 layout(location = 0) out vec4 outColor;
 
-layout(std140, binding = 0) uniform TransformMatrices
+layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
 	mat4 ViewMatrix;
@@ -14,12 +14,12 @@ layout(std140, binding = 0) uniform TransformMatrices
 	mat4 NormalMatrix;
 };
 
-layout(std140, binding = 4) uniform SystemVariables
+layout(std140, binding = 18) uniform SystemVariables
 {
 	float Time;
 };
 
-layout(std140, binding = 3) uniform CameraProperties
+layout(std140, binding = 17) uniform CameraProperties
 {
 	vec3  CameraPosition;
 	float Aperture;
@@ -29,7 +29,7 @@ layout(std140, binding = 3) uniform CameraProperties
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;
 
-layout(std140, binding = 2) uniform MaterialNumericalProperties
+layout(std140, binding = 16) uniform MaterialNumericalProperties
 {
 	vec4  AlbedoColor;
 	float Anisotropy;

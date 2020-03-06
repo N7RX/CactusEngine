@@ -39,6 +39,8 @@ void HPForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLi
 		return;
 	}
 
+	ResetUniformBufferSubAllocation();
+
 	auto pContext = std::make_shared<RenderContext>();
 	pContext->pCamera = pCamera;
 	pContext->pDrawList = &drawList;
@@ -71,13 +73,14 @@ const std::shared_ptr<GraphicsPipelineObject> HPForwardRenderer::GetGraphicsPipe
 
 void HPForwardRenderer::BuildRenderResources()
 {
+	CreateFrameTextures();
 	CreateRenderPassObjects();
-	CreateFrameResources();
-	TransitionResourceLayouts();
+	CreateFrameBuffers();
+	CreateUniformBuffers();
 	CreatePipelineObjects();
 }
 
-void HPForwardRenderer::CreateFrameResources()
+void HPForwardRenderer::CreateFrameTextures()
 {
 	uint32_t screenWidth  = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 	uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
@@ -85,6 +88,7 @@ void HPForwardRenderer::CreateFrameResources()
 	Texture2DCreateInfo texCreateInfo = {};
 	texCreateInfo.generateMipmap = false;
 	texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler(EGPUType::Discrete); // TODO: assign sampler for integrated device as well
+	texCreateInfo.initialLayout = EImageLayout::Undefined;
 
 	// Depth attachment for shadow map pass
 
@@ -95,17 +99,6 @@ void HPForwardRenderer::CreateFrameResources()
 	texCreateInfo.textureType = ETextureType::DepthAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pShadowMapPassDepthOutput);
-
-	// Frame buffer for shadow map pass
-
-	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
-	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
-	shadowMapFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	shadowMapFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-	shadowMapFBCreateInfo.deviceType = EGPUType::Discrete;
-	shadowMapFBCreateInfo.pRenderPass = m_pShadowMapRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(shadowMapFBCreateInfo, m_pShadowMapPassFrameBuffer);
 
 	// Color outputs from normal-only pass
 
@@ -126,24 +119,12 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pNormalOnlyPassDepthOutput);
 
-	// Frame buffer for normal-only pass
-
-	FrameBufferCreateInfo normalOnlyFBCreateInfo = {};
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassNormalOutput);
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassPositionOutput);
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassDepthOutput);
-	normalOnlyFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	normalOnlyFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-	normalOnlyFBCreateInfo.deviceType = EGPUType::Discrete;
-	normalOnlyFBCreateInfo.pRenderPass = m_pNormalOnlyRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(normalOnlyFBCreateInfo, m_pNormalOnlyPassFrameBuffer);
-
 	// Color output from opaque pass
 
 	texCreateInfo.dataType = EDataType::Float32;
 	texCreateInfo.format = ETextureFormat::RGBA32F;
 	texCreateInfo.textureType = ETextureType::ColorAttachment;
+	texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassColorOutput);
 
@@ -159,19 +140,6 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassDepthOutput);
 
-	// Frame buffer for opaque pass
-
-	FrameBufferCreateInfo opaqueFBCreateInfo = {};
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassColorOutput);
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassShadowOutput);
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassDepthOutput);
-	opaqueFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	opaqueFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-	opaqueFBCreateInfo.deviceType = EGPUType::Discrete;
-	opaqueFBCreateInfo.pRenderPass = m_pOpaqueRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(opaqueFBCreateInfo, m_pOpaquePassFrameBuffer);
-
 	// Color outputs from Gaussian blur pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -180,25 +148,6 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassHorizontalColorOutput);
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassFinalColorOutput);
-
-	// Frame buffers for Gaussian blur pass
-
-	FrameBufferCreateInfo blurFBCreateInfo_Horizontal = {};
-	blurFBCreateInfo_Horizontal.attachments.emplace_back(m_pBlurPassHorizontalColorOutput);
-	blurFBCreateInfo_Horizontal.framebufferWidth = texCreateInfo.textureWidth;
-	blurFBCreateInfo_Horizontal.framebufferHeight = texCreateInfo.textureHeight;
-	blurFBCreateInfo_Horizontal.deviceType = EGPUType::Discrete;
-	blurFBCreateInfo_Horizontal.pRenderPass = m_pBlurRenderPassObject; // Also compatible with line drawing pass
-
-	FrameBufferCreateInfo blurFBCreateInfo_FinalColor = {};
-	blurFBCreateInfo_FinalColor.attachments.emplace_back(m_pBlurPassFinalColorOutput);
-	blurFBCreateInfo_FinalColor.framebufferWidth = texCreateInfo.textureWidth;
-	blurFBCreateInfo_FinalColor.framebufferHeight = texCreateInfo.textureHeight;
-	blurFBCreateInfo_FinalColor.deviceType = EGPUType::Discrete;
-	blurFBCreateInfo_FinalColor.pRenderPass = m_pBlurRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(blurFBCreateInfo_Horizontal, m_pBlurPassFrameBuffer_Horizontal);
-	m_pDevice->CreateFrameBuffer(blurFBCreateInfo_Horizontal, m_pBlurPassFrameBuffer_FinalColor);
 
 	// Curvature output from line drawing pass
 
@@ -216,49 +165,6 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineDrawingPassColorOutput);
 
-	// Frame buffers for line drawing pass
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo_Curvature = {};
-	lineDrawFBCreateInfo_Curvature.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
-	lineDrawFBCreateInfo_Curvature.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo_Curvature.framebufferHeight = texCreateInfo.textureHeight;
-	lineDrawFBCreateInfo_Curvature.deviceType = EGPUType::Discrete;
-	lineDrawFBCreateInfo_Curvature.pRenderPass = m_pLineDrawingRenderPassObject;
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo_RidgeSearch = {};
-	lineDrawFBCreateInfo_RidgeSearch.attachments.emplace_back(m_pLineDrawingPassColorOutput);
-	lineDrawFBCreateInfo_RidgeSearch.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo_RidgeSearch.framebufferHeight = texCreateInfo.textureHeight;
-	lineDrawFBCreateInfo_RidgeSearch.deviceType = EGPUType::Discrete;
-	lineDrawFBCreateInfo_RidgeSearch.pRenderPass = m_pLineDrawingRenderPassObject;
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo_Blur_Horizontal = {};
-	lineDrawFBCreateInfo_Blur_Horizontal.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
-	lineDrawFBCreateInfo_Blur_Horizontal.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo_Blur_Horizontal.framebufferHeight = texCreateInfo.textureHeight;
-	lineDrawFBCreateInfo_Blur_Horizontal.deviceType = EGPUType::Discrete;
-	lineDrawFBCreateInfo_Blur_Horizontal.pRenderPass = m_pLineDrawingRenderPassObject;
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo_Blur_FinalColor = {};
-	lineDrawFBCreateInfo_Blur_FinalColor.attachments.emplace_back(m_pLineDrawingPassBlurredOutput);
-	lineDrawFBCreateInfo_Blur_FinalColor.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo_Blur_FinalColor.framebufferHeight = texCreateInfo.textureHeight;
-	lineDrawFBCreateInfo_Blur_FinalColor.deviceType = EGPUType::Discrete;
-	lineDrawFBCreateInfo_Blur_FinalColor.pRenderPass = m_pLineDrawingRenderPassObject;
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo_FinalBlend = {};
-	lineDrawFBCreateInfo_FinalBlend.attachments.emplace_back(m_pLineDrawingPassColorOutput);
-	lineDrawFBCreateInfo_FinalBlend.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo_FinalBlend.framebufferHeight = texCreateInfo.textureHeight;
-	lineDrawFBCreateInfo_FinalBlend.deviceType = EGPUType::Discrete;
-	lineDrawFBCreateInfo_FinalBlend.pRenderPass = m_pLineDrawingRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Curvature, m_pLineDrawingPassFrameBuffer_Curvature);
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_RidgeSearch, m_pLineDrawingPassFrameBuffer_RidgeSearch);
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Blur_Horizontal, m_pLineDrawingPassFrameBuffer_Blur_Horizontal);
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Blur_FinalColor, m_pLineDrawingPassFrameBuffer_Blur_FinalColor);
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_FinalBlend, m_pLineDrawingPassFrameBuffer_FinalBlend);
-
 	// Color output from transparent pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -275,18 +181,6 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pTranspPassDepthOutput);
 
-	// Frame buffer for transparent pass
-
-	FrameBufferCreateInfo transpFBCreateInfo = {};
-	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassColorOutput);
-	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassDepthOutput);
-	transpFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	transpFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-	transpFBCreateInfo.deviceType = EGPUType::Discrete;
-	transpFBCreateInfo.pRenderPass = m_pTranspRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(transpFBCreateInfo, m_pTranspPassFrameBuffer);
-
 	// Color output from blend pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -294,17 +188,6 @@ void HPForwardRenderer::CreateFrameResources()
 	texCreateInfo.textureType = ETextureType::ColorAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlendPassColorOutput);
-
-	// Frame buffer for blend pass
-
-	FrameBufferCreateInfo blendFBCreateInfo = {};
-	blendFBCreateInfo.attachments.emplace_back(m_pBlendPassColorOutput);
-	blendFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	blendFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-	blendFBCreateInfo.deviceType = EGPUType::Discrete;
-	blendFBCreateInfo.pRenderPass = m_pBlendRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(blendFBCreateInfo, m_pBlendPassFrameBuffer);
 
 	// Horizontal color output from DOF pass
 
@@ -314,37 +197,8 @@ void HPForwardRenderer::CreateFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pDOFPassHorizontalOutput);
 
-	// Frame buffer for DOF pass
-
-	FrameBufferCreateInfo dofFBCreateInfo_Horizontal = {};
-	dofFBCreateInfo_Horizontal.attachments.emplace_back(m_pDOFPassHorizontalOutput);
-	dofFBCreateInfo_Horizontal.framebufferWidth = texCreateInfo.textureWidth;
-	dofFBCreateInfo_Horizontal.framebufferHeight = texCreateInfo.textureHeight;
-	dofFBCreateInfo_Horizontal.deviceType = EGPUType::Discrete;
-	dofFBCreateInfo_Horizontal.pRenderPass = m_pDOFRenderPassObject;
-
-	m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Horizontal, m_pDOFPassFrameBuffer_Horizontal);
-
-	// Create a framebuffer arround each swapchain image
-
-	m_pDOFPassPresentFrameBuffers = std::make_shared<SwapchainFrameBuffers>();
-
-	std::vector<std::shared_ptr<Texture2D>> swapchainImages;
-	m_pDevice->GetSwapchainImages(swapchainImages);
-
-	for (unsigned int i = 0; i < swapchainImages.size(); i++)
-	{
-		FrameBufferCreateInfo dofFBCreateInfo_Final = {};
-		dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
-		dofFBCreateInfo_Final.framebufferWidth = texCreateInfo.textureWidth;
-		dofFBCreateInfo_Final.framebufferHeight = texCreateInfo.textureHeight;
-		dofFBCreateInfo_Final.deviceType = EGPUType::Discrete;
-		dofFBCreateInfo_Final.pRenderPass = m_pDOFRenderPassObject;
-
-		std::shared_ptr<FrameBuffer> pFrameBuffer;
-		m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Final, pFrameBuffer);
-		m_pDOFPassPresentFrameBuffers->frameBuffers.emplace_back(pFrameBuffer);
-	}
+	// Pre-calculate local parameterization matrices
+	CreateLineDrawingMatrices();
 
 	// Post effects resources
 	m_pBrushMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_1.png");
@@ -357,76 +211,57 @@ void HPForwardRenderer::CreateFrameResources()
 	m_pPencilMaskImageTexture_1->SetSampler(m_pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
 	m_pPencilMaskImageTexture_2->SetSampler(m_pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
 
-	// Uniform buffers
-	UniformBufferCreateInfo ubCreateInfo = {};
-	ubCreateInfo.deviceType = EGPUType::Discrete;
-
-	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex & (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
-
-	ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex & (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSpaceTransformMatrix_UB);
-
-	ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pMaterialNumericalProperties_UB);
-
-	ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pCameraPropertie_UB);
-
-	ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex & (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pSystemVariables_UB);
-
-	ubCreateInfo.sizeInBytes = sizeof(UBControlVariables);
-	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
+	TransitionImageLayouts();
 }
 
-void HPForwardRenderer::TransitionResourceLayouts()
+void HPForwardRenderer::TransitionImageLayouts()
 {
-	m_pDevice->TransitionImageLayout(m_pShadowMapPassDepthOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	// Transition the image layouts to match render pass description
 
-	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassNormalOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassPositionOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassDepthOutput, EImageLayout::DepthStencilAttachment, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pShadowMapPassDepthOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pOpaquePassColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pOpaquePassShadowOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pOpaquePassDepthOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassNormalOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassPositionOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pNormalOnlyPassDepthOutput, EImageLayout::DepthStencilAttachment, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pBlurPassHorizontalColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pBlurPassFinalColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pOpaquePassColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pOpaquePassShadowOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pOpaquePassDepthOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pLineDrawingPassCurvatureOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pLineDrawingPassBlurredOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pLineDrawingPassColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pLineDrawingMatrixTexture, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pBlurPassHorizontalColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pBlurPassFinalColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pTranspPassColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pTranspPassDepthOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pLineDrawingPassCurvatureOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pLineDrawingPassBlurredOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pLineDrawingPassColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pLineDrawingMatrixTexture, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pBlendPassColorOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pTranspPassColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pTranspPassDepthOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pDOFPassHorizontalOutput, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pBlendPassColorOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->TransitionImageLayout(m_pBrushMaskImageTexture_1, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pBrushMaskImageTexture_2, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_1, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
-	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_2, EImageLayout::ShaderReadOnly, EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pDOFPassHorizontalOutput, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+
+	m_pDevice->TransitionImageLayout(m_pBrushMaskImageTexture_1, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pBrushMaskImageTexture_2, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_1, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
+	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_2, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
 	m_pDevice->FlushCommands(true);
 }
 
 void HPForwardRenderer::CreateRenderPassObjects()
 {
+	Color4 clearColor = Color4(1, 1, 1, 1); // TODO: read clear color from scene data
+
 	// Shadow map pass
 	{
 		RenderPassCreateInfo shadowMapPassCreateInfo = {};
 		shadowMapPassCreateInfo.deviceType = EGPUType::Discrete;
+		shadowMapPassCreateInfo.clearColor = clearColor;
+		shadowMapPassCreateInfo.clearDepth = 1.0f;
+		shadowMapPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription depthDesc = {};
 		depthDesc.format = ETextureFormat::Depth;
@@ -450,6 +285,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo normalOnlyPassCreateInfo = {};
 		normalOnlyPassCreateInfo.deviceType = EGPUType::Discrete;
+		normalOnlyPassCreateInfo.clearColor = clearColor;
+		normalOnlyPassCreateInfo.clearDepth = 1.0f;
+		normalOnlyPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription normalDesc = {};
 		normalDesc.format = ETextureFormat::RGBA32F;
@@ -503,6 +341,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo opaquePassCreateInfo = {};
 		opaquePassCreateInfo.deviceType = EGPUType::Discrete;
+		opaquePassCreateInfo.clearColor = clearColor;
+		opaquePassCreateInfo.clearDepth = 1.0f;
+		opaquePassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -556,6 +397,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo blurPassCreateInfo = {};
 		blurPassCreateInfo.deviceType = EGPUType::Discrete;
+		blurPassCreateInfo.clearColor = clearColor;
+		blurPassCreateInfo.clearDepth = 1.0f;
+		blurPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -579,6 +423,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo lineDrawingPassCreateInfo = {};
 		lineDrawingPassCreateInfo.deviceType = EGPUType::Discrete;
+		lineDrawingPassCreateInfo.clearColor = clearColor;
+		lineDrawingPassCreateInfo.clearDepth = 1.0f;
+		lineDrawingPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -602,6 +449,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo transparentPassCreateInfo = {};
 		transparentPassCreateInfo.deviceType = EGPUType::Discrete;
+		transparentPassCreateInfo.clearColor = clearColor;
+		transparentPassCreateInfo.clearDepth = 1.0f;
+		transparentPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -640,6 +490,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo blendPassCreateInfo = {};
 		blendPassCreateInfo.deviceType = EGPUType::Discrete;
+		blendPassCreateInfo.clearColor = clearColor;
+		blendPassCreateInfo.clearDepth = 1.0f;
+		blendPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -663,6 +516,9 @@ void HPForwardRenderer::CreateRenderPassObjects()
 	{
 		RenderPassCreateInfo dofPassCreateInfo = {};
 		dofPassCreateInfo.deviceType = EGPUType::Discrete;
+		dofPassCreateInfo.clearColor = clearColor;
+		dofPassCreateInfo.clearDepth = 1.0f;
+		dofPassCreateInfo.clearStencil = 0;
 
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
@@ -681,6 +537,222 @@ void HPForwardRenderer::CreateRenderPassObjects()
 
 		m_pDevice->CreateRenderPassObject(dofPassCreateInfo, m_pDOFRenderPassObject);
 	}
+
+	// DOF vertical + Present pass
+	{
+		RenderPassCreateInfo presentPassCreateInfo = {};
+		presentPassCreateInfo.deviceType = EGPUType::Discrete;
+		presentPassCreateInfo.clearColor = clearColor;
+		presentPassCreateInfo.clearDepth = 1.0f;
+		presentPassCreateInfo.clearStencil = 0;
+
+		RenderPassAttachmentDescription colorDesc = {};
+		colorDesc.format = ETextureFormat::BGRA8_UNORM;
+		colorDesc.sampleCount = 1;
+		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.storeOp = EAttachmentOperation::Store;
+		colorDesc.stencilLoadOp = EAttachmentOperation::None;
+		colorDesc.stencilStoreOp = EAttachmentOperation::None;
+		colorDesc.initialLayout = EImageLayout::PresentSrc;
+		colorDesc.usageLayout = EImageLayout::ColorAttachment;
+		colorDesc.finalLayout = EImageLayout::PresentSrc;
+		colorDesc.type = EAttachmentType::Color;
+		colorDesc.index = 0;
+
+		presentPassCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+
+		m_pDevice->CreateRenderPassObject(presentPassCreateInfo, m_pPresentRenderPassObject);
+	}
+}
+
+void HPForwardRenderer::CreateFrameBuffers()
+{
+	uint32_t screenWidth  = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+	uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+	// Frame buffer for shadow map pass
+
+	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
+	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
+	shadowMapFBCreateInfo.framebufferWidth = 4096;
+	shadowMapFBCreateInfo.framebufferHeight = 4096;
+	shadowMapFBCreateInfo.deviceType = EGPUType::Discrete;
+	shadowMapFBCreateInfo.pRenderPass = m_pShadowMapRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(shadowMapFBCreateInfo, m_pShadowMapPassFrameBuffer);
+
+	// Frame buffer for normal-only pass
+
+	FrameBufferCreateInfo normalOnlyFBCreateInfo = {};
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassNormalOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassPositionOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassDepthOutput);
+	normalOnlyFBCreateInfo.framebufferWidth = screenWidth;
+	normalOnlyFBCreateInfo.framebufferHeight = screenHeight;
+	normalOnlyFBCreateInfo.deviceType = EGPUType::Discrete;
+	normalOnlyFBCreateInfo.pRenderPass = m_pNormalOnlyRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(normalOnlyFBCreateInfo, m_pNormalOnlyPassFrameBuffer);
+
+	// Frame buffer for opaque pass
+
+	FrameBufferCreateInfo opaqueFBCreateInfo = {};
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassColorOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassShadowOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassDepthOutput);
+	opaqueFBCreateInfo.framebufferWidth = screenWidth;
+	opaqueFBCreateInfo.framebufferHeight = screenHeight;
+	opaqueFBCreateInfo.deviceType = EGPUType::Discrete;
+	opaqueFBCreateInfo.pRenderPass = m_pOpaqueRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(opaqueFBCreateInfo, m_pOpaquePassFrameBuffer);
+
+	// Frame buffers for Gaussian blur pass
+
+	FrameBufferCreateInfo blurFBCreateInfo_Horizontal = {};
+	blurFBCreateInfo_Horizontal.attachments.emplace_back(m_pBlurPassHorizontalColorOutput);
+	blurFBCreateInfo_Horizontal.framebufferWidth = screenWidth;
+	blurFBCreateInfo_Horizontal.framebufferHeight = screenHeight;
+	blurFBCreateInfo_Horizontal.deviceType = EGPUType::Discrete;
+	blurFBCreateInfo_Horizontal.pRenderPass = m_pBlurRenderPassObject; // Also compatible with line drawing pass
+
+	FrameBufferCreateInfo blurFBCreateInfo_FinalColor = {};
+	blurFBCreateInfo_FinalColor.attachments.emplace_back(m_pBlurPassFinalColorOutput);
+	blurFBCreateInfo_FinalColor.framebufferWidth = screenWidth;
+	blurFBCreateInfo_FinalColor.framebufferHeight = screenHeight;
+	blurFBCreateInfo_FinalColor.deviceType = EGPUType::Discrete;
+	blurFBCreateInfo_FinalColor.pRenderPass = m_pBlurRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(blurFBCreateInfo_Horizontal, m_pBlurPassFrameBuffer_Horizontal);
+	m_pDevice->CreateFrameBuffer(blurFBCreateInfo_FinalColor, m_pBlurPassFrameBuffer_FinalColor);
+
+	// Frame buffers for line drawing pass
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo_Curvature = {};
+	lineDrawFBCreateInfo_Curvature.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
+	lineDrawFBCreateInfo_Curvature.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo_Curvature.framebufferHeight = screenHeight;
+	lineDrawFBCreateInfo_Curvature.deviceType = EGPUType::Discrete;
+	lineDrawFBCreateInfo_Curvature.pRenderPass = m_pLineDrawingRenderPassObject;
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo_RidgeSearch = {};
+	lineDrawFBCreateInfo_RidgeSearch.attachments.emplace_back(m_pLineDrawingPassColorOutput);
+	lineDrawFBCreateInfo_RidgeSearch.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo_RidgeSearch.framebufferHeight = screenHeight;
+	lineDrawFBCreateInfo_RidgeSearch.deviceType = EGPUType::Discrete;
+	lineDrawFBCreateInfo_RidgeSearch.pRenderPass = m_pLineDrawingRenderPassObject;
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo_Blur_Horizontal = {};
+	lineDrawFBCreateInfo_Blur_Horizontal.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
+	lineDrawFBCreateInfo_Blur_Horizontal.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo_Blur_Horizontal.framebufferHeight = screenHeight;
+	lineDrawFBCreateInfo_Blur_Horizontal.deviceType = EGPUType::Discrete;
+	lineDrawFBCreateInfo_Blur_Horizontal.pRenderPass = m_pLineDrawingRenderPassObject;
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo_Blur_FinalColor = {};
+	lineDrawFBCreateInfo_Blur_FinalColor.attachments.emplace_back(m_pLineDrawingPassBlurredOutput);
+	lineDrawFBCreateInfo_Blur_FinalColor.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo_Blur_FinalColor.framebufferHeight = screenHeight;
+	lineDrawFBCreateInfo_Blur_FinalColor.deviceType = EGPUType::Discrete;
+	lineDrawFBCreateInfo_Blur_FinalColor.pRenderPass = m_pLineDrawingRenderPassObject;
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo_FinalBlend = {};
+	lineDrawFBCreateInfo_FinalBlend.attachments.emplace_back(m_pLineDrawingPassColorOutput);
+	lineDrawFBCreateInfo_FinalBlend.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo_FinalBlend.framebufferHeight = screenHeight;
+	lineDrawFBCreateInfo_FinalBlend.deviceType = EGPUType::Discrete;
+	lineDrawFBCreateInfo_FinalBlend.pRenderPass = m_pLineDrawingRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Curvature, m_pLineDrawingPassFrameBuffer_Curvature);
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_RidgeSearch, m_pLineDrawingPassFrameBuffer_RidgeSearch);
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Blur_Horizontal, m_pLineDrawingPassFrameBuffer_Blur_Horizontal);
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_Blur_FinalColor, m_pLineDrawingPassFrameBuffer_Blur_FinalColor);
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo_FinalBlend, m_pLineDrawingPassFrameBuffer_FinalBlend);
+
+	// Frame buffer for transparent pass
+
+	FrameBufferCreateInfo transpFBCreateInfo = {};
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassColorOutput);
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassDepthOutput);
+	transpFBCreateInfo.framebufferWidth = screenWidth;
+	transpFBCreateInfo.framebufferHeight = screenHeight;
+	transpFBCreateInfo.deviceType = EGPUType::Discrete;
+	transpFBCreateInfo.pRenderPass = m_pTranspRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(transpFBCreateInfo, m_pTranspPassFrameBuffer);
+
+	// Frame buffer for blend pass
+
+	FrameBufferCreateInfo blendFBCreateInfo = {};
+	blendFBCreateInfo.attachments.emplace_back(m_pBlendPassColorOutput);
+	blendFBCreateInfo.framebufferWidth = screenWidth;
+	blendFBCreateInfo.framebufferHeight = screenHeight;
+	blendFBCreateInfo.deviceType = EGPUType::Discrete;
+	blendFBCreateInfo.pRenderPass = m_pBlendRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(blendFBCreateInfo, m_pBlendPassFrameBuffer);
+
+	// Frame buffer for DOF pass
+
+	FrameBufferCreateInfo dofFBCreateInfo_Horizontal = {};
+	dofFBCreateInfo_Horizontal.attachments.emplace_back(m_pDOFPassHorizontalOutput);
+	dofFBCreateInfo_Horizontal.framebufferWidth = screenWidth;
+	dofFBCreateInfo_Horizontal.framebufferHeight = screenHeight;
+	dofFBCreateInfo_Horizontal.deviceType = EGPUType::Discrete;
+	dofFBCreateInfo_Horizontal.pRenderPass = m_pDOFRenderPassObject;
+
+	m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Horizontal, m_pDOFPassFrameBuffer_Horizontal);
+
+	// Create a framebuffer arround each swapchain image
+
+	m_pPresentFrameBuffers = std::make_shared<SwapchainFrameBuffers>();
+
+	std::vector<std::shared_ptr<Texture2D>> swapchainImages;
+	m_pDevice->GetSwapchainImages(swapchainImages);
+
+	for (unsigned int i = 0; i < swapchainImages.size(); i++)
+	{
+		FrameBufferCreateInfo dofFBCreateInfo_Final = {};
+		dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
+		dofFBCreateInfo_Final.framebufferWidth = screenWidth;
+		dofFBCreateInfo_Final.framebufferHeight = screenHeight;
+		dofFBCreateInfo_Final.deviceType = EGPUType::Discrete;
+		dofFBCreateInfo_Final.pRenderPass = m_pPresentRenderPassObject;
+
+		std::shared_ptr<FrameBuffer> pFrameBuffer;
+		m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Final, pFrameBuffer);
+		m_pPresentFrameBuffers->frameBuffers.emplace_back(pFrameBuffer);
+	}
+}
+
+void HPForwardRenderer::CreateUniformBuffers()
+{
+	UniformBufferCreateInfo ubCreateInfo = {};
+	ubCreateInfo.deviceType = EGPUType::Discrete;
+
+	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * MAX_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix) * MAX_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSpaceTransformMatrix_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties) * MAX_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pMaterialNumericalProperties_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties) * MAX_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pCameraPropertie_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables) * MAX_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pSystemVariables_UB);
+
+	ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * MIN_UNIFORM_SUB_ALLOCATION;
+	ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
+	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
 }
 
 void HPForwardRenderer::CreatePipelineObjects()
@@ -694,58 +766,43 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// Vertex input state
 
-	VertexInputBindingDescription positionBindingDesc = {};
-	positionBindingDesc.binding = DrawingDevice::ATTRIB_POSITION_LOCATION; // Alert: bindng and location are different
-	positionBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-	positionBindingDesc.inputRate = EVertexInputRate::PerVertex;
+	VertexInputBindingDescription vertexInputBindingDesc = {};
+	vertexInputBindingDesc.binding = 0;
+	vertexInputBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
+	vertexInputBindingDesc.inputRate = EVertexInputRate::PerVertex;
+
 	VertexInputAttributeDescription positionAttributeDesc = {};
-	positionAttributeDesc.binding = positionBindingDesc.binding;
+	positionAttributeDesc.binding = vertexInputBindingDesc.binding;
 	positionAttributeDesc.location = DrawingDevice::ATTRIB_POSITION_LOCATION;
 	positionAttributeDesc.offset = VertexBufferCreateInfo::positionOffset;
-	positionAttributeDesc.format = ETextureFormat::UNDEFINED;
+	positionAttributeDesc.format = ETextureFormat::RGB32F;
 
-	VertexInputBindingDescription normalBindingDesc = {};
-	normalBindingDesc.binding = DrawingDevice::ATTRIB_NORMAL_LOCATION;
-	normalBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-	normalBindingDesc.inputRate = EVertexInputRate::PerVertex;
 	VertexInputAttributeDescription normalAttributeDesc = {};
-	normalAttributeDesc.binding = normalBindingDesc.binding;
+	normalAttributeDesc.binding = vertexInputBindingDesc.binding;
 	normalAttributeDesc.location = DrawingDevice::ATTRIB_NORMAL_LOCATION;
 	normalAttributeDesc.offset = VertexBufferCreateInfo::normalOffset;
-	normalAttributeDesc.format = ETextureFormat::UNDEFINED;
+	normalAttributeDesc.format = ETextureFormat::RGB32F;
 
-	VertexInputBindingDescription texcoordBindingDesc = {};
-	texcoordBindingDesc.binding = DrawingDevice::ATTRIB_TEXCOORD_LOCATION;
-	texcoordBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-	texcoordBindingDesc.inputRate = EVertexInputRate::PerVertex;
 	VertexInputAttributeDescription texcoordAttributeDesc = {};
-	texcoordAttributeDesc.binding = texcoordBindingDesc.binding;
+	texcoordAttributeDesc.binding = vertexInputBindingDesc.binding;
 	texcoordAttributeDesc.location = DrawingDevice::ATTRIB_TEXCOORD_LOCATION;
 	texcoordAttributeDesc.offset = VertexBufferCreateInfo::texcoordOffset;
-	texcoordAttributeDesc.format = ETextureFormat::UNDEFINED;
+	texcoordAttributeDesc.format = ETextureFormat::RG32F;
 
-	VertexInputBindingDescription tangentBindingDesc = {};
-	tangentBindingDesc.binding = DrawingDevice::ATTRIB_TANGENT_LOCATION;
-	tangentBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-	tangentBindingDesc.inputRate = EVertexInputRate::PerVertex;
 	VertexInputAttributeDescription tangentAttributeDesc = {};
-	tangentAttributeDesc.binding = tangentBindingDesc.binding;
+	tangentAttributeDesc.binding = vertexInputBindingDesc.binding;
 	tangentAttributeDesc.location = DrawingDevice::ATTRIB_TANGENT_LOCATION;
 	tangentAttributeDesc.offset = VertexBufferCreateInfo::tangentOffset;
-	tangentAttributeDesc.format = ETextureFormat::UNDEFINED;
+	tangentAttributeDesc.format = ETextureFormat::RGB32F;
 
-	VertexInputBindingDescription bitangentBindingDesc = {};
-	bitangentBindingDesc.binding = DrawingDevice::ATTRIB_BITANGENT_LOCATION;
-	bitangentBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-	bitangentBindingDesc.inputRate = EVertexInputRate::PerVertex;
 	VertexInputAttributeDescription bitangentAttributeDesc = {};
-	bitangentAttributeDesc.binding = bitangentAttributeDesc.binding;
+	bitangentAttributeDesc.binding = vertexInputBindingDesc.binding;
 	bitangentAttributeDesc.location = DrawingDevice::ATTRIB_BITANGENT_LOCATION;
 	bitangentAttributeDesc.offset = VertexBufferCreateInfo::bitangentOffset;
-	bitangentAttributeDesc.format = ETextureFormat::UNDEFINED;
+	bitangentAttributeDesc.format = ETextureFormat::RGB32F;
 
 	PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
-	vertexInputStateCreateInfo.bindingDescs = { positionBindingDesc, normalBindingDesc, texcoordBindingDesc, tangentBindingDesc, bitangentBindingDesc };
+	vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
 	vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
 
 	std::shared_ptr<PipelineVertexInputState> pVertexInputState = nullptr;
@@ -760,24 +817,52 @@ void HPForwardRenderer::CreatePipelineObjects()
 	std::shared_ptr<PipelineVertexInputState> pEmptyVertexInputState = nullptr;
 	m_pDevice->CreatePipelineVertexInputState(emptyVertexInputStateCreateInfo, pEmptyVertexInputState);
 
-	// Input assembly state
+	// Input assembly states
 
 	PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
 	inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 	inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
-	std::shared_ptr<PipelineInputAssemblyState> pInputAssemblyState = nullptr;
-	m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState);
+	std::shared_ptr<PipelineInputAssemblyState> pInputAssemblyState_Strip = nullptr;
+	m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState_Strip);
+
+	inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleList;
+	inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
+
+	std::shared_ptr<PipelineInputAssemblyState> pInputAssemblyState_List = nullptr;
+	m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState_List);
 
 	// Rasterization state
 	
 	PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
 	rasterizationStateCreateInfo.polygonMode = EPolygonMode::Fill;
 	rasterizationStateCreateInfo.enableDepthClamp = false;
+	rasterizationStateCreateInfo.discardRasterizerResults = false;
 	rasterizationStateCreateInfo.cullMode = ECullMode::Back;
+	rasterizationStateCreateInfo.frontFaceCounterClockwise = true;
 
 	std::shared_ptr<PipelineRasterizationState> pRasterizationState = nullptr;
 	m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pRasterizationState);
+
+	// Color blend state attachment descriptions
+
+	AttachmentColorBlendStateDescription attachmentBlendDesc = {};
+	attachmentBlendDesc.enableBlend = true;
+	attachmentBlendDesc.srcColorBlendFactor = EBlendFactor::SrcAlpha;
+	attachmentBlendDesc.srcAlphaBlendFactor = EBlendFactor::SrcAlpha;
+	attachmentBlendDesc.dstColorBlendFactor = EBlendFactor::OneMinusSrcAlpha;
+	attachmentBlendDesc.dstAlphaBlendFactor = EBlendFactor::OneMinusSrcAlpha;
+	attachmentBlendDesc.colorBlendOp = EBlendOperation::Add;
+	attachmentBlendDesc.alphaBlendOp = EBlendOperation::Add;
+
+	AttachmentColorBlendStateDescription attachmentNoBlendDesc = {};
+	attachmentBlendDesc.enableBlend = false;
+	attachmentBlendDesc.srcColorBlendFactor = EBlendFactor::SrcAlpha;
+	attachmentBlendDesc.srcAlphaBlendFactor = EBlendFactor::SrcAlpha;
+	attachmentBlendDesc.dstColorBlendFactor = EBlendFactor::OneMinusSrcAlpha;
+	attachmentBlendDesc.dstAlphaBlendFactor = EBlendFactor::OneMinusSrcAlpha;
+	attachmentBlendDesc.colorBlendOp = EBlendOperation::Add;
+	attachmentBlendDesc.alphaBlendOp = EBlendOperation::Add;
 
 	// Depth stencil states
 
@@ -817,40 +902,38 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// Individual states
 
-	// With basic shader
-	{
-		GraphicsPipelineCreateInfo basicPipelineCreateInfo = {};
-		basicPipelineCreateInfo.deviceType = EGPUType::Discrete;
-		basicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic);
-		basicPipelineCreateInfo.pVertexInputState = pVertexInputState;
-		basicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
-		basicPipelineCreateInfo.pRasterizationState = pRasterizationState;
-		basicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
-		basicPipelineCreateInfo.pMultisampleState = pMultisampleState;
-		basicPipelineCreateInfo.pViewportState = pViewportState;
-		basicPipelineCreateInfo.pRenderPass = m_pOpaqueRenderPassObject; // Basic shader works under opaque pass
+	// TODO: fs output compatible render pass required
+	//// With basic shader
+	//{
+	//	PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+	//	colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
-		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(basicPipelineCreateInfo, pPipeline);
+	//	std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+	//	m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
-		PassGraphicsPipeline basicPipelines;
-		basicPipelines[HPForwardGraphRes::PASSNAME_OPAQUE] = pPipeline;
-		m_graphicsPipelines[EBuiltInShaderProgramType::Basic] = basicPipelines;
-	}
+	//	GraphicsPipelineCreateInfo basicPipelineCreateInfo = {};
+	//	basicPipelineCreateInfo.deviceType = EGPUType::Discrete;
+	//	basicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic);
+	//	basicPipelineCreateInfo.pVertexInputState = pVertexInputState;
+	//	basicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+	//	basicPipelineCreateInfo.pColorBlendState = pColorBlendState;
+	//	basicPipelineCreateInfo.pRasterizationState = pRasterizationState;
+	//	basicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
+	//	basicPipelineCreateInfo.pMultisampleState = pMultisampleState;
+	//	basicPipelineCreateInfo.pViewportState = pViewportState;
+	//	basicPipelineCreateInfo.pRenderPass = m_pOpaqueRenderPassObject; // Basic shader works under opaque pass
+
+	//	std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+	//	m_pDevice->CreateGraphicsPipelineObject(basicPipelineCreateInfo, pPipeline);
+
+	//	PassGraphicsPipeline basicPipelines;
+	//	basicPipelines[HPForwardGraphRes::PASSNAME_OPAQUE] = pPipeline;
+	//	m_graphicsPipelines[EBuiltInShaderProgramType::Basic] = basicPipelines;
+	//}
 
 	// With basic transparent shader
 	{
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-		AttachmentColorBlendStateDescription attachmentBlendDesc = {};
-		attachmentBlendDesc.enableBlend = true;
-		attachmentBlendDesc.srcColorBlendFactor = EBlendFactor::SrcAlpha;
-		attachmentBlendDesc.srcAlphaBlendFactor = EBlendFactor::SrcAlpha;
-		attachmentBlendDesc.dstColorBlendFactor = EBlendFactor::OneMinusSrcAlpha;
-		attachmentBlendDesc.dstAlphaBlendFactor = EBlendFactor::OneMinusSrcAlpha;
-		attachmentBlendDesc.colorBlendOp = EBlendOperation::Add;
-		attachmentBlendDesc.alphaBlendOp = EBlendOperation::Add;
-		attachmentBlendDesc.pAttachment = m_pTranspPassColorOutput;
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
 
 		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
@@ -860,7 +943,7 @@ void HPForwardRenderer::CreatePipelineObjects()
 		basicTranspPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		basicTranspPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic_Transparent);
 		basicTranspPipelineCreateInfo.pVertexInputState = pVertexInputState;
-		basicTranspPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
+		basicTranspPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
 		basicTranspPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		basicTranspPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		basicTranspPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
@@ -876,51 +959,49 @@ void HPForwardRenderer::CreatePipelineObjects()
 		m_graphicsPipelines[EBuiltInShaderProgramType::Basic_Transparent] = basicTranspPipelines;
 	}
 
-	// With water basic shader
+	// TODO: fs output compatible render pass required
+	//// With water basic shader
+	//{
+	//	PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+	//	colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
+
+	//	std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+	//	m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
+	//	GraphicsPipelineCreateInfo waterBasicPipelineCreateInfo = {};
+	//	waterBasicPipelineCreateInfo.deviceType = EGPUType::Discrete;
+	//	waterBasicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
+	//	waterBasicPipelineCreateInfo.pVertexInputState = pVertexInputState;
+	//	waterBasicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+	//	waterBasicPipelineCreateInfo.pColorBlendState = pColorBlendState;
+	//	waterBasicPipelineCreateInfo.pRasterizationState = pRasterizationState;
+	//	waterBasicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
+	//	waterBasicPipelineCreateInfo.pMultisampleState = pMultisampleState;
+	//	waterBasicPipelineCreateInfo.pViewportState = pViewportState;
+	//	waterBasicPipelineCreateInfo.pRenderPass = m_pTranspRenderPassObject; // water basic shader works under transparent pass
+
+	//	std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+	//	m_pDevice->CreateGraphicsPipelineObject(waterBasicPipelineCreateInfo, pPipeline);
+
+	//	PassGraphicsPipeline basicWaterPipelines;
+	//	basicWaterPipelines[HPForwardGraphRes::PASSNAME_TRANSPARENT] = pPipeline;
+	//	m_graphicsPipelines[EBuiltInShaderProgramType::WaterBasic] = basicWaterPipelines;
+	//}
+
+	// With depth based color blend shader
 	{
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-		AttachmentColorBlendStateDescription attachmentBlendDesc = {};
-		attachmentBlendDesc.enableBlend = true;
-		attachmentBlendDesc.srcColorBlendFactor = EBlendFactor::SrcAlpha;
-		attachmentBlendDesc.srcAlphaBlendFactor = EBlendFactor::SrcAlpha;
-		attachmentBlendDesc.dstColorBlendFactor = EBlendFactor::OneMinusSrcAlpha;
-		attachmentBlendDesc.dstAlphaBlendFactor = EBlendFactor::OneMinusSrcAlpha;
-		attachmentBlendDesc.colorBlendOp = EBlendOperation::Add;
-		attachmentBlendDesc.alphaBlendOp = EBlendOperation::Add;
-		attachmentBlendDesc.pAttachment = m_pTranspPassColorOutput;
-		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
 		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
 		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
-		GraphicsPipelineCreateInfo waterBasicPipelineCreateInfo = {};
-		waterBasicPipelineCreateInfo.deviceType = EGPUType::Discrete;
-		waterBasicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
-		waterBasicPipelineCreateInfo.pVertexInputState = pVertexInputState;
-		waterBasicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		waterBasicPipelineCreateInfo.pColorBlendState = pColorBlendState;
-		waterBasicPipelineCreateInfo.pRasterizationState = pRasterizationState;
-		waterBasicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
-		waterBasicPipelineCreateInfo.pMultisampleState = pMultisampleState;
-		waterBasicPipelineCreateInfo.pViewportState = pViewportState;
-		waterBasicPipelineCreateInfo.pRenderPass = m_pTranspRenderPassObject; // water basic shader works under transparent pass
-
-		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(waterBasicPipelineCreateInfo, pPipeline);
-
-		PassGraphicsPipeline basicWaterPipelines;
-		basicWaterPipelines[HPForwardGraphRes::PASSNAME_TRANSPARENT] = pPipeline;
-		m_graphicsPipelines[EBuiltInShaderProgramType::WaterBasic] = basicWaterPipelines;
-	}
-
-	// With depth based color blend shader
-	{
 		GraphicsPipelineCreateInfo blendPipelineCreateInfo = {};
 		blendPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		blendPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 		blendPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState; // Full screen quad dosen't have attribute input
-		blendPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		blendPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		blendPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		blendPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		blendPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		blendPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -937,12 +1018,19 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With anime style shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo animeStylePipelineCreateInfo = {};
 		animeStylePipelineCreateInfo.deviceType = EGPUType::Discrete;
 		animeStylePipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::AnimeStyle);
 		animeStylePipelineCreateInfo.pVertexInputState = pVertexInputState;
-		animeStylePipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		animeStylePipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+		animeStylePipelineCreateInfo.pColorBlendState = pColorBlendState;
 		animeStylePipelineCreateInfo.pRasterizationState = pRasterizationState;
 		animeStylePipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
 		animeStylePipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -959,12 +1047,19 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With normal only shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo normalOnlyPipelineCreateInfo = {};
 		normalOnlyPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		normalOnlyPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::NormalOnly);
 		normalOnlyPipelineCreateInfo.pVertexInputState = pVertexInputState;
-		normalOnlyPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		normalOnlyPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+		normalOnlyPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		normalOnlyPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		normalOnlyPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
 		normalOnlyPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -981,12 +1076,18 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With line drawing curvature shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo lineDrawingPipelineCreateInfo = {};
 		lineDrawingPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		lineDrawingPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Curvature);
 		lineDrawingPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		lineDrawingPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		lineDrawingPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		lineDrawingPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		lineDrawingPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1003,12 +1104,18 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With line drawing color shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo lineDrawingPipelineCreateInfo = {};
 		lineDrawingPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		lineDrawingPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Color);
 		lineDrawingPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		lineDrawingPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		lineDrawingPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		lineDrawingPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		lineDrawingPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1025,12 +1132,18 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With line drawing blend shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo lineDrawingPipelineCreateInfo = {};
 		lineDrawingPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		lineDrawingPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 		lineDrawingPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		lineDrawingPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		lineDrawingPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		lineDrawingPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		lineDrawingPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		lineDrawingPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1047,12 +1160,18 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With Gaussian blur shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo blurPipelineCreateInfo = {};
 		blurPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		blurPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 		blurPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		blurPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		blurPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		blurPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		blurPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		blurPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		blurPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1066,8 +1185,8 @@ void HPForwardRenderer::CreatePipelineObjects()
 		lineDrawingBlurPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		lineDrawingBlurPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 		lineDrawingBlurPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		lineDrawingBlurPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		lineDrawingBlurPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		lineDrawingBlurPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		lineDrawingBlurPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		lineDrawingBlurPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		lineDrawingBlurPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1086,19 +1205,24 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With shadow map shader
 	{
-		PipelineViewportStateCreateInfo viewportStateCreateInfo = {};
-		viewportStateCreateInfo.width = 4096; // Correspond to shadow map resolution
-		viewportStateCreateInfo.height = 4096;
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
+		PipelineViewportStateCreateInfo shadowMapViewportStateCreateInfo = {};
+		shadowMapViewportStateCreateInfo.width = 4096; // Correspond to shadow map resolution
+		shadowMapViewportStateCreateInfo.height = 4096;
 
 		std::shared_ptr<PipelineViewportState> pShadowMapViewportState;
-		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pShadowMapViewportState);
+		m_pDevice->CreatePipelineViewportState(shadowMapViewportStateCreateInfo, pShadowMapViewportState);
 
 		GraphicsPipelineCreateInfo shadowMapPipelineCreateInfo = {};
 		shadowMapPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		shadowMapPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 		shadowMapPipelineCreateInfo.pVertexInputState = pVertexInputState;
-		shadowMapPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		shadowMapPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+		shadowMapPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		shadowMapPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		shadowMapPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
 		shadowMapPipelineCreateInfo.pMultisampleState = pMultisampleState;
@@ -1115,23 +1239,46 @@ void HPForwardRenderer::CreatePipelineObjects()
 
 	// With DOF shader
 	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+
 		GraphicsPipelineCreateInfo dofPipelineCreateInfo = {};
 		dofPipelineCreateInfo.deviceType = EGPUType::Discrete;
 		dofPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 		dofPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		dofPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		// No color blend state
+		dofPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		dofPipelineCreateInfo.pColorBlendState = pColorBlendState;
 		dofPipelineCreateInfo.pRasterizationState = pRasterizationState;
 		dofPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
 		dofPipelineCreateInfo.pMultisampleState = pMultisampleState;
 		dofPipelineCreateInfo.pViewportState = pViewportState;
 		dofPipelineCreateInfo.pRenderPass = m_pDOFRenderPassObject; // DOF shader works under DOF pass
 
-		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(dofPipelineCreateInfo, pPipeline);
+		std::shared_ptr<GraphicsPipelineObject> pDOFHorizontalPipeline = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(dofPipelineCreateInfo, pDOFHorizontalPipeline);
+
+		GraphicsPipelineCreateInfo presentPipelineCreateInfo = {};
+		presentPipelineCreateInfo.deviceType = EGPUType::Discrete;
+		presentPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+		presentPipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
+		presentPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
+		presentPipelineCreateInfo.pColorBlendState = pColorBlendState;
+		presentPipelineCreateInfo.pRasterizationState = pRasterizationState;
+		presentPipelineCreateInfo.pDepthStencilState = pDepthStencilState_NoDepthNoStencil;
+		presentPipelineCreateInfo.pMultisampleState = pMultisampleState;
+		presentPipelineCreateInfo.pViewportState = pViewportState;
+		presentPipelineCreateInfo.pRenderPass = m_pPresentRenderPassObject; // DOF shader works under DOF vertical + present pass
+
+		std::shared_ptr<GraphicsPipelineObject> pDOFPresentPipeline = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(presentPipelineCreateInfo, pDOFPresentPipeline);
 
 		PassGraphicsPipeline dofPipelines;
-		dofPipelines[HPForwardGraphRes::PASSNAME_DOF] = pPipeline;
+		dofPipelines[HPForwardGraphRes::PASSNAME_DOF] = pDOFHorizontalPipeline;
+		dofPipelines[HPForwardGraphRes::PASSNAME_PRESENT] = pDOFPresentPipeline;
+
 		m_graphicsPipelines[EBuiltInShaderProgramType::DOF] = dofPipelines;
 	}
 }
@@ -1151,9 +1298,9 @@ void HPForwardRenderer::BuildShadowMapPass()
 	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
 		{
-			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
-			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
-			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
+			Vector3   lightDir(0.0f, 0.8660254f * 15, -0.5f * 15);
+			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
+			Matrix4x4 lightView = glm::lookAt(lightDir, Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -1170,6 +1317,10 @@ void HPForwardRenderer::BuildShadowMapPass()
 			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(HPForwardGraphRes::UB_TRANSFORM_MATRICES));
 			auto pLightSpaceTransformMatrixUB = std::static_pointer_cast<UniformBuffer>(input.Get(HPForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX));
 			
+			auto pSubLightSpaceTransformMatrixUB = pLightSpaceTransformMatrixUB->AllocateSubBuffer(sizeof(UBLightSpaceTransformMatrix));
+			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
+			pSubLightSpaceTransformMatrixUB->UpdateSubBufferData(&ubLightSpaceTransformMatrix);
+
 			for (auto& entity : *pContext->pDrawList)
 			{
 				auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(EComponentType::Transform));
@@ -1192,13 +1343,9 @@ void HPForwardRenderer::BuildShadowMapPass()
 
 				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
 
-				// Update uniform blocks
-
+				auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
-				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
-
-				ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-				pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 
 				auto subMeshes = pMesh->GetSubMeshes();
 				for (unsigned int i = 0; i < subMeshes->size(); ++i)
@@ -1212,8 +1359,8 @@ void HPForwardRenderer::BuildShadowMapPass()
 
 					pShaderParamTable->Clear();
 
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, pLightSpaceTransformMatrixUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::SubUniformBuffer, pSubLightSpaceTransformMatrixUB);
 
 					auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 					if (pAlbedoTexture)
@@ -1228,6 +1375,7 @@ void HPForwardRenderer::BuildShadowMapPass()
 			}
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1301,8 +1449,11 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 				ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
+
+				auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+
+				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 
 				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
@@ -1315,6 +1466,7 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 			}
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1361,9 +1513,9 @@ void HPForwardRenderer::BuildOpaquePass()
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
-			Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
-			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
-			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
+			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
+			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
+			Matrix4x4 lightView = glm::lookAt(lightDir, Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 			auto pShadowMapTexture = std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_SHADOWMAP_DEPTH));
@@ -1391,13 +1543,16 @@ void HPForwardRenderer::BuildOpaquePass()
 			ubTransformMatrices.viewMatrix = viewMat;
 
 			ubSystemVariables.timeInSec = Timer::Now();
-			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+			auto pSubSystemVariablesUB = pSystemVariablesUB->AllocateSubBuffer(sizeof(UBSystemVariables));
+			pSubSystemVariablesUB->UpdateSubBufferData(&ubSystemVariables);
 
 			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-			pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+			auto pSubLightSpaceTransformMatrixUB = pLightSpaceTransformMatrixUB->AllocateSubBuffer(sizeof(UBLightSpaceTransformMatrix));
+			pSubLightSpaceTransformMatrixUB->UpdateSubBufferData(&ubLightSpaceTransformMatrix);
 
 			ubCameraProperties.cameraPosition = cameraPos;
-			pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
+			auto pSubCameraPropertiesUB = pCameraPropertiesUB->AllocateSubBuffer(sizeof(UBCameraProperties));
+			pSubCameraPropertiesUB->UpdateSubBufferData(&ubCameraProperties);
 
 			for (auto& entity : *pContext->pDrawList)
 			{
@@ -1419,7 +1574,8 @@ void HPForwardRenderer::BuildOpaquePass()
 
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 				ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+				auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
@@ -1439,17 +1595,18 @@ void HPForwardRenderer::BuildOpaquePass()
 
 					pShaderParamTable->Clear();
 
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB);
+					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB); // TODO: enable system variable in shader program
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, pLightSpaceTransformMatrixUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::SubUniformBuffer, pSubLightSpaceTransformMatrixUB);
 
 					ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 					ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
 					ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
-					pMaterialNumericalPropertiesUB->UpdateBufferData(&ubMaterialNumericalProperties);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, pMaterialNumericalPropertiesUB);
+					auto pSubMaterialNumericalPropertiesUB = pMaterialNumericalPropertiesUB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
+					pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubMaterialNumericalPropertiesUB);
 
 					auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 					if (pAlbedoTexture)
@@ -1458,12 +1615,12 @@ void HPForwardRenderer::BuildOpaquePass()
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
 
-					auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-					if (pNoiseTexture)
-					{
-						pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
-						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
-					}
+					//auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
+					//if (pNoiseTexture)
+					//{
+					//	pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
+					//	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
+					//}
 
 					auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);
 					if (pToneTexture)
@@ -1482,6 +1639,7 @@ void HPForwardRenderer::BuildOpaquePass()
 			}
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1528,8 +1686,9 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_COLOR)));
 
 			ubControlVariables.bool_1 = 1;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_1 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1547,13 +1706,15 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_BLUR_HORIZONTAL_COLOR)));
 
 			ubControlVariables.bool_1 = 0;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_2 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1566,8 +1727,6 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 
 void HPForwardRenderer::BuildLineDrawingPass()
 {
-	CreateLineDrawingMatrices(); // Pre-calculate local parameterization matrices
-
 	RenderGraphResource passInput;
 	RenderGraphResource passOutput;
 
@@ -1650,8 +1809,9 @@ void HPForwardRenderer::BuildLineDrawingPass()
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_COLOR)));
 
 			ubControlVariables.bool_1 = 1;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_1 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1670,8 +1830,9 @@ void HPForwardRenderer::BuildLineDrawingPass()
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_CURVATURE)));
 
 			ubControlVariables.bool_1 = 0;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_2 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1699,7 +1860,7 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pDevice->DrawFullScreenQuad();
 
 			pDevice->EndRenderPass();
-
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1757,10 +1918,12 @@ void HPForwardRenderer::BuildTransparentPass()
 			ubTransformMatrices.viewMatrix = viewMat;
 
 			ubSystemVariables.timeInSec = Timer::Now();
-			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+			auto pSubSystemVariablesUB = pSystemVariablesUB->AllocateSubBuffer(sizeof(UBSystemVariables));
+			pSubSystemVariablesUB->UpdateSubBufferData(&ubSystemVariables);
 
 			ubCameraProperties.cameraPosition = cameraPos;
-			pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
+			auto pSubCameraPropertiesUB = pCameraPropertiesUB->AllocateSubBuffer(sizeof(UBCameraProperties));
+			pSubCameraPropertiesUB->UpdateSubBufferData(&ubCameraProperties);
 
 			// Alert: it is currently forced to use basic transparent shader in transparent pass
 			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::Basic_Transparent, HPForwardGraphRes::PASSNAME_TRANSPARENT));
@@ -1790,7 +1953,8 @@ void HPForwardRenderer::BuildTransparentPass()
 
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 				ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+				auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
@@ -1810,16 +1974,17 @@ void HPForwardRenderer::BuildTransparentPass()
 
 					pShaderParamTable->Clear();
 
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
+					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB); // TODO: enable these disabled resources in shader program
+					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB);
 
 					ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
-					pMaterialNumericalPropertiesUB->UpdateBufferData(&ubMaterialNumericalProperties);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, pMaterialNumericalPropertiesUB);
+					auto pSubMaterialNumericalPropertiesUB = pMaterialNumericalPropertiesUB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
+					pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubMaterialNumericalPropertiesUB);
 
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
-						std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_DEPTH)));
+					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
+					//	std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_DEPTH)));
 
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
 						std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_COLOR)));
@@ -1831,12 +1996,12 @@ void HPForwardRenderer::BuildTransparentPass()
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
 
-					auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-					if (pNoiseTexture)
-					{
-						pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
-						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
-					}
+					//auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
+					//if (pNoiseTexture)
+					//{
+					//	pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
+					//	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
+					//}
 
 					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
@@ -1844,6 +2009,7 @@ void HPForwardRenderer::BuildTransparentPass()
 			}
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1896,6 +2062,7 @@ void HPForwardRenderer::BuildOpaqueTranspBlendPass()
 			pDevice->DrawFullScreenQuad();
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -1912,7 +2079,7 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 	RenderGraphResource passOutput;
 
 	passInput.Add(HPForwardGraphRes::FB_DOF_HORI, m_pDOFPassFrameBuffer_Horizontal);
-	passInput.Add(HPForwardGraphRes::FB_DOF_FIN, m_pDOFPassPresentFrameBuffers);
+	passInput.Add(HPForwardGraphRes::FB_PRESENT, m_pPresentFrameBuffers);
 	passInput.Add(HPForwardGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
 	passInput.Add(HPForwardGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
 	passInput.Add(HPForwardGraphRes::TX_DOF_HORIZONTAL, m_pDOFPassHorizontalOutput);
@@ -1922,6 +2089,7 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 	passInput.Add(HPForwardGraphRes::TX_PENCIL_MASK_TEXTURE_2, m_pPencilMaskImageTexture_2);
 	passInput.Add(HPForwardGraphRes::TX_OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
 	passInput.Add(HPForwardGraphRes::RPO_DOF, m_pDOFRenderPassObject);
+	passInput.Add(HPForwardGraphRes::RPO_PRESENT, m_pPresentRenderPassObject);
 	passInput.Add(HPForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
 	passInput.Add(HPForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
 	passInput.Add(HPForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
@@ -1941,8 +2109,6 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_DOF));
-
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
@@ -1956,23 +2122,27 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(HPForwardGraphRes::UB_CONTROL_VARIABLES));
 
 			ubTransformMatrices.viewMatrix = viewMat;
-			pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
+			auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+			pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 
 			ubSystemVariables.timeInSec = Timer::Now();
-			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
+			auto pSubSystemVariablesUB = pSystemVariablesUB->AllocateSubBuffer(sizeof(UBSystemVariables));
+			pSubSystemVariablesUB->UpdateSubBufferData(&ubSystemVariables);
 
 			ubCameraProperties.aperture = pCameraComp->GetAperture();
 			ubCameraProperties.focalDistance = pCameraComp->GetFocalDistance();
 			ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
-			pCameraPropertiesUB->UpdateBufferData(&ubCameraProperties);
+			auto pSubCameraPropertiesUB = pCameraPropertiesUB->AllocateSubBuffer(sizeof(UBCameraProperties));
+			pSubCameraPropertiesUB->UpdateSubBufferData(&ubCameraProperties);
 
 			// Horizontal subpass
 
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_DOF));
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_DOF)),
 				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_DOF_HORI)));
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB);
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_BLEND_COLOR)));
@@ -1980,9 +2150,27 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler, 
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_NORMALONLY_POSITION)));
 
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB);
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_BRUSH_MASK_TEXTURE_1)));
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_BRUSH_MASK_TEXTURE_2)));
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_2), EDescriptorType::CombinedImageSampler,
+				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_PENCIL_MASK_TEXTURE_1)));
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_2), EDescriptorType::CombinedImageSampler,
+				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_PENCIL_MASK_TEXTURE_2)));
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler,
+				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_SHADOW)));
+
 			ubControlVariables.bool_1 = 1;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_1 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
@@ -1992,10 +2180,14 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			// Vertical subpass
 
 			// Set to swapchain image output
-			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_DOF)),
-				std::static_pointer_cast<SwapchainFrameBuffers>(input.Get(HPForwardGraphRes::FB_DOF_FIN))->frameBuffers[pDevice->GetSwapchainPresentImageIndex()]);
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_PRESENT));
+			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_PRESENT)),
+				std::static_pointer_cast<SwapchainFrameBuffers>(input.Get(HPForwardGraphRes::FB_PRESENT))->frameBuffers[pDevice->GetSwapchainPresentImageIndex()]);
 
 			pShaderParamTable->Clear();
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB);
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_DOF_HORIZONTAL)));
@@ -2003,7 +2195,7 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_NORMALONLY_POSITION)));
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB);
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_BRUSH_MASK_TEXTURE_1)));
@@ -2021,13 +2213,15 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_SHADOW)));
 
 			ubControlVariables.bool_1 = 0;
-			pControlVariablesUB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, pControlVariablesUB);
+			auto pSubControlVariablesUB_2 = pControlVariablesUB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
 			pDevice->DrawFullScreenQuad();
 
 			pDevice->EndRenderPass();
+			pDevice->FlushCommands(false);
 		},
 		passInput,
 		passOutput);
@@ -2106,4 +2300,14 @@ void HPForwardRenderer::CreateLineDrawingMatrices()
 
 	m_pLineDrawingMatrixTexture->FlushData(linearResults.data(), EDataType::Float32, ETextureFormat::RGBA32F);
 	m_pLineDrawingMatrixTexture->SetSampler(m_pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
+}
+
+void HPForwardRenderer::ResetUniformBufferSubAllocation()
+{
+	m_pTransformMatrices_UB->ResetSubBufferAllocation();
+	m_pLightSpaceTransformMatrix_UB->ResetSubBufferAllocation();
+	m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
+	m_pCameraPropertie_UB->ResetSubBufferAllocation();
+	m_pSystemVariables_UB->ResetSubBufferAllocation();
+	m_pControlVariables_UB->ResetSubBufferAllocation();
 }

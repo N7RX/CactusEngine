@@ -50,8 +50,8 @@ namespace Engine
 		virtual bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) = 0;
 
 		virtual void SwitchCmdGPUContext(EGPUType type) = 0; // TODO: remove this function
-		virtual void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) = 0;
-		virtual void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) = 0;
+		virtual void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
+		virtual void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void ResizeSwapchain(uint32_t width, uint32_t height) = 0;
 		virtual void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) = 0;
 		virtual void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;

@@ -101,8 +101,8 @@ namespace Engine
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
 
 		void SwitchCmdGPUContext(EGPUType type) override;
-		void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
-		void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage) override;
+		void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) override;
+		void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) override;
 		void ResizeSwapchain(uint32_t width, uint32_t height) override;
 		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) override;
 		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
@@ -134,11 +134,13 @@ namespace Engine
 
 		// Manager setup functions
 		void SetupCommandManager();
+		void SetupSyncObjectManager();
 		void SetupUploadAllocator();
 		void SetupDescriptorAllocator();
 
 		// Converter functions
 		EDescriptorResourceType_Vulkan VulkanDescriptorResourceType(EDescriptorType type) const;
+		void GetBufferInfoByDescriptorType(EDescriptorType type, const std::shared_ptr<RawResource> pRes, VkDescriptorBufferInfo& outInfo);
 
 	public:
 		const uint64_t FRAME_TIMEOUT = 5e9; // 5 seconds
@@ -167,7 +169,6 @@ namespace Engine
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
 		EGPUType m_cmdGPUType;
-		std::vector<VkClearValue> m_clearValues; // Color + DepthStencil
 		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
 		unsigned int m_currentFrame;
 

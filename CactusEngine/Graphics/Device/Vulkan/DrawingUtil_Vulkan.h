@@ -73,8 +73,75 @@ namespace Engine
 		}
 	}
 
-	// TODO: add support for multiple shader stages
-	inline void GetAccessAndStageFromImageLayout_VK(const VkImageLayout layout, VkAccessFlags& accessMask, VkPipelineStageFlags& pipelineStage, EShaderType shaderStage)
+	inline VkShaderStageFlags VulkanShaderStageFlags(uint32_t flags)
+	{
+		assert(flags != 0);
+
+		VkShaderStageFlags res = 0;
+
+		if (flags & (uint32_t)EShaderType::Vertex)
+		{
+			res |= VK_SHADER_STAGE_VERTEX_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Fragment)
+		{
+			res |= VK_SHADER_STAGE_FRAGMENT_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessControl)
+		{
+			res |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessEvaluation)
+		{
+			res |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Geometry)
+		{
+			res |= VK_SHADER_STAGE_GEOMETRY_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Compute)
+		{
+			res |= VK_SHADER_STAGE_COMPUTE_BIT;
+		}
+
+		return res;
+	}
+
+	inline VkPipelineStageFlags VulkanPipelineStageFlags(uint32_t flags)
+	{
+		assert(flags != 0);
+
+		VkShaderStageFlags res = 0;
+
+		if (flags & (uint32_t)EShaderType::Vertex)
+		{
+			res |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Fragment)
+		{
+			res |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessControl)
+		{
+			res |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::TessEvaluation)
+		{
+			res |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Geometry)
+		{
+			res |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+		}
+		if (flags & (uint32_t)EShaderType::Compute)
+		{
+			res |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
+
+		return res;
+	}
+
+	inline void GetAccessAndStageFromImageLayout_VK(const VkImageLayout layout, VkAccessFlags& accessMask, VkPipelineStageFlags& pipelineStage, uint32_t appliedStages)
 	{
 		switch (layout)
 		{
@@ -88,9 +155,14 @@ namespace Engine
 			pipelineStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			return;
 
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			accessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			pipelineStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			return;
+
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			accessMask = VK_ACCESS_SHADER_READ_BIT;
-			pipelineStage = DetermineShaderPipelineStage_VK(shaderStage);
+			pipelineStage = VulkanPipelineStageFlags(appliedStages);
 			return;
 
 		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
@@ -113,18 +185,7 @@ namespace Engine
 
 	inline uint32_t DetermineMipmapLevels_VK(uint32_t inputSize)
 	{
-		uint32_t ans = 0;
-		
-		while (ans < 32) // Maximum of 32 miplevels
-		{
-			if ((1 << ans) >= inputSize)
-			{
-				break;
-			}
-			ans++;
-		}
-
-		return ans + 1;
+		return (uint32_t)std::floor(std::log2(inputSize)) + 1;
 	}
 
 	inline VkFormat VulkanImageFormat(ETextureFormat format)
@@ -137,6 +198,18 @@ namespace Engine
 		case ETextureFormat::Depth:
 			return VK_FORMAT_D32_SFLOAT; // Alert: this could be incompatible with current device without checking
 
+		case ETextureFormat::RGBA8_SRGB:
+			return VK_FORMAT_R8G8B8A8_SRGB;
+
+		case ETextureFormat::BGRA8_UNORM:
+			return VK_FORMAT_B8G8R8A8_UNORM;
+
+		case ETextureFormat::RGB32F:
+			return VK_FORMAT_R32G32B32_SFLOAT;
+
+		case ETextureFormat::RG32F:
+			return VK_FORMAT_R32G32_SFLOAT;
+
 		default:
 			return VK_FORMAT_UNDEFINED;
 		}
@@ -147,7 +220,15 @@ namespace Engine
 		switch (format)
 		{
 		case ETextureFormat::RGBA32F:
+			return 16U;
+
 		case ETextureFormat::Depth:
+			return 4U;
+
+		case ETextureFormat::RGBA8_SRGB:
+			return 4U;
+
+		case ETextureFormat::BGRA8_UNORM:
 			return 4U;
 
 		default:
@@ -442,6 +523,7 @@ namespace Engine
 		switch (type)
 		{
 		case EDescriptorType::UniformBuffer:
+		case EDescriptorType::SubUniformBuffer:
 			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 		case EDescriptorType::StorageBuffer:
@@ -531,37 +613,22 @@ namespace Engine
 		}
 	}
 
-	inline VkShaderStageFlags VulkanShaderStageFlags(uint32_t flags)
+	inline VkImageUsageFlags DetermineImageUsage_VK(ETextureType type)
 	{
-		assert(flags != 0);
+		switch (type)
+		{
+		case ETextureType::SampledImage:
+			return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		VkShaderStageFlags res = 0;
+		case ETextureType::ColorAttachment:
+			return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		if (flags & (uint32_t)EShaderType::Vertex)
-		{
-			res |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-		}
-		if (flags & (uint32_t)EShaderType::Fragment)
-		{
-			res |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		}
-		if (flags & (uint32_t)EShaderType::TessControl)
-		{
-			res |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-		}
-		if (flags & (uint32_t)EShaderType::TessEvaluation)
-		{
-			res |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-		}
-		if (flags & (uint32_t)EShaderType::Geometry)
-		{
-			res |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-		}
-		if (flags & (uint32_t)EShaderType::Compute)
-		{
-			res |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		}
+		case ETextureType::DepthAttachment:
+			return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-		return res;
+		default:
+			std::cerr << "Vulkan: Unhandled texture type: " << (unsigned int)type << std::endl;
+			return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		}
 	}
 }

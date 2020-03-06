@@ -282,7 +282,7 @@ void ForwardRenderer::BuildShadowMapPass()
 	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
 		{
-			Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
+			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
 			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
 			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
@@ -311,6 +311,9 @@ void ForwardRenderer::BuildShadowMapPass()
 			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
 			auto pLightSpaceTransformMatrixUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX));
 
+			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
+			pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+
 			for (auto& entity : *pContext->pDrawList)
 			{
 				auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(EComponentType::Transform));
@@ -333,13 +336,8 @@ void ForwardRenderer::BuildShadowMapPass()
 
 				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
 
-				// Update uniform blocks
-
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 				pTransformMatricesUB->UpdateBufferData(&ubTransformMatrices);
-
-				ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-				pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 				auto subMeshes = pMesh->GetSubMeshes();
 				for (unsigned int i = 0; i < subMeshes->size(); ++i)
@@ -503,7 +501,7 @@ void ForwardRenderer::BuildOpaquePass()
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
-			Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
+			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
 			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
 			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;

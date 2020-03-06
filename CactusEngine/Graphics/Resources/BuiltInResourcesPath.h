@@ -34,8 +34,29 @@ namespace Engine
 		//========
 		// Vulkan
 
-		static const char* SHADER_VERTEX_BASIC_VK = "Assets/Shader/GLSL/BasicVert.spv"; // Alert: these are placeholder, files are not created yet
-		static const char* SHADER_FRAGMENT_BASIC_VK = "Assets/Shader/GLSL/BasicFrag.spv";
+		static const char* SHADER_VERTEX_BASIC_VK = "Assets/Shader/SPIRV/Basic_vert.spv";
+		static const char* SHADER_FRAGMENT_BASIC_VK = "Assets/Shader/SPIRV/Basic_frag.spv";
+		static const char* SHADER_FRAGMENT_BASIC_TRANSPARENT_VK = "Assets/Shader/SPIRV/Basic_Transparent_frag.spv";
+
+		static const char* SHADER_VERTEX_WATER_BASIC_VK = "Assets/Shader/SPIRV/Water_Basic_vert.spv";
+		static const char* SHADER_FRAGMENT_WATER_BASIC_VK = "Assets/Shader/SPIRV/Water_Basic_frag.spv";
+
+		static const char* SHADER_VERTEX_FULLSCREEN_QUAD_VK = "Assets/Shader/SPIRV/FullScreenQuad_vert.spv";
+		static const char* SHADER_FRAGMENT_GAUSSIANBLUR_VK = "Assets/Shader/SPIRV/Gaussian_frag.spv";
+		static const char* SHADER_FRAGMENT_DEPTH_COLORBLEND_2_VK = "Assets/Shader/SPIRV/DepthBased_ColorBlend_2_frag.spv";
+		static const char* SHADER_FRAGMENT_LINEDRAWING_CURVATURE_VK = "Assets/Shader/SPIRV/LineDrawing_Curvature_frag.spv";
+		static const char* SHADER_FRAGMENT_LINEDRAWING_COLOR_VK = "Assets/Shader/SPIRV/LineDrawing_Color_frag.spv";
+		static const char* SHADER_FRAGMENT_LINEDRAWING_BLEND_VK = "Assets/Shader/SPIRV/LineDrawing_Blend_frag.spv";
+		static const char* SHADER_FRAGMENT_DEPTH_OF_FIELD_VK = "Assets/Shader/SPIRV/DepthOfField_frag.spv";
+
+		static const char* SHADER_VERTEX_NORMALONLY_VK = "Assets/Shader/SPIRV/NormalOnly_vert.spv";
+		static const char* SHADER_FRAGMENT_NORMALONLY_VK = "Assets/Shader/SPIRV/NormalOnly_frag.spv";
+
+		static const char* SHADER_VERTEX_ANIMESTYLE_VK = "Assets/Shader/SPIRV/AnimeStyle_vert.spv";
+		static const char* SHADER_FRAGMENT_ANIMESTYLE_VK = "Assets/Shader/SPIRV/AnimeStyle_frag.spv";
+
+		static const char* SHADER_VERTEX_SHADOWMAP_VK = "Assets/Shader/SPIRV/ShadowMap_vert.spv";
+		static const char* SHADER_FRAGMENT_SHADOWMAP_VK = "Assets/Shader/SPIRV/ShadowMap_frag.spv";
 
 	}
 }

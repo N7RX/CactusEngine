@@ -1671,6 +1671,7 @@
 				"anisotropy" : 0.0,
 				"roughness" : 0.75,
 				"shaderType" : 0,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
 			}
 		},
@@ -1724,6 +1725,7 @@
 				"anisotropy" : 0.0,
 				"roughness" : 0.75,
 				"shaderType" : 0,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
 			}
 		},
@@ -1777,6 +1779,7 @@
 				"anisotropy" : 0.0,
 				"roughness" : 0.75,
 				"shaderType" : 0,
+				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
 			}
 		},

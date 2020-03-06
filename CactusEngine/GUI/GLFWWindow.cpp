@@ -80,12 +80,18 @@ void GLFWWindow::Initialize()
 		glfwSwapInterval(0);
 	}
 
-	InitImGui(m_pGLFWWindowHandle);
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
+	{
+		InitImGui(m_pGLFWWindowHandle);
+	}
 }
 
 void GLFWWindow::Tick()
 {
-	DrawImGui();
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
+	{
+		DrawImGui();
+	}
 
 	m_shouldQuit = glfwWindowShouldClose(m_pGLFWWindowHandle);
 	glfwSwapBuffers(m_pGLFWWindowHandle);

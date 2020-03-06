@@ -375,12 +375,12 @@ void DrawingDevice_OpenGL::SwitchCmdGPUContext(EGPUType type)
 	std::cerr << "OpenGL: shouldn't call SwitchCmdGPUContext on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage)
+void DrawingDevice_OpenGL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
 	std::cerr << "OpenGL: shouldn't call TransitionImageLayout on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, EShaderType shaderStage)
+void DrawingDevice_OpenGL::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
 	std::cerr << "OpenGL: shouldn't call TransitionImageLayout_Immediate on OpenGL device.\n";
 }
@@ -413,6 +413,11 @@ void DrawingDevice_OpenGL::Present()
 void DrawingDevice_OpenGL::FlushCommands(bool waitExecution)
 {
 	glFlush();
+
+	if (waitExecution)
+	{
+		glFinish();
+	}
 }
 
 std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType) const

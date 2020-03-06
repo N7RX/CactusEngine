@@ -34,7 +34,10 @@ namespace Engine
 		COUNT
 	};
 
-	struct alignas(16) UBTransformMatrices
+	// Uniform block structures
+	// Alert: the alignment should be set according to min device uniform buffer alignment requirement
+
+	struct alignas(64) UBTransformMatrices
 	{
 		Matrix4x4 modelMatrix;
 		Matrix4x4 viewMatrix;
@@ -42,21 +45,19 @@ namespace Engine
 		Matrix4x4 normalMatrix;
 	};
 
-	// Uniform block structures
-
-	struct alignas(16) UBLightSpaceTransformMatrix
+	struct alignas(64) UBLightSpaceTransformMatrix
 	{
 		Matrix4x4 lightSpaceMatrix;
 	};
 
-	struct alignas(16) UBMaterialNumericalProperties
+	struct alignas(64) UBMaterialNumericalProperties
 	{
 		Vector4	albedoColor;
 		float	anisotropy;
 		float	roughness;
 	};
 
-	struct alignas(16) UBCameraProperties
+	struct alignas(64) UBCameraProperties
 	{
 		Vector3	cameraPosition;
 		float	aperture;
@@ -64,12 +65,12 @@ namespace Engine
 		float	imageDistance;
 	};
 
-	struct alignas(16) UBSystemVariables
+	struct alignas(64) UBSystemVariables
 	{
 		float timeInSec;
 	};
 
-	struct alignas(16) UBControlVariables
+	struct alignas(64) UBControlVariables
 	{
 		int bool_1;
 	};

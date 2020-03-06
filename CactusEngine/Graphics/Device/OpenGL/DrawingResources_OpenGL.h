@@ -46,6 +46,8 @@ namespace Engine
 
 		void UpdateBufferData(const void* pData) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
+		std::shared_ptr<SubUniformBuffer> AllocateSubBuffer(uint32_t size) override;
+		void ResetSubBufferAllocation() override;
 
 	private:
 		GLuint m_glBufferID = -1;

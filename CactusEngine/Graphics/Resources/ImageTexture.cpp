@@ -40,19 +40,15 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	createInfo.textureHeight = texHeight;
 	createInfo.pTextureData = imageData;
 	createInfo.dataType = EDataType::UByte;
-	createInfo.format = ETextureFormat::RGBA32F;
+	createInfo.format = ETextureFormat::RGBA8_SRGB; // Alert: this format might not be universal
 	createInfo.textureType = ETextureType::SampledImage;
 	createInfo.generateMipmap = true;
+	createInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 
 	m_filePath.assign(filePath);
 	stbi_image_free(imageData);
-
-	if (m_pDevice->GetDeviceType() == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->TransitionImageLayout_Immediate(m_pTextureImpl, EImageLayout::ShaderReadOnly, EShaderType::Fragment); // TODO: add support for multiple shader stages read
-	}
 }
 
 std::shared_ptr<Texture2D> ImageTexture::GetTexture() const

@@ -100,9 +100,9 @@ namespace Engine
 
 		EAllocatorType_Vulkan m_allocatorType;
 
-		std::shared_ptr<VkPipelineColorBlendAttachmentState> m_pColorBlendAttachmentState;
-
 		std::shared_ptr<Sampler_Vulkan> m_pSampler;
+
+		uint32_t m_appliedStages; // EShaderType bitmap
 
 		friend class DrawingDevice_Vulkan;
 		friend class DrawingCommandBuffer_Vulkan;
@@ -139,7 +139,11 @@ namespace Engine
 
 		void UpdateBufferData(const void* pData) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
+		std::shared_ptr<SubUniformBuffer> AllocateSubBuffer(uint32_t size) override;
+		void ResetSubBufferAllocation() override;
+
 		void UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer = nullptr);
+		std::shared_ptr<RawBuffer_Vulkan> GetBufferImpl() const;
 
 		EUniformBufferType_Vulkan GetType() const;
 
@@ -150,7 +154,29 @@ namespace Engine
 
 		bool m_memoryMapped;
 		const void* m_pRawData;
-		void* m_pHostData; // Pointer to mapped host memory location	
+		void* m_pHostData; // Pointer to mapped host memory location
+
+		uint32_t m_subAllocatedSize;
+
+		friend class SubUniformBuffer_Vulkan;
+	};
+
+	class SubUniformBuffer_Vulkan : public SubUniformBuffer
+	{
+	public:
+		SubUniformBuffer_Vulkan(UniformBuffer_Vulkan* pParentBuffer, VkBuffer buffer, uint32_t offset, uint32_t size);
+		~SubUniformBuffer_Vulkan() = default;
+
+		void UpdateSubBufferData(const void* pData) override;
+
+	private:
+		UniformBuffer_Vulkan* m_pParentBuffer;
+		VkBuffer m_buffer;
+		uint32_t m_offset;
+		uint32_t m_size;
+
+		friend class DrawingDevice_Vulkan;
+		friend class UniformBuffer_Vulkan;
 	};
 
 	class RenderPass_Vulkan : public RenderPassObject
@@ -162,6 +188,7 @@ namespace Engine
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		VkRenderPass m_renderPass;
+		std::vector<VkClearValue> m_clearValues;
 
 		friend class DrawingDevice_Vulkan;
 	};
@@ -285,7 +312,8 @@ namespace Engine
 	{
 	public:
 		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...); // Could also use a pointer array instead of variadic arguments
-		~ShaderProgram_Vulkan() = default;
+		ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const std::shared_ptr<RawShader_Vulkan> pVertexShader, const std::shared_ptr<RawShader_Vulkan> pFragmentShader);
+		~ShaderProgram_Vulkan();
 
 		unsigned int GetParamBinding(const char* paramName) const override;
 		void Reset() override; // Does not work on Vulkan shader program
@@ -296,12 +324,12 @@ namespace Engine
 		uint32_t GetPushConstantRangeCount() const;
 		const VkPushConstantRange* GetPushConstantRanges() const;
 
-		VkDescriptorSet GetDescriptorSet(unsigned int index) const;
+		std::shared_ptr<DrawingDescriptorSet_Vulkan> GetDescriptorSet();
 		const DrawingDescriptorSetLayout_Vulkan* GetDescriptorSetLayout() const;
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
 
 	private:
-		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 3; // TODO: figure out the proper value for this limit
+		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 128; // TODO: figure out the proper value for this limit
 
 		struct ResourceDescription
 		{
@@ -315,13 +343,17 @@ namespace Engine
 			std::vector<VkDescriptorSetLayoutBinding>	descSetLayoutBindings;
 			std::vector<VkDescriptorPoolSize>			descSetPoolSizes;
 			uint32_t									maxDescSetCount;
+
+			// For duplicate removal
+			std::unordered_map<uint32_t, uint32_t> recordedLayoutBindings; // binding - vector index
+			std::unordered_map<VkDescriptorType, uint32_t> recordedPoolSizes; // type - vector index
 		};
 
 	private:
 		// Shader reflection functions
-		void ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader);
+		void ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
-		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetCount);
+		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType,  DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
@@ -352,7 +384,8 @@ namespace Engine
 
 		std::shared_ptr<DrawingDescriptorSetLayout_Vulkan> m_pDescriptorSetLayout;
 		std::shared_ptr<DrawingDescriptorPool_Vulkan> m_pDescriptorPool;
-		std::vector<VkDescriptorSet> m_descriptorSets;
+		std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>> m_descriptorSets;
+		unsigned int m_descriptorSetAccessIndex;
 
 		std::vector<VkPipelineShaderStageCreateInfo> m_pipelineShaderStageCreateInfos;
 	};

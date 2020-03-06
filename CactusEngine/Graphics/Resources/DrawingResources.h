@@ -1,5 +1,6 @@
 #pragma once
 #include "SharedTypes.h"
+#include "BasicMathTypes.h"
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -106,6 +107,7 @@ namespace Engine
 		ETextureType   textureType;
 		bool		   generateMipmap;
 		std::shared_ptr<TextureSampler> pSampler;
+		EImageLayout   initialLayout;
 
 		EGPUType	   deviceType;
 	};
@@ -169,8 +171,11 @@ namespace Engine
 
 	struct RenderPassCreateInfo
 	{
+		EGPUType	 deviceType;
 		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
-		EGPUType deviceType;
+		Color4		 clearColor;
+		float		 clearDepth;
+		unsigned int clearStencil;	
 
 		// TODO: add subpass description
 	};
@@ -223,11 +228,22 @@ namespace Engine
 		uint32_t appliedStages; // Bitmask, required for push constant
 	};
 
+	class SubUniformBuffer : public RawResource
+	{
+	public:
+		virtual void UpdateSubBufferData(const void* pData) = 0;
+
+	protected:
+		SubUniformBuffer() = default;
+	};
+
 	class UniformBuffer : public RawResource
 	{
 	public:
 		virtual void UpdateBufferData(const void* pData) = 0;
 		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
+		virtual std::shared_ptr<SubUniformBuffer> AllocateSubBuffer(uint32_t size) = 0;
+		virtual void ResetSubBufferAllocation() = 0;
 
 	protected:
 		UniformBuffer() = default;
@@ -363,8 +379,6 @@ namespace Engine
 
 	struct AttachmentColorBlendStateDescription
 	{
-		std::shared_ptr<Texture2D> pAttachment;
-
 		bool enableBlend;
 		EBlendFactor	srcColorBlendFactor;
 		EBlendFactor	dstColorBlendFactor;
@@ -390,8 +404,10 @@ namespace Engine
 	struct PipelineRasterizationStateCreateInfo
 	{
 		bool			enableDepthClamp;
+		bool			discardRasterizerResults; // Used for obtaining vertices output only
 		EPolygonMode	polygonMode;
 		ECullMode		cullMode;
+		bool			frontFaceCounterClockwise;
 	};
 
 	class PipelineRasterizationState

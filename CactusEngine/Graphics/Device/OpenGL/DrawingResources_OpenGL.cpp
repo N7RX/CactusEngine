@@ -31,11 +31,6 @@ Texture2D_OpenGL::~Texture2D_OpenGL()
 
 GLuint Texture2D_OpenGL::GetGLTextureID() const
 {
-	if (m_glTextureID > 100000)
-	{
-		std::cout << m_glTextureID << "\n";
-	}
-
 	return m_glTextureID;
 }
 
@@ -100,6 +95,17 @@ void UniformBuffer_OpenGL::UpdateBufferSubData(const void* pData, uint32_t offse
 	glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
 	glBufferSubData(GL_UNIFORM_BUFFER, offset, size, pData);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+std::shared_ptr<SubUniformBuffer> UniformBuffer_OpenGL::AllocateSubBuffer(uint32_t size)
+{
+	std::cerr << "OpenGL: shouldn't call AllocateSubBuffer on OpenGL uniform buffer.\n";
+	return nullptr;
+}
+
+void UniformBuffer_OpenGL::ResetSubBufferAllocation()
+{
+	std::cerr << "OpenGL: shouldn't call ResetSubBufferAllocation on OpenGL uniform buffer.\n";
 }
 
 FrameBuffer_OpenGL::~FrameBuffer_OpenGL()
@@ -290,18 +296,6 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 {
 	// Binding info cannot be retrieved at runtime, it will be manually assigned for compatibility with Vulkan
 
-	// Uniform blocks
-
-	m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 0);
-	m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 1);
-
-	m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 2);
-
-	m_paramBindings.emplace(ShaderParamNames::CAMERA_PROPERTIES, 3);
-
-	m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 4);
-	m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 5);
-
 	// Combined image samplers
 
 	m_paramBindings.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, 0);
@@ -326,4 +320,16 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_2, 12);
 
 	m_paramBindings.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, 13);
+
+	// Uniform blocks
+
+	m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 14);
+	m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 15);
+
+	m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 16);
+
+	m_paramBindings.emplace(ShaderParamNames::CAMERA_PROPERTIES, 17);
+
+	m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 18);
+	m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 19);
 }

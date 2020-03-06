@@ -73,7 +73,7 @@ Sampler_Vulkan::~Sampler_Vulkan()
 }
 
 Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo)
-	: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA)
+	: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_Vulkan::VMA), m_appliedStages(0)
 {
 	assert(pDevice);
 
@@ -147,6 +147,7 @@ RenderTarget2D_Vulkan::RenderTarget2D_Vulkan(const std::shared_ptr<LogicalDevice
 	m_imageView = targetView;
 	m_extent = targetExtent;
 	m_format = targetFormat;
+	m_mipLevels = 1;
 
 	m_allocatorType = EAllocatorType_Vulkan::VK;
 }
@@ -164,7 +165,7 @@ RenderTarget2D_Vulkan::~RenderTarget2D_Vulkan()
 }
 
 UniformBuffer_Vulkan::UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo)
-	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_memoryMapped(false), m_pHostData(nullptr)
+	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_memoryMapped(false), m_pHostData(nullptr), m_subAllocatedSize(0)
 {
 	RawBufferCreateInfo_Vulkan bufferImplCreateInfo = {};
 	bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -218,6 +219,21 @@ void UniformBuffer_Vulkan::UpdateBufferSubData(const void* pData, uint32_t offse
 	}
 }
 
+std::shared_ptr<SubUniformBuffer> UniformBuffer_Vulkan::AllocateSubBuffer(uint32_t size)
+{
+	assert(m_subAllocatedSize + size <= m_sizeInBytes);
+
+	auto pSubBuffer = std::make_shared<SubUniformBuffer_Vulkan>(this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
+	m_subAllocatedSize += size;
+
+	return pSubBuffer;
+}
+
+void UniformBuffer_Vulkan::ResetSubBufferAllocation()
+{
+	m_subAllocatedSize = 0;
+}
+
 void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
 {
 	assert(m_pBufferImpl->m_pDevice);
@@ -252,9 +268,26 @@ void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_V
 	}
 }
 
+std::shared_ptr<RawBuffer_Vulkan> UniformBuffer_Vulkan::GetBufferImpl() const
+{
+	return m_pBufferImpl;
+}
+
 EUniformBufferType_Vulkan UniformBuffer_Vulkan::GetType() const
 {
 	return m_eType;
+}
+
+SubUniformBuffer_Vulkan::SubUniformBuffer_Vulkan(UniformBuffer_Vulkan* pParentBuffer, VkBuffer buffer, uint32_t offset, uint32_t size)
+	: m_pParentBuffer(pParentBuffer), m_buffer(buffer), m_offset(offset), m_size(size)
+{
+	m_sizeInBytes = size;
+}
+
+void SubUniformBuffer_Vulkan::UpdateSubBufferData(const void* pData)
+{
+	assert(m_pParentBuffer != nullptr);
+	m_pParentBuffer->UpdateBufferSubData(pData, m_offset, m_size);
 }
 
 RenderPass_Vulkan::RenderPass_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
@@ -286,7 +319,7 @@ uint32_t FrameBuffer_Vulkan::GetFrameBufferID() const
 }
 
 DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingSwapchainCreateInfo_Vulkan& createInfo)
-	: m_pDevice(pDevice), m_presentQueue(VK_NULL_HANDLE), m_targetImageIndex(0)
+	: m_pDevice(pDevice), m_presentQueue(VK_NULL_HANDLE), m_targetImageIndex(0), m_swapchain(VK_NULL_HANDLE)
 {
 	uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
 	if (createInfo.supportDetails.capabilities.maxImageCount > 0 && imageCount > createInfo.supportDetails.capabilities.maxImageCount)
@@ -296,7 +329,7 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 
 	m_swapExtent = createInfo.swapExtent;
 
-	VkSwapchainCreateInfoKHR createInfoKHR;
+	VkSwapchainCreateInfoKHR createInfoKHR = {};
 	createInfoKHR.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfoKHR.surface = createInfo.surface;
 	createInfoKHR.minImageCount = imageCount;
@@ -309,6 +342,7 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 	createInfoKHR.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfoKHR.presentMode = createInfo.presentMode;
 	createInfoKHR.clipped = VK_TRUE;
+	createInfoKHR.oldSwapchain = VK_NULL_HANDLE;
 
 	uint32_t queueFamilyIndices[] = { createInfo.queueFamilyIndices.graphicsFamily.value(), createInfo.queueFamilyIndices.presentFamily.value() };
 
@@ -332,7 +366,11 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 	vkGetDeviceQueue(m_pDevice->logicalDevice, queueFamilyIndices[1], 0, &m_presentQueue);
 
 	std::vector<VkImage> swapchainImages(imageCount, VK_NULL_HANDLE);
-	vkGetSwapchainImagesKHR(m_pDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data());
+	if (vkGetSwapchainImagesKHR(m_pDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data()) != VK_SUCCESS)
+	{
+		std::cerr << "Vulkan: failed to retrieve swapchain images.\n";
+		return;
+	}
 
 	for (unsigned int i = 0; i < imageCount; ++i)
 	{
@@ -361,11 +399,20 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 		m_renderTargets.emplace_back(std::make_shared<RenderTarget2D_Vulkan>(m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format));
 	}
 
-	m_imageAvailableSemaphores.reserve(DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT);
+	m_imageAvailableSemaphores.resize(DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT, nullptr);
 	for (unsigned int i = 0; i < DrawingDevice_Vulkan::MAX_FRAME_IN_FLIGHT; i++)
 	{
 		m_imageAvailableSemaphores[i] = m_pDevice->pSyncObjectManager->RequestSemaphore();
+		m_imageAvailableSemaphores[i]->waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 	}
+
+	auto pCmdBuffer = m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	for (unsigned int i = 0; i < imageCount; i++)
+	{
+		pCmdBuffer->TransitionImageLayout(m_renderTargets[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0);
+	}
+
+	m_pDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 }
 
 DrawingSwapchain_Vulkan::~DrawingSwapchain_Vulkan()
@@ -446,11 +493,6 @@ RawShader_Vulkan::RawShader_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> p
 
 RawShader_Vulkan::~RawShader_Vulkan()
 {
-	if (m_shaderModule != VK_NULL_HANDLE)
-	{
-		vkDestroyShaderModule(m_pDevice->logicalDevice, m_shaderModule, nullptr);
-	}
-
 	m_rawCode.clear();
 }
 
@@ -473,11 +515,11 @@ FragmentShader_Vulkan::FragmentShader_Vulkan(const std::shared_ptr<LogicalDevice
 
 std::shared_ptr<RawShader_Vulkan> FragmentShader_Vulkan::GetShaderImpl() const
 {
-	return std::shared_ptr<RawShader_Vulkan>();
+	return m_pShaderImpl;
 }
 
 ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_Vulkan> pShader...)
-	: ShaderProgram(0)
+	: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
 {
 	m_pDevice = pDevice;
 
@@ -485,12 +527,17 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const 
 	va_start(vaShaders, shaderCount); // shaderCount is the parameter preceding the first variable parameter 
 	std::shared_ptr<RawShader_Vulkan> shaderPtr = nullptr;
 
-	uint32_t shaderStages = 0;
+	DescriptorSetCreateInfo descSetCreateInfo = {};
+	descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
+
+	m_shaderStages = 0;
 	while (shaderCount > 0)
 	{
 		shaderPtr = va_arg(vaShaders, std::shared_ptr<RawShader_Vulkan>);
-		ReflectResources(shaderPtr);
-		shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
+		
+		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
+
+		ReflectResources(shaderPtr, descSetCreateInfo);
 
 		VkPipelineShaderStageCreateInfo shaderStageInfo = {};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -499,11 +546,61 @@ ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const 
 		shaderStageInfo.pName = shaderPtr->m_entryName;
 		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
 
-		shaderCount--; // When there are no more arguments in ap, the behavior of va_arg is undefined, therefore we need to keep a count
+		shaderCount--;
 	}
 
-	m_shaderStages = shaderStages;
 	va_end(vaShaders);
+
+	CreateDescriptorSetLayout(descSetCreateInfo);
+	CreateDescriptorPool(descSetCreateInfo);
+
+	AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT / 2); // TODO: figure out the optimal allocation count in here
+}
+
+ShaderProgram_Vulkan::ShaderProgram_Vulkan(DrawingDevice_Vulkan* pDevice, const std::shared_ptr<LogicalDevice_Vulkan> pLogicalDevice, const std::shared_ptr<RawShader_Vulkan> pVertexShader, const std::shared_ptr<RawShader_Vulkan> pFragmentShader)
+	: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
+{
+	m_pDevice = pDevice;
+
+	m_shaderStages = 0;
+	m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_VERTEX_BIT);
+	m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_FRAGMENT_BIT);
+
+	DescriptorSetCreateInfo descSetCreateInfo = {};
+	descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
+
+	ReflectResources(pVertexShader, descSetCreateInfo);
+
+	VkPipelineShaderStageCreateInfo shaderStageInfo = {};
+	shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStageInfo.stage = pVertexShader->m_shaderStage;
+	shaderStageInfo.module = pVertexShader->m_shaderModule;
+	shaderStageInfo.pName = pVertexShader->m_entryName;
+	m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
+
+	ReflectResources(pFragmentShader, descSetCreateInfo);
+
+	shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shaderStageInfo.stage = pFragmentShader->m_shaderStage;
+	shaderStageInfo.module = pFragmentShader->m_shaderModule;
+	shaderStageInfo.pName = pFragmentShader->m_entryName;
+	m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
+
+	CreateDescriptorSetLayout(descSetCreateInfo);
+	CreateDescriptorPool(descSetCreateInfo);
+
+	AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT / 2); // TODO: figure out the optimal allocation count in here
+}
+
+ShaderProgram_Vulkan::~ShaderProgram_Vulkan()
+{
+	for (auto& stageInfo : m_pipelineShaderStageCreateInfos)
+	{
+		if (stageInfo.module != VK_NULL_HANDLE)
+		{
+			vkDestroyShaderModule(m_pLogicalDevice->logicalDevice, stageInfo.module, nullptr);
+		}
+	}
 }
 
 unsigned int ShaderProgram_Vulkan::GetParamBinding(const char* paramName) const
@@ -512,6 +609,7 @@ unsigned int ShaderProgram_Vulkan::GetParamBinding(const char* paramName) const
 	{
 		return m_resourceTable.at(paramName).binding;
 	}
+	std::cerr << "Vulkan: Parameter name not found: " << paramName << std::endl;
 	return -1;
 }
 
@@ -532,7 +630,7 @@ const VkPipelineShaderStageCreateInfo* ShaderProgram_Vulkan::GetShaderStageCreat
 
 uint32_t ShaderProgram_Vulkan::GetPushConstantRangeCount() const
 {
-	return (uint32_t)m_pipelineShaderStageCreateInfos.size();
+	return (uint32_t)m_pushConstantRanges.size();
 }
 
 const VkPushConstantRange* ShaderProgram_Vulkan::GetPushConstantRanges() const
@@ -540,10 +638,34 @@ const VkPushConstantRange* ShaderProgram_Vulkan::GetPushConstantRanges() const
 	return m_pushConstantRanges.data();
 }
 
-VkDescriptorSet ShaderProgram_Vulkan::GetDescriptorSet(unsigned int index) const
+std::shared_ptr<DrawingDescriptorSet_Vulkan> ShaderProgram_Vulkan::GetDescriptorSet()
 {
-	assert(index < m_descriptorSets.size());
-	return m_descriptorSets[index];
+	bool flag = true;
+	for (unsigned int i = m_descriptorSetAccessIndex; ; i = (i + 1) % m_descriptorSets.size())
+	{
+		if (!flag && i == m_descriptorSetAccessIndex)
+		{
+			// No available set found, allocate new one
+			AllocateDescriptorSet(1);
+
+			m_descriptorSetAccessIndex = 0;
+			m_descriptorSets[m_descriptorSets.size() - 1]->m_isInUse.AssignValue(true);
+			return m_descriptorSets[m_descriptorSets.size() - 1];
+		}
+		flag = false;
+
+		bool inUse = true;
+		m_descriptorSets[i]->m_isInUse.GetValue(inUse);
+		if (!inUse)
+		{
+			m_descriptorSetAccessIndex = (i + 1) % m_descriptorSets.size();
+			m_descriptorSets[i]->m_isInUse.AssignValue(true);
+			return m_descriptorSets[i];
+		}
+	}
+
+	throw std::runtime_error("Vulkan: Error getting a usable descriptor set.");
+	return VK_NULL_HANDLE;
 }
 
 const DrawingDescriptorSetLayout_Vulkan* ShaderProgram_Vulkan::GetDescriptorSetLayout() const
@@ -551,7 +673,7 @@ const DrawingDescriptorSetLayout_Vulkan* ShaderProgram_Vulkan::GetDescriptorSetL
 	return m_pDescriptorSetLayout.get();
 }
 
-void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader)
+void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulkan> pShader, DescriptorSetCreateInfo& descSetCreateInfo)
 {
 	size_t wordCount = pShader->m_rawCode.size() * sizeof(char) / sizeof(uint32_t);
 	assert(wordCount > 0);
@@ -575,7 +697,7 @@ void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulk
 #endif
 
 	LoadResourceBinding(spvCompiler, shaderRes);
-	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), MAX_DESCRIPTOR_SET_COUNT);
+	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), descSetCreateInfo);
 }
 
 void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes)
@@ -585,7 +707,8 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::Uniform;
 		desc.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
-		desc.name = MatchShaderParamName(spvCompiler.get_name(buffer.id).c_str());
+		//desc.name = MatchShaderParamName(spvCompiler.get_name(buffer.id).c_str());
+		desc.name = MatchShaderParamName(buffer.name.c_str());
 
 		m_resourceTable.emplace(desc.name, desc);
 	}
@@ -640,10 +763,9 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 	// TODO: handle acceleration structures
 }
 
-void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, uint32_t maxDescSetCount)
+void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
 {
-	DescriptorSetCreateInfo descSetCreateInfo = {};
-	descSetCreateInfo.maxDescSetCount = maxDescSetCount;
+	// TODO: eliminate duplicate descriptor set create info
 
 	LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
@@ -651,10 +773,10 @@ void ShaderProgram_Vulkan::LoadResourceDescriptor(const spirv_cross::Compiler& s
 	LoadImageSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 	LoadPushConstantBuffer(spvCompiler, shaderRes, shaderType, m_pushConstantRanges);
 
-	CreateDescriptorSetLayout(descSetCreateInfo);
-	CreateDescriptorPool(descSetCreateInfo);
-
-	AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT); // TODO: figure out the optimal allocation count in here
+	// TODO: handle storage buffers
+	// TODO: handle storage textures
+	// TODO: handle subpass inputs
+	// TODO: handle acceleration structures
 }
 
 void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
@@ -666,21 +788,37 @@ void ShaderProgram_Vulkan::LoadUniformBuffer(const spirv_cross::Compiler& spvCom
 		VkDescriptorSetLayoutBinding binding = {};
 		binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the uniform is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
 		binding.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
-		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
-		count++;
+		if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+		{
+			descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
+			descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+			count++;
+		}
+		else // Update stage flags
+		{
+			descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+		}
 	}
 
 	if (count > 0)
 	{
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+		if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) == descSetCreateInfo.recordedPoolSizes.end())
+		{
+			VkDescriptorPoolSize poolSize = {};
+			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
-		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+			descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
+			descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+		}
+		else
+		{
+			descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+		}
 	}
 }
 
@@ -693,21 +831,37 @@ void ShaderProgram_Vulkan::LoadSeparateSampler(const spirv_cross::Compiler& spvC
 		VkDescriptorSetLayoutBinding binding = {};
 		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the sampler is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
 		binding.binding = spvCompiler.get_decoration(sampler.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
-		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
-		count++;
+		if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+		{
+			descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
+			descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+			count++;
+		}
+		else
+		{
+			descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+		}
 	}
 
 	if (count > 0)
 	{
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+		if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
+		{
+			VkDescriptorPoolSize poolSize = {};
+			poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+			poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
-		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+			descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
+			descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+		}
+		else
+		{
+			descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+		}
 	}
 }
 
@@ -720,21 +874,37 @@ void ShaderProgram_Vulkan::LoadSeparateImage(const spirv_cross::Compiler& spvCom
 		VkDescriptorSetLayoutBinding binding = {};
 		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the image is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
 		binding.binding = spvCompiler.get_decoration(image.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
-		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
-		count++;
+		if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+		{
+			descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
+			descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+			count++;
+		}
+		else
+		{
+			descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+		}
 	}
 
 	if (count > 0)
 	{
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+		if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) == descSetCreateInfo.recordedPoolSizes.end())
+		{
+			VkDescriptorPoolSize poolSize = {};
+			poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
-		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+			descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
+			descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+		}
+		else
+		{
+			descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+		}
 	}
 }
 
@@ -747,21 +917,37 @@ void ShaderProgram_Vulkan::LoadImageSampler(const spirv_cross::Compiler& spvComp
 		VkDescriptorSetLayoutBinding binding = {};
 		binding.descriptorCount = 1;
 		binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the combined sampler is bind with multiple shader stages
+		binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
 		binding.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
 		binding.pImmutableSamplers = nullptr;
 
-		descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
-		count++;
+		if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+		{
+			descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
+			descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+			count++;
+		}
+		else // Update stage flags
+		{
+			descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+		}
 	}
 
 	if (count > 0)
 	{
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+		if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
+		{
+			VkDescriptorPoolSize poolSize = {};
+			poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
-		descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+			descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
+			descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+		}
+		else
+		{
+			descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+		}
 	}
 }
 
@@ -794,14 +980,8 @@ void ShaderProgram_Vulkan::AllocateDescriptorSet(uint32_t count)
 	assert(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
 
 	std::vector<VkDescriptorSetLayout> layouts(count, *m_pDescriptorSetLayout->GetDescriptorSetLayout());
-	std::vector<VkDescriptorSet> newDescSets;
 
-	m_pDescriptorPool->AllocateDescriptorSets(layouts, newDescSets);
-
-	for (auto& descSet : newDescSets)
-	{
-		m_descriptorSets.emplace_back(descSet);
-	}
+	m_pDescriptorPool->AllocateDescriptorSets(layouts, m_descriptorSets);
 }
 
 void ShaderProgram_Vulkan::UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos)
@@ -956,7 +1136,7 @@ VkShaderStageFlagBits ShaderProgram_Vulkan::ShaderTypeConvertToStageBits(EShader
 		break;
 	}
 
-	return VK_SHADER_STAGE_VERTEX_BIT; // Alert: returning unhandled stage as vertex stage could cause problem
+	return VK_SHADER_STAGE_ALL_GRAPHICS;
 }
 
 GraphicsPipeline_Vulkan::GraphicsPipeline_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const std::shared_ptr<ShaderProgram_Vulkan> pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo)
@@ -1065,10 +1245,10 @@ PipelineRasterizationState_Vulkan::PipelineRasterizationState_Vulkan(const Pipel
 	m_pipelineRasterizationStateCreateInfo = {};
 	m_pipelineRasterizationStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	m_pipelineRasterizationStateCreateInfo.depthClampEnable = createInfo.enableDepthClamp ? VK_TRUE : VK_FALSE;
-	m_pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = VK_TRUE;
+	m_pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = createInfo.discardRasterizerResults ? VK_TRUE : VK_FALSE;
 	m_pipelineRasterizationStateCreateInfo.polygonMode = VulkanPolygonMode(createInfo.polygonMode);
 	m_pipelineRasterizationStateCreateInfo.cullMode = VulkanCullMode(createInfo.cullMode);
-	m_pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE; // TODO: configure this in create info
+	m_pipelineRasterizationStateCreateInfo.frontFace = createInfo.frontFaceCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE;
 	m_pipelineRasterizationStateCreateInfo.depthBiasEnable = VK_FALSE;
 	m_pipelineRasterizationStateCreateInfo.lineWidth = 1.0f;
 }
@@ -1115,9 +1295,9 @@ PipelineViewportState_Vulkan::PipelineViewportState_Vulkan(const PipelineViewpor
 {
 	m_viewport = {};
 	m_viewport.x = 0.0f;
-	m_viewport.y = 0.0f;
+	m_viewport.y = (float)createInfo.height; // Flipping the viewport in compatibility with OpenGL coordinate system
 	m_viewport.width = (float)createInfo.width;
-	m_viewport.height = (float)createInfo.height;
+	m_viewport.height = -(float)createInfo.height;
 	m_viewport.minDepth = 0.0f;
 	m_viewport.maxDepth = 1.0f;
 

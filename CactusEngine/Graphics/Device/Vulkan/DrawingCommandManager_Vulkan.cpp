@@ -21,15 +21,13 @@ DrawingCommandBuffer_Vulkan::~DrawingCommandBuffer_Vulkan()
 		assert(m_pSyncObjectManager != nullptr);
 
 		// Alert: freeing the semaphores here may result in conflicts
-		while (!m_waitSemaphores.empty())
+		for (auto& pSemaphore : m_waitSemaphores)
 		{
-			m_pSyncObjectManager->ReturnSemaphore(m_waitSemaphores.front());
-			m_waitSemaphores.pop();
+			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
 		}
-		while (!m_signalSemaphores.empty())
+		for (auto& pSemaphore : m_signalSemaphores)
 		{
-			m_pSyncObjectManager->ReturnSemaphore(m_signalSemaphores.front());
-			m_signalSemaphores.pop();
+			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
 		}
 	}
 	else
@@ -88,7 +86,7 @@ void DrawingCommandBuffer_Vulkan::BeginRenderPass(const VkRenderPass renderPass,
 	passBeginInfo.renderPass = renderPass;
 	passBeginInfo.renderArea.offset = areaOffset;
 	passBeginInfo.renderArea.extent = areaExtent;
-
+	passBeginInfo.framebuffer = frameBuffer;
 	passBeginInfo.clearValueCount = (uint32_t)clearValues.size();
 	passBeginInfo.pClearValues = clearValues.data();
 
@@ -113,10 +111,18 @@ void DrawingCommandBuffer_Vulkan::UpdatePushConstant(const VkShaderStageFlags sh
 	vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
 }
 
-void DrawingCommandBuffer_Vulkan::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<VkDescriptorSet>& descriptorSets, uint32_t firstSet)
+void DrawingCommandBuffer_Vulkan::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>>& descriptorSets, uint32_t firstSet)
 {
 	assert(m_isRecording);
-	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, m_pipelineLayout, firstSet, (uint32_t)descriptorSets.size(), descriptorSets.data(), 0, nullptr);
+
+	std::vector<VkDescriptorSet> setHandles;
+	for (auto& pSet : descriptorSets)
+	{
+		m_boundDescriptorSets.push(pSet);
+		setHandles.emplace_back(pSet->m_descriptorSet);
+	}
+
+	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, m_pipelineLayout, firstSet, (uint32_t)setHandles.size(), setHandles.data(), 0, nullptr);
 	// Alert: dynamic offset is not handled
 }
 
@@ -145,7 +151,7 @@ void DrawingCommandBuffer_Vulkan::EndRenderPass()
 	m_inRenderPass = false;
 }
 
-void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, EShaderType shaderStage)
+void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
 {
 	assert(m_isRecording);
 
@@ -160,21 +166,46 @@ void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = pImage->m_layout;
 	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Alert: Queue ownership transfer is not performed
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Queue ownership transfer is not performed
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = pImage->m_image;
 
-	if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+	// Determine new aspect mask
+	switch (newLayout)
+	{
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+	case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+	case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 		if (HasStencilComponent_VK(pImage->m_format))
 		{
 			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 		}
+		break;
 	}
-	else
+	case VK_IMAGE_LAYOUT_GENERAL:
+	{
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		break;
+	}
+	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
 	{
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		break;
+	}
+	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+	{
+		barrier.subresourceRange.aspectMask = pImage->m_aspect;
+		break;
+	}
+	default:
+		std::cerr << "Vulkan: Unhandled image layout: " << newLayout << std::endl;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 
 	barrier.subresourceRange.baseMipLevel = 0;
@@ -184,15 +215,16 @@ void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2
 
 	VkPipelineStageFlags srcStage, dstStage;
 
-	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, shaderStage);
-	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, shaderStage);
+	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
+	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
 
 	pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
+	pImage->m_appliedStages = appliedStages;
 }
 
-void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage)
+void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
 {
 #if defined(_DEBUG)
 	// Check whether linear blitting on given image's format is supported
@@ -200,6 +232,8 @@ void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulka
 	vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
 	assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
 #endif
+
+	assert(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -217,19 +251,15 @@ void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulka
 	for (uint32_t i = 1; i < pImage->m_mipLevels; i++)
 	{
 		barrier.subresourceRange.baseMipLevel = i - 1;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.oldLayout = pImage->m_layout;
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-		vkCmdPipelineBarrier(m_commandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0, 
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
+		VkPipelineStageFlags srcStage, dstStage;
+
+		GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
+		GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.dstAccessMask, dstStage, 0);
+
+		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 		VkImageBlit blitRegion = {};
 		blitRegion.srcOffsets[0] = { 0, 0, 0 };
@@ -245,25 +275,18 @@ void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulka
 		blitRegion.dstSubresource.baseArrayLayer = 0;
 		blitRegion.dstSubresource.layerCount = 1;
 
-		vkCmdBlitImage(m_commandBuffer,
-			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1, &blitRegion, 
-			VK_FILTER_LINEAR);
+		vkCmdBlitImage(m_commandBuffer, 
+			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+			pImage->m_image, pImage->m_layout, 
+			1, &blitRegion, VK_FILTER_LINEAR);
 
 		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		barrier.newLayout = newLayout;
 
-		vkCmdPipelineBarrier(m_commandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Alert: cannot guarantee that the texture would only be sampled in fragment shader, better pass in as parameter
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
+		GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.srcAccessMask, srcStage, 0);
+		GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
+
+		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 		if (mipWidth > 1)
 		{
@@ -276,19 +299,18 @@ void DrawingCommandBuffer_Vulkan::GenerateMipmap(std::shared_ptr<Texture2D_Vulka
 	}
 
 	barrier.subresourceRange.baseMipLevel = pImage->m_mipLevels - 1;
-	barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	barrier.oldLayout = pImage->m_layout;
+	barrier.newLayout = newLayout;
 
-	vkCmdPipelineBarrier(m_commandBuffer,
-		VK_PIPELINE_STAGE_TRANSFER_BIT,
-		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // Alert: cannot guarantee that the texture would only be sampled in fragment shader, better pass in as parameter
-		0,
-		0, nullptr,
-		0, nullptr,
-		1, &barrier
-	);
+	VkPipelineStageFlags srcStage, dstStage;
+
+	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
+	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
+
+	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+	pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
+	pImage->m_appliedStages = appliedStages;
 }
 
 void DrawingCommandBuffer_Vulkan::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region)
@@ -305,24 +327,23 @@ void DrawingCommandBuffer_Vulkan::CopyBufferToTexture2D(const std::shared_ptr<Ra
 
 void DrawingCommandBuffer_Vulkan::WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
 {
-	m_waitSemaphores.push(pSemaphore);
+	m_waitSemaphores.emplace_back(pSemaphore);
 }
 
 void DrawingCommandBuffer_Vulkan::SignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
 {
-	m_signalSemaphores.push(pSemaphore);
+	m_signalSemaphores.emplace_back(pSemaphore);
 }
 
 DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
-	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE), m_waitFrameFenceSubmission(false)
+	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE)
 {
-	m_frameFenceLock = std::unique_lock<std::mutex>(m_frameFenceMutex, std::defer_lock);
-	m_frameFenceLock.lock();
+	CreateCommandPool();
+
+	m_isRunning = true;
 
 	m_commandBufferSubmissionThread = std::thread(&DrawingCommandManager_Vulkan::SubmitCommandBufferAsync, this);
 	m_commandBufferRecycleThread = std::thread(&DrawingCommandManager_Vulkan::RecycleCommandBufferAsync, this);
-
-	m_isRunning = true;
 }
 
 DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
@@ -337,12 +358,6 @@ void DrawingCommandManager_Vulkan::Destroy()
 {
 	m_isRunning = false;
 	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
-}
-
-void DrawingCommandManager_Vulkan::WaitFrameFenceSubmission()
-{
-	m_waitFrameFenceSubmission = true;
-	m_frameFenceCv.wait(m_frameFenceLock);
 }
 
 EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
@@ -367,8 +382,10 @@ std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandManager_Vulkan::Reque
 	return pCommandBuffer;
 }
 
-void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
+void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence)
 {
+	assert(pFence != nullptr);
+
 	std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> inUseBuffers;
 	m_inUseCommandBuffers.TryPopAll(inUseBuffers);
 
@@ -400,21 +417,21 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
 		}
 
 		pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
+		pSubmitInfo->queuedCmdBuffers.push(ptrCopy);
 
-		while (!ptrCopy->m_signalSemaphores.empty())
+		for (auto& pSemaphore : ptrCopy->m_signalSemaphores)
 		{
-			pSubmitInfo->semaphoresToSignal.emplace_back(ptrCopy->m_signalSemaphores.front()->semaphore);
-			ptrCopy->m_signalSemaphores.pop();
+			pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
 		}
 
-		while (!ptrCopy->m_waitSemaphores.empty())
+		for (auto & pSemaphore : ptrCopy->m_waitSemaphores)
 		{
-			pSubmitInfo->semaphoresToWait.emplace_back(ptrCopy->m_waitSemaphores.front()->semaphore);
-			pSubmitInfo->waitStages.emplace_back(ptrCopy->m_waitSemaphores.front()->waitStage);
-			ptrCopy->m_waitSemaphores.pop();
+			pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
+			pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
 		}
 
-		m_inExecutionCommandBuffers.Push(ptrCopy);
+		ptrCopy->m_pAssociatedFence = pFence;
+
 		inUseBuffers.pop();
 	}
 	
@@ -428,9 +445,7 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(VkFence fence)
 	pSubmitInfo->submitInfo.pWaitSemaphores = pSubmitInfo->semaphoresToWait.data();
 	pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
 
-	pSubmitInfo->fence = fence;
-	pSubmitInfo->waitFrameFenceSubmission = m_waitFrameFenceSubmission;
-	m_waitFrameFenceSubmission = false;
+	pSubmitInfo->fence = pFence == nullptr ? VK_NULL_HANDLE : pFence->fence;
 
 	m_commandSubmissionQueue.Push(pSubmitInfo);
 }
@@ -512,32 +527,22 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 {
 	std::shared_ptr<CommandSubmitInfo_Vulkan> pCommandSubmitInfo;
-	bool shouldRecycle = false;
 
 	while (m_isRunning)
 	{
-		shouldRecycle = false;
-		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
+		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo)) // TODO: put the thread to sleep when no submission has arrived
 		{
 			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
 
-			if (pCommandSubmitInfo->waitFrameFenceSubmission)
+			while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
 			{
-				m_frameFenceCv.notify_all();
+				std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
+				m_inExecutionCommandBuffers.Push(ptrCopy);
+				pCommandSubmitInfo->queuedCmdBuffers.pop();
 			}
 
-			if (pCommandSubmitInfo->initRecycle)
-			{
-				shouldRecycle = true;
-			}
-
-			pCommandSubmitInfo->Clear();
-
-			if (shouldRecycle)
-			{
-				m_commandBufferRecycleFlag.AssignValue(true);
-				m_commandBufferRecycleCv.notify_one();
-			}
+			m_commandBufferRecycleFlag.AssignValue(true);
+			m_commandBufferRecycleCv.notify_one();
 
 			std::this_thread::yield();
 		}
@@ -584,17 +589,29 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 						pCmdBuffer->m_inExecution = false;
 						m_freeCommandBuffers.Push(pCmdBuffer);
 
-						while (!pCmdBuffer->m_waitSemaphores.empty())
+						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
 						{
-							m_pDevice->pSyncObjectManager->ReturnSemaphore(pCmdBuffer->m_waitSemaphores.front());
-							pCmdBuffer->m_waitSemaphores.pop();
+							m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
+						}
+						pCmdBuffer->m_waitSemaphores.clear();
+						pCmdBuffer->m_signalSemaphores.clear();
+
+						while (!pCmdBuffer->m_boundDescriptorSets.empty())
+						{
+							pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse.AssignValue(false);
+							pCmdBuffer->m_boundDescriptorSets.pop();
 						}
 					}
+
 					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
+					fenceMap.first->Notify();				
 				}
 				else
 				{
 					throw std::runtime_error("Vulkan: command execution timeout.");
+
+					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
+					fenceMap.first->Notify();
 				}
 				fenceMap.second.clear();
 			}

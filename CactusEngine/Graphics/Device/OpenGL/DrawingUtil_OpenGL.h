@@ -53,6 +53,8 @@ namespace Engine
 			return GL_RGBA32F;
 		case ETextureFormat::Depth:
 			return GL_DEPTH_COMPONENT32F;
+		case ETextureFormat::RGBA8_SRGB:
+			return GL_SRGB8_ALPHA8;
 		default:
 			std::cerr << "Unhandled OpenGL format." << std::endl;
 			break;
@@ -66,6 +68,7 @@ namespace Engine
 		{
 		case GL_RGBA32F:
 		case GL_RGBA16F:
+		case GL_SRGB8_ALPHA8:
 			return GL_RGBA;
 		case GL_DEPTH_COMPONENT24:
 		case GL_DEPTH_COMPONENT32F:
@@ -97,9 +100,9 @@ namespace Engine
 		switch (type)
 		{
 		case EDataType::Float32:
-			return 4;
+			return 16;
 		case EDataType::UByte:
-			return 1;
+			return 4;
 		default:
 			std::cerr << "Unhandled OpenGL data type." << std::endl;
 			break;

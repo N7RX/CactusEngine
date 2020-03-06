@@ -106,9 +106,17 @@ namespace Engine
 
 	enum class ETextureFormat
 	{
+		// For texture
 		RGBA32F = 0,
 		Depth,
+		RGBA8_SRGB,
+		BGRA8_UNORM,
 		UNDEFINED,
+
+		// For attribute input
+		RGB32F,
+		RG32F,
+
 		COUNT
 	};
 
@@ -242,6 +250,7 @@ namespace Engine
 	enum class EDescriptorType
 	{
 		UniformBuffer = 0,
+		SubUniformBuffer, // Only for descriptor set update, does not exist in shader
 		UniformTexelBuffer,
 		SampledImage,
 		Sampler,

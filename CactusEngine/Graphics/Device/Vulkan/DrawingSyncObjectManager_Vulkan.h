@@ -27,12 +27,18 @@ namespace Engine
 	{
 	public:
 		DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t assignedID);
+		void Wait(); // This would stall the thread until the fence is hit and recycled
+		void Notify();
 
 	public:
 		VkFence fence;
 
 	private:
 		uint32_t id;
+		std::mutex m_fenceMutex;
+		std::unique_lock<std::mutex> m_fenceLock;
+		std::condition_variable m_fenceCv;
+
 		friend class DrawingSyncObjectManager_Vulkan;
 	};
 

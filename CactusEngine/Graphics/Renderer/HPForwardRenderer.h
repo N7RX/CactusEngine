@@ -20,9 +20,11 @@ namespace Engine
 	private:
 		void BuildRenderResources();
 
-		void CreateFrameResources();
-		void TransitionResourceLayouts();
+		void CreateFrameTextures();
+		void TransitionImageLayouts();
 		void CreateRenderPassObjects();
+		void CreateFrameBuffers();
+		void CreateUniformBuffers();
 		void CreatePipelineObjects();
 
 		void BuildShadowMapPass();
@@ -36,7 +38,15 @@ namespace Engine
 
 		void CreateLineDrawingMatrices();
 
+		void ResetUniformBufferSubAllocation();
+
 	private:
+
+		// Uniform buffers use subresgions from a large buffer
+
+		const uint32_t MAX_UNIFORM_SUB_ALLOCATION = 1024;
+		const uint32_t MIN_UNIFORM_SUB_ALLOCATION = 32;
+
 		// Graphics pipelines are organized by ShaderProgram-PassName identifier
 
 		typedef std::unordered_map<const char*, std::shared_ptr<GraphicsPipelineObject>> PassGraphicsPipeline;
@@ -87,9 +97,11 @@ namespace Engine
 		std::shared_ptr<RenderPassObject>	m_pBlendRenderPassObject;
 
 		std::shared_ptr<FrameBuffer>		m_pDOFPassFrameBuffer_Horizontal;
-		std::shared_ptr<SwapchainFrameBuffers> m_pDOFPassPresentFrameBuffers;
 		std::shared_ptr<Texture2D>			m_pDOFPassHorizontalOutput;
 		std::shared_ptr<RenderPassObject>	m_pDOFRenderPassObject;
+
+		std::shared_ptr<SwapchainFrameBuffers> m_pPresentFrameBuffers;
+		std::shared_ptr<RenderPassObject>	m_pPresentRenderPassObject;
 
 		// Extra input resources
 
@@ -118,6 +130,7 @@ namespace Engine
 		static const char* PASSNAME_TRANSPARENT = "TransparentPass";
 		static const char* PASSNAME_BLEND = "BlendPass";
 		static const char* PASSNAME_DOF = "DOFPass";
+		static const char* PASSNAME_PRESENT = "PresentPass";
 
 		static const char* NODE_SHADOWMAP = "ShadowMapNode";
 		static const char* NODE_NORMALONLY = "NormalOnlyNode";
@@ -169,10 +182,12 @@ namespace Engine
 		static const char* TX_BLEND_COLOR = "BlendColor";
 		static const char* TX_BLEND_RPO = "BlendRPO";
 
-		static const char* FB_DOF_HORI = "DOFFrameBuffer_Horizontal";
-		static const char* FB_DOF_FIN = "DOFFrameBuffer_Final";
+		static const char* FB_DOF_HORI = "DOFFrameBuffer_Horizontal";	
 		static const char* TX_DOF_HORIZONTAL = "DOFHorizontal";
 		static const char* RPO_DOF = "DOFRPO";
+
+		static const char* FB_PRESENT = "PresentFrameBuffer";
+		static const char* RPO_PRESENT = "PresentFrameRPO";
 
 		static const char* TX_BRUSH_MASK_TEXTURE_1 = "BrushMask_1";
 		static const char* TX_BRUSH_MASK_TEXTURE_2 = "BrushMask_2";

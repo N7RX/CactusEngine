@@ -1,5 +1,5 @@
 # Cactus Engine
-A tiny ECS engine based on Vulkan and OpenGL. 
+A tiny ECS rendering engine based on Vulkan and OpenGL. 
 *(You will feel like grabbing a cactus when using this engine.)*<br/>
 <br/>
 <img src="/README_pix/Screenshot_0.png" width="640" height="360">
@@ -7,14 +7,15 @@ A tiny ECS engine based on Vulkan and OpenGL.
 This project is working in progress.<br/><br/>Completed parts include:
 
 - Fundamental ECS
-- Basic drawing (OpenGL)
 - Multi-pass forward rendering (OpenGL)
+- Multi-pass forward rendering (Vulkan)
 - Scene saving and reading with JSON file
 
 Currently working on:
 
-* Basic drawing (Vulkan) 
+* Heterogeneous-GPU rendering (Vulkan) 
 * Render Graph (Vulkan)
+* ImGui support under Vulkan
 
 <br/>
 

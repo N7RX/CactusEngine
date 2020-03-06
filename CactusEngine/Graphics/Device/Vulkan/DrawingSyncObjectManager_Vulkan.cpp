@@ -13,13 +13,25 @@ DrawingSemaphore_Vulkan::DrawingSemaphore_Vulkan(const VkSemaphore& semaphoreHan
 DrawingFence_Vulkan::DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t assignedID)
 	: fence(fenceHandle), id(assignedID)
 {
+	m_fenceLock = std::unique_lock<std::mutex>(m_fenceMutex, std::defer_lock);
+	m_fenceLock.lock();
+}
 
+void DrawingFence_Vulkan::Wait()
+{
+	m_fenceCv.wait(m_fenceLock);
+}
+
+void DrawingFence_Vulkan::Notify()
+{
+	m_fenceCv.notify_all();
 }
 
 DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
 	: m_pDevice(pDevice)
 {
-
+	CreateNewSemaphore(8); // TODO: adjust the initial count based on usage scenario
+	CreateNewFence(4);
 }
 
 DrawingSyncObjectManager_Vulkan::~DrawingSyncObjectManager_Vulkan()
@@ -82,6 +94,7 @@ void DrawingSyncObjectManager_Vulkan::ReturnSemaphore(std::shared_ptr<DrawingSem
 
 void DrawingSyncObjectManager_Vulkan::ReturnFence(std::shared_ptr<DrawingFence_Vulkan> pFence)
 {
+	vkResetFences(m_pDevice->logicalDevice, 1, &pFence->fence);
 	m_fenceAvailability.at(pFence->id) = true;
 }
 
@@ -127,6 +140,11 @@ bool DrawingSyncObjectManager_Vulkan::CreateNewFence(uint32_t count, bool signal
 			uint32_t newID = static_cast<uint32_t>(m_fencePool.size()); // We use current pool size as assigned ID
 			m_fencePool.emplace_back(std::make_shared<DrawingFence_Vulkan>(newFence, newID));
 			m_fenceAvailability.emplace(newID, true);			
+		}
+		else
+		{
+			throw std::runtime_error("Vulkan: Failed to create new fence.");
+			return false;
 		}
 	}
 

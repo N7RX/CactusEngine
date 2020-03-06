@@ -41,7 +41,17 @@ void InputSystem::FrameBegin()
 
 void InputSystem::Tick()
 {
-
+	// TODO: remove this temporary workaround
+	static bool pressedF = false;
+	if (glfwGetKey(m_pGLFWWindow, GLFW_KEY_F) == GLFW_PRESS)
+	{
+		pressedF = true;
+	}
+	else if (pressedF && glfwGetKey(m_pGLFWWindow, GLFW_KEY_F) == GLFW_RELEASE)
+	{
+		std::cout << "FPS: " << Timer::GetAverageFPS() << std::endl;
+		pressedF = false;
+	}
 }
 
 void InputSystem::FrameEnd()

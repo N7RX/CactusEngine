@@ -11,7 +11,7 @@ layout(location = 6) in mat3 v2fTBNMatrix;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outShadow;
 
-layout(std140, binding = 0) uniform TransformMatrices
+layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
 	mat4 ViewMatrix;
@@ -24,14 +24,14 @@ layout(binding = 5) uniform sampler2D GNormalTexture;
 layout(binding = 8) uniform sampler2D ToneTexture;
 layout(binding = 0) uniform sampler2D ShadowMapDepthTexture;
 
-layout(std140, binding = 2) uniform MaterialNumericalProperties
+layout(std140, binding = 16) uniform MaterialNumericalProperties
 {
 	vec4  AlbedoColor;
 	float Anisotropy;
 	float Roughness;
 };
 
-layout(std140, binding = 3) uniform CameraProperties
+layout(std140, binding = 17) uniform CameraProperties
 {
 	vec3  CameraPosition;
 	float Aperture;
