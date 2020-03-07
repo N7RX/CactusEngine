@@ -159,8 +159,8 @@ bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	// TODO: use staging pool for discrete device and CPU_TO_GPU for integrated device
 
 	RawBufferCreateInfo_Vulkan vertexBufferCreateInfo = {};
-	vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-	vertexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	vertexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 	vertexBufferCreateInfo.size = sizeof(float) * createInfo.positionDataCount
 		+ sizeof(float) * createInfo.normalDataCount
 		+ sizeof(float) * createInfo.texcoordDataCount
@@ -169,8 +169,8 @@ bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	vertexBufferCreateInfo.stride = createInfo.interleavedStride * sizeof(float);
 
 	RawBufferCreateInfo_Vulkan indexBufferCreateInfo = {};
-	indexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-	indexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+	indexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	indexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 	indexBufferCreateInfo.size = sizeof(int) * createInfo.indexDataCount;
 	indexBufferCreateInfo.indexFormat = VK_INDEX_TYPE_UINT32;
 
@@ -182,13 +182,45 @@ bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& crea
 	void* ppIndexData;
 	void* ppVertexData;
 
-	m_pDevice_0->pUploadAllocator->MapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetIndexBufferImpl()->m_allocation, &ppIndexData);
-	memcpy(ppIndexData, createInfo.pIndexData, indexBufferCreateInfo.size);
-	m_pDevice_0->pUploadAllocator->UnmapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetIndexBufferImpl()->m_allocation);
+	RawBufferCreateInfo_Vulkan vertexStagingBufferCreateInfo = {};
+	vertexStagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	vertexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
+	vertexStagingBufferCreateInfo.size = vertexBufferCreateInfo.size;
 
-	m_pDevice_0->pUploadAllocator->MapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetBufferImpl()->m_allocation, &ppVertexData);
+	auto pVertexStagingBuffer = std::make_shared<RawBuffer_Vulkan>(m_pDevice_0, vertexStagingBufferCreateInfo);
+
+	m_pDevice_0->pUploadAllocator->MapMemory(pVertexStagingBuffer->m_allocation, &ppVertexData);
 	memcpy(ppVertexData, interleavedVertices.data(), vertexBufferCreateInfo.size);
-	m_pDevice_0->pUploadAllocator->UnmapMemory(std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetBufferImpl()->m_allocation);
+	m_pDevice_0->pUploadAllocator->UnmapMemory(pVertexStagingBuffer->m_allocation);
+
+	RawBufferCreateInfo_Vulkan indexStagingBufferCreateInfo = {};
+	indexStagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	indexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
+	indexStagingBufferCreateInfo.size = indexBufferCreateInfo.size;
+
+	auto pIndexStagingBuffer = std::make_shared<RawBuffer_Vulkan>(m_pDevice_0, indexStagingBufferCreateInfo);
+
+	m_pDevice_0->pUploadAllocator->MapMemory(pIndexStagingBuffer->m_allocation, &ppIndexData);
+	memcpy(ppIndexData, createInfo.pIndexData, indexBufferCreateInfo.size);
+	m_pDevice_0->pUploadAllocator->UnmapMemory(pIndexStagingBuffer->m_allocation);
+
+	auto pCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+
+	VkBufferCopy vertexBufferCopyRegion = {};
+	vertexBufferCopyRegion.srcOffset = 0;
+	vertexBufferCopyRegion.dstOffset = 0;
+	vertexBufferCopyRegion.size = vertexBufferCreateInfo.size;
+
+	pCmdBuffer->CopyBufferToBuffer(pVertexStagingBuffer, std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetBufferImpl(), vertexBufferCopyRegion);
+
+	VkBufferCopy indexBufferCopyRegion = {};
+	indexBufferCopyRegion.srcOffset = 0;
+	indexBufferCopyRegion.dstOffset = 0;
+	indexBufferCopyRegion.size = indexBufferCreateInfo.size;
+
+	pCmdBuffer->CopyBufferToBuffer(pIndexStagingBuffer, std::static_pointer_cast<VertexBuffer_Vulkan>(pOutput)->GetIndexBufferImpl(), indexBufferCopyRegion);
+
+	m_pDevice_0->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 
 	return true;
 }

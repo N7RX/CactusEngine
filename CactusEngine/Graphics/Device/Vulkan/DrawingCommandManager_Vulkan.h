@@ -169,11 +169,14 @@ namespace Engine
 
 		// Async command submission
 		std::thread m_commandBufferSubmissionThread;
+		std::mutex m_commandBufferSubmissionMutex;
+		std::condition_variable m_commandBufferSubmissionCv;
+		SafeBool m_commandBufferSubmissionFlag;
 
 		// Asyn command buffer recycle
 		std::thread m_commandBufferRecycleThread;
 		std::mutex m_commandBufferRecycleMutex;
 		std::condition_variable m_commandBufferRecycleCv;
-		SafeBool m_commandBufferRecycleFlag;		
+		SafeBool m_commandBufferRecycleFlag;
 	};
 }

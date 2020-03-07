@@ -80,18 +80,22 @@ void GLFWWindow::Initialize()
 		glfwSwapInterval(0);
 	}
 
+#if defined(_DEBUG) // To ensure same performance baseline before ImGui support is implemented for Vulkan device
 	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
 	{
 		InitImGui(m_pGLFWWindowHandle);
 	}
+#endif
 }
 
 void GLFWWindow::Tick()
 {
+#if defined(_DEBUG)
 	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
 	{
 		DrawImGui();
 	}
+#endif
 
 	m_shouldQuit = glfwWindowShouldClose(m_pGLFWWindowHandle);
 	glfwSwapBuffers(m_pGLFWWindowHandle);

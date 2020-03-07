@@ -372,7 +372,7 @@ std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandManager_Vulkan::Reque
 	if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
 	{
 		AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
-		m_freeCommandBuffers.TryPop(pCommandBuffer);
+		m_freeCommandBuffers.TryPop(pCommandBuffer); // Alert: it will be incorrect if multiple threads are calling this function
 	}
 	
 	m_inUseCommandBuffers.Push(pCommandBuffer);
@@ -448,6 +448,9 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 	pSubmitInfo->fence = pFence == nullptr ? VK_NULL_HANDLE : pFence->fence;
 
 	m_commandSubmissionQueue.Push(pSubmitInfo);
+
+	m_commandBufferSubmissionFlag.AssignValue(true);
+	m_commandBufferSubmissionCv.notify_one();
 }
 
 void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
@@ -526,11 +529,22 @@ bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 
 void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 {
+	std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex, std::defer_lock);
 	std::shared_ptr<CommandSubmitInfo_Vulkan> pCommandSubmitInfo;
 
+	lock.lock();
+	bool submissionFlag = false;
+
 	while (m_isRunning)
-	{
-		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo)) // TODO: put the thread to sleep when no submission has arrived
+	{		
+		m_commandBufferSubmissionFlag.GetValue(submissionFlag);
+		if (!submissionFlag) // Check if there is any submission notification during last recycle
+		{
+			m_commandBufferSubmissionCv.wait(lock);
+		}
+		m_commandBufferSubmissionFlag.AssignValue(false);
+
+		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
 		{
 			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
 
@@ -555,8 +569,8 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 	std::unordered_map<std::shared_ptr<DrawingFence_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceMappings;
 
 	lock.lock(); // If the mutex object is not initially locked when waited, it would cause undefined behavior
-
 	bool recycleFlag = false;
+
 	while (m_isRunning)
 	{
 		m_commandBufferRecycleFlag.GetValue(recycleFlag);
@@ -568,7 +582,7 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 
 		std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> inExecutionCmdBufferQueue;
 		m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
-		while (!inExecutionCmdBufferQueue.empty())
+		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by fence
 		{
 			std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inExecutionCmdBufferQueue.front();
 			assert(ptrCopy->m_pAssociatedFence);
