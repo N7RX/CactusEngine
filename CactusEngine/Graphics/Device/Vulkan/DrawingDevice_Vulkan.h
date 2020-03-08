@@ -23,12 +23,11 @@ namespace Engine
 		DrawingCommandQueue_Vulkan copyQueue;
 		std::shared_ptr<DrawingCommandManager_Vulkan> pCopyCommandManager;
 #endif
-
 		std::shared_ptr<DrawingUploadAllocator_Vulkan>		pUploadAllocator;
 		std::shared_ptr<DrawingDescriptorAllocator_Vulkan>	pDescriptorAllocator;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan>	pSyncObjectManager;
 
-		std::shared_ptr<DrawingCommandBuffer_Vulkan> pWorkingCmdBuffer;
+		std::shared_ptr<DrawingCommandBuffer_Vulkan>		pImplicitCmdBuffer; // Command buffer used implicitly inside drawing device
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice
@@ -77,10 +76,11 @@ namespace Engine
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
 		void SetClearColor(Color4 color) override;
 		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
-		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) override;
-		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) override;
-		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) override;
-		void DrawFullScreenQuad() override;
+
+		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
+		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
+		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
+		void DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
 		EGraphicsDeviceType GetDeviceType() const override;
@@ -88,6 +88,10 @@ namespace Engine
 		// Low-level functions exclusive to Vulkan device
 		void SetupDevice();
 		std::shared_ptr<LogicalDevice_Vulkan> GetLogicalDevice(EGPUType type) const;
+
+		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType) override;
+		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
+		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
 		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) override;
@@ -100,15 +104,17 @@ namespace Engine
 		bool CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput) override;
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) override;
 
-		void SwitchCmdGPUContext(EGPUType type) override;
 		void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) override;
 		void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) override;
 		void ResizeSwapchain(uint32_t width, uint32_t height) override;
-		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) override;
-		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
-		void EndRenderPass() override;
+
+		void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+
 		void Present() override;	
-		void FlushCommands(bool waitExecution) override;
+		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 
 		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
@@ -168,7 +174,6 @@ namespace Engine
 		std::vector<const char*> m_requiredExtensions;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
-		EGPUType m_cmdGPUType;
 		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
 		unsigned int m_currentFrame;
 

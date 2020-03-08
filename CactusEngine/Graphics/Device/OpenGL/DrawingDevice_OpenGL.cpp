@@ -265,7 +265,7 @@ void DrawingDevice_OpenGL::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 	}
 }
 
-void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
+void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	auto pProgram = std::static_pointer_cast<ShaderProgram_OpenGL>(pShaderProgram);
 
@@ -277,7 +277,7 @@ void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 	}
 }
 
-void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer)
+void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	if (!pVertexBuffer)
 	{
@@ -287,12 +287,12 @@ void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> p
 	glBindVertexArray(std::static_pointer_cast<VertexBuffer_OpenGL>(pVertexBuffer)->m_vao);
 }
 
-void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
+void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	glDrawElementsBaseVertex(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
 }
 
-void DrawingDevice_OpenGL::DrawFullScreenQuad()
+void DrawingDevice_OpenGL::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	// This has to be used with FullScreenQuad shader
 	glBindVertexArray(m_attributeless_vao);
@@ -308,6 +308,23 @@ void DrawingDevice_OpenGL::ResizeViewPort(uint32_t width, uint32_t height)
 EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const
 {
 	return EGraphicsDeviceType::OpenGL;
+}
+
+std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommandPool(EGPUType deviceType)
+{
+	std::cerr << "OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.\n";
+	return nullptr;
+}
+
+std::shared_ptr<DrawingCommandBuffer> DrawingDevice_OpenGL::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
+{
+	std::cerr << "OpenGL: shouldn't call RequestCommandBuffer on OpenGL device.\n";
+	return nullptr;
+}
+
+void DrawingDevice_OpenGL::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.\n";
 }
 
 bool DrawingDevice_OpenGL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
@@ -370,11 +387,6 @@ bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 	return false;
 }
 
-void DrawingDevice_OpenGL::SwitchCmdGPUContext(EGPUType type)
-{
-	std::cerr << "OpenGL: shouldn't call SwitchCmdGPUContext on OpenGL device.\n";
-}
-
 void DrawingDevice_OpenGL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
 	std::cerr << "OpenGL: shouldn't call TransitionImageLayout on OpenGL device.\n";
@@ -390,19 +402,24 @@ void DrawingDevice_OpenGL::ResizeSwapchain(uint32_t width, uint32_t height)
 	std::cerr << "OpenGL: shouldn't call ResizeSwapchain on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline)
+void DrawingDevice_OpenGL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call BindGraphicsPipeline on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)
+void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call BeginRenderPass on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::EndRenderPass()
+void DrawingDevice_OpenGL::EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call EndRenderPass on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call EndCommandBuffer on OpenGL device.\n";
 }
 
 void DrawingDevice_OpenGL::Present()
@@ -410,7 +427,7 @@ void DrawingDevice_OpenGL::Present()
 	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::FlushCommands(bool waitExecution)
+void DrawingDevice_OpenGL::FlushCommands(bool waitExecution, bool flushImplicitCommands)
 {
 	glFlush();
 

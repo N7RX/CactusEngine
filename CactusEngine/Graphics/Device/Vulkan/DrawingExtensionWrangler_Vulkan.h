@@ -1,8 +1,7 @@
 #pragma once
 
 #define VK_USE_PLATFORM_WIN32_KHR
-//#define ENABLE_COPY_QUEUE_VK // From my previous experience at Autodesk, enabling copy queue would bring down performance unless you have huge amount of transfer tasks
-							   // Therefore, it will be disabled for now
+//#define ENABLE_COPY_QUEUE_VK // DO NOT enable this marco as copy queue has not been implemented
 //#define ENABLE_HETEROGENEOUS_GPUS_VK
 //#define ENABLE_SHADER_REFLECT_OUTPUT_VK
 

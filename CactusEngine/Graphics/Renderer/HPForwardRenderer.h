@@ -2,6 +2,8 @@
 #include "BaseRenderer.h"
 #include "RenderTexture.h"
 #include "BuiltInShaderType.h"
+#include "CommandResources.h"
+#include "SafeBasicTypes.h"
 
 namespace Engine
 {
@@ -16,6 +18,8 @@ namespace Engine
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
 
 		const std::shared_ptr<GraphicsPipelineObject> GetGraphicsPipeline(EBuiltInShaderProgramType shaderType, const char* passName) const;
+
+		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
 
 	private:
 		void BuildRenderResources();
@@ -36,6 +40,8 @@ namespace Engine
 		void BuildOpaqueTranspBlendPass();
 		void BuildDepthOfFieldPass();
 
+		void BuildRenderNodeDependencies();
+
 		void CreateLineDrawingMatrices();
 
 		void ResetUniformBufferSubAllocation();
@@ -51,6 +57,15 @@ namespace Engine
 
 		typedef std::unordered_map<const char*, std::shared_ptr<GraphicsPipelineObject>> PassGraphicsPipeline;
 		std::unordered_map<EBuiltInShaderProgramType, PassGraphicsPipeline> m_graphicsPipelines;
+
+		// Command record list
+
+		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
+		std::unordered_map<const char*, uint32_t> m_renderNodePriorities; // Render Node Name - Submit Priority
+
+		std::mutex m_commandRecordListMutex;
+		std::condition_variable m_commandRecordListCv;
+		SafeBool m_newCommandRecorded;
 
 		// Pass organized resources
 

@@ -152,11 +152,11 @@ namespace Engine
 		EUniformBufferType_Vulkan m_eType;
 		VkShaderStageFlags m_appliedShaderStage;
 
-		bool m_memoryMapped;
 		const void* m_pRawData;
 		void* m_pHostData; // Pointer to mapped host memory location
 
 		uint32_t m_subAllocatedSize;
+		mutable std::mutex m_subAllocateMutex;
 
 		friend class SubUniformBuffer_Vulkan;
 	};
@@ -386,6 +386,7 @@ namespace Engine
 		std::shared_ptr<DrawingDescriptorPool_Vulkan> m_pDescriptorPool;
 		std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>> m_descriptorSets;
 		unsigned int m_descriptorSetAccessIndex;
+		mutable std::mutex m_descriptorSetGetMutex;
 
 		std::vector<VkPipelineShaderStageCreateInfo> m_pipelineShaderStageCreateInfos;
 	};

@@ -438,6 +438,9 @@
     <ClInclude Include="Graphics\Renderer\HPForwardRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Device\CommandResources.h">
+      <Filter>Graphics\Device</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">

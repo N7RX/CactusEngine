@@ -3,6 +3,7 @@
 #include "Global.h"
 #include "BasicMathTypes.h"
 #include "NoCopy.h"
+#include "CommandResources.h"
 #include <memory>
 
 namespace Engine
@@ -29,15 +30,22 @@ namespace Engine
 		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
 		virtual void SetClearColor(Color4 color) = 0;
 		virtual void SetBlendState(const DeviceBlendStateInfo& blendInfo) = 0;
-		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable) = 0;
-		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer) = 0;
-		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex) = 0;
-		virtual void DrawFullScreenQuad() = 0;
+
+		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
+		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
+		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
+		virtual void DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
 		virtual EGraphicsDeviceType GetDeviceType() const = 0;
 
 		// For low-level devices, e.g. Vulkan
+
+		// For multithreading
+		virtual std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType) = 0;
+		virtual std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) = 0;
+		virtual void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+
 		virtual bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) = 0;
 		virtual bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) = 0;
 		virtual bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput) = 0;
@@ -49,15 +57,17 @@ namespace Engine
 		virtual bool CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput) = 0;
 		virtual bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput) = 0;
 
-		virtual void SwitchCmdGPUContext(EGPUType type) = 0; // TODO: remove this function
 		virtual void TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void ResizeSwapchain(uint32_t width, uint32_t height) = 0;
-		virtual void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline) = 0;
-		virtual void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
-		virtual void EndRenderPass() = 0;
+
+		virtual void BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+
 		virtual void Present() = 0;
-		virtual void FlushCommands(bool waitExecution) = 0;
+		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands) = 0;
 
 		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const = 0;
 		virtual void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const = 0;

@@ -14,11 +14,12 @@ using namespace Engine;
 HPForwardRenderer::HPForwardRenderer(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem)
 	: BaseRenderer(ERendererType::Forward, pDevice, pSystem)
 {
+
 }
 
 void HPForwardRenderer::BuildRenderGraph()
 {
-	m_pRenderGraph = std::make_shared<RenderGraph>();
+	m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice);
 
 	BuildRenderResources();
 
@@ -30,6 +31,8 @@ void HPForwardRenderer::BuildRenderGraph()
 	BuildTransparentPass();
 	BuildOpaqueTranspBlendPass();
 	BuildDepthOfFieldPass();
+
+	BuildRenderNodeDependencies();
 }
 
 void HPForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera)
@@ -39,14 +42,48 @@ void HPForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLi
 		return;
 	}
 
-	ResetUniformBufferSubAllocation();
-
 	auto pContext = std::make_shared<RenderContext>();
 	pContext->pCamera = pCamera;
 	pContext->pDrawList = &drawList;
 	pContext->pRenderer = this;
 
-	m_pRenderGraph->BeginRenderPasses(pContext);
+	ResetUniformBufferSubAllocation();
+
+	m_pRenderGraph->BeginRenderPassesParallel(pContext);
+
+	// Submit async recorded command buffers by correct sequence
+
+	unsigned int finishedNodeCount = 0;
+
+	while (finishedNodeCount < 8) // TODO: change this condition value according to actual node count
+	{
+		std::unique_lock<std::mutex> lock(m_commandRecordListMutex);
+
+		m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded.Get(); });
+		m_newCommandRecorded.AssignValue(false);
+
+		unsigned int checkPriority = finishedNodeCount;
+
+		std::vector<std::shared_ptr<DrawingCommandBuffer>> buffersToReturn;
+		while (m_commandRecordReadyList[checkPriority] != nullptr)
+		{
+			buffersToReturn.emplace_back(m_commandRecordReadyList[checkPriority]);
+			m_commandRecordReadyList[checkPriority] = nullptr;
+			checkPriority++;
+		}
+
+		for (unsigned int i = 0; i < buffersToReturn.size(); i++)
+		{
+			m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i]);
+		}
+		if (buffersToReturn.size() > 0)
+		{
+			finishedNodeCount += buffersToReturn.size();
+			m_pDevice->FlushCommands(false, false);
+		}
+
+		lock.unlock();
+	}
 }
 
 const std::shared_ptr<GraphicsPipelineObject> HPForwardRenderer::GetGraphicsPipeline(EBuiltInShaderProgramType shaderType, const char* passName) const
@@ -69,6 +106,17 @@ const std::shared_ptr<GraphicsPipelineObject> HPForwardRenderer::GetGraphicsPipe
 		std::cerr << "Couldn't find associated graphics pipelines with given shader type.\n";
 	}
 	return nullptr;
+}
+
+void HPForwardRenderer::WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer)
+{
+	std::unique_lock<std::mutex> lock(m_commandRecordListMutex);
+
+	m_commandRecordReadyList[m_renderNodePriorities[pNodeName]] = pCommandBuffer;
+	m_newCommandRecorded.AssignValue(true);
+
+	lock.unlock();
+	m_commandRecordListCv.notify_all();
 }
 
 void HPForwardRenderer::BuildRenderResources()
@@ -248,7 +296,7 @@ void HPForwardRenderer::TransitionImageLayouts()
 	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_1, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 	m_pDevice->TransitionImageLayout(m_pPencilMaskImageTexture_2, EImageLayout::ShaderReadOnly, (uint32_t)EShaderType::Fragment);
 
-	m_pDevice->FlushCommands(true);
+	m_pDevice->FlushCommands(true, true);
 }
 
 void HPForwardRenderer::CreateRenderPassObjects()
@@ -1296,7 +1344,7 @@ void HPForwardRenderer::BuildShadowMapPass()
 	passOutput.Add(HPForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 
 	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			Vector3   lightDir(0.0f, 0.8660254f * 15, -0.5f * 15);
 			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
@@ -1304,11 +1352,12 @@ void HPForwardRenderer::BuildShadowMapPass()
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			// Set pipline and render pass
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::ShadowMap, HPForwardGraphRes::PASSNAME_SHADOWMAP));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::ShadowMap, HPForwardGraphRes::PASSNAME_SHADOWMAP), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_SHADOWMAP)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_SHADOWMAP)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_SHADOWMAP)), pCommandBuffer);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 
@@ -1341,7 +1390,7 @@ void HPForwardRenderer::BuildShadowMapPass()
 
 				auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
-				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
 				auto pSubTransformMatricesUB = pTransformMatricesUB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
@@ -1369,13 +1418,15 @@ void HPForwardRenderer::BuildShadowMapPass()
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
 
-					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 				}
 			}
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_SHADOWMAP, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
@@ -1396,7 +1447,7 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 	passOutput.Add(HPForwardGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
 
 	auto pNormalOnlyPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
 			auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(EComponentType::Camera));
@@ -1411,10 +1462,11 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 				pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::NormalOnly, HPForwardGraphRes::PASSNAME_NORMAL_ONLY));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::NormalOnly, HPForwardGraphRes::PASSNAME_NORMAL_ONLY), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_NORMALONLY)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_NORMALONLY)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_NORMALONLY)), pCommandBuffer);
 
 			// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::NormalOnly);
@@ -1455,24 +1507,23 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 
-				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+				pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
 				auto subMeshes = pMesh->GetSubMeshes();
 				for (size_t i = 0; i < subMeshes->size(); ++i)
 				{
-					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 				}
 			}
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);			
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_NORMALONLY, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pShadowMapPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_SHADOWMAP);
-	pShadowMapPass->AddNextNode(pNormalOnlyPass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_NORMALONLY, pNormalOnlyPass);
 }
@@ -1497,7 +1548,7 @@ void HPForwardRenderer::BuildOpaquePass()
 	passOutput.Add(HPForwardGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
 
 	auto pOpaquePass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
 			auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(EComponentType::Camera));
@@ -1512,6 +1563,7 @@ void HPForwardRenderer::BuildOpaquePass()
 				pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
 			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
@@ -1524,9 +1576,9 @@ void HPForwardRenderer::BuildOpaquePass()
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::AnimeStyle);
 
 			// Alert: it is currently forced to use anime style shader in opaque pass
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::AnimeStyle, HPForwardGraphRes::PASSNAME_OPAQUE));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::AnimeStyle, HPForwardGraphRes::PASSNAME_OPAQUE), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_OPAQUE)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_OPAQUE)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_OPAQUE)), pCommandBuffer);
 
 			UBTransformMatrices ubTransformMatrices;
 			UBSystemVariables ubSystemVariables;
@@ -1582,7 +1634,7 @@ void HPForwardRenderer::BuildOpaquePass()
 				unsigned int submeshCount = pMesh->GetSubmeshCount();
 				auto subMeshes = pMesh->GetSubMeshes();
 
-				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
 				for (unsigned int i = 0; i < submeshCount; ++i)
 				{
@@ -1632,20 +1684,19 @@ void HPForwardRenderer::BuildOpaquePass()
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler,
 						std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_NORMALONLY_NORMAL)));
 
-					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 				}
 
 			}
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);			
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_OPAQUE, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pNormalOnlyPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_NORMALONLY);
-	pNormalOnlyPass->AddNextNode(pOpaquePass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_OPAQUE, pOpaquePass);
 }
@@ -1665,11 +1716,12 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 	passOutput.Add(HPForwardGraphRes::TX_BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
 
 	auto pGaussianBlurPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::GaussianBlur, HPForwardGraphRes::PASSNAME_BLUR));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::GaussianBlur, HPForwardGraphRes::PASSNAME_BLUR), pCommandBuffer);
 
 			UBControlVariables ubControlVariables;
 			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(HPForwardGraphRes::UB_CONTROL_VARIABLES));
@@ -1677,7 +1729,7 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 			// Horizontal subpass
 			
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_BLUR)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLUR_HORI)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLUR_HORI)), pCommandBuffer);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -1690,15 +1742,15 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Vertical subpass
 
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_BLUR)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLUR_FIN)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLUR_FIN)), pCommandBuffer);
 
 			pShaderParamTable->Clear();
 
@@ -1710,17 +1762,16 @@ void HPForwardRenderer::BuildGaussianBlurPass()
 			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);		
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_BLUR, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pOpaquePass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_OPAQUE);
-	pOpaquePass->AddNextNode(pGaussianBlurPass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_BLUR, pGaussianBlurPass);
 }
@@ -1747,18 +1798,19 @@ void HPForwardRenderer::BuildLineDrawingPass()
 	passOutput.Add(HPForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
 
 	auto pLineDrawingPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			UBControlVariables ubControlVariables;
 			auto pControlVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(HPForwardGraphRes::UB_CONTROL_VARIABLES));
 
 			// Curvature computation subpass
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Curvature, HPForwardGraphRes::PASSNAME_LINEDRAWING));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Curvature, HPForwardGraphRes::PASSNAME_LINEDRAWING), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_LINEDRAWING)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_CURV)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_CURV)), pCommandBuffer);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Curvature);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -1769,16 +1821,16 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SAMPLE_MATRIX_TEXTURE), EDescriptorType::CombinedImageSampler, 
 				std::static_pointer_cast<RenderTexture>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_MATRIX_TEXTURE)));
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Ridge searching subpass
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Color, HPForwardGraphRes::PASSNAME_LINEDRAWING));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Color, HPForwardGraphRes::PASSNAME_LINEDRAWING), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_LINEDRAWING)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_RIDG)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_RIDG)), pCommandBuffer);
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Color);
 			pShaderParamTable->Clear();
@@ -1786,14 +1838,14 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_CURVATURE)));
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Gaussian blur subpasses
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::GaussianBlur, HPForwardGraphRes::PASSNAME_LINEDRAWING));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::GaussianBlur, HPForwardGraphRes::PASSNAME_LINEDRAWING), pCommandBuffer);
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 
@@ -1801,7 +1853,7 @@ void HPForwardRenderer::BuildLineDrawingPass()
 
 			// Set render target to curvature color attachment
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_LINEDRAWING)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_BLUR_HORI)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_BLUR_HORI)), pCommandBuffer);
 
 			pShaderParamTable->Clear();
 
@@ -1813,16 +1865,16 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Vertical subpass
 
 			// Set render target to blurred color attachment
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_LINEDRAWING)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_BLUR_FIN)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_BLUR_FIN)), pCommandBuffer);
 
 			pShaderParamTable->Clear();
 
@@ -1834,18 +1886,18 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Final blend subpass
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Blend, HPForwardGraphRes::PASSNAME_LINEDRAWING));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::LineDrawing_Blend, HPForwardGraphRes::PASSNAME_LINEDRAWING), pCommandBuffer);
 
 			// Set render target to color attachment
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_LINEDRAWING)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_FIN)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_LINEDRAWING_FIN)), pCommandBuffer);
 
 			pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 			pShaderParamTable->Clear();
@@ -1856,17 +1908,16 @@ void HPForwardRenderer::BuildLineDrawingPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler, 
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_COLOR)));
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);			
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_LINEDRAWING, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pBlurPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_BLUR);
-	pBlurPass->AddNextNode(pLineDrawingPass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_LINEDRAWING, pLineDrawingPass);
 }
@@ -1889,7 +1940,7 @@ void HPForwardRenderer::BuildTransparentPass()
 	passOutput.Add(HPForwardGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
 
 	auto pTransparentPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
 			auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(EComponentType::Camera));
@@ -1904,6 +1955,7 @@ void HPForwardRenderer::BuildTransparentPass()
 				pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			UBTransformMatrices ubTransformMatrices;
 			UBSystemVariables ubSystemVariables;
@@ -1926,9 +1978,9 @@ void HPForwardRenderer::BuildTransparentPass()
 			pSubCameraPropertiesUB->UpdateSubBufferData(&ubCameraProperties);
 
 			// Alert: it is currently forced to use basic transparent shader in transparent pass
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::Basic_Transparent, HPForwardGraphRes::PASSNAME_TRANSPARENT));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::Basic_Transparent, HPForwardGraphRes::PASSNAME_TRANSPARENT), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_TRANSP)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_TRANSP)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_TRANSP)), pCommandBuffer);
 
 			// TODO: add support for various shaders in this pass
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::Basic_Transparent);
@@ -1961,7 +2013,7 @@ void HPForwardRenderer::BuildTransparentPass()
 				unsigned int submeshCount = pMesh->GetSubmeshCount();
 				auto subMeshes = pMesh->GetSubMeshes();
 
-				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer());
+				pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
 				for (unsigned int i = 0; i < submeshCount; ++i)
 				{
@@ -2003,19 +2055,18 @@ void HPForwardRenderer::BuildTransparentPass()
 					//	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
 					//}
 
-					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex);
+					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 				}
 			}
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);	
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_TRANSP, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pLineDrawingPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_LINEDRAWING);
-	pLineDrawingPass->AddNextNode(pTransparentPass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_TRANSP, pTransparentPass);
 }
@@ -2035,13 +2086,14 @@ void HPForwardRenderer::BuildOpaqueTranspBlendPass()
 	passOutput.Add(HPForwardGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
 
 	auto pBlendPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, HPForwardGraphRes::PASSNAME_BLEND));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, HPForwardGraphRes::PASSNAME_BLEND), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::TX_BLEND_RPO)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLEND)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_BLEND)), pCommandBuffer);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -2058,17 +2110,16 @@ void HPForwardRenderer::BuildOpaqueTranspBlendPass()
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler,
 				std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_TRANSP_COLOR)));
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_COLORBLEND_D2, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
-
-	auto pTransparentPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_TRANSP);
-	pTransparentPass->AddNextNode(pBlendPass);
 
 	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_COLORBLEND_D2, pBlendPass);
 }
@@ -2096,7 +2147,7 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 	passInput.Add(HPForwardGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB);
 
 	auto pDOFPass = std::make_shared<RenderNode>(m_pRenderGraph,
-		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext)
+		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
 			auto pCameraComp = std::static_pointer_cast<CameraComponent>(pContext->pCamera->GetComponent(EComponentType::Camera));
@@ -2108,6 +2159,7 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
 
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
+			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -2137,9 +2189,9 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 
 			// Horizontal subpass
 
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_DOF));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_DOF), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_DOF)),
-				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_DOF_HORI)));
+				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_DOF_HORI)), pCommandBuffer);
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB);
@@ -2172,17 +2224,17 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			pSubControlVariablesUB_1->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_1);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
+			pDevice->EndRenderPass(pCommandBuffer);
 
 			// Vertical subpass
 
 			// Set to swapchain image output
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_PRESENT));
+			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DOF, HPForwardGraphRes::PASSNAME_PRESENT), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_PRESENT)),
-				std::static_pointer_cast<SwapchainFrameBuffers>(input.Get(HPForwardGraphRes::FB_PRESENT))->frameBuffers[pDevice->GetSwapchainPresentImageIndex()]);
+				std::static_pointer_cast<SwapchainFrameBuffers>(input.Get(HPForwardGraphRes::FB_PRESENT))->frameBuffers[pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
 
 			pShaderParamTable->Clear();
 
@@ -2217,19 +2269,52 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 			pSubControlVariablesUB_2->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB_2);
 
-			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable);
-			pDevice->DrawFullScreenQuad();
+			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-			pDevice->EndRenderPass();
-			pDevice->FlushCommands(false);
+			pDevice->EndRenderPass(pCommandBuffer);
+
+			pDevice->EndCommandBuffer(pCommandBuffer);			
+			((HPForwardRenderer*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardGraphRes::NODE_DOF, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
 
-	auto pBlendPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_COLORBLEND_D2);
+	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_DOF, pDOFPass);
+}
+
+void HPForwardRenderer::BuildRenderNodeDependencies()
+{
+	auto pShadowMapPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_SHADOWMAP);
+	auto pNormalOnlyPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_NORMALONLY);
+	auto pOpaquePass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_OPAQUE);
+	auto pGaussianBlurPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_BLUR);
+	auto pLineDrawingPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_LINEDRAWING);	
+	auto pTransparentPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_TRANSP);
+	auto pBlendPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_COLORBLEND_D2);	
+	auto pDOFPass = m_pRenderGraph->GetNodeByName(HPForwardGraphRes::NODE_DOF);	
+
+	pShadowMapPass->AddNextNode(pOpaquePass);
+	pNormalOnlyPass->AddNextNode(pOpaquePass);
+	pOpaquePass->AddNextNode(pGaussianBlurPass);
+	pGaussianBlurPass->AddNextNode(pLineDrawingPass);
+	pLineDrawingPass->AddNextNode(pTransparentPass);
+	pTransparentPass->AddNextNode(pBlendPass);
 	pBlendPass->AddNextNode(pDOFPass);
 
-	m_pRenderGraph->AddRenderNode(HPForwardGraphRes::NODE_DOF, pDOFPass);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_SHADOWMAP, 0);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_NORMALONLY, 1);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_OPAQUE, 2);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_BLUR, 3);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_LINEDRAWING, 4);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_TRANSP, 5);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_COLORBLEND_D2, 6);
+	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_DOF, 7);
+
+	for (uint32_t i = 0; i < 8; i++)
+	{
+		m_commandRecordReadyList.emplace(i, nullptr);
+	}
 }
 
 void HPForwardRenderer::CreateLineDrawingMatrices()

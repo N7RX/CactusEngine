@@ -25,6 +25,8 @@ namespace Engine
 		void BuildOpaqueTranspBlendPass();
 		void BuildDepthOfFieldPass();
 
+		void BuildRenderNodeDependencies();
+
 		void CreateLineDrawingMatrices();
 
 	private:

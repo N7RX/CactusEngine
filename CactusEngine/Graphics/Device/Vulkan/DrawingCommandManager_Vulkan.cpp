@@ -9,7 +9,7 @@ using namespace Engine;
 
 DrawingCommandBuffer_Vulkan::DrawingCommandBuffer_Vulkan(const VkCommandBuffer& cmdBuffer)
 	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedFence(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE), 
-	m_pSyncObjectManager(nullptr)
+	m_pSyncObjectManager(nullptr), m_isExternal(false), m_usageFlags(0)
 {
 
 }
@@ -149,6 +149,21 @@ void DrawingCommandBuffer_Vulkan::EndRenderPass()
 	assert(m_inRenderPass);
 	vkCmdEndRenderPass(m_commandBuffer);
 	m_inRenderPass = false;
+}
+
+void DrawingCommandBuffer_Vulkan::EndCommandBuffer()
+{
+	if (m_inRenderPass)
+	{
+		m_inRenderPass = false;
+		vkCmdEndRenderPass(m_commandBuffer);
+	}
+
+	if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Vulkan: couldn't end one or more command buffers.");
+		return;
+	}
 }
 
 void DrawingCommandBuffer_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
@@ -335,10 +350,67 @@ void DrawingCommandBuffer_Vulkan::SignalSemaphore(const std::shared_ptr<DrawingS
 	m_signalSemaphores.emplace_back(pSemaphore);
 }
 
-DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
-	: m_pDevice(pDevice), m_workingQueue(queue), m_commandPool(VK_NULL_HANDLE)
+DrawingCommandPool_Vulkan::DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle)
+	: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0)
 {
-	CreateCommandPool();
+
+}
+
+DrawingCommandPool_Vulkan::~DrawingCommandPool_Vulkan()
+{
+	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
+}
+
+std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandPool_Vulkan::RequestPrimaryCommandBuffer()
+{
+	std::shared_ptr<DrawingCommandBuffer_Vulkan> pCommandBuffer = nullptr;
+
+	if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
+	{
+		AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
+		m_freeCommandBuffers.TryPop(pCommandBuffer);
+	}
+
+	pCommandBuffer->m_pAllocatedPool = this;
+	pCommandBuffer->BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+	return pCommandBuffer;
+}
+
+bool DrawingCommandPool_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
+{
+	assert(m_allocatedCommandBufferCount + count <= MAX_COMMAND_BUFFER_COUNT);
+
+	std::vector<VkCommandBuffer> cmdBufferHandles(count);
+
+	VkCommandBufferAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_commandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = count;
+
+	if (vkAllocateCommandBuffers(m_pDevice->logicalDevice, &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
+	{
+		m_allocatedCommandBufferCount += count;
+
+		for (auto& cmdBuffer : cmdBufferHandles)
+		{
+			auto pNewCmdBuffer = std::make_shared<DrawingCommandBuffer_Vulkan>(cmdBuffer);
+			pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
+
+			m_freeCommandBuffers.Push(pNewCmdBuffer);
+		}
+		return true;
+	}
+
+	throw std::runtime_error("Vulkan: Failed to allocate command buffer.");
+	return false;
+}
+
+DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
+	: m_pDevice(pDevice), m_workingQueue(queue)
+{
+	m_pDefaultCommandPool = std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool());
 
 	m_isRunning = true;
 
@@ -357,7 +429,6 @@ DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
 void DrawingCommandManager_Vulkan::Destroy()
 {
 	m_isRunning = false;
-	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
 }
 
 EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
@@ -367,22 +438,14 @@ EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
 
 std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandManager_Vulkan::RequestPrimaryCommandBuffer()
 {
-	std::shared_ptr<DrawingCommandBuffer_Vulkan> pCommandBuffer;
-
-	if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
-	{
-		AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
-		m_freeCommandBuffers.TryPop(pCommandBuffer); // Alert: it will be incorrect if multiple threads are calling this function
-	}
-	
+	std::shared_ptr<DrawingCommandBuffer_Vulkan> pCommandBuffer = m_pDefaultCommandPool->RequestPrimaryCommandBuffer();
+	pCommandBuffer->m_usageFlags = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
 	m_inUseCommandBuffers.Push(pCommandBuffer);
-
-	pCommandBuffer->BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT); // We only submit the command buffer once
 
 	return pCommandBuffer;
 }
 
-void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence)
+void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence, uint32_t usageMask)
 {
 	assert(pFence != nullptr);
 
@@ -395,7 +458,14 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 	{
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inUseBuffers.front();
 
-		if (ptrCopy->m_inExecution || !ptrCopy->m_isRecording)
+		if ((ptrCopy->m_usageFlags & usageMask) == 0)
+		{
+			m_inUseCommandBuffers.Push(ptrCopy);
+			inUseBuffers.pop();
+			continue;
+		}
+
+		if (ptrCopy->m_inExecution || !ptrCopy->m_isRecording) // Already submitted through SubmitSingleCommandBuffer_Immediate
 		{
 			inUseBuffers.pop();
 			continue;
@@ -404,16 +474,9 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 		ptrCopy->m_isRecording = false;
 		ptrCopy->m_inExecution = true;
 
-		if (ptrCopy->m_inRenderPass)
+		if (!ptrCopy->m_isExternal) // External command buffers should only be ended by their host thread
 		{
-			ptrCopy->m_inRenderPass = false;
-			vkCmdEndRenderPass(ptrCopy->m_commandBuffer);		
-		}
-
-		if (vkEndCommandBuffer(ptrCopy->m_commandBuffer) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Vulkan: couldn't end one or more command buffers.");
-			continue;
+			ptrCopy->EndCommandBuffer();
 		}
 
 		pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
@@ -435,6 +498,11 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 		inUseBuffers.pop();
 	}
 	
+	if (pSubmitInfo->buffersAwaitSubmit.size() == 0)
+	{
+		return;
+	}
+
 	pSubmitInfo->submitInfo = {};
 	pSubmitInfo->submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	pSubmitInfo->submitInfo.commandBufferCount = (uint32_t)pSubmitInfo->buffersAwaitSubmit.size();
@@ -479,7 +547,7 @@ void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std
 		vkQueueWaitIdle(m_workingQueue.queue);
 
 		pCmdBuffer->m_inExecution = false;
-		m_freeCommandBuffers.Push(pCmdBuffer);
+		m_pDefaultCommandPool->m_freeCommandBuffers.Push(pCmdBuffer);
 	}
 	else
 	{
@@ -487,44 +555,35 @@ void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std
 	}
 }
 
-void DrawingCommandManager_Vulkan::CreateCommandPool()
+std::shared_ptr<DrawingCommandPool_Vulkan> DrawingCommandManager_Vulkan::RequestExternalCommandPool()
 {
-	assert(m_commandPool == VK_NULL_HANDLE);
+	std::lock_guard<std::mutex> lock(m_externalCommandPoolCreationMutex);
+	return std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool());
+}
+
+void DrawingCommandManager_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
+{
+	m_inUseCommandBuffers.Push(pCmdBuffer);
+}
+
+VkCommandPool DrawingCommandManager_Vulkan::CreateCommandPool()
+{
+	VkCommandPool newPool = VK_NULL_HANDLE;
 
 	VkCommandPoolCreateInfo poolInfo = {};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.queueFamilyIndex = m_workingQueue.queueFamilyIndex;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Alert: all command buffers allocated from this pool can be reset
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-	vkCreateCommandPool(m_pDevice->logicalDevice, &poolInfo, nullptr, &m_commandPool);
-}
-
-bool DrawingCommandManager_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
-{
-	assert(m_freeCommandBuffers.Size() + m_inUseCommandBuffers.Size() + m_inExecutionCommandBuffers.Size() + count <= MAX_COMMAND_BUFFER_COUNT);
-
-	std::vector<VkCommandBuffer> cmdBufferHandles(count);
-
-	VkCommandBufferAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = count;
-
-	if (vkAllocateCommandBuffers(m_pDevice->logicalDevice, &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
+	if (vkCreateCommandPool(m_pDevice->logicalDevice, &poolInfo, nullptr, &newPool) == VK_SUCCESS)
 	{
-		for (auto& cmdBuffer : cmdBufferHandles)
-		{
-			auto pNewCmdBuffer = std::make_shared<DrawingCommandBuffer_Vulkan>(cmdBuffer);
-			pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
-
-			m_freeCommandBuffers.Push(pNewCmdBuffer);
-		}
-		return true;
+		return newPool;
 	}
-
-	throw std::runtime_error("Vulkan: Failed to allocate command buffer.");
-	return false;
+	else
+	{
+		throw std::runtime_error("Vulkan: Failed to create command pool.");
+		return VK_NULL_HANDLE;
+	}
 }
 
 void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
@@ -533,12 +592,10 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 	std::shared_ptr<CommandSubmitInfo_Vulkan> pCommandSubmitInfo;
 
 	lock.lock();
-	bool submissionFlag = false;
 
 	while (m_isRunning)
 	{		
-		m_commandBufferSubmissionFlag.GetValue(submissionFlag);
-		if (!submissionFlag) // Check if there is any submission notification during last recycle
+		if (!m_commandBufferSubmissionFlag.Get()) // Check if there is any submission notification during last recycle
 		{
 			m_commandBufferSubmissionCv.wait(lock);
 		}
@@ -569,12 +626,10 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 	std::unordered_map<std::shared_ptr<DrawingFence_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceMappings;
 
 	lock.lock(); // If the mutex object is not initially locked when waited, it would cause undefined behavior
-	bool recycleFlag = false;
 
 	while (m_isRunning)
 	{
-		m_commandBufferRecycleFlag.GetValue(recycleFlag);
-		if (!recycleFlag) // Check if there is any recycle notification during last recycle
+		if (!m_commandBufferRecycleFlag.Get()) // Check if there is any recycle notification during last recycle
 		{
 			m_commandBufferRecycleCv.wait(lock);
 		}
@@ -599,10 +654,6 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 				{
 					for (auto pCmdBuffer : fenceMap.second)
 					{
-						pCmdBuffer->m_pAssociatedFence = nullptr;
-						pCmdBuffer->m_inExecution = false;
-						m_freeCommandBuffers.Push(pCmdBuffer);
-
 						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
 						{
 							m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
@@ -615,6 +666,11 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 							pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse.AssignValue(false);
 							pCmdBuffer->m_boundDescriptorSets.pop();
 						}
+
+						pCmdBuffer->m_pAssociatedFence = nullptr;
+						pCmdBuffer->m_inExecution = false;
+
+						pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
 					}
 
 					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);

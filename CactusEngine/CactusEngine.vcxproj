@@ -194,6 +194,7 @@
     <ClInclude Include="Entity\BaseEntity.h" />
     <ClInclude Include="Entity\EntityProperties.h" />
     <ClInclude Include="Entity\StandardEntity.h" />
+    <ClInclude Include="Graphics\Device\CommandResources.h" />
     <ClInclude Include="Graphics\Device\DrawingDevice.h" />
     <ClInclude Include="Graphics\Device\OpenGL\DrawingDevice_OpenGL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\DrawingResources_OpenGL.h" />

@@ -377,8 +377,9 @@ void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 	std::cerr << "Vulkan: shouldn't call SetBlendState on Vulkan device.\n";
 }
 
-void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable)
+void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
+	assert(pCommandBuffer != nullptr);
 	auto pVkShader = std::static_pointer_cast<ShaderProgram_Vulkan>(pShaderProgram);
 
 	std::vector<DesciptorUpdateInfo_Vulkan> updateInfos;
@@ -462,52 +463,31 @@ void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> 
 	pVkShader->UpdateDescriptorSets(updateInfos);
 
 	std::vector<std::shared_ptr<DrawingDescriptorSet_Vulkan>> descSets = { pTargetDescriptorSet };
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
-	pCmdBuffer->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
 }
 
-void DrawingDevice_Vulkan::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer)
+void DrawingDevice_Vulkan::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
+	assert(pCommandBuffer != nullptr);
 	auto pBuffer = std::static_pointer_cast<VertexBuffer_Vulkan>(pVertexBuffer);
-
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
 
 	static VkDeviceSize defaultOffset = 0;
 
-	pCmdBuffer->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
-	pCmdBuffer->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
 }
 
-void DrawingDevice_Vulkan::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex)
+void DrawingDevice_Vulkan::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
-
-	pCmdBuffer->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
+	assert(pCommandBuffer != nullptr);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
 }
 
-void DrawingDevice_Vulkan::DrawFullScreenQuad()
+void DrawingDevice_Vulkan::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
-
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
-
-	pCmdBuffer->DrawPrimitive(4, 1);
+	assert(pCommandBuffer != nullptr);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->DrawPrimitive(4, 1);
 }
 
 void DrawingDevice_Vulkan::ResizeViewPort(uint32_t width, uint32_t height)
@@ -546,6 +526,38 @@ std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGP
 #else
 	return m_pDevice_0;
 #endif
+}
+
+std::shared_ptr<DrawingCommandPool> DrawingDevice_Vulkan::RequestExternalCommandPool(EGPUType deviceType)
+{
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	switch (deviceType)
+	{
+	case EGPUType::Integrated:
+		return m_pDevice_1->pGraphicsCommandManager->RequestExternalCommandPool();
+	case EGPUType::Discrete:
+		return m_pDevice_0->pGraphicsCommandManager->RequestExternalCommandPool();
+	default:
+		std::cerr << "Vulkan: Unhandled GPU type: " << (unsigned int)deviceType << std::endl;
+		return nullptr;
+	}
+#else
+	return m_pDevice_0->pGraphicsCommandManager->RequestExternalCommandPool();
+#endif
+}
+
+std::shared_ptr<DrawingCommandBuffer> DrawingDevice_Vulkan::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
+{
+	auto pCmdBuffer = std::static_pointer_cast<DrawingCommandPool_Vulkan>(pCommandPool)->RequestPrimaryCommandBuffer();
+	pCmdBuffer->m_usageFlags = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit;
+	pCmdBuffer->m_isExternal = true;
+	return pCmdBuffer;
+}
+
+void DrawingDevice_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->m_pAllocatedPool->
+		m_pDevice->pGraphicsCommandManager->ReturnExternalCommandBuffer(std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer));
 }
 
 bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
@@ -820,11 +832,6 @@ bool DrawingDevice_Vulkan::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 	return pOutput != nullptr;
 }
 
-void DrawingDevice_Vulkan::SwitchCmdGPUContext(EGPUType type)
-{
-	m_cmdGPUType = type;
-}
-
 void DrawingDevice_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
 	std::shared_ptr<Texture2D_Vulkan> pVkImage = nullptr;
@@ -847,7 +854,7 @@ void DrawingDevice_Vulkan::TransitionImageLayout(std::shared_ptr<Texture2D> pIma
 		return;
 	}
 
-	pVkImage->m_pDevice->pWorkingCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
+	pVkImage->m_pDevice->pImplicitCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
 }
 
 void DrawingDevice_Vulkan::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
@@ -883,74 +890,51 @@ void DrawingDevice_Vulkan::ResizeSwapchain(uint32_t width, uint32_t height)
 	// TODO: recreate swapchain
 }
 
-void DrawingDevice_Vulkan::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline)
+void DrawingDevice_Vulkan::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	auto pVkPipeline = std::static_pointer_cast<GraphicsPipeline_Vulkan>(pPipeline);
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	switch (m_cmdGPUType)
-	{
-	case EGPUType::Discrete:
-		m_pDevice_0->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
-		m_pDevice_0->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
-		break;
-
-	case EGPUType::Integrated:
-		m_pDevice_1->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
-		m_pDevice_1->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
-		break;
-
-	default:
-		throw std::runtime_error("Vulkan: unhandled GPU type.\n");
-	}
-#else
-	m_pDevice_0->pWorkingCmdBuffer->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
-	m_pDevice_0->pWorkingCmdBuffer->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
-#endif
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
 }
 
-void DrawingDevice_Vulkan::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer)
+void DrawingDevice_Vulkan::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
-	assert(!pCmdBuffer->InRenderPass());
-
+	assert(!std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->InRenderPass());
 	// Currently we are only rendering to full window
-	pCmdBuffer->BeginRenderPass(std::static_pointer_cast<RenderPass_Vulkan>(pRenderPass)->m_renderPass,
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->BeginRenderPass(std::static_pointer_cast<RenderPass_Vulkan>(pRenderPass)->m_renderPass,
 		std::static_pointer_cast<FrameBuffer_Vulkan>(pFrameBuffer)->m_frameBuffer,
 		std::static_pointer_cast<RenderPass_Vulkan>(pRenderPass)->m_clearValues, { pFrameBuffer->GetWidth(), pFrameBuffer->GetHeight() });
 }
 
-void DrawingDevice_Vulkan::EndRenderPass()
+void DrawingDevice_Vulkan::EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pCmdBuffer = m_cmdGPUType == EGPUType::Discrete ? m_pDevice_0->pWorkingCmdBuffer : m_pDevice_1->pWorkingCmdBuffer;
-#else
-	auto pCmdBuffer = m_pDevice_0->pWorkingCmdBuffer;
-#endif
-	assert(pCmdBuffer->InRenderPass());
+	assert(std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->InRenderPass());
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->EndRenderPass();
+}
 
-	pCmdBuffer->EndRenderPass();
+void DrawingDevice_Vulkan::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->EndCommandBuffer();
 }
 
 void DrawingDevice_Vulkan::Present()
 {
-	assert(m_pSwapchain);
+	assert(m_pSwapchain != nullptr);
 
 	// Present current frame
 
+	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit | (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
+
 	auto pRenderFinishSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestSemaphore();
-	m_pSwapchain->m_pDevice->pWorkingCmdBuffer->SignalSemaphore(pRenderFinishSemaphore);
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->SignalSemaphore(pRenderFinishSemaphore);
 
 	auto pFrameFence = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestFence();
-	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameFence);
+	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameFence, cmdBufferSubmitMask);
 
 	pFrameFence->Wait(); // Alert: there is a chance to produce deadlock
 
-	m_pSwapchain->m_pDevice->pWorkingCmdBuffer = m_pSwapchain->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer = m_pSwapchain->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
 	std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> presentWaitSemaphores = { pRenderFinishSemaphore };
 	m_pSwapchain->Present(presentWaitSemaphores);
@@ -962,53 +946,78 @@ void DrawingDevice_Vulkan::Present()
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAME_IN_FLIGHT;
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pWorkingCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
-void DrawingDevice_Vulkan::FlushCommands(bool waitExecution)
+void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitCommands)
 {
+	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit;
+	if (flushImplicitCommands)
+	{
+		cmdBufferSubmitMask |= (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
+	}
+
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	if (!waitExecution)
 	{
 		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0);
-		m_pDevice_0->pWorkingCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+		if (flushImplicitCommands)
+		{
+			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 
 		auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1);
-		m_pDevice_1->pWorkingCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
+		if (flushImplicitCommands)
+		{
+			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 	}
 	else
 	{
 		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0);
+		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
 
 		pFence_0->Wait(); // Alert: there is a chance to produce deadlock
 
-		m_pDevice_0->pWorkingCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		if (flushImplicitCommands)
+		{
+			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 
 		auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1);
+		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
 
 		pFence_1->Wait();
 
-		m_pDevice_1->pWorkingCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		if (flushImplicitCommands)
+		{
+			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 	}
 #else
 	if (!waitExecution)
 	{
 		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0);
-		m_pDevice_0->pWorkingCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+
+		if (flushImplicitCommands)
+		{
+			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 	}
 	else
 	{
 		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0);
+		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
 
 		pFence_0->Wait(); // Alert: there is a chance to produce deadlock
 
-		m_pDevice_0->pWorkingCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		if (flushImplicitCommands)
+		{
+			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
 	}
 #endif
 }
@@ -1337,7 +1346,7 @@ void DrawingDevice_Vulkan::SetupSwapchain()
 	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pWorkingCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 
 	// TODO: add support for integrated GPU swapchain creation
 }
@@ -1424,14 +1433,14 @@ void DrawingDevice_Vulkan::CreateShaderModuleFromFile(const char* shaderFilePath
 void DrawingDevice_Vulkan::SetupCommandManager()
 {
 	m_pDevice_0->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->graphicsQueue);
-	m_pDevice_0->pWorkingCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 #if defined(ENABLE_COPY_QUEUE_VK)
 	m_pDevice_0->pCopyCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->copyQueue);
 #endif
 
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	m_pDevice_1->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_1, m_pDevice_1->graphicsQueue);
-	m_pDevice_1->pWorkingCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 #if defined(ENABLE_COPY_QUEUE_VK)
 	// UHD 630 GPU doesn't seem to have standalone copy queue
 #endif

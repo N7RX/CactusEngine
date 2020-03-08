@@ -20,6 +20,7 @@ namespace Engine
 
 	private:
 		uint32_t id;
+
 		friend class DrawingSyncObjectManager_Vulkan;
 	};
 

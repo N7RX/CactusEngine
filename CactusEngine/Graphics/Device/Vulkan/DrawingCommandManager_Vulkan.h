@@ -6,6 +6,7 @@
 #include "NoCopy.h"
 #include "BasicMathTypes.h"
 #include "DrawingDescriptorAllocator_Vulkan.h"
+#include "CommandResources.h"
 
 #include <vulkan.h>
 #include <memory>
@@ -20,11 +21,19 @@ namespace Engine
 		VkQueue		queue;
 	};
 
-	class Texture2D_Vulkan;
-	class RawBuffer_Vulkan;
-	struct LogicalDevice_Vulkan;
+	enum EDrawingCommandBufferUsageFlagBits_Vulkan
+	{
+		Explicit = 0x1,
+		Implicit = 0x2,
+		COUNT = 2
+	};
 
-	class DrawingCommandBuffer_Vulkan
+	struct LogicalDevice_Vulkan;
+	class  Texture2D_Vulkan;
+	class  RawBuffer_Vulkan;	
+	class  DrawingCommandPool_Vulkan;
+
+	class DrawingCommandBuffer_Vulkan : public DrawingCommandBuffer
 	{
 	public:
 		DrawingCommandBuffer_Vulkan(const VkCommandBuffer& cmdBuffer);
@@ -46,6 +55,7 @@ namespace Engine
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
 		void DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void EndRenderPass();
+		void EndCommandBuffer();
 
 		void TransitionImageLayout(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
 		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
@@ -57,6 +67,9 @@ namespace Engine
 
 	private:
 		VkCommandBuffer m_commandBuffer;
+		uint32_t m_usageFlags; // Bitmap
+		DrawingCommandPool_Vulkan* m_pAllocatedPool;
+
 		VkPipelineLayout m_pipelineLayout;
 
 		std::shared_ptr<DrawingFence_Vulkan> m_pAssociatedFence;
@@ -69,51 +82,35 @@ namespace Engine
 		bool m_isRecording;
 		bool m_inRenderPass;
 		bool m_inExecution;
+		bool m_isExternal;
 
+		friend class DrawingCommandPool_Vulkan;
 		friend class DrawingCommandManager_Vulkan;
+		friend class DrawingDevice_Vulkan;
 	};
 
-	class QueueSubmitConditionLock_Vulkan
+	class DrawingCommandPool_Vulkan : public NoCopy, public DrawingCommandPool, std::enable_shared_from_this<DrawingCommandPool_Vulkan>
 	{
 	public:
-		QueueSubmitConditionLock_Vulkan(uint32_t id) : lockID(id), inUse(false) {}
-		~QueueSubmitConditionLock_Vulkan() = default;
+		DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle);
+		~DrawingCommandPool_Vulkan();
 
-		bool Wait()
-		{
-			return !GetNotifyState();
-		}
-		void Notify()
-		{
-			SetNotifyState(true);
-		}
-
-		void Reset()
-		{
-			alreadyNotified = false; // It should be safe not to use lock guard since this lock has already finished it's duty
-			inUse = false;
-		}
+		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
 
 	private:
-		bool GetNotifyState()
-		{
-			std::lock_guard<std::mutex> guard(notifyStateMutex);
-			return alreadyNotified;
-		}
-
-		void SetNotifyState(bool val)
-		{
-			std::lock_guard<std::mutex> guard(notifyStateMutex);
-			alreadyNotified = val;
-		}
+		bool AllocatePrimaryCommandBuffer(uint32_t count);
 
 	public:
-		uint32_t lockID;
-		bool inUse;
+		const uint32_t MAX_COMMAND_BUFFER_COUNT = 64;
 
 	private:
-		bool alreadyNotified = false;
-		std::mutex notifyStateMutex;
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		VkCommandPool m_commandPool;
+		uint32_t m_allocatedCommandBufferCount;
+		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_freeCommandBuffers;
+
+		friend class DrawingCommandManager_Vulkan;
+		friend class DrawingDevice_Vulkan;
 	};
 
 	struct CommandSubmitInfo_Vulkan
@@ -141,18 +138,20 @@ namespace Engine
 		EQueueType GetWorkingQueueType() const;
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
-		void SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence);
-		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This would stall the queue, use with caution
+		void SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence, uint32_t usageMask);
+		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This function would stall the queue, use with caution
+																												 // Also, it ONLY accepts command buffers allocated from default pool
+		// For multithreading
+		std::shared_ptr<DrawingCommandPool_Vulkan> RequestExternalCommandPool();
+		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer);
 
 	private:
-		void CreateCommandPool();
-		bool AllocatePrimaryCommandBuffer(uint32_t count);
+		VkCommandPool CreateCommandPool();
 
 		void SubmitCommandBufferAsync();
 		void RecycleCommandBufferAsync();
 
 	public:
-		const uint32_t MAX_COMMAND_BUFFER_COUNT = 64;
 		const uint64_t RECYCLE_TIMEOUT = 3e9; // 3 seconds
 
 	private:
@@ -160,12 +159,14 @@ namespace Engine
 		DrawingCommandQueue_Vulkan m_workingQueue;
 		bool m_isRunning;
 
-		VkCommandPool m_commandPool;
-		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_freeCommandBuffers;
+		std::shared_ptr<DrawingCommandPool_Vulkan> m_pDefaultCommandPool;
+
 		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_inUseCommandBuffers;
 		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_inExecutionCommandBuffers;
 
 		SafeQueue<std::shared_ptr<CommandSubmitInfo_Vulkan>> m_commandSubmissionQueue;
+
+		std::mutex m_externalCommandPoolCreationMutex;
 
 		// Async command submission
 		std::thread m_commandBufferSubmissionThread;

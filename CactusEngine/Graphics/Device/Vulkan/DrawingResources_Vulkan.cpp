@@ -165,7 +165,7 @@ RenderTarget2D_Vulkan::~RenderTarget2D_Vulkan()
 }
 
 UniformBuffer_Vulkan::UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const UniformBufferCreateInfo_Vulkan& createInfo)
-	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_memoryMapped(false), m_pHostData(nullptr), m_subAllocatedSize(0)
+	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_pHostData(nullptr), m_subAllocatedSize(0)
 {
 	RawBufferCreateInfo_Vulkan bufferImplCreateInfo = {};
 	bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -174,11 +174,19 @@ UniformBuffer_Vulkan::UniformBuffer_Vulkan(const std::shared_ptr<LogicalDevice_V
 
 	m_pBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, bufferImplCreateInfo);
 	m_sizeInBytes = createInfo.size;
+
+	if (m_eType == EUniformBufferType_Vulkan::Uniform)
+	{
+		if (!m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData))
+		{
+			std::cerr << "Vulkan: Failed to map uniform buffer memory.\n";
+		}
+	}
 }
 
 UniformBuffer_Vulkan::~UniformBuffer_Vulkan()
 {
-	if (m_memoryMapped)
+	if (m_eType == EUniformBufferType_Vulkan::Uniform)
 	{
 		m_pBufferImpl->m_pDevice->pUploadAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
 	}
@@ -198,29 +206,18 @@ void UniformBuffer_Vulkan::UpdateBufferSubData(const void* pData, uint32_t offse
 {
 	if (m_eType == EUniformBufferType_Vulkan::Uniform)
 	{
-		if (!m_memoryMapped)
-		{
-			m_memoryMapped = m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData);
-		}
-		if (m_memoryMapped)
-		{
-			void* start = (unsigned char*)m_pHostData + offset; // Alert: could be incorrect
-			memcpy(start, pData, size);
-		}
-		else
-		{
-			throw std::runtime_error("Vulkan: failed to map uniform buffer memory.");
-			return;
-		}
+		void* start = (unsigned char*)m_pHostData + offset;
+		memcpy(start, pData, size);
 	}
 	else
 	{
-		throw std::runtime_error("Vulkan: shouldn't call UpdateBufferSubData on push constant buffer.");
+		throw std::runtime_error("Vulkan: Shouldn't call UpdateBufferSubData on push constant buffer.");
 	}
 }
 
 std::shared_ptr<SubUniformBuffer> UniformBuffer_Vulkan::AllocateSubBuffer(uint32_t size)
 {
+	std::lock_guard<std::mutex> lock(m_subAllocateMutex);
 	assert(m_subAllocatedSize + size <= m_sizeInBytes);
 
 	auto pSubBuffer = std::make_shared<SubUniformBuffer_Vulkan>(this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
@@ -247,23 +244,11 @@ void UniformBuffer_Vulkan::UpdateToDevice(std::shared_ptr<DrawingCommandBuffer_V
 		break;
 
 	case EUniformBufferType_Vulkan::Uniform:
-		if (!m_memoryMapped)
-		{
-			m_memoryMapped = m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData);
-		}
-		if (m_memoryMapped)
-		{
-			memcpy(m_pHostData, m_pRawData, m_sizeInBytes);
-		}
-		else
-		{
-			throw std::runtime_error("Vulkan: failed to map uniform buffer memory.");
-			return;
-		}
+		memcpy(m_pHostData, m_pRawData, m_sizeInBytes);
 		break;
 
 	default:
-		throw std::runtime_error("Vulkan: unhandled uniform buffer type.");
+		throw std::runtime_error("Vulkan: Unhandled uniform buffer type.");
 		return;
 	}
 }
@@ -359,7 +344,7 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 
 	if (vkCreateSwapchainKHR(m_pDevice->logicalDevice, &createInfoKHR, nullptr, &m_swapchain) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to create swapchain.\n";
+		std::cerr << "Vulkan: Failed to create swapchain.\n";
 		return;
 	}
 
@@ -368,7 +353,7 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 	std::vector<VkImage> swapchainImages(imageCount, VK_NULL_HANDLE);
 	if (vkGetSwapchainImagesKHR(m_pDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data()) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to retrieve swapchain images.\n";
+		std::cerr << "Vulkan: Failed to retrieve swapchain images.\n";
 		return;
 	}
 
@@ -392,7 +377,7 @@ DrawingSwapchain_Vulkan::DrawingSwapchain_Vulkan(const std::shared_ptr<LogicalDe
 		VkImageView swapchainImageView = VK_NULL_HANDLE;
 		if (vkCreateImageView(m_pDevice->logicalDevice, &imageViewCreateInfo, nullptr, &swapchainImageView) != VK_SUCCESS)
 		{
-			std::cerr << "Vulkan: failed to create image view for swapchain image.\n";
+			std::cerr << "Vulkan: Failed to create image view for swapchain image.\n";
 			return;
 		}
 
@@ -640,13 +625,15 @@ const VkPushConstantRange* ShaderProgram_Vulkan::GetPushConstantRanges() const
 
 std::shared_ptr<DrawingDescriptorSet_Vulkan> ShaderProgram_Vulkan::GetDescriptorSet()
 {
+	std::lock_guard<std::mutex> lock(m_descriptorSetGetMutex);
+
 	bool flag = true;
 	for (unsigned int i = m_descriptorSetAccessIndex; ; i = (i + 1) % m_descriptorSets.size())
 	{
 		if (!flag && i == m_descriptorSetAccessIndex)
 		{
 			// No available set found, allocate new one
-			AllocateDescriptorSet(1);
+			AllocateDescriptorSet(1); // ERROR: this would cause threading error if multiple threads are accessing the same descriptor pool
 
 			m_descriptorSetAccessIndex = 0;
 			m_descriptorSets[m_descriptorSets.size() - 1]->m_isInUse.AssignValue(true);
