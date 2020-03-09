@@ -1386,8 +1386,8 @@ void HPForwardRenderer::BuildShadowMapPass()
 	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
-			Vector3   lightDir(0.0f, 0.8660254f * 15, -0.5f * 15);
-			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
+			Vector3   lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
+			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -30.0f, 30.0f);
 			Matrix4x4 lightView = glm::lookAt(lightDir, Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
@@ -1605,8 +1605,8 @@ void HPForwardRenderer::BuildOpaquePass()
 			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
-			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -25.0f, 25.0f);
-			Matrix4x4 lightView = glm::lookAt(lightDir, Vector3(0), UP);
+			Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
+			Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 			Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 			auto pShadowMapTexture = std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_SHADOWMAP_DEPTH));

@@ -33,15 +33,6 @@ namespace Engine
 	class DrawingDevice_Vulkan : public DrawingDevice
 	{
 	public:
-		const VkPresentModeKHR m_presentModes[4] =
-		{
-			// From first choice to fallback
-			VK_PRESENT_MODE_IMMEDIATE_KHR,
-			VK_PRESENT_MODE_MAILBOX_KHR,
-			VK_PRESENT_MODE_FIFO_KHR,
-			VK_PRESENT_MODE_FIFO_RELAXED_KHR
-		};
-
 		const std::vector<const char*> m_validationLayers =
 		{
 			"VK_LAYER_KHRONOS_validation"

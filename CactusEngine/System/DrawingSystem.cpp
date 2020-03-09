@@ -9,8 +9,6 @@
 #include "BuiltInResourcesPath.h"
 #include <assert.h>
 
-#define ENABLE_HETEROGENEOUS_GPUS_CE
-
 using namespace Engine;
 
 DrawingSystem::DrawingSystem(ECSWorld* pWorld)

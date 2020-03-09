@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #define GLFW_IMPLEMENTATION_CACTUS
+#define ENABLE_HETEROGENEOUS_GPUS_CE
 
 namespace Engine
 {

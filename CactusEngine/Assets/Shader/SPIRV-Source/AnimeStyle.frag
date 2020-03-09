@@ -83,10 +83,10 @@ float ComputeShadow(vec4 fragPosLightSpace, vec3 normal)
 	float closestDepth = texture(ShadowMapDepthTexture, projCoords.xy).r;
 
 	// Get depth of current fragment from light's perspective
-	float currentDepth = projCoords.z + 0.1f; // ? magic number for Vulkan device
+	float currentDepth = projCoords.z;
 
 	// Remove shadow acne
-	float bias = max(0.05f * (1.0f - dot(normal, lightDir)), 0.005f);
+	float bias = max(0.05f * (1.0f - dot(normal, lightDir)), 0.003f);
 
 	float shadow = currentDepth - bias > closestDepth ? 1.0f : 0.0f;
 

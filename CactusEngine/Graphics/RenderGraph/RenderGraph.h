@@ -3,6 +3,7 @@
 #include "IEntity.h"
 #include "NoCopy.h"
 #include "SafeQueue.h"
+#include "Global.h"
 #include "CommandResources.h"
 #include <queue>
 #include <mutex>
@@ -89,13 +90,22 @@ namespace Engine
 		std::shared_ptr<DrawingDevice> m_pDevice;
 		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>> m_startingNodes; // Nodes that has no previous dependencies
-
-		// For parallel node execution
 		bool m_isRunning;
+
+		// For parallel node execution	
 		static const unsigned int EXECUTION_THREAD_COUNT = 4;
 		std::thread m_executionThreads[EXECUTION_THREAD_COUNT];
 		std::mutex m_nodeExecutionMutex;
 		std::condition_variable m_nodeExecutionCv;
 		SafeQueue<std::shared_ptr<RenderNode>> m_executionNodeQueue;
+
+#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
+		// For heterogeneous-GPU rendering
+		static const unsigned int EXECUTION_THREAD_COUNT_IG = 1; // IG stands for integrated graphics / integrated GPU
+		std::thread m_executionThreads_IG[EXECUTION_THREAD_COUNT_IG];
+		std::mutex m_nodeExecutionMutex_IG;
+		std::condition_variable m_nodeExecutionCv_IG;
+		SafeQueue<std::shared_ptr<RenderNode>> m_executionNodeQueue_IG;
+#endif
 	};
 }

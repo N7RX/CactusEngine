@@ -1,5 +1,4 @@
 #include "RenderGraph.h"
-#include "Global.h"
 #include "DrawingDevice.h"
 #include <assert.h>
 #include <iostream>
