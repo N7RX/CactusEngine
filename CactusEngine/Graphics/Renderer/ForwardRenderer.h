@@ -16,6 +16,10 @@ namespace Engine
 	private:
 		void BuildFrameResources();
 
+		void CreateFrameTextures();
+		void CreateFrameBuffers();
+		void CreateUniformBuffers();
+
 		void BuildShadowMapPass();
 		void BuildNormalOnlyPass();
 		void BuildOpaquePass();

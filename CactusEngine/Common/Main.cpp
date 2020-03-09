@@ -89,8 +89,8 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
 
 	// Read scene from file
-	//ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
-	ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
+	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
 	//ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
 
 	// Or manually add contents here

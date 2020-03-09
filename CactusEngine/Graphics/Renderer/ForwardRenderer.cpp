@@ -50,6 +50,13 @@ void ForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList
 // TODO: rewrite this function, this is way too long and high-coupling
 void ForwardRenderer::BuildFrameResources()
 {
+	CreateFrameTextures();
+	CreateFrameBuffers();
+	CreateUniformBuffers();
+}
+
+void ForwardRenderer::CreateFrameTextures()
+{
 	uint32_t screenWidth  = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 	uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 
@@ -64,15 +71,6 @@ void ForwardRenderer::BuildFrameResources()
 	texCreateInfo.textureType = ETextureType::DepthAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pShadowMapPassDepthOutput);
-
-	// Frame buffer for shadow map pass
-
-	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
-	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
-	shadowMapFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	shadowMapFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(shadowMapFBCreateInfo, m_pShadowMapPassFrameBuffer);
 
 	texCreateInfo.textureWidth = screenWidth;
 	texCreateInfo.textureHeight = screenHeight;
@@ -94,17 +92,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pNormalOnlyPassDepthOutput);
 
-	// Frame buffer for normal-only pass
-
-	FrameBufferCreateInfo normalOnlyFBCreateInfo = {};
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassNormalOutput);
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassPositionOutput);
-	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassDepthOutput);
-	normalOnlyFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	normalOnlyFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(normalOnlyFBCreateInfo, m_pNormalOnlyPassFrameBuffer);
-
 	// Color output from opaque pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -125,17 +112,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pOpaquePassDepthOutput);
 
-	// Frame buffer for opaque pass
-
-	FrameBufferCreateInfo opaqueFBCreateInfo = {};
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassColorOutput);
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassShadowOutput);
-	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassDepthOutput);
-	opaqueFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	opaqueFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(opaqueFBCreateInfo, m_pOpaquePassFrameBuffer);
-
 	// Color outputs from Gaussian blur pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -144,16 +120,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassHorizontalColorOutput);
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurPassFinalColorOutput);
-
-	// Frame buffer for Gaussian blur pass
-
-	FrameBufferCreateInfo blurFBCreateInfo = {};
-	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassHorizontalColorOutput);
-	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassFinalColorOutput);
-	blurFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	blurFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(blurFBCreateInfo, m_pBlurPassFrameBuffer);
 
 	// Curvature output from line drawing pass
 
@@ -171,17 +137,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineDrawingPassColorOutput);
 
-	// Frame buffer for line drawing pass
-
-	FrameBufferCreateInfo lineDrawFBCreateInfo = {};
-	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
-	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassColorOutput);
-	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassBlurredOutput);
-	lineDrawFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	lineDrawFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo, m_pLineDrawingPassFrameBuffer);
-
 	// Color output from transparent pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -198,16 +153,6 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pTranspPassDepthOutput);
 
-	// Frame buffer for transparent pass
-
-	FrameBufferCreateInfo transpFBCreateInfo = {};
-	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassColorOutput);
-	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassDepthOutput);
-	transpFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	transpFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(transpFBCreateInfo, m_pTranspPassFrameBuffer);
-
 	// Color output from blend pass
 
 	texCreateInfo.dataType = EDataType::Float32;
@@ -215,15 +160,6 @@ void ForwardRenderer::BuildFrameResources()
 	texCreateInfo.textureType = ETextureType::ColorAttachment;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlendPassColorOutput);
-
-	// Frame buffer for blend pass
-
-	FrameBufferCreateInfo blendFBCreateInfo = {};
-	blendFBCreateInfo.attachments.emplace_back(m_pBlendPassColorOutput);
-	blendFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	blendFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(blendFBCreateInfo, m_pBlendPassFrameBuffer);
 
 	// Horizontal color output from DOF pass
 
@@ -233,22 +169,101 @@ void ForwardRenderer::BuildFrameResources()
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pDOFPassHorizontalOutput);
 
-	// Frame buffer for DOF pass
-
-	FrameBufferCreateInfo dofFBCreateInfo = {};
-	dofFBCreateInfo.attachments.emplace_back(m_pDOFPassHorizontalOutput);
-	dofFBCreateInfo.framebufferWidth = texCreateInfo.textureWidth;
-	dofFBCreateInfo.framebufferHeight = texCreateInfo.textureHeight;
-
-	m_pDevice->CreateFrameBuffer(dofFBCreateInfo, m_pDOFPassFrameBuffer);
-
 	// Post effects resources
 	m_pBrushMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_1.png");
 	m_pBrushMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/BrushStock_2.png");
 	m_pPencilMaskImageTexture_1 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_1.jpg");
 	m_pPencilMaskImageTexture_2 = std::make_shared<ImageTexture>("Assets/Textures/PencilStock_2.jpg");
+}
 
-	// Uniform buffers
+void ForwardRenderer::CreateFrameBuffers()
+{
+	uint32_t screenWidth  = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+	uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+	// Frame buffer for shadow map pass
+
+	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
+	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
+	shadowMapFBCreateInfo.framebufferWidth = 4096;
+	shadowMapFBCreateInfo.framebufferHeight = 4096;
+
+	m_pDevice->CreateFrameBuffer(shadowMapFBCreateInfo, m_pShadowMapPassFrameBuffer);
+
+	// Frame buffer for normal-only pass
+
+	FrameBufferCreateInfo normalOnlyFBCreateInfo = {};
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassNormalOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassPositionOutput);
+	normalOnlyFBCreateInfo.attachments.emplace_back(m_pNormalOnlyPassDepthOutput);
+	normalOnlyFBCreateInfo.framebufferWidth = screenWidth;
+	normalOnlyFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(normalOnlyFBCreateInfo, m_pNormalOnlyPassFrameBuffer);
+
+	// Frame buffer for opaque pass
+
+	FrameBufferCreateInfo opaqueFBCreateInfo = {};
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassColorOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassShadowOutput);
+	opaqueFBCreateInfo.attachments.emplace_back(m_pOpaquePassDepthOutput);
+	opaqueFBCreateInfo.framebufferWidth = screenWidth;
+	opaqueFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(opaqueFBCreateInfo, m_pOpaquePassFrameBuffer);
+
+	// Frame buffer for Gaussian blur pass
+
+	FrameBufferCreateInfo blurFBCreateInfo = {};
+	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassHorizontalColorOutput);
+	blurFBCreateInfo.attachments.emplace_back(m_pBlurPassFinalColorOutput);
+	blurFBCreateInfo.framebufferWidth = screenWidth;
+	blurFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(blurFBCreateInfo, m_pBlurPassFrameBuffer);
+
+	// Frame buffer for line drawing pass
+
+	FrameBufferCreateInfo lineDrawFBCreateInfo = {};
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassCurvatureOutput);
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassColorOutput);
+	lineDrawFBCreateInfo.attachments.emplace_back(m_pLineDrawingPassBlurredOutput);
+	lineDrawFBCreateInfo.framebufferWidth = screenWidth;
+	lineDrawFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(lineDrawFBCreateInfo, m_pLineDrawingPassFrameBuffer);
+
+	// Frame buffer for transparent pass
+
+	FrameBufferCreateInfo transpFBCreateInfo = {};
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassColorOutput);
+	transpFBCreateInfo.attachments.emplace_back(m_pTranspPassDepthOutput);
+	transpFBCreateInfo.framebufferWidth = screenWidth;
+	transpFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(transpFBCreateInfo, m_pTranspPassFrameBuffer);
+
+	// Frame buffer for blend pass
+
+	FrameBufferCreateInfo blendFBCreateInfo = {};
+	blendFBCreateInfo.attachments.emplace_back(m_pBlendPassColorOutput);
+	blendFBCreateInfo.framebufferWidth = screenWidth;
+	blendFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(blendFBCreateInfo, m_pBlendPassFrameBuffer);
+
+	// Frame buffer for DOF pass
+
+	FrameBufferCreateInfo dofFBCreateInfo = {};
+	dofFBCreateInfo.attachments.emplace_back(m_pDOFPassHorizontalOutput);
+	dofFBCreateInfo.framebufferWidth = screenWidth;
+	dofFBCreateInfo.framebufferHeight = screenHeight;
+
+	m_pDevice->CreateFrameBuffer(dofFBCreateInfo, m_pDOFPassFrameBuffer);
+}
+
+void ForwardRenderer::CreateUniformBuffers()
+{
 	UniformBufferCreateInfo ubCreateInfo = {};
 
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
@@ -474,7 +489,6 @@ void ForwardRenderer::BuildOpaquePass()
 	passInput.Add(ForwardGraphRes::TX_NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
 	passInput.Add(ForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 	passInput.Add(ForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
-	passInput.Add(ForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
 	passInput.Add(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX, m_pLightSpaceTransformMatrix_UB);
 	passInput.Add(ForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
 	passInput.Add(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES, m_pMaterialNumericalProperties_UB);
@@ -522,16 +536,12 @@ void ForwardRenderer::BuildOpaquePass()
 			UBCameraProperties ubCameraProperties;
 			UBMaterialNumericalProperties ubMaterialNumericalProperties;
 			auto pTransformMatricesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_TRANSFORM_MATRICES));
-			auto pSystemVariablesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_SYSTEM_VARIABLES));
 			auto pLightSpaceTransformMatrixUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX));
 			auto pCameraPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_CAMERA_PROPERTIES));
 			auto pMaterialNumericalPropertiesUB = std::static_pointer_cast<UniformBuffer>(input.Get(ForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES));
 
 			ubTransformMatrices.projectionMatrix = projectionMat;
 			ubTransformMatrices.viewMatrix = viewMat;
-
-			ubSystemVariables.timeInSec = Timer::Now();
-			pSystemVariablesUB->UpdateBufferData(&ubSystemVariables);
 
 			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
 			pLightSpaceTransformMatrixUB->UpdateBufferData(&ubLightSpaceTransformMatrix);
@@ -582,7 +592,6 @@ void ForwardRenderer::BuildOpaquePass()
 
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, pTransformMatricesUB);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, pCameraPropertiesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, pSystemVariablesUB);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMap);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, pLightSpaceTransformMatrixUB);
 
@@ -596,12 +605,6 @@ void ForwardRenderer::BuildOpaquePass()
 					if (pAlbedoTexture)
 					{
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
-					}
-
-					auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-					if (pNoiseTexture)
-					{
-						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
 					}
 
 					auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);

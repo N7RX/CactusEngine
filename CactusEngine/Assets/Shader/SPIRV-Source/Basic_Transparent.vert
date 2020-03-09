@@ -18,10 +18,13 @@ layout(std140, binding = 14) uniform TransformMatrices
 	mat4 NormalMatrix;
 };
 
-layout(std140, binding = 15) uniform LightSpaceTransformMatrix
+layout(std140, binding = 18) uniform SystemVariables
 {
-	mat4 LightSpaceMatrix;
+	float Time;
 };
+
+layout(binding = 9) uniform sampler2D NoiseTexture_1;
+
 
 void main(void)
 {

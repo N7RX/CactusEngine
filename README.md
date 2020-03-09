@@ -9,6 +9,8 @@ This project is working in progress.<br/><br/>Completed parts include:
 - Fundamental ECS
 - Multi-pass forward rendering (OpenGL)
 - Multi-pass forward rendering (Vulkan)
+- Multi-threaded render command recording (Vulkan)
+- Render Graph Prototype (Vulkan)
 - Scene saving and reading with JSON file
 
 Currently working on:

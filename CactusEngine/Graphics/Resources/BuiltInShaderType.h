@@ -20,7 +20,8 @@ namespace Engine
 		GaussianBlur,
 		ShadowMap,
 		DOF,
-		COUNT
+		COUNT,
+		NONE
 	};
 
 	enum class EMaterialTextureType

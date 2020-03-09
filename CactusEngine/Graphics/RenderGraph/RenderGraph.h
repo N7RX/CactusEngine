@@ -55,6 +55,8 @@ namespace Engine
 		std::vector<std::shared_ptr<RenderNode>> m_nextNodes;
 		bool m_finishedExecution;
 
+		const char* m_pName;
+
 		friend class RenderGraph;
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 	};
@@ -66,14 +68,22 @@ namespace Engine
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
+		void BuildRenderNodePriorities();
+
 		void BeginRenderPasses(const std::shared_ptr<RenderContext> pContext);
 		void BeginRenderPassesParallel(const std::shared_ptr<RenderContext> pContext);
 
 		std::shared_ptr<RenderNode> GetNodeByName(const char* name) const;
+		uint32_t GetRenderNodeCount() const;
 
 	private:
 		void ExecuteRenderNodeParallel();
 		void EnqueueRenderNode(const std::shared_ptr<RenderNode> pNode);
+		void TraverseRenderNode(const std::shared_ptr<RenderNode> pNode, std::vector<std::shared_ptr<RenderNode>>& output);
+
+	public:
+		std::unordered_map<const char*, uint32_t> m_renderNodePriorities; // Render Node Name - Submit Priority
+		std::unordered_map<uint32_t, std::vector<uint32_t>> m_nodePriorityDependencies; // Submit Priority - Dependent Submit Priority
 
 	private:
 		std::shared_ptr<DrawingDevice> m_pDevice;

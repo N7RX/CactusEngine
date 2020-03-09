@@ -595,21 +595,22 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 
 	while (m_isRunning)
 	{		
-		if (!m_commandBufferSubmissionFlag.Get()) // Check if there is any submission notification during last recycle
-		{
-			m_commandBufferSubmissionCv.wait(lock);
-		}
+		m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag.Get(); });
 		m_commandBufferSubmissionFlag.AssignValue(false);
 
 		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
 		{
 			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
 
-			while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
 			{
-				std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
-				m_inExecutionCommandBuffers.Push(ptrCopy);
-				pCommandSubmitInfo->queuedCmdBuffers.pop();
+				std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
+
+				while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
+				{
+					std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
+					m_inExecutionCommandBuffers.Push(ptrCopy);
+					pCommandSubmitInfo->queuedCmdBuffers.pop();
+				}
 			}
 
 			m_commandBufferRecycleFlag.AssignValue(true);
@@ -623,36 +624,36 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 {
 	std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex, std::defer_lock);
-	std::unordered_map<std::shared_ptr<DrawingFence_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceMappings;
+	std::unordered_map<std::shared_ptr<DrawingFence_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceGroups;
 
 	lock.lock(); // If the mutex object is not initially locked when waited, it would cause undefined behavior
 
 	while (m_isRunning)
 	{
-		if (!m_commandBufferRecycleFlag.Get()) // Check if there is any recycle notification during last recycle
-		{
-			m_commandBufferRecycleCv.wait(lock);
-		}
+		m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag.Get(); });
 		m_commandBufferRecycleFlag.AssignValue(false);
 
 		std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> inExecutionCmdBufferQueue;
-		m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
+		{
+			std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
+			m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
+		}
 		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by fence
 		{
 			std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inExecutionCmdBufferQueue.front();
 			assert(ptrCopy->m_pAssociatedFence);
-			fenceMappings[ptrCopy->m_pAssociatedFence].emplace_back(ptrCopy);				
+			fenceGroups[ptrCopy->m_pAssociatedFence].emplace_back(ptrCopy);
 			inExecutionCmdBufferQueue.pop();
 		}
 
-		for (auto& fenceMap : fenceMappings)
+		for (auto& fenceGroup : fenceGroups)
 		{
-			if (fenceMap.second.size() > 0)
+			if (fenceGroup.second.size() > 0)
 			{
-				VkFence fenceToQuery = fenceMap.first->fence;
+				VkFence fenceToQuery = fenceGroup.first->fence;
 				if (vkWaitForFences(m_pDevice->logicalDevice, 1, &fenceToQuery, VK_FALSE, RECYCLE_TIMEOUT) == VK_SUCCESS)
 				{
-					for (auto pCmdBuffer : fenceMap.second)
+					for (auto& pCmdBuffer : fenceGroup.second)
 					{
 						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
 						{
@@ -673,22 +674,27 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 						pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
 					}
 
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
-					fenceMap.first->Notify();				
+					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);
+					fenceGroup.first->Notify();
 				}
 				else
 				{
+					for (auto& pCmdBuffer : fenceGroup.second)
+					{
+						std::cerr << "Vulkan: Command buffer " << pCmdBuffer->m_commandBuffer << " exection timeout. Usage flag is " 
+							<< pCmdBuffer->m_usageFlags << ". DebugID is " << pCmdBuffer->m_debugID  << "." << std::endl;
+					}
 					throw std::runtime_error("Vulkan: command execution timeout.");
 
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceMap.first);
-					fenceMap.first->Notify();
+					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);
+					fenceGroup.first->Notify();
 				}
-				fenceMap.second.clear();
+				fenceGroup.second.clear();
 			}
 		}
 
 		std::this_thread::yield();
 	}
 
-	fenceMappings.clear();
+	fenceGroups.clear();
 }

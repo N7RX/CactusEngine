@@ -61,11 +61,12 @@ namespace Engine
 		// Command record list
 
 		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
-		std::unordered_map<const char*, uint32_t> m_renderNodePriorities; // Render Node Name - Submit Priority
+		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag;  // Submit Priority - Ready to submit or has been submitted
 
-		std::mutex m_commandRecordListMutex;
+		std::mutex m_commandRecordListWriteMutex;
 		std::condition_variable m_commandRecordListCv;
-		SafeBool m_newCommandRecorded;
+		std::queue<uint32_t> m_writtenCommandPriorities;
+		bool m_newCommandRecorded;
 
 		// Pass organized resources
 

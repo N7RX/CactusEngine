@@ -36,6 +36,7 @@ namespace Engine
 
 		static const char* SHADER_VERTEX_BASIC_VK = "Assets/Shader/SPIRV/Basic_vert.spv";
 		static const char* SHADER_FRAGMENT_BASIC_VK = "Assets/Shader/SPIRV/Basic_frag.spv";
+		static const char* SHADER_VERTEX_BASIC_TRANSPARENT_VK = "Assets/Shader/SPIRV/Basic_Transparent_vert.spv";
 		static const char* SHADER_FRAGMENT_BASIC_TRANSPARENT_VK = "Assets/Shader/SPIRV/Basic_Transparent_frag.spv";
 
 		static const char* SHADER_VERTEX_WATER_BASIC_VK = "Assets/Shader/SPIRV/Water_Basic_vert.spv";

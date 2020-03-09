@@ -110,6 +110,9 @@
     <None Include="Assets\Shader\SPIRV-Source\Water_Basic.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
+    <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.vert">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

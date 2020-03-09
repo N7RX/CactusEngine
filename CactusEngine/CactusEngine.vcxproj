@@ -159,6 +159,7 @@
     <None Include="Assets\Shader\SPIRV-Source\Basic.frag" />
     <None Include="Assets\Shader\SPIRV-Source\Basic.vert" />
     <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.frag" />
+    <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.vert" />
     <None Include="Assets\Shader\SPIRV-Source\DepthBased_ColorBlend_2.frag" />
     <None Include="Assets\Shader\SPIRV-Source\DepthOfField.frag" />
     <None Include="Assets\Shader\SPIRV-Source\FullScreenQuad.vert" />

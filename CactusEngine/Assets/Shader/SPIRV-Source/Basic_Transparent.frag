@@ -14,6 +14,19 @@ layout(std140, binding = 14) uniform TransformMatrices
 	mat4 NormalMatrix;
 };
 
+layout(std140, binding = 18) uniform SystemVariables
+{
+	float Time;
+};
+
+layout(std140, binding = 17) uniform CameraProperties
+{
+	vec3  CameraPosition;
+	float Aperture;
+	float FocalDistance;
+	float ImageDistance;
+};
+
 layout(binding = 1) uniform sampler2D AlbedoTexture;
 
 layout(std140, binding = 16) uniform MaterialNumericalProperties
@@ -23,6 +36,7 @@ layout(std140, binding = 16) uniform MaterialNumericalProperties
 	float Roughness;
 };
 
+layout(binding = 4) uniform sampler2D DepthTexture_1;
 layout(binding = 6) uniform sampler2D ColorTexture_1;
 
 // TODO: replace Lambertian model with PBR

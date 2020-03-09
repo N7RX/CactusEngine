@@ -80,6 +80,57 @@ RenderGraph::~RenderGraph()
 void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
 {
 	m_nodes.emplace(name, pNode);
+	m_nodes[name]->m_pName = name;
+}
+
+void RenderGraph::BuildRenderNodePriorities()
+{
+	m_renderNodePriorities.clear();
+	m_nodePriorityDependencies.clear();
+
+	// Find all starting nodes
+	std::queue<std::shared_ptr<RenderNode>> startingNodes;
+	for (auto& pNode : m_nodes)
+	{
+		pNode.second->m_finishedExecution = false;
+
+		if (pNode.second->m_prevNodes.empty())
+		{
+			startingNodes.push(pNode.second);
+		}
+	}
+
+	// Traverse graph
+	std::vector<std::shared_ptr<RenderNode>> traverseResult;
+	while (!startingNodes.empty())
+	{
+		TraverseRenderNode(startingNodes.front(), traverseResult);
+		startingNodes.pop();
+	}
+
+	// Reset flag
+	for (auto& pNode : m_nodes)
+	{
+		pNode.second->m_finishedExecution = false;
+	}
+
+	// Assign priority by traverse sequence
+	uint32_t assignedPriority = 0;
+	for (unsigned int i = 0; i < traverseResult.size(); i++)
+	{
+		m_renderNodePriorities[traverseResult[i]->m_pName] = assignedPriority;
+		assignedPriority++;
+	}
+
+	// Record priority dependencies
+	for (unsigned int i = 0; i < traverseResult.size(); i++)
+	{
+		m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]] = std::vector<uint32_t>();
+		for (auto pNode : traverseResult[i]->m_prevNodes)
+		{
+			m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]].emplace_back(m_renderNodePriorities[pNode->m_pName]);
+		}
+	}
 }
 
 void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContext)
@@ -141,6 +192,11 @@ std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
 	return nullptr;
 }
 
+uint32_t RenderGraph::GetRenderNodeCount() const
+{
+	return m_nodes.size();
+}
+
 void RenderGraph::ExecuteRenderNodeParallel()
 {
 	std::unique_lock<std::mutex> lock(m_nodeExecutionMutex, std::defer_lock);
@@ -181,5 +237,25 @@ void RenderGraph::EnqueueRenderNode(const std::shared_ptr<RenderNode> pNode)
 	for (auto& pNextNode : pNode->m_nextNodes)
 	{
 		EnqueueRenderNode(pNextNode);
+	}
+}
+
+void RenderGraph::TraverseRenderNode(const std::shared_ptr<RenderNode> pNode, std::vector<std::shared_ptr<RenderNode>>& output)
+{
+	// Record render nodes by dependency sequence
+	for (auto& pPrevNode : pNode->m_prevNodes)
+	{
+		if (!pPrevNode->m_finishedExecution) // m_finishedExecution is being used as traversal flag here
+		{
+			return;
+		}
+	}
+
+	output.emplace_back(pNode);
+	pNode->m_finishedExecution = true;
+
+	for (auto& pNextNode : pNode->m_nextNodes)
+	{
+		TraverseRenderNode(pNextNode, output);
 	}
 }

@@ -167,6 +167,7 @@ namespace Engine
 		SafeQueue<std::shared_ptr<CommandSubmitInfo_Vulkan>> m_commandSubmissionQueue;
 
 		std::mutex m_externalCommandPoolCreationMutex;
+		std::mutex m_inExecutionQueueRWMutex;
 
 		// Async command submission
 		std::thread m_commandBufferSubmissionThread;

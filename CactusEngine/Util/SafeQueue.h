@@ -11,8 +11,10 @@ public:
 	~SafeQueue() = default;
 
 	void Push(T val);
+	void Pop();
 	bool TryPop(T& val);
 	bool TryPopAll(std::queue<T>& allVals);
+	T Front() const;
 	void Clear();
 	bool Empty() const;
 	size_t Size() const;
@@ -35,6 +37,16 @@ void SafeQueue<T>::Push(T val)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 	m_queueImpl.push(std::move(val));
+}
+
+template<typename T>
+void SafeQueue<T>::Pop()
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	if (!m_queueImpl.empty())
+	{
+		m_queueImpl.pop();
+	}
 }
 
 template<typename T>
@@ -63,11 +75,19 @@ bool SafeQueue<T>::TryPopAll(std::queue<T>& allVals)
 
 	while (!m_queueImpl.empty())
 	{
-		allVals.push(m_queueImpl.front());
+		T copy = m_queueImpl.front();
+		allVals.push(copy);
 		m_queueImpl.pop();
 	}
 
 	return true;
+}
+
+template<typename T>
+T SafeQueue<T>::Front() const
+{
+	std::lock_guard<std::mutex> lock(m_mutex);
+	return m_queueImpl.front();
 }
 
 template<typename T>

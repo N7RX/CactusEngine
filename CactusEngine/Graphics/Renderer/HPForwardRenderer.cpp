@@ -42,12 +42,18 @@ void HPForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLi
 		return;
 	}
 
+	ResetUniformBufferSubAllocation();
+
+	for (auto& item : m_commandRecordReadyList)
+	{
+		item.second = nullptr;
+		m_commandRecordReadyListFlag[item.first] = false;
+	}
+
 	auto pContext = std::make_shared<RenderContext>();
 	pContext->pCamera = pCamera;
 	pContext->pDrawList = &drawList;
 	pContext->pRenderer = this;
-
-	ResetUniformBufferSubAllocation();
 
 	m_pRenderGraph->BeginRenderPassesParallel(pContext);
 
@@ -55,34 +61,67 @@ void HPForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLi
 
 	unsigned int finishedNodeCount = 0;
 
-	while (finishedNodeCount < 8) // TODO: change this condition value according to actual node count
+	while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
 	{
-		std::unique_lock<std::mutex> lock(m_commandRecordListMutex);
+		std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
+		m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded; });
+		m_newCommandRecorded = false;
 
-		m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded.Get(); });
-		m_newCommandRecorded.AssignValue(false);
+		std::vector<std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>> buffersToReturn;
+		std::vector<uint32_t> sortedQueueContents;
+		std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
 
-		unsigned int checkPriority = finishedNodeCount;
-
-		std::vector<std::shared_ptr<DrawingCommandBuffer>> buffersToReturn;
-		while (m_commandRecordReadyList[checkPriority] != nullptr)
+		// Eliminate dependency jump
+		while (!m_writtenCommandPriorities.empty())
 		{
-			buffersToReturn.emplace_back(m_commandRecordReadyList[checkPriority]);
-			m_commandRecordReadyList[checkPriority] = nullptr;
-			checkPriority++;
+			sortedQueueContents.emplace_back(m_writtenCommandPriorities.front());
+			m_writtenCommandPriorities.pop();
+		}
+		std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
+
+		for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
+		{
+			bool proceed = true;
+			uint32_t currPriority = sortedQueueContents[i];
+			for (uint32_t& id : m_pRenderGraph->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
+			{
+				if (!m_commandRecordReadyListFlag[id])
+				{
+					continueWaitQueue.push(currPriority);
+					proceed = false;
+					break;
+				}
+			}
+			if (proceed)
+			{
+				m_commandRecordReadyListFlag[currPriority] = true;
+				m_commandRecordReadyList[currPriority]->m_debugID = currPriority;
+				buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList[currPriority]);
+			}
 		}
 
-		for (unsigned int i = 0; i < buffersToReturn.size(); i++)
+		while (!continueWaitQueue.empty())
 		{
-			m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i]);
+			m_writtenCommandPriorities.push(continueWaitQueue.front());
+			continueWaitQueue.pop();
 		}
+
 		if (buffersToReturn.size() > 0)
 		{
+			std::sort(buffersToReturn.begin(), buffersToReturn.end(),
+				[](const std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>& lhs, std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>& rhs)
+				{
+					return lhs.first < rhs.first;
+				});
+
+			for (unsigned int i = 0; i < buffersToReturn.size(); i++)
+			{
+				m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i].second);
+			}
+
 			finishedNodeCount += buffersToReturn.size();
 			m_pDevice->FlushCommands(false, false);
 		}
-
-		lock.unlock();
 	}
 }
 
@@ -110,12 +149,14 @@ const std::shared_ptr<GraphicsPipelineObject> HPForwardRenderer::GetGraphicsPipe
 
 void HPForwardRenderer::WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer)
 {
-	std::unique_lock<std::mutex> lock(m_commandRecordListMutex);
+	{
+		std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);
 
-	m_commandRecordReadyList[m_renderNodePriorities[pNodeName]] = pCommandBuffer;
-	m_newCommandRecorded.AssignValue(true);
+		m_commandRecordReadyList[m_pRenderGraph->m_renderNodePriorities[pNodeName]] = pCommandBuffer;
+		m_newCommandRecorded = true;
+		m_writtenCommandPriorities.push(m_pRenderGraph->m_renderNodePriorities[pNodeName]);
+	}
 
-	lock.unlock();
 	m_commandRecordListCv.notify_all();
 }
 
@@ -948,36 +989,36 @@ void HPForwardRenderer::CreatePipelineObjects()
 	std::shared_ptr<PipelineViewportState> pViewportState;
 	m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
 
-	// Individual states
+	// Create graphics pipelines by shader program, render pass, and individual states
 
-	// TODO: fs output compatible render pass required
-	//// With basic shader
-	//{
-	//	PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-	//	colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+	// With basic shader
+	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
-	//	std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
-	//	m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
-	//	GraphicsPipelineCreateInfo basicPipelineCreateInfo = {};
-	//	basicPipelineCreateInfo.deviceType = EGPUType::Discrete;
-	//	basicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic);
-	//	basicPipelineCreateInfo.pVertexInputState = pVertexInputState;
-	//	basicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
-	//	basicPipelineCreateInfo.pColorBlendState = pColorBlendState;
-	//	basicPipelineCreateInfo.pRasterizationState = pRasterizationState;
-	//	basicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
-	//	basicPipelineCreateInfo.pMultisampleState = pMultisampleState;
-	//	basicPipelineCreateInfo.pViewportState = pViewportState;
-	//	basicPipelineCreateInfo.pRenderPass = m_pOpaqueRenderPassObject; // Basic shader works under opaque pass
+		GraphicsPipelineCreateInfo basicPipelineCreateInfo = {};
+		basicPipelineCreateInfo.deviceType = EGPUType::Discrete;
+		basicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic);
+		basicPipelineCreateInfo.pVertexInputState = pVertexInputState;
+		basicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+		basicPipelineCreateInfo.pColorBlendState = pColorBlendState;
+		basicPipelineCreateInfo.pRasterizationState = pRasterizationState;
+		basicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
+		basicPipelineCreateInfo.pMultisampleState = pMultisampleState;
+		basicPipelineCreateInfo.pViewportState = pViewportState;
+		basicPipelineCreateInfo.pRenderPass = m_pOpaqueRenderPassObject; // Basic shader works under opaque pass
 
-	//	std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
-	//	m_pDevice->CreateGraphicsPipelineObject(basicPipelineCreateInfo, pPipeline);
+		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(basicPipelineCreateInfo, pPipeline);
 
-	//	PassGraphicsPipeline basicPipelines;
-	//	basicPipelines[HPForwardGraphRes::PASSNAME_OPAQUE] = pPipeline;
-	//	m_graphicsPipelines[EBuiltInShaderProgramType::Basic] = basicPipelines;
-	//}
+		PassGraphicsPipeline basicPipelines;
+		basicPipelines[HPForwardGraphRes::PASSNAME_OPAQUE] = pPipeline;
+		m_graphicsPipelines[EBuiltInShaderProgramType::Basic] = basicPipelines;
+	}
 
 	// With basic transparent shader
 	{
@@ -1007,34 +1048,33 @@ void HPForwardRenderer::CreatePipelineObjects()
 		m_graphicsPipelines[EBuiltInShaderProgramType::Basic_Transparent] = basicTranspPipelines;
 	}
 
-	// TODO: fs output compatible render pass required
-	//// With water basic shader
-	//{
-	//	PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-	//	colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
+	// With water basic shader
+	{
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
 
-	//	std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
-	//	m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
-	//	GraphicsPipelineCreateInfo waterBasicPipelineCreateInfo = {};
-	//	waterBasicPipelineCreateInfo.deviceType = EGPUType::Discrete;
-	//	waterBasicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
-	//	waterBasicPipelineCreateInfo.pVertexInputState = pVertexInputState;
-	//	waterBasicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
-	//	waterBasicPipelineCreateInfo.pColorBlendState = pColorBlendState;
-	//	waterBasicPipelineCreateInfo.pRasterizationState = pRasterizationState;
-	//	waterBasicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
-	//	waterBasicPipelineCreateInfo.pMultisampleState = pMultisampleState;
-	//	waterBasicPipelineCreateInfo.pViewportState = pViewportState;
-	//	waterBasicPipelineCreateInfo.pRenderPass = m_pTranspRenderPassObject; // water basic shader works under transparent pass
+		GraphicsPipelineCreateInfo waterBasicPipelineCreateInfo = {};
+		waterBasicPipelineCreateInfo.deviceType = EGPUType::Discrete;
+		waterBasicPipelineCreateInfo.pShaderProgram = GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
+		waterBasicPipelineCreateInfo.pVertexInputState = pVertexInputState;
+		waterBasicPipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
+		waterBasicPipelineCreateInfo.pColorBlendState = pColorBlendState;
+		waterBasicPipelineCreateInfo.pRasterizationState = pRasterizationState;
+		waterBasicPipelineCreateInfo.pDepthStencilState = pDepthStencilState_DepthNoStencil;
+		waterBasicPipelineCreateInfo.pMultisampleState = pMultisampleState;
+		waterBasicPipelineCreateInfo.pViewportState = pViewportState;
+		waterBasicPipelineCreateInfo.pRenderPass = m_pTranspRenderPassObject; // water basic shader works under transparent pass
 
-	//	std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
-	//	m_pDevice->CreateGraphicsPipelineObject(waterBasicPipelineCreateInfo, pPipeline);
+		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(waterBasicPipelineCreateInfo, pPipeline);
 
-	//	PassGraphicsPipeline basicWaterPipelines;
-	//	basicWaterPipelines[HPForwardGraphRes::PASSNAME_TRANSPARENT] = pPipeline;
-	//	m_graphicsPipelines[EBuiltInShaderProgramType::WaterBasic] = basicWaterPipelines;
-	//}
+		PassGraphicsPipeline basicWaterPipelines;
+		basicWaterPipelines[HPForwardGraphRes::PASSNAME_TRANSPARENT] = pPipeline;
+		m_graphicsPipelines[EBuiltInShaderProgramType::WaterBasic] = basicWaterPipelines;
+	}
 
 	// With depth based color blend shader
 	{
@@ -1538,7 +1578,6 @@ void HPForwardRenderer::BuildOpaquePass()
 	passInput.Add(HPForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 	passInput.Add(HPForwardGraphRes::RPO_OPAQUE, m_pOpaqueRenderPassObject);
 	passInput.Add(HPForwardGraphRes::UB_TRANSFORM_MATRICES, m_pTransformMatrices_UB);
-	passInput.Add(HPForwardGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB);
 	passInput.Add(HPForwardGraphRes::UB_LIGHTSPACE_TRANSFORM_MATRIX, m_pLightSpaceTransformMatrix_UB);
 	passInput.Add(HPForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
 	passInput.Add(HPForwardGraphRes::UB_MATERIAL_NUMERICAL_PROPERTIES, m_pMaterialNumericalProperties_UB);
@@ -1572,11 +1611,9 @@ void HPForwardRenderer::BuildOpaquePass()
 
 			auto pShadowMapTexture = std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_SHADOWMAP_DEPTH));
 			
-			// TODO: add support for various shaders in this pass
-			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::AnimeStyle);
+			std::shared_ptr<ShaderProgram> pShaderProgram = nullptr;
+			EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
 
-			// Alert: it is currently forced to use anime style shader in opaque pass
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::AnimeStyle, HPForwardGraphRes::PASSNAME_OPAQUE), pCommandBuffer);
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_OPAQUE)),
 				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_OPAQUE)), pCommandBuffer);
 
@@ -1593,10 +1630,6 @@ void HPForwardRenderer::BuildOpaquePass()
 
 			ubTransformMatrices.projectionMatrix = projectionMat;
 			ubTransformMatrices.viewMatrix = viewMat;
-
-			ubSystemVariables.timeInSec = Timer::Now();
-			auto pSubSystemVariablesUB = pSystemVariablesUB->AllocateSubBuffer(sizeof(UBSystemVariables));
-			pSubSystemVariablesUB->UpdateSubBufferData(&ubSystemVariables);
 
 			ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
 			auto pSubLightSpaceTransformMatrixUB = pLightSpaceTransformMatrixUB->AllocateSubBuffer(sizeof(UBLightSpaceTransformMatrix));
@@ -1645,11 +1678,16 @@ void HPForwardRenderer::BuildOpaquePass()
 						continue;
 					}
 
+					if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
+					{
+						pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(pMaterial->GetShaderProgramType(), HPForwardGraphRes::PASSNAME_OPAQUE), pCommandBuffer);
+						pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+						lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
+					}
 					pShaderParamTable->Clear();
 
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB);
-					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB); // TODO: enable system variable in shader program
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::SubUniformBuffer, pSubLightSpaceTransformMatrixUB);
 
@@ -1666,13 +1704,6 @@ void HPForwardRenderer::BuildOpaquePass()
 						pAlbedoTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
-
-					//auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-					//if (pNoiseTexture)
-					//{
-					//	pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
-					//	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
-					//}
 
 					auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);
 					if (pToneTexture)
@@ -1977,13 +2008,11 @@ void HPForwardRenderer::BuildTransparentPass()
 			auto pSubCameraPropertiesUB = pCameraPropertiesUB->AllocateSubBuffer(sizeof(UBCameraProperties));
 			pSubCameraPropertiesUB->UpdateSubBufferData(&ubCameraProperties);
 
-			// Alert: it is currently forced to use basic transparent shader in transparent pass
-			pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::Basic_Transparent, HPForwardGraphRes::PASSNAME_TRANSPARENT), pCommandBuffer);
+			std::shared_ptr<ShaderProgram> pShaderProgram = nullptr;
+			EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
+
 			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardGraphRes::RPO_TRANSP)),
 				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardGraphRes::FB_TRANSP)), pCommandBuffer);
-
-			// TODO: add support for various shaders in this pass
-			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::Basic_Transparent);
 
 			for (auto& entity : *pContext->pDrawList)
 			{
@@ -2024,19 +2053,25 @@ void HPForwardRenderer::BuildTransparentPass()
 						continue;
 					}
 
+					if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
+					{
+						pDevice->BindGraphicsPipeline(((HPForwardRenderer*)(pContext->pRenderer))->GetGraphicsPipeline(pMaterial->GetShaderProgramType(), HPForwardGraphRes::PASSNAME_TRANSPARENT), pCommandBuffer);
+						pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+						lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
+					}
 					pShaderParamTable->Clear();
 
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
-					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB); // TODO: enable these disabled resources in shader program
-					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubCameraPropertiesUB); // TODO: enable these disabled resources in shader program
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::SubUniformBuffer, pSubSystemVariablesUB);
 
 					ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 					auto pSubMaterialNumericalPropertiesUB = pMaterialNumericalPropertiesUB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 					pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubMaterialNumericalPropertiesUB);
 
-					//pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
-					//	std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_DEPTH)));
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
+						std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_OPAQUE_DEPTH)));
 
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, 
 						std::static_pointer_cast<Texture2D>(input.Get(HPForwardGraphRes::TX_LINEDRAWING_COLOR)));
@@ -2048,12 +2083,12 @@ void HPForwardRenderer::BuildTransparentPass()
 						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 					}
 
-					//auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
-					//if (pNoiseTexture)
-					//{
-					//	pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
-					//	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
-					//}
+					auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
+					if (pNoiseTexture)
+					{
+						pNoiseTexture->SetSampler(pDevice->GetDefaultTextureSampler(EGPUType::Discrete));
+						pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
+					}
 
 					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
@@ -2302,18 +2337,12 @@ void HPForwardRenderer::BuildRenderNodeDependencies()
 	pTransparentPass->AddNextNode(pBlendPass);
 	pBlendPass->AddNextNode(pDOFPass);
 
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_SHADOWMAP, 0);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_NORMALONLY, 1);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_OPAQUE, 2);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_BLUR, 3);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_LINEDRAWING, 4);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_TRANSP, 5);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_COLORBLEND_D2, 6);
-	m_renderNodePriorities.emplace(HPForwardGraphRes::NODE_DOF, 7);
+	m_pRenderGraph->BuildRenderNodePriorities();
 
-	for (uint32_t i = 0; i < 8; i++)
+	for (uint32_t i = 0; i < m_pRenderGraph->GetRenderNodeCount(); i++)
 	{
 		m_commandRecordReadyList.emplace(i, nullptr);
+		m_commandRecordReadyListFlag.emplace(i, false);
 	}
 }
 
