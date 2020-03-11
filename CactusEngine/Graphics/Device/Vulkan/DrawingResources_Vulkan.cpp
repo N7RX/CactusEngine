@@ -29,6 +29,21 @@ RawBuffer_Vulkan::~RawBuffer_Vulkan()
 	}
 }
 
+DataTransferBuffer_Vulkan::DataTransferBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo)
+	: m_pDevice(pDevice), m_constantlyMapped(false), m_ppMappedData(nullptr)
+{
+	m_sizeInBytes = createInfo.size;
+	m_pBufferImpl = std::make_shared<RawBuffer_Vulkan>(pDevice, createInfo);
+}
+
+DataTransferBuffer_Vulkan::~DataTransferBuffer_Vulkan()
+{
+	if (m_constantlyMapped)
+	{
+		m_pDevice->pUploadAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
+	}
+}
+
 VertexBuffer_Vulkan::VertexBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& vertexBufferCreateInfo, const RawBufferCreateInfo_Vulkan& indexBufferCreateInfo)
 	: m_pDevice(pDevice)
 {
@@ -641,9 +656,7 @@ std::shared_ptr<DrawingDescriptorSet_Vulkan> ShaderProgram_Vulkan::GetDescriptor
 		}
 		flag = false;
 
-		bool inUse = true;
-		m_descriptorSets[i]->m_isInUse.GetValue(inUse);
-		if (!inUse)
+		if (!m_descriptorSets[i]->m_isInUse.Get())
 		{
 			m_descriptorSetAccessIndex = (i + 1) % m_descriptorSets.size();
 			m_descriptorSets[i]->m_isInUse.AssignValue(true);
@@ -674,15 +687,6 @@ void ShaderProgram_Vulkan::ReflectResources(const std::shared_ptr<RawShader_Vulk
 	auto activeVars = spvCompiler.get_active_interface_variables();
 	spvCompiler.set_enabled_interface_variables(std::move(activeVars));
 
-#if defined(ENABLE_SHADER_REFLECT_OUTPUT_VK)
-	std::cout << "SPIRV: Shader Stage: " << pShader->m_shaderStage << std::endl;
-	std::cout << "Active Uniform Buffer Count: " << shaderRes.uniform_buffers.size() << std::endl;
-	std::cout << "Active Push Constant Count: " << shaderRes.push_constant_buffers.size() << std::endl;
-	std::cout << "Active Combined Image Sampler Count: " << shaderRes.sampled_images.size() << std::endl;
-	std::cout << "Active Separate Image Count: " << shaderRes.separate_images.size() << std::endl;
-	std::cout << "Active Separate Sampler Count: " << shaderRes.separate_samplers.size() << std::endl;
-#endif
-
 	LoadResourceBinding(spvCompiler, shaderRes);
 	LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), descSetCreateInfo);
 }
@@ -694,7 +698,6 @@ void ShaderProgram_Vulkan::LoadResourceBinding(const spirv_cross::Compiler& spvC
 		ResourceDescription desc = {};
 		desc.type = EShaderResourceType_Vulkan::Uniform;
 		desc.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
-		//desc.name = MatchShaderParamName(spvCompiler.get_name(buffer.id).c_str());
 		desc.name = MatchShaderParamName(buffer.name.c_str());
 
 		m_resourceTable.emplace(desc.name, desc);

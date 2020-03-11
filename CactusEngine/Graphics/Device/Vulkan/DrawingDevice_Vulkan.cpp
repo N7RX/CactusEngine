@@ -4,9 +4,10 @@
 #include "DrawingUtil_Vulkan.h"
 #include "ImageTexture.h"
 #include "RenderTexture.h"
+#include "Timer.h"
 
 #include <set>
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 #include <GLFW/glfw3.h>
 #endif
 
@@ -232,7 +233,11 @@ bool DrawingDevice_Vulkan::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	tex2dCreateInfo.format = VulkanImageFormat(createInfo.format);
 	tex2dCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL; // Alert: TILING_OPTIMAL could be incompatible with certain formats on certain devices
 	tex2dCreateInfo.usage = DetermineImageUsage_VK(createInfo.textureType);
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	tex2dCreateInfo.memoryUsage = createInfo.deviceType == EGPUType::Discrete ? VMA_MEMORY_USAGE_GPU_ONLY : VMA_MEMORY_USAGE_CPU_ONLY;
+#else
 	tex2dCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+#endif
 	tex2dCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	tex2dCreateInfo.aspect = createInfo.textureType == ETextureType::DepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	tex2dCreateInfo.mipLevels = createInfo.generateMipmap ? DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight)) : 1;
@@ -560,6 +565,31 @@ void DrawingDevice_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCo
 		m_pDevice->pGraphicsCommandManager->ReturnExternalCommandBuffer(std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer));
 }
 
+bool DrawingDevice_Vulkan::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
+{
+	RawBufferCreateInfo_Vulkan vkBufferCreateInfo = {};
+	vkBufferCreateInfo.size = createInfo.size;
+	vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
+	vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
+
+	std::shared_ptr<LogicalDevice_Vulkan> pDevice = nullptr;
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	pDevice = createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
+#else
+	pDevice = m_pDevice_0;
+#endif
+	pOutput = std::make_shared<DataTransferBuffer_Vulkan>(pDevice, vkBufferCreateInfo);
+
+	if (createInfo.cpuMapped)
+	{
+		auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pOutput);
+		pDevice->pUploadAllocator->MapMemory(pVkBuffer->m_pBufferImpl->m_allocation, &pVkBuffer->m_ppMappedData);
+		pVkBuffer->m_constantlyMapped = true;
+	}
+
+	return true;
+}
+
 bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
@@ -649,9 +679,7 @@ bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& cr
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &subpassDependency;
 
-	VkResult result = vkCreateRenderPass(pRenderPass->m_pDevice->logicalDevice, &renderPassInfo, nullptr, &pRenderPass->m_renderPass);
-	
-	if (result != VK_SUCCESS)
+	if (vkCreateRenderPass(pRenderPass->m_pDevice->logicalDevice, &renderPassInfo, nullptr, &pRenderPass->m_renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Vulkan: failed to create render pass.");
 	}
@@ -932,7 +960,7 @@ void DrawingDevice_Vulkan::Present()
 	auto pFrameFence = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestFence();
 	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameFence, cmdBufferSubmitMask);
 
-	pFrameFence->Wait(); // Alert: there is a chance to produce deadlock
+	pFrameFence->Wait();
 
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer = m_pSwapchain->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
@@ -949,7 +977,7 @@ void DrawingDevice_Vulkan::Present()
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
-void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitCommands)
+void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags)
 {
 	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit;
 	if (flushImplicitCommands)
@@ -960,40 +988,62 @@ void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitC
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	if (!waitExecution)
 	{
-		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
-		if (flushImplicitCommands)
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
 		{
-			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
+			m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+
+			if (flushImplicitCommands)
+			{
+				m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			}
 		}
 
-		auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
-		if (flushImplicitCommands)
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
 		{
-			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
+			m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
+
+			if (flushImplicitCommands)
+			{
+				m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			}
 		}
 	}
 	else
 	{
-		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+		std::shared_ptr<DrawingFence_Vulkan> pFence_0 = nullptr;
+		std::shared_ptr<DrawingFence_Vulkan> pFence_1 = nullptr;
 
-		pFence_0->Wait(); // Alert: there is a chance to produce deadlock
-
-		if (flushImplicitCommands)
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
 		{
-			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
+			m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+
+			if (flushImplicitCommands)
+			{
+				m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			}
 		}
 
-		auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
-
-		pFence_1->Wait();
-
-		if (flushImplicitCommands)
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
 		{
-			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
+			m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
+
+			if (flushImplicitCommands)
+			{
+				m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			}
+		}
+
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
+		{
+			pFence_0->Wait();
+		}
+		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
+		{
+			pFence_1->Wait();
 		}
 	}
 #else
@@ -1012,12 +1062,12 @@ void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitC
 		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
 		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
 
-		pFence_0->Wait(); // Alert: there is a chance to produce deadlock
-
 		if (flushImplicitCommands)
 		{
 			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 		}
+
+		pFence_0->Wait();
 	}
 #endif
 }
@@ -1047,6 +1097,87 @@ uint32_t DrawingDevice_Vulkan::GetSwapchainPresentImageIndex() const
 {
 	assert(m_pSwapchain != nullptr);
 	return m_pSwapchain->GetTargetImageIndex();
+}
+
+void DrawingDevice_Vulkan::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	auto pVkTexture = std::static_pointer_cast<Texture2D_Vulkan>(pSrcTexture);
+	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pDstBuffer);
+
+	assert(pVkTexture->m_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL); // Or manual transition can be performed here
+	assert(pVkBuffer->m_sizeInBytes >= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
+
+	std::vector<VkBufferImageCopy> copyRegions;
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;  // Tightly packed
+	region.bufferImageHeight = 0;// Tightly packed
+	region.imageSubresource.aspectMask = pVkTexture->m_format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { pVkTexture->m_width, pVkTexture->m_height, 1 };
+	copyRegions.emplace_back(region);
+
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->CopyTexture2DToBuffer(pVkTexture, pVkBuffer->m_pBufferImpl, copyRegions);
+}
+
+void DrawingDevice_Vulkan::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	auto pVkTexture = std::static_pointer_cast<Texture2D_Vulkan>(pDstTexture);
+	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pSrcBuffer);
+	auto pVkCmdBuffer = std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer);
+
+	assert(pVkBuffer->m_sizeInBytes <= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
+
+	std::vector<VkBufferImageCopy> copyRegions;
+	VkBufferImageCopy region = {};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;  // Tightly packed
+	region.bufferImageHeight = 0;// Tightly packed
+	region.imageSubresource.aspectMask = pVkTexture->m_format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = { pVkTexture->m_width, pVkTexture->m_height, 1 };
+	copyRegions.emplace_back(region);
+
+	VkImageLayout originalLayout = pVkTexture->m_layout;
+	uint32_t originalAppliedStages = pVkTexture->m_appliedStages;
+
+	pVkCmdBuffer->TransitionImageLayout(pVkTexture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
+	pVkCmdBuffer->CopyBufferToTexture2D(pVkBuffer->m_pBufferImpl, pVkTexture, copyRegions);
+	pVkCmdBuffer->TransitionImageLayout(pVkTexture, originalLayout, originalAppliedStages);
+}
+
+void DrawingDevice_Vulkan::CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer)
+{
+	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pSrcBuffer);
+	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pDstBuffer);
+
+	assert(pDstVkBuffer->m_sizeInBytes >= pSrcVkBuffer->m_sizeInBytes);
+
+	if (!pSrcVkBuffer->m_constantlyMapped)
+	{
+		pSrcVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation, &pSrcVkBuffer->m_ppMappedData);
+	}
+	if (!pDstVkBuffer->m_constantlyMapped)
+	{
+		pDstVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation, &pDstVkBuffer->m_ppMappedData);
+	}
+
+	memcpy(pDstVkBuffer->m_ppMappedData, pSrcVkBuffer->m_ppMappedData, pSrcVkBuffer->m_sizeInBytes);
+
+	if (!pSrcVkBuffer->m_constantlyMapped)
+	{
+		pSrcVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
+	}
+	if (!pDstVkBuffer->m_constantlyMapped)
+	{
+		pDstVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation);
+	}
 }
 
 void DrawingDevice_Vulkan::ConfigureStates_Test()
@@ -1134,7 +1265,7 @@ void DrawingDevice_Vulkan::CreatePresentationSurface()
 {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 	auto glfwWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());
 	VkResult result = glfwCreateWindowSurface(m_instance, glfwWindow, nullptr, &m_presentationSurface);
 #else
@@ -1258,10 +1389,10 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 	{
 		uniqueQueueFamilies.emplace(queueFamilyIndices.presentFamily.value());
 	}
-#if defined(ENABLE_COPY_QUEUE_VK)
-	if (queueFamilyIndices.copyFamily.has_value())
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	if (queueFamilyIndices.transferFamily.has_value())
 	{
-		uniqueQueueFamilies.emplace(queueFamilyIndices.copyFamily.value());
+		uniqueQueueFamilies.emplace(queueFamilyIndices.transferFamily.value());
 	}
 #endif
 
@@ -1317,12 +1448,12 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->presentQueue.queueFamilyIndex, 0, &pDevice->presentQueue.queue);
 	}
 
-#if defined(ENABLE_COPY_QUEUE_VK)
-	if (queueFamilyIndices.copyFamily.has_value())
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	if (queueFamilyIndices.transferFamily.has_value())
 	{
-		pDevice->copyQueue.type = EQueueType::Copy;
-		pDevice->copyQueue.queueFamilyIndex = queueFamilyIndices.copyFamily.value();
-		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->copyQueue.queueFamilyIndex, 0, &pDevice->copyQueue.queue);
+		pDevice->transferQueue.type = EQueueType::Copy;
+		pDevice->transferQueue.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->transferQueue.queueFamilyIndex, 0, &pDevice->transferQueue.queue);
 	}
 #endif
 
@@ -1333,22 +1464,32 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 
 void DrawingDevice_Vulkan::SetupSwapchain()
 {
+	// Integrated GPU is used to present under heterogeneous-GPU mode
+
 	DrawingSwapchainCreateInfo_Vulkan createInfo = {};
 	createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
+#if defined (ENABLE_HETEROGENEOUS_GPUS_VK)
+	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
+	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
+#else
 	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
 	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
+#endif
 	createInfo.surface = m_presentationSurface;
 	createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
 	createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
 
+#if defined (ENABLE_HETEROGENEOUS_GPUS_VK)
+	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_1, createInfo);
+#else
 	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
+#endif
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
-
-	// TODO: add support for integrated GPU swapchain creation
 }
 
 VkSurfaceFormatKHR DrawingDevice_Vulkan::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -1434,15 +1575,16 @@ void DrawingDevice_Vulkan::SetupCommandManager()
 {
 	m_pDevice_0->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->graphicsQueue);
 	m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-#if defined(ENABLE_COPY_QUEUE_VK)
-	m_pDevice_0->pCopyCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->copyQueue);
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	m_pDevice_0->pTransferCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->transferQueue);
 #endif
 
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 	m_pDevice_1->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_1, m_pDevice_1->graphicsQueue);
 	m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-#if defined(ENABLE_COPY_QUEUE_VK)
-	// UHD 630 GPU doesn't seem to have standalone copy queue
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	// UHD 630 GPU doesn't have standalone transfer queue
+	m_pDevice_1->pTransferCommandManager = nullptr;
 #endif
 #endif
 }

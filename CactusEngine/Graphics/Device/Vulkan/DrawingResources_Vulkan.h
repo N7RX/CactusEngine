@@ -40,6 +40,23 @@ namespace Engine
 		friend class DrawingUploadAllocator_Vulkan;
 		friend class DrawingDevice_Vulkan;
 		friend class UniformBuffer_Vulkan;
+		friend class DataTransferBuffer_Vulkan;
+	};
+
+	class DataTransferBuffer_Vulkan : public DataTransferBuffer
+	{
+	public:
+		DataTransferBuffer_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const RawBufferCreateInfo_Vulkan& createInfo);
+		~DataTransferBuffer_Vulkan();
+
+	private:
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
+		std::shared_ptr<RawBuffer_Vulkan> m_pBufferImpl;
+
+		bool m_constantlyMapped;
+		void* m_ppMappedData;
+
+		friend class DrawingDevice_Vulkan;
 	};
 
 	class VertexBuffer_Vulkan : public VertexBuffer

@@ -17,17 +17,19 @@ namespace Engine
 
 		DrawingCommandQueue_Vulkan presentQueue;
 		DrawingCommandQueue_Vulkan graphicsQueue;
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+		DrawingCommandQueue_Vulkan transferQueue;
+#endif
 
 		std::shared_ptr<DrawingCommandManager_Vulkan> pGraphicsCommandManager;
-#if defined(ENABLE_COPY_QUEUE_VK)
-		DrawingCommandQueue_Vulkan copyQueue;
-		std::shared_ptr<DrawingCommandManager_Vulkan> pCopyCommandManager;
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+		std::shared_ptr<DrawingCommandManager_Vulkan> pTransferCommandManager;
 #endif
 		std::shared_ptr<DrawingUploadAllocator_Vulkan>		pUploadAllocator;
 		std::shared_ptr<DrawingDescriptorAllocator_Vulkan>	pDescriptorAllocator;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan>	pSyncObjectManager;
 
-		std::shared_ptr<DrawingCommandBuffer_Vulkan>		pImplicitCmdBuffer; // Command buffer used implicitly inside drawing device
+		std::shared_ptr<DrawingCommandBuffer_Vulkan>		pImplicitCmdBuffer; // Command buffer used implicitly inside drawing device, for graphics queue
 	};
 
 	class DrawingDevice_Vulkan : public DrawingDevice
@@ -84,6 +86,7 @@ namespace Engine
 		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 
+		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput) override;
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
 		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) override;
 		bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput) override;
@@ -105,11 +108,15 @@ namespace Engine
 		void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 
 		void Present() override;	
-		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
+		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) override;
 
-		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const override;
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
+
+		void CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer) override;
 
 		void ConfigureStates_Test() override;
 
@@ -172,6 +179,7 @@ namespace Engine
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_1; // For integrated GPU
 #endif
+
 	};
 
 	template<>

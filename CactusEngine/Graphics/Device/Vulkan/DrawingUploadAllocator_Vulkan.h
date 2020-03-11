@@ -49,7 +49,6 @@ namespace Engine
 
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
-		std::shared_ptr<DrawingCommandManager_Vulkan> m_pUploadCommandManager;
 		VmaAllocator m_allocator;
 	};
 }

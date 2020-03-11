@@ -152,6 +152,21 @@ namespace Engine
 		std::string m_filePath;
 	};
 
+	struct DataTransferBufferCreateInfo
+	{
+		uint32_t	size;
+		uint32_t	usageFlags; // Bitmap for EDataTransferBufferUsage
+		EMemoryType memoryType;
+		bool		cpuMapped;
+		EGPUType	deviceType;
+	};
+
+	class DataTransferBuffer : public RawResource
+	{
+	protected:
+		DataTransferBuffer() = default;
+	};
+
 	struct RenderPassAttachmentDescription
 	{
 		// This is strictly modeled after Vulkan specification, may not be versatile

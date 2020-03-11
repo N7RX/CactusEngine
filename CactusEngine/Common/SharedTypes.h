@@ -78,9 +78,9 @@ namespace Engine
 
 	enum class EGPUType
 	{
-		Discrete = 0,
-		Integrated,
-		COUNT
+		Discrete = 0x1,
+		Integrated = 0x2,
+		COUNT = 2
 	};
 
 	enum class ECameraProjectionType
@@ -101,6 +101,7 @@ namespace Engine
 		SampledImage = 0,
 		ColorAttachment,
 		DepthAttachment,
+		TransferColorAttachment, // For heterogeneous-GPU mode
 		COUNT
 	};
 
@@ -283,6 +284,22 @@ namespace Engine
 	{
 		Nearest = 0,
 		Linear,
+		COUNT
+	};
+
+	enum class EDataTransferBufferUsage
+	{
+		TransferSrc = 0x1,
+		TransferDst = 0x2,
+		COUNT = 2
+	};
+
+	enum class EMemoryType
+	{
+		CPU_Only = 0,
+		CPU_To_GPU,
+		GPU_Only,
+		GPU_To_CPU,
 		COUNT
 	};
 }

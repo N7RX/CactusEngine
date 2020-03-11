@@ -61,6 +61,7 @@ namespace Engine
 		void GenerateMipmap(std::shared_ptr<Texture2D_Vulkan> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
 		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const VkBufferCopy& region);
 		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);
+		void CopyTexture2DToBuffer(std::shared_ptr<Texture2D_Vulkan> pSrcImage, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const std::vector<VkBufferImageCopy>& regions);
 
 		void WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
 		void SignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
@@ -141,7 +142,7 @@ namespace Engine
 		void SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence, uint32_t usageMask);
 		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This function would stall the queue, use with caution
 																												 // Also, it ONLY accepts command buffers allocated from default pool
-		// For multithreading
+		// For multithreading																					 // Also, DO NOT use this function for frequently called operations (e.g. per frame)
 		std::shared_ptr<DrawingCommandPool_Vulkan> RequestExternalCommandPool();
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer);
 

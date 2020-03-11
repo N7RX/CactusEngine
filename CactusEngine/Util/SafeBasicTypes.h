@@ -30,3 +30,17 @@ private:
 	unsigned int m_countImpl;
 	mutable std::mutex m_mutex;
 };
+
+class ThreadSemaphore
+{
+public:
+	ThreadSemaphore() : m_signaled(false) {};
+
+	void Signal();
+	void Wait();
+
+private:
+	std::mutex m_mutex;
+	std::condition_variable m_cv;
+	bool m_signaled;
+};

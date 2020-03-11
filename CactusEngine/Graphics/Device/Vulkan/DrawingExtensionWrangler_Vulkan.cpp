@@ -215,11 +215,11 @@ QueueFamilyIndices_VK Engine::FindQueueFamilies_VK(const VkPhysicalDevice& devic
 			indices.presentFamily = index;
 		}
 
-#if defined(ENABLE_COPY_QUEUE_VK)
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
 		if (queueFamilies[index].queueCount > 0 && (queueFamilies[index].queueFlags & VK_QUEUE_TRANSFER_BIT)
 			&& !(queueFamilies[index].queueFlags & VK_QUEUE_GRAPHICS_BIT) && !(queueFamilies[index].queueFlags & VK_QUEUE_COMPUTE_BIT))
 		{
-			indices.copyFamily = index;
+			indices.transferFamily = index;
 		}
 #endif
 		if (indices.isComplete())

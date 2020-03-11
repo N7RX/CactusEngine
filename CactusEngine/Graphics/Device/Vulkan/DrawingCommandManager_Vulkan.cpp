@@ -340,6 +340,12 @@ void DrawingCommandBuffer_Vulkan::CopyBufferToTexture2D(const std::shared_ptr<Ra
 	vkCmdCopyBufferToImage(m_commandBuffer, pSrcBuffer->m_buffer, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
 }
 
+void DrawingCommandBuffer_Vulkan::CopyTexture2DToBuffer(std::shared_ptr<Texture2D_Vulkan> pSrcImage, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
+{
+	assert(m_isRecording);
+	vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
+}
+
 void DrawingCommandBuffer_Vulkan::WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
 {
 	m_waitSemaphores.emplace_back(pSemaphore);
@@ -500,6 +506,8 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 	
 	if (pSubmitInfo->buffersAwaitSubmit.size() == 0)
 	{
+		pFence->Notify();
+		m_pDevice->pSyncObjectManager->ReturnFence(pFence);
 		return;
 	}
 
@@ -674,8 +682,8 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 						pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
 					}
 
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);
 					fenceGroup.first->Notify();
+					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);				
 				}
 				else
 				{
@@ -686,8 +694,8 @@ void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 					}
 					throw std::runtime_error("Vulkan: command execution timeout.");
 
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);
 					fenceGroup.first->Notify();
+					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);				
 				}
 				fenceGroup.second.clear();
 			}

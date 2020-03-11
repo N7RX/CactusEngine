@@ -10,37 +10,44 @@
 
 namespace Engine
 {
+	class BaseRenderer;
+	class RenderGraph;
+
 	class RenderGraphResource
 	{
 	public:
 		void Add(const char* name, std::shared_ptr<RawResource> pResource);
 		std::shared_ptr<RawResource> Get(const char* name) const;
+		void Swap(const char* name, std::shared_ptr<RawResource> pResource);
 
 	private:
 		std::unordered_map<const char*, std::shared_ptr<RawResource>> m_renderResources;
 	};
 
-	class BaseRenderer;
 	struct RenderContext
 	{
 		const std::vector<std::shared_ptr<IEntity>>* pDrawList = nullptr;
 		std::shared_ptr<IEntity> pCamera;
 		BaseRenderer* pRenderer = nullptr;
+
+		unsigned int discreteGPUExecutionCycle;
 	};
 
 	struct CommandContext
 	{
 		std::shared_ptr<DrawingCommandPool> pCommandPool = nullptr;
 	};
-
-	class RenderGraph;
+	
 	class RenderNode : std::enable_shared_from_this<RenderNode>
 	{
 	public:
-		RenderNode(const std::shared_ptr<RenderGraph> pRenderGraph, 
+		RenderNode(
 			void(*pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext), 
 			const RenderGraphResource& input, const RenderGraphResource& output);
 		void AddNextNode(std::shared_ptr<RenderNode> pNode);
+
+		void SwapInputResource(const char* name, std::shared_ptr<RawResource> pResource);
+		void SwapOutputResource(const char* name, std::shared_ptr<RawResource> pResource);
 
 	private:
 		void Execute();
@@ -59,13 +66,12 @@ namespace Engine
 		const char* m_pName;
 
 		friend class RenderGraph;
-		std::shared_ptr<RenderGraph> m_pRenderGraph;
 	};
 
 	class RenderGraph : public NoCopy
 	{
 	public:
-		RenderGraph(const std::shared_ptr<DrawingDevice> pDevice);
+		RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Discrete);
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
@@ -88,24 +94,16 @@ namespace Engine
 
 	private:
 		std::shared_ptr<DrawingDevice> m_pDevice;
+		EGPUType m_deviceType;
 		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>> m_startingNodes; // Nodes that has no previous dependencies
 		bool m_isRunning;
 
 		// For parallel node execution	
-		static const unsigned int EXECUTION_THREAD_COUNT = 4;
-		std::thread m_executionThreads[EXECUTION_THREAD_COUNT];
+		uint32_t m_executionThreadCount;
+		std::vector<std::thread> m_executionThreads;
 		std::mutex m_nodeExecutionMutex;
 		std::condition_variable m_nodeExecutionCv;
 		SafeQueue<std::shared_ptr<RenderNode>> m_executionNodeQueue;
-
-#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
-		// For heterogeneous-GPU rendering
-		static const unsigned int EXECUTION_THREAD_COUNT_IG = 1; // IG stands for integrated graphics / integrated GPU
-		std::thread m_executionThreads_IG[EXECUTION_THREAD_COUNT_IG];
-		std::mutex m_nodeExecutionMutex_IG;
-		std::condition_variable m_nodeExecutionCv_IG;
-		SafeQueue<std::shared_ptr<RenderNode>> m_executionNodeQueue_IG;
-#endif
 	};
 }

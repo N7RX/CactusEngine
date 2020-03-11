@@ -276,9 +276,6 @@
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Renderer\DeferredRenderer.h">
-      <Filter>Graphics\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Renderer\ForwardRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
@@ -444,6 +441,9 @@
     <ClInclude Include="Graphics\Device\CommandResources.h">
       <Filter>Graphics\Device</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Renderer\HPForwardRenderer_HG.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -498,9 +498,6 @@
       <Filter>Graphics\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp">
-      <Filter>Graphics\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Renderer\DeferredRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp">
@@ -615,6 +612,9 @@
       <Filter>Util</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\HPForwardRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\HPForwardRenderer_HG.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
   </ItemGroup>

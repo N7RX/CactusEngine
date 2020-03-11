@@ -5,8 +5,8 @@
 #include <vector>
 #include <assert.h>
 
-#define GLFW_IMPLEMENTATION_CACTUS
-#define ENABLE_HETEROGENEOUS_GPUS_CE
+#define GLFW_IMPLEMENTATION_CE
+#define ENABLE_HETEROGENEOUS_GPUS_CE // For Vulkan device only
 
 namespace Engine
 {

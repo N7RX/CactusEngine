@@ -16,7 +16,7 @@ ForwardRenderer::ForwardRenderer(const std::shared_ptr<DrawingDevice> pDevice, D
 
 void ForwardRenderer::BuildRenderGraph()
 {
-	m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice);
+	m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice, 0);
 
 	BuildFrameResources();
 
@@ -296,7 +296,7 @@ void ForwardRenderer::BuildShadowMapPass()
 
 	passOutput.Add(ForwardGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 
-	auto pShadowMapPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pShadowMapPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
@@ -403,7 +403,7 @@ void ForwardRenderer::BuildNormalOnlyPass()
 	passOutput.Add(ForwardGraphRes::TX_NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
 	passOutput.Add(ForwardGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
 
-	auto pNormalOnlyPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pNormalOnlyPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -497,7 +497,7 @@ void ForwardRenderer::BuildOpaquePass()
 	passOutput.Add(ForwardGraphRes::TX_OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
 	passOutput.Add(ForwardGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
 
-	auto pOpaquePass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pOpaquePass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -531,7 +531,6 @@ void ForwardRenderer::BuildOpaquePass()
 			pDevice->ClearRenderTarget();
 
 			UBTransformMatrices ubTransformMatrices;
-			UBSystemVariables ubSystemVariables;
 			UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix;
 			UBCameraProperties ubCameraProperties;
 			UBMaterialNumericalProperties ubMaterialNumericalProperties;
@@ -642,7 +641,7 @@ void ForwardRenderer::BuildGaussianBlurPass()
 
 	passOutput.Add(ForwardGraphRes::TX_BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
 
-	auto pGaussianBlurPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pGaussianBlurPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -721,7 +720,7 @@ void ForwardRenderer::BuildLineDrawingPass()
 
 	passOutput.Add(ForwardGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
 
-	auto pLineDrawingPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pLineDrawingPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -857,7 +856,7 @@ void ForwardRenderer::BuildTransparentPass()
 	passOutput.Add(ForwardGraphRes::TX_TRANSP_COLOR, m_pTranspPassColorOutput);
 	passOutput.Add(ForwardGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
 
-	auto pTransparentPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pTransparentPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 	{
 		auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -997,7 +996,7 @@ void ForwardRenderer::BuildOpaqueTranspBlendPass()
 
 	passOutput.Add(ForwardGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
 
-	auto pBlendPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pBlendPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 	{
 		auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -1056,7 +1055,7 @@ void ForwardRenderer::BuildDepthOfFieldPass()
 	passInput.Add(ForwardGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB);
 	passInput.Add(ForwardGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB);
 
-	auto pDOFPass = std::make_shared<RenderNode>(m_pRenderGraph,
+	auto pDOFPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));

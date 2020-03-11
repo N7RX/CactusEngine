@@ -11,19 +11,26 @@ DrawingSemaphore_Vulkan::DrawingSemaphore_Vulkan(const VkSemaphore& semaphoreHan
 }
 
 DrawingFence_Vulkan::DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t assignedID)
-	: fence(fenceHandle), id(assignedID)
+	: fence(fenceHandle), id(assignedID), m_signaled(false)
 {
-	m_fenceLock = std::unique_lock<std::mutex>(m_fenceMutex, std::defer_lock);
-	m_fenceLock.lock();
+
 }
 
 void DrawingFence_Vulkan::Wait()
 {
-	m_fenceCv.wait(m_fenceLock);
+	std::unique_lock<std::mutex> lock(m_fenceMutex);
+	m_fenceCv.wait(lock, [this]() { return m_signaled; });
+	m_signaled = false;
 }
 
 void DrawingFence_Vulkan::Notify()
 {
+	{
+		std::lock_guard<std::mutex> guard(m_fenceMutex);
+		assert(!m_signaled);
+		m_signaled = true;
+	}
+
 	m_fenceCv.notify_all();
 }
 
@@ -77,6 +84,7 @@ std::shared_ptr<DrawingFence_Vulkan> DrawingSyncObjectManager_Vulkan::RequestFen
 		if (entry.second)
 		{
 			entry.second = false;
+			m_fencePool[entry.first]->m_signaled = false;
 			return m_fencePool[entry.first];
 		}
 	}
@@ -84,6 +92,7 @@ std::shared_ptr<DrawingFence_Vulkan> DrawingSyncObjectManager_Vulkan::RequestFen
 	CreateNewFence(1);
 	uint32_t id = static_cast<uint32_t>(m_fencePool.size() - 1);
 	m_fenceAvailability.at(id) = false;
+	m_fencePool[id]->m_signaled = false;
 	return m_fencePool[id];
 }
 

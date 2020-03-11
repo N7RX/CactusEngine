@@ -40,6 +40,7 @@ namespace Engine
 		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 
+		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput) override;
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
 		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) override;
 		bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput) override;
@@ -61,11 +62,15 @@ namespace Engine
 		void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 
 		void Present() override;
-		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
+		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) override;
 
-		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const override;
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
+
+		void CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer) override;
 
 		void ConfigureStates_Test() override;
 

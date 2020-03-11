@@ -14,7 +14,7 @@ RenderTexture::RenderTexture(uint32_t width, uint32_t height)
 	m_height = height;
 }
 
-void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFormat format)
+void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFormat format, EGPUType deviceType)
 {
 	if (!m_pDevice)
 	{
@@ -29,6 +29,7 @@ void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFor
 	createInfo.format = format;
 	createInfo.generateMipmap = false; // TODO: test out the effect
 	createInfo.initialLayout = EImageLayout::ShaderReadOnly;
+	createInfo.deviceType = deviceType;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 }

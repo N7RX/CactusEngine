@@ -4,15 +4,16 @@
 #include "BuiltInShaderType.h"
 #include "CommandResources.h"
 #include "SafeBasicTypes.h"
+#include "SafeQueue.h"
 
 namespace Engine
 {
-	// High-performance forward renderer; dedicated for Vulkan-like single GPU device
-	class HPForwardRenderer : public BaseRenderer, std::enable_shared_from_this<HPForwardRenderer>
+	// High-performance forward renderer; for heterogeneous-GPU / hybrid-GPU (HG) rendering model test
+	class HPForwardRenderer_HG : public BaseRenderer, std::enable_shared_from_this<HPForwardRenderer_HG>
 	{
 	public:
-		HPForwardRenderer(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
-		~HPForwardRenderer() = default;
+		HPForwardRenderer_HG(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
+		~HPForwardRenderer_HG() = default;
 
 		void BuildRenderGraph() override;
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
@@ -20,8 +21,12 @@ namespace Engine
 		const std::shared_ptr<GraphicsPipelineObject> GetGraphicsPipeline(EBuiltInShaderProgramType shaderType, const char* passName) const;
 
 		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
+		void WriteCommandRecordList_IG(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
 
 	private:
+		void ExecuteIntegratedGPUCycles(std::shared_ptr<RenderContext> pContext);
+		void ExecuteDiscreteGPUCycles();
+
 		void BuildRenderResources();
 
 		void CreateFrameTextures();
@@ -29,6 +34,7 @@ namespace Engine
 		void CreateFrameBuffers();
 		void CreateUniformBuffers();
 		void CreatePipelineObjects();
+		void CreateDataTransferBuffers();
 
 		void BuildShadowMapPass();
 		void BuildNormalOnlyPass();
@@ -44,6 +50,7 @@ namespace Engine
 		void CreateLineDrawingMatrices();
 
 		void ResetUniformBufferSubAllocation();
+		void ResetUniformBufferSubAllocation_IG();
 
 	private:
 
@@ -57,7 +64,26 @@ namespace Engine
 		typedef std::unordered_map<const char*, std::shared_ptr<GraphicsPipelineObject>> PassGraphicsPipeline;
 		std::unordered_map<EBuiltInShaderProgramType, PassGraphicsPipeline> m_graphicsPipelines;
 
-		// Command record list
+		// Extra render graphs for heterogeneous working model
+
+		std::shared_ptr<RenderGraph> m_pRenderGraph_1;  // Extra render graph for discrete GPU swap cycle
+		std::shared_ptr<RenderGraph> m_pRenderGraph_IG; // IG stands for integrated GPU
+
+		// Discrete GPU work cycle is managed from a separate thread, since integrated GPU is in sync with presentation
+
+		const unsigned int MAX_DISCRETE_GPU_EXECUTION_CYCLE = 2;
+
+		bool m_isRunning;
+		std::mutex m_discreteGPUExecutionMutex;
+		std::condition_variable m_discreteGPUExecutionCv;
+		std::thread  m_discreteGPUManagementThread;
+		unsigned int m_discreteGPUexecutionCycle;
+		SafeQueue<std::shared_ptr<RenderContext>> m_discreteGPUexecutionTaskQueue;
+
+		bool m_firstFrame;
+		ThreadSemaphore m_swapSemaphore;
+
+		// Command record list for discrete GPU
 
 		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
 		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag;  // Submit Priority - Ready to submit or has been submitted
@@ -66,6 +92,16 @@ namespace Engine
 		std::condition_variable m_commandRecordListCv;
 		std::queue<uint32_t> m_writtenCommandPriorities;
 		bool m_newCommandRecorded;
+
+		// Command record list for integrated GPU
+
+		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList_IG;
+		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag_IG;
+
+		std::mutex m_commandRecordListWriteMutex_IG;
+		std::condition_variable m_commandRecordListCv_IG;
+		std::queue<uint32_t> m_writtenCommandPriorities_IG;
+		bool m_newCommandRecorded_IG;
 
 		// Pass organized resources
 
@@ -112,6 +148,10 @@ namespace Engine
 		std::shared_ptr<RenderPassObject>	m_pBlendRenderPassObject;
 
 		std::shared_ptr<FrameBuffer>		m_pDOFPassFrameBuffer_Horizontal;
+		std::shared_ptr<Texture2D>			m_pBlendPassColorOutput_IG;
+		std::shared_ptr<Texture2D>			m_pNormalOnlyPassPositionOutput_IG;
+		std::shared_ptr<Texture2D>			m_pOpaquePassShadowOutput_IG;
+
 		std::shared_ptr<Texture2D>			m_pDOFPassHorizontalOutput;
 		std::shared_ptr<RenderPassObject>	m_pDOFRenderPassObject;
 
@@ -133,9 +173,24 @@ namespace Engine
 		std::shared_ptr<UniformBuffer>		m_pCameraPropertie_UB;
 		std::shared_ptr<UniformBuffer>		m_pSystemVariables_UB;
 		std::shared_ptr<UniformBuffer>		m_pControlVariables_UB;
+
+		std::shared_ptr<UniformBuffer>		m_pTransformMatrices_UB_IG;
+		std::shared_ptr<UniformBuffer>		m_pCameraPropertie_UB_IG;
+		std::shared_ptr<UniformBuffer>		m_pSystemVariables_UB_IG;
+		std::shared_ptr<UniformBuffer>		m_pControlVariables_UB_IG;
+
+		// In order to output to integrated GPU, we need two set of output resources for swapping
+
+		std::shared_ptr<DataTransferBuffer> m_pNormalOnlyPassPositionOutputTransferBuffer[2];
+		std::shared_ptr<DataTransferBuffer> m_pOpaquePassShadowOutputTransferBuffer[2];
+		std::shared_ptr<DataTransferBuffer> m_pBlendPassColorOutputTransferBuffer[2];
+
+		std::shared_ptr<DataTransferBuffer> m_pNormalOnlyPassPositionOutputTransferBuffer_IG;
+		std::shared_ptr<DataTransferBuffer> m_pOpaquePassShadowOutputTransferBuffer_IG;
+		std::shared_ptr<DataTransferBuffer> m_pBlendPassColorOutputTransferBuffer_IG;
 	};
 
-	namespace HPForwardGraphRes
+	namespace HPForwardHGGraphRes
 	{
 		static const char* PASSNAME_SHADOWMAP = "ShadowMapPass";
 		static const char* PASSNAME_NORMAL_ONLY = "NormalOnlyPass";
@@ -215,5 +270,9 @@ namespace Engine
 		static const char* UB_CAMERA_PROPERTIES = "CameraProperties";
 		static const char* UB_SYSTEM_VARIABLES = "SystemVariables";
 		static const char* UB_CONTROL_VARIABLES = "ControlVariables";
+
+		static const char* TB_NORMALONLY_POSITION = "NormalOnlyPositionTB";
+		static const char* TB_OPAQUE_SHADOW = "OpaqueShadowTB";
+		static const char* TB_BLEND_COLOR = "BlendColorTB";
 	}
 }

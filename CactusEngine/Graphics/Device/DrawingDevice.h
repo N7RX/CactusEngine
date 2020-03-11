@@ -46,6 +46,7 @@ namespace Engine
 		virtual std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) = 0;
 		virtual void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 
+		virtual bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput) = 0;
 		virtual bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) = 0;
 		virtual bool CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput) = 0;
 		virtual bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput) = 0;
@@ -67,11 +68,15 @@ namespace Engine
 		virtual void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 
 		virtual void Present() = 0;
-		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands) = 0;
+		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) = 0;
 
-		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType) const = 0;
+		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const = 0;
 		virtual void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
+
+		virtual void CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer) = 0;
 
 		// TODO: discard this function in the future, it's for temporary test
 		virtual void ConfigureStates_Test() = 0;

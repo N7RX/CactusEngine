@@ -327,6 +327,12 @@ void DrawingDevice_OpenGL::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCo
 	std::cerr << "OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.\n";
 }
 
+bool DrawingDevice_OpenGL::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
+{
+	std::cerr << "OpenGL: shouldn't call CreateDataTransferBuffer on OpenGL device.\n";
+	return false;
+}
+
 bool DrawingDevice_OpenGL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
 	std::cerr << "OpenGL: shouldn't call CreateRenderPassObject on OpenGL device.\n";
@@ -427,7 +433,7 @@ void DrawingDevice_OpenGL::Present()
 	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::FlushCommands(bool waitExecution, bool flushImplicitCommands)
+void DrawingDevice_OpenGL::FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags)
 {
 	glFlush();
 
@@ -452,6 +458,21 @@ uint32_t DrawingDevice_OpenGL::GetSwapchainPresentImageIndex() const
 {
 	std::cerr << "OpenGL: shouldn't call GetSwapchainPresentImageIndex on OpenGL device.\n";
 	return -1;
+}
+
+void DrawingDevice_OpenGL::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call CopyTexture2DToDataTransferBuffer on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToTexture2D on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferCrossDevice on OpenGL device.\n";
 }
 
 void DrawingDevice_OpenGL::ConfigureStates_Test()

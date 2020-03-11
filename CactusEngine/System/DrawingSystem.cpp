@@ -1,6 +1,7 @@
 #include "DrawingSystem.h"
 #include "ForwardRenderer.h"
 #include "HPForwardRenderer.h"
+#include "HPForwardRenderer_HG.h"
 #include "DrawingDevice_OpenGL.h"
 #include "DrawingDevice_Vulkan.h"
 #include "MeshRendererComponent.h"
@@ -107,7 +108,11 @@ bool DrawingSystem::RegisterRenderers()
 		RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
 		break;
 	case EGraphicsDeviceType::Vulkan:
+#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
+		RegisterRenderer<HPForwardRenderer_HG>(ERendererType::Forward, 1);
+#else
 		RegisterRenderer<HPForwardRenderer>(ERendererType::Forward, 1);
+#endif
 		break;
 	default:
 		throw std::runtime_error("Unsupported drawing device type.");
@@ -151,7 +156,7 @@ bool DrawingSystem::LoadShaders()
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Color] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_COLOR_VK, EGPUType::Discrete);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND_VK, EGPUType::Discrete);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_VK, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK, EGPUType::Discrete);
+		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK, EGPUType::Integrated);
 #else
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK);

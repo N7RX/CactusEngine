@@ -16,13 +16,26 @@ std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
 	{
 		return m_renderResources.at(name);
 	}
+	std::cerr << "Couldn't find resource: " << name << std::endl;
 	return nullptr;
 }
 
-RenderNode::RenderNode(const std::shared_ptr<RenderGraph> pRenderGraph,
+void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pResource)
+{
+	if (m_renderResources.find(name) != m_renderResources.end())
+	{
+		m_renderResources.at(name) = pResource;
+	}
+	else
+	{
+		std::cerr << "Couldn't find the resource to be swapped: " << name << std::endl;
+	}
+}
+
+RenderNode::RenderNode(
 	void(*pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext),
 	const RenderGraphResource& input, const RenderGraphResource& output)
-	: m_pRenderGraph(pRenderGraph), m_pRenderPassFunc(pRenderPassFunc), m_input(input), m_output(output), m_finishedExecution(false)
+	: m_pRenderPassFunc(pRenderPassFunc), m_input(input), m_output(output), m_finishedExecution(false), m_pName(nullptr)
 {
 }
 
@@ -30,6 +43,16 @@ void RenderNode::AddNextNode(std::shared_ptr<RenderNode> pNode)
 {
 	m_nextNodes.emplace_back(pNode);
 	pNode->m_prevNodes.emplace_back(this);
+}
+
+void RenderNode::SwapInputResource(const char* name, std::shared_ptr<RawResource> pResource)
+{
+	m_input.Swap(name, pResource);
+}
+
+void RenderNode::SwapOutputResource(const char* name, std::shared_ptr<RawResource> pResource)
+{
+	m_output.Swap(name, pResource);
 }
 
 void RenderNode::Execute()
@@ -59,14 +82,14 @@ void RenderNode::ExecuteParallel()
 	m_finishedExecution = true;
 }
 
-RenderGraph::RenderGraph(const std::shared_ptr<DrawingDevice> pDevice)
-	: m_pDevice(pDevice), m_isRunning(true)
+RenderGraph::RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType)
+	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount), m_deviceType(deviceType)
 {
 	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::Vulkan)
 	{
-		for (unsigned int i = 0; i < EXECUTION_THREAD_COUNT; i++)
+		for (unsigned int i = 0; i < m_executionThreadCount; i++)
 		{
-			m_executionThreads[i] = std::thread(&RenderGraph::ExecuteRenderNodeParallel, this);
+			m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodeParallel, this);
 		}
 	}
 }
@@ -202,12 +225,12 @@ void RenderGraph::ExecuteRenderNodeParallel()
 	lock.lock();
 
 	auto pCmdContext = std::make_shared<CommandContext>();
-	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EGPUType::Discrete);
+	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(m_deviceType);
 
 	std::shared_ptr<RenderNode> pNode = nullptr;
 	while (m_isRunning)
 	{
-		m_nodeExecutionCv.wait(lock);
+		m_nodeExecutionCv.wait(lock, [this]() { return !m_executionNodeQueue.Empty(); });
 
 		while (m_executionNodeQueue.TryPop(pNode))
 		{

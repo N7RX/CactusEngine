@@ -37,8 +37,8 @@ namespace Engine
 	private:
 		uint32_t id;
 		std::mutex m_fenceMutex;
-		std::unique_lock<std::mutex> m_fenceLock;
 		std::condition_variable m_fenceCv;
+		bool m_signaled;
 
 		friend class DrawingSyncObjectManager_Vulkan;
 	};

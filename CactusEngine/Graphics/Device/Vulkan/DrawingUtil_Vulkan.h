@@ -104,6 +104,7 @@ namespace Engine
 			res |= VK_SHADER_STAGE_COMPUTE_BIT;
 		}
 
+		assert(res != 0);
 		return res;
 	}
 
@@ -138,6 +139,7 @@ namespace Engine
 			res |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		}
 
+		assert(res != 0);
 		return res;
 	}
 
@@ -226,13 +228,31 @@ namespace Engine
 			return 4U;
 
 		case ETextureFormat::RGBA8_SRGB:
-			return 4U;
-
 		case ETextureFormat::BGRA8_UNORM:
 			return 4U;
 
 		default:
 			std::cerr << "Vulkan: Unhandled texture format: " << (unsigned int)format << std::endl;
+			return 4U;
+		}
+	}
+
+	inline VkDeviceSize VulkanFormatUnitSize(VkFormat format)
+	{
+		switch (format)
+		{
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+			return 16U;
+
+		case VK_FORMAT_D32_SFLOAT:
+			return 4U;
+
+		case VK_FORMAT_R8G8B8A8_SRGB:
+		case VK_FORMAT_B8G8R8A8_UNORM:
+			return 4U;
+
+		default:
+			std::cerr << "Vulkan: Unhandled format: " << (unsigned int)format << std::endl;
 			return 4U;
 		}
 	}
@@ -626,9 +646,52 @@ namespace Engine
 		case ETextureType::DepthAttachment:
 			return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
+		case ETextureType::TransferColorAttachment:
+			return VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
 		default:
 			std::cerr << "Vulkan: Unhandled texture type: " << (unsigned int)type << std::endl;
 			return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		}
+	}
+
+	inline VkBufferUsageFlags VulkanDataTransferBufferUsage(uint32_t usageFlags)
+	{
+		assert(usageFlags != 0);
+		VkBufferUsageFlags res = 0;
+
+		if ((usageFlags & (uint32_t)EDataTransferBufferUsage::TransferSrc) != 0)
+		{
+			res |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		}
+		if ((usageFlags & (uint32_t)EDataTransferBufferUsage::TransferDst) != 0)
+		{
+			res |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+		}
+
+		assert(res != 0);
+		return res;
+	}
+
+	inline VmaMemoryUsage VulkanMemoryUsage(EMemoryType type)
+	{
+		switch (type)
+		{
+		case EMemoryType::CPU_Only:
+			return VMA_MEMORY_USAGE_CPU_ONLY;
+
+		case EMemoryType::CPU_To_GPU:
+			return VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		case EMemoryType::GPU_Only:
+			return VMA_MEMORY_USAGE_GPU_ONLY;
+
+		case EMemoryType::GPU_To_CPU:
+			return VMA_MEMORY_USAGE_GPU_TO_CPU;
+
+		default:
+			std::cerr << "Vulkan: Unhandled memory usage type: " << (unsigned int)type << std::endl;
+			return VMA_MEMORY_USAGE_CPU_TO_GPU;
 		}
 	}
 }

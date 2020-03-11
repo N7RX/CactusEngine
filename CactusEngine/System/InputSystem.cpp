@@ -9,7 +9,7 @@ GLFWwindow* InputSystem::m_pGLFWWindow = nullptr;
 InputSystem::InputSystem(ECSWorld* pWorld)
 	: m_systemID(-1)
 {
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 	m_pGLFWWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());
 #endif
 }
@@ -61,7 +61,7 @@ void InputSystem::FrameEnd()
 
 bool InputSystem::GetKeyPress(char key)
 {
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 	assert(m_pGLFWWindow != nullptr);
 
 	if (glfwGetKey(m_pGLFWWindow, GLFW_KEY_A + (int)(key - 'a')) == GLFW_PRESS)
@@ -75,7 +75,7 @@ bool InputSystem::GetKeyPress(char key)
 
 bool InputSystem::GetMousePress(int key)
 {
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 	assert(m_pGLFWWindow != nullptr);
 
 	if (glfwGetMouseButton(m_pGLFWWindow, GLFW_MOUSE_BUTTON_1 + key) == GLFW_PRESS)
@@ -89,7 +89,7 @@ bool InputSystem::GetMousePress(int key)
 
 Vector2 InputSystem::GetCursorPosition()
 {
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 	assert(m_pGLFWWindow != nullptr);
 
 	double xPos, yPos;

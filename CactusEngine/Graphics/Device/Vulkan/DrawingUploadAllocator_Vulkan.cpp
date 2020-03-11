@@ -14,12 +14,6 @@ DrawingUploadAllocator_Vulkan::DrawingUploadAllocator_Vulkan(const std::shared_p
 	createInfo.physicalDevice = pDevice->physicalDevice;
 	createInfo.device = pDevice->logicalDevice;
 	vmaCreateAllocator(&createInfo, &m_allocator);
-
-#if defined(ENABLE_COPY_QUEUE_VK)
-	m_pUploadCommandManager = pDevice->pCopyCommandManager;
-#else
-	m_pUploadCommandManager = pDevice->pGraphicsCommandManager;
-#endif
 }
 
 DrawingUploadAllocator_Vulkan::~DrawingUploadAllocator_Vulkan()

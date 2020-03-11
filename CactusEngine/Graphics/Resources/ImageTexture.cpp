@@ -8,13 +8,13 @@
 
 using namespace Engine;
 
-ImageTexture::ImageTexture(const char* filePath)
+ImageTexture::ImageTexture(const char* filePath, EGPUType deviceType)
 	: Texture2D(ETexture2DSource::ImageTexture)
 {
-	LoadAndCreateTexture(filePath);
+	LoadAndCreateTexture(filePath, deviceType);
 }
 
-void ImageTexture::LoadAndCreateTexture(const char* filePath)
+void ImageTexture::LoadAndCreateTexture(const char* filePath, EGPUType deviceType)
 {
 	m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice();
 
@@ -44,6 +44,7 @@ void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	createInfo.textureType = ETextureType::SampledImage;
 	createInfo.generateMipmap = true;
 	createInfo.initialLayout = EImageLayout::ShaderReadOnly;
+	createInfo.deviceType = deviceType;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 

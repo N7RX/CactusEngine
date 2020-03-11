@@ -30,7 +30,7 @@ namespace Engine
 
 	private:
 		uint32_t m_systemID;
-#if defined(GLFW_IMPLEMENTATION_CACTUS)
+#if defined(GLFW_IMPLEMENTATION_CE)
 		static GLFWwindow* m_pGLFWWindow;
 #endif
 	};
