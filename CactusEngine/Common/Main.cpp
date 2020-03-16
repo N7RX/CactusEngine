@@ -8,6 +8,12 @@
 #include "ECSSceneWriter.h"
 #include "ECSSceneReader.h"
 
+#include "AllComponents.h"
+#include "ImageTexture.h"
+#include "ExternalMesh.h"
+#include "StandardEntity.h"
+#include "ScriptSelector.h"
+
 // This is the entry of the program
 
 using namespace Engine;
@@ -88,6 +94,7 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->RegisterSystem<DrawingSystem>(ESystemType::Script);
 	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
 
+#ifndef ENABLE_ASYNC_COMPUTE_TEST_CE
 	// Read scene from file
 	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
 	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
@@ -95,6 +102,64 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Or manually add contents here
 	// ...
+#else
+	// Camera
+	auto pCameraComponent = pWorld->CreateComponent<CameraComponent>();
+	pCameraComponent->SetClearColor(Color4(1.0f, 1.0f, 1.0f, 0.0f));
+
+	auto pCameraTransformComp = pWorld->CreateComponent<TransformComponent>();
+	pCameraTransformComp->SetPosition(Vector3(-4.0f, 2.5f, 3.4f));
+	pCameraTransformComp->SetRotation(Vector3(-33, -45, 0));
+
+	auto pCameraScriptComp = pWorld->CreateComponent<ScriptComponent>();
+
+	auto pCamera = pWorld->CreateEntity<StandardEntity>();
+	pCamera->AttachComponent(pCameraComponent);
+	pCamera->AttachComponent(pCameraTransformComp);
+	pCamera->AttachComponent(pCameraScriptComp);
+	pCamera->SetEntityTag(EEntityTag::MainCamera);
+
+	pCameraScriptComp->BindScript(SampleScript::GenerateScriptByID((SampleScript::EScriptID::Camera), pCamera));
+
+	// 512 Objects
+	auto pMesh = std::make_shared<ExternalMesh>("Assets/Models/Amago_0.obj");
+	auto pAlbedoTexture = std::make_shared<ImageTexture>("Assets/Textures/Amago_0.bmp");
+	auto pToneTexture = std::make_shared<ImageTexture>("Assets/Textures/XToon_BW.png");
+
+	for (unsigned int i = 0; i < 8; i++)
+	{
+		for (unsigned int j = 0; j < 8; j++)
+		{
+			for (unsigned int k = 0; k < 8; k++)
+			{
+				auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+				pTransformComp->SetPosition(Vector3((float(i) - 4) * 0.5f, (float(k) - 4) * 0.5f, (float(j) - 4) * 0.5f));
+				pTransformComp->SetScale(Vector3(1.5f));
+
+				auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+				pMeshFilterComp->SetMesh(pMesh);
+
+				auto pMaterial = std::make_shared<Material>();
+				pMaterial->SetAlbedoColor(Color4(1.0f));
+				pMaterial->SetShaderProgram(EBuiltInShaderProgramType::AnimeStyle);
+				pMaterial->SetTexture(EMaterialTextureType::Albedo, pAlbedoTexture);
+				pMaterial->SetTexture(EMaterialTextureType::Tone, pToneTexture);
+
+				auto pMaterialComp = std::make_shared<MaterialComponent>();
+				pMaterialComp->AddMaterial(0, pMaterial);
+
+				auto pMeshRendererComp = std::make_shared<MeshRendererComponent>();
+				pMeshRendererComp->SetRenderer(ERendererType::Forward);
+
+				auto pSphere = pWorld->CreateEntity<StandardEntity>();
+				pSphere->AttachComponent(pTransformComp);
+				pSphere->AttachComponent(pMeshFilterComp);
+				pSphere->AttachComponent(pMaterialComp);
+				pSphere->AttachComponent(pMeshRendererComp);
+			}
+		}
+	}
+#endif
 
 	// Write scene to file
 	//WriteECSWorldToJson(pWorld, "Assets/Scene/NewScene.json");

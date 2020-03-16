@@ -36,6 +36,9 @@ namespace Engine
 	struct CommandContext
 	{
 		std::shared_ptr<DrawingCommandPool> pCommandPool = nullptr;
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+		std::shared_ptr<DrawingCommandPool> pTransferCommandPool = nullptr;
+#endif
 	};
 	
 	class RenderNode : std::enable_shared_from_this<RenderNode>

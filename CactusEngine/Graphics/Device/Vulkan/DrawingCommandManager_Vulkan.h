@@ -32,6 +32,7 @@ namespace Engine
 	class  Texture2D_Vulkan;
 	class  RawBuffer_Vulkan;	
 	class  DrawingCommandPool_Vulkan;
+	class  DrawingCommandManager_Vulkan;
 
 	class DrawingCommandBuffer_Vulkan : public DrawingCommandBuffer
 	{
@@ -63,19 +64,26 @@ namespace Engine
 		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_Vulkan> pSrcBuffer, std::shared_ptr<Texture2D_Vulkan> pDstImage, const std::vector<VkBufferImageCopy>& regions);
 		void CopyTexture2DToBuffer(std::shared_ptr<Texture2D_Vulkan> pSrcImage, const std::shared_ptr<RawBuffer_Vulkan> pDstBuffer, const std::vector<VkBufferImageCopy>& regions);
 
-		void WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
-		void SignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
+		// For presentation only
+		void WaitPresentationSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
+		void SignalPresentationSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore);
+
+		// For general purpose
+		void WaitSemaphore(const std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore);
+		void SignalSemaphore(const std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore);
 
 	private:
 		VkCommandBuffer m_commandBuffer;
-		uint32_t m_usageFlags; // Bitmap
 		DrawingCommandPool_Vulkan* m_pAllocatedPool;
+		uint32_t m_usageFlags; // Bitmap
 
 		VkPipelineLayout m_pipelineLayout;
 
-		std::shared_ptr<DrawingFence_Vulkan> m_pAssociatedFence;
-		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitSemaphores;
-		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalSemaphores;
+		std::shared_ptr<TimelineSemaphore_Vulkan> m_pAssociatedSubmitSemaphore;
+		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_waitPresentationSemaphores;
+		std::vector<std::shared_ptr<DrawingSemaphore_Vulkan>> m_signalPresentationSemaphores;
+		std::vector<std::shared_ptr<TimelineSemaphore_Vulkan>> m_waitSemaphores;
+		std::vector<std::shared_ptr<TimelineSemaphore_Vulkan>> m_signalSemaphores;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan> m_pSyncObjectManager;
 
 		std::queue<std::shared_ptr<DrawingDescriptorSet_Vulkan>> m_boundDescriptorSets;
@@ -93,7 +101,7 @@ namespace Engine
 	class DrawingCommandPool_Vulkan : public NoCopy, public DrawingCommandPool, std::enable_shared_from_this<DrawingCommandPool_Vulkan>
 	{
 	public:
-		DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle);
+		DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle, DrawingCommandManager_Vulkan* pManager);
 		~DrawingCommandPool_Vulkan();
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
@@ -107,6 +115,7 @@ namespace Engine
 	private:
 		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice;
 		VkCommandPool m_commandPool;
+		DrawingCommandManager_Vulkan* m_pManager;
 		uint32_t m_allocatedCommandBufferCount;
 		SafeQueue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> m_freeCommandBuffers;
 
@@ -117,15 +126,18 @@ namespace Engine
 	struct CommandSubmitInfo_Vulkan
 	{
 		VkSubmitInfo submitInfo;
-		VkFence		 fence;
+
 		//std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
 		std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> queuedCmdBuffers;
 
 		// Retained resources
 		std::vector<VkCommandBuffer>	  buffersAwaitSubmit;	
+		std::vector<uint64_t>			  waitSemaphoreValues;
+		std::vector<uint64_t>			  signalSemaphoreValues;
 		std::vector<VkPipelineStageFlags> waitStages;
 		std::vector<VkSemaphore>		  semaphoresToWait;
 		std::vector<VkSemaphore>		  semaphoresToSignal;
+		VkTimelineSemaphoreSubmitInfo	  timelineSemaphoreSubmitInfo;
 	};
 
 	class DrawingCommandManager_Vulkan : public NoCopy
@@ -139,7 +151,7 @@ namespace Engine
 		EQueueType GetWorkingQueueType() const;
 
 		std::shared_ptr<DrawingCommandBuffer_Vulkan> RequestPrimaryCommandBuffer();
-		void SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence, uint32_t usageMask);
+		void SubmitCommandBuffers(std::shared_ptr<TimelineSemaphore_Vulkan> pSubmitSemaphore, uint32_t usageMask);
 		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer); // This function would stall the queue, use with caution
 																												 // Also, it ONLY accepts command buffers allocated from default pool
 		// For multithreading																					 // Also, DO NOT use this function for frequently called operations (e.g. per frame)
@@ -174,12 +186,12 @@ namespace Engine
 		std::thread m_commandBufferSubmissionThread;
 		std::mutex m_commandBufferSubmissionMutex;
 		std::condition_variable m_commandBufferSubmissionCv;
-		SafeBool m_commandBufferSubmissionFlag;
+		std::atomic<bool> m_commandBufferSubmissionFlag;
 
 		// Asyn command buffer recycle
 		std::thread m_commandBufferRecycleThread;
 		std::mutex m_commandBufferRecycleMutex;
 		std::condition_variable m_commandBufferRecycleCv;
-		SafeBool m_commandBufferRecycleFlag;
+		std::atomic<bool> m_commandBufferRecycleFlag;
 	};
 }

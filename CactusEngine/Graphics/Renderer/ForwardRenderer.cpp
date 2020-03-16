@@ -47,7 +47,6 @@ void ForwardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList
 	m_pRenderGraph->BeginRenderPasses(pContext);
 }
 
-// TODO: rewrite this function, this is way too long and high-coupling
 void ForwardRenderer::BuildFrameResources()
 {
 	CreateFrameTextures();
@@ -64,8 +63,8 @@ void ForwardRenderer::CreateFrameTextures()
 
 	// Depth attachment for shadow map pass
 
-	texCreateInfo.textureWidth = 4096; // Shadow map resolution
-	texCreateInfo.textureHeight = 4096;
+	texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION; // Shadow map resolution
+	texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION;
 	texCreateInfo.dataType = EDataType::Float32;
 	texCreateInfo.format = ETextureFormat::Depth;
 	texCreateInfo.textureType = ETextureType::DepthAttachment;
@@ -185,8 +184,8 @@ void ForwardRenderer::CreateFrameBuffers()
 
 	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
 	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
-	shadowMapFBCreateInfo.framebufferWidth = 4096;
-	shadowMapFBCreateInfo.framebufferHeight = 4096;
+	shadowMapFBCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION;
+	shadowMapFBCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION;
 
 	m_pDevice->CreateFrameBuffer(shadowMapFBCreateInfo, m_pShadowMapPassFrameBuffer);
 
@@ -310,7 +309,7 @@ void ForwardRenderer::BuildShadowMapPass()
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 
 			// Change viewport to shadow map size
-			pDevice->ResizeViewPort(4096, 4096);
+			pDevice->ResizeViewPort(4096, 4096); // SHADOW_MAP_RESOLUTION
 
 			// Configure blend state
 			DeviceBlendStateInfo blendInfo = {};

@@ -4,23 +4,29 @@
 #include "BuiltInShaderType.h"
 #include "CommandResources.h"
 #include "SafeBasicTypes.h"
+#include "SafeQueue.h"
 
 namespace Engine
 {
-	// High-performance forward renderer; dedicated for Vulkan-like single GPU device
-	class HPForwardRenderer : public BaseRenderer, std::enable_shared_from_this<HPForwardRenderer>
+	// High-performance forward renderer; for heterogeneous-GPU / hybrid-GPU (HG) rendering model test
+	class HPForwardRenderer_Async : public BaseRenderer, std::enable_shared_from_this<HPForwardRenderer_Async>
 	{
 	public:
-		HPForwardRenderer(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
-		~HPForwardRenderer() = default;
+		HPForwardRenderer_Async(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
+		~HPForwardRenderer_Async();
 
 		void BuildRenderGraph() override;
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
 
 		const std::shared_ptr<GraphicsPipelineObject> GetGraphicsPipeline(EBuiltInShaderProgramType shaderType, const char* passName) const;
+
 		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
+		void WriteAsyncComputeSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore);
 
 	private:
+		void ExecuteDiscreteGPUCycles(std::shared_ptr<RenderContext> pContext);
+		void ExecuteIntegratedGPUCycles(std::shared_ptr<RenderContext> pContext);
+
 		void BuildRenderResources();
 
 		void CreateFrameTextures();
@@ -28,6 +34,7 @@ namespace Engine
 		void CreateFrameBuffers();
 		void CreateUniformBuffers();
 		void CreatePipelineObjects();
+		void CreateAsyncCompueResources();
 
 		void BuildShadowMapPass();
 		void BuildNormalOnlyPass();
@@ -37,12 +44,17 @@ namespace Engine
 		void BuildTransparentPass();
 		void BuildOpaqueTranspBlendPass();
 		void BuildDepthOfFieldPass();
+		void BuildAsyncComputePass();
 
 		void BuildRenderNodeDependencies();
 
-		void CreateLineDrawingMatrices(); // For line drawing pass
+		void CreateLineDrawingMatrices();
 
 		void ResetUniformBufferSubAllocation();
+		void ResetUniformBufferSubAllocation_IG();
+
+		void ApplyAsyncComputeResults();
+		void ExecuteAsycnCompute();
 
 	private:
 
@@ -58,7 +70,15 @@ namespace Engine
 		typedef std::unordered_map<const char*, std::shared_ptr<GraphicsPipelineObject>> PassGraphicsPipeline;
 		std::unordered_map<EBuiltInShaderProgramType, PassGraphicsPipeline> m_graphicsPipelines;
 
-		// Command record list
+		// Extra render graph for heterogeneous working model
+
+		std::shared_ptr<RenderGraph> m_pRenderGraph_IG;
+
+		// For async compute in GPU
+
+		std::shared_ptr<DrawingSemaphore> m_pAsyncSemaphore;
+
+		// Command record list for discrete GPU
 
 		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
 		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted
@@ -67,6 +87,30 @@ namespace Engine
 		std::condition_variable m_commandRecordListCv;
 		std::queue<uint32_t> m_writtenCommandPriorities;
 		bool m_newCommandRecorded;
+
+		// For async compute in CPU
+
+		bool m_isRunning;
+
+		struct AsyncThreadTaskInfo
+		{
+			unsigned int beginIndex;
+			unsigned int endIndex;
+			float timeParam;
+		};
+
+		static const unsigned int ASYNC_COMPUTE_THREAD_COUNT = 4;
+
+		std::thread m_asyncComputeThread[ASYNC_COMPUTE_THREAD_COUNT];
+		std::atomic<unsigned int> m_finishedThreadCount;
+		SafeQueue<std::shared_ptr<AsyncThreadTaskInfo>> m_asyncTaskQueue;
+		Vector4 Shared_PositionBuffer_Async[512];
+
+		std::mutex m_asyncComputeMutex;
+		std::condition_variable m_asyncComputeCv;
+
+		std::mutex m_mainThreadMutex;
+		std::condition_variable m_mainThreadCv;
 
 		// Pass organized resources
 
@@ -134,9 +178,25 @@ namespace Engine
 		std::shared_ptr<UniformBuffer>		m_pCameraPropertie_UB;
 		std::shared_ptr<UniformBuffer>		m_pSystemVariables_UB;
 		std::shared_ptr<UniformBuffer>		m_pControlVariables_UB;
+
+		std::shared_ptr<UniformBuffer>		m_pSystemVariables_UB_IG;
+
+		// Resources for async compute pass
+
+		std::shared_ptr<FrameBuffer>		m_pAsyncComputePassFrameBuffer;
+		std::shared_ptr<Texture2D>			m_pAsyncComputeInputTexture;
+		std::shared_ptr<Texture2D>			m_pAsyncComputeOutputTexture;
+		std::shared_ptr<RenderPassObject>	m_pAsyncComputeRenderPassObject;
+		std::shared_ptr<DataTransferBuffer> m_pAsyncComputeBuffer;
+
+#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
+		std::shared_ptr<DataTransferBuffer> m_pPressureSimulationBuffer;
+		std::shared_ptr<Texture2D>			m_pPressureSimulationTexture;
+		std::shared_ptr<DrawingSemaphore>	m_pPressureSimulationSemaphore;
+#endif
 	};
 
-	namespace HPForwardGraphRes
+	namespace HPForwardAsyncGraphRes
 	{
 		static const char* PASSNAME_SHADOWMAP = "ShadowMapPass";
 		static const char* PASSNAME_NORMAL_ONLY = "NormalOnlyPass";
@@ -147,6 +207,7 @@ namespace Engine
 		static const char* PASSNAME_BLEND = "BlendPass";
 		static const char* PASSNAME_DOF = "DOFPass";
 		static const char* PASSNAME_PRESENT = "PresentPass";
+		static const char* PASSNAME_ASYNC = "AsyncComputePass";
 
 		static const char* NODE_SHADOWMAP = "ShadowMapNode";
 		static const char* NODE_NORMALONLY = "NormalOnlyNode";
@@ -156,6 +217,7 @@ namespace Engine
 		static const char* NODE_TRANSP = "TranspNode";
 		static const char* NODE_COLORBLEND_D2 = "ColorBlend_DepthBased_2";
 		static const char* NODE_DOF = "DOFNode";
+		static const char* NODE_ASYNC = "AsyncComputeNode";
 
 		static const char* FB_SHADOWMAP = "ShadowMapFrameBuffer";
 		static const char* TX_SHADOWMAP_DEPTH = "ShadowMapDepth";
@@ -216,5 +278,16 @@ namespace Engine
 		static const char* UB_CAMERA_PROPERTIES = "CameraProperties";
 		static const char* UB_SYSTEM_VARIABLES = "SystemVariables";
 		static const char* UB_CONTROL_VARIABLES = "ControlVariables";
+
+		static const char* FB_ASYNC = "AsyncFrameBuffer";
+		static const char* RPO_ASYNC = "AsyncRPO";
+		static const char* TX_ASYNC_INPUT = "AsyncInput";
+		static const char* TX_ASYNC_OUTPUT = "AsyncOutput";
+		static const char* TB_ASYNC_OUTPUT = "AsyncOutputTB";
+
+#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
+		static const char* TB_PRESSURE_BUFFER = "AsyncOutputTB";
+		static const char* TX_PRESSURE_TEXTURE = "AsyncOutputTX";
+#endif
 	}
 }

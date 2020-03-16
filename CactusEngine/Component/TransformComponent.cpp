@@ -2,20 +2,37 @@
 
 using namespace Engine;
 
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+uint32_t TransformComponent::m_sharedBufferAssignID = 0;
+Vector4 TransformComponent::Shared_PositionBuffer_Async[513] = { Vector4(0) };
+#endif
+
 TransformComponent::TransformComponent()
 	: BaseComponent(EComponentType::Transform), m_position(Vector3(0)), m_scale(Vector3(1)), m_rotationEuler(Vector3(0, -90, 0)),
 	m_forwardDirection(Vector3(0, 0, -1)), m_rightDirection(Vector3(1, 0, 0)), m_rotationQuaternion(Vector4(0))
 {
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	m_assginedBufferID = m_sharedBufferAssignID;
+	m_sharedBufferAssignID++;
+#endif
 }
 
 TransformComponent::TransformComponent(Vector3 position, Vector3 scale, Vector3 rotation)
 	: BaseComponent(EComponentType::Transform), m_position(position), m_scale(scale), m_rotationEuler(rotation),
 	m_forwardDirection(Vector3(0, 0, -1)), m_rightDirection(Vector3(1, 0, 0)), m_rotationQuaternion(Vector4(0))
 {
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	m_assginedBufferID = m_sharedBufferAssignID;
+	m_sharedBufferAssignID++;
+#endif
 }
 
 Vector3 TransformComponent::GetPosition() const
 {
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	Vector3 overridePosition = Vector3(Shared_PositionBuffer_Async[m_assginedBufferID].x, Shared_PositionBuffer_Async[m_assginedBufferID].y, Shared_PositionBuffer_Async[m_assginedBufferID].z);
+	return overridePosition;
+#endif
 	return m_position;
 }
 
@@ -31,6 +48,10 @@ Vector3 TransformComponent::GetRotation() const
 
 void TransformComponent::SetPosition(Vector3 newPosition)
 {
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	Shared_PositionBuffer_Async[m_assginedBufferID] = Vector4(newPosition, 0);
+	return;
+#endif
 	m_position = newPosition;
 }
 
@@ -70,8 +91,13 @@ Vector3 TransformComponent::GetRightDirection() const
 
 Matrix4x4 TransformComponent::GetModelMatrix() const
 {
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	Matrix4x4 modelMat =
+		glm::translate(Vector3(Shared_PositionBuffer_Async[m_assginedBufferID].x, Shared_PositionBuffer_Async[m_assginedBufferID].y, Shared_PositionBuffer_Async[m_assginedBufferID].z))
+#else
 	Matrix4x4 modelMat =
 		glm::translate(m_position)
+#endif
 		* (glm::rotate(m_rotationEuler.x * D2R, X_AXIS)*glm::rotate(m_rotationEuler.y * D2R, Y_AXIS)*glm::rotate(m_rotationEuler.z * D2R, Z_AXIS))
 		* glm::scale(m_scale);
 

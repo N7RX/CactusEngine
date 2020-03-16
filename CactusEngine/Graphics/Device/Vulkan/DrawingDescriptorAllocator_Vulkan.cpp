@@ -6,7 +6,7 @@ using namespace Engine;
 DrawingDescriptorSet_Vulkan::DrawingDescriptorSet_Vulkan(VkDescriptorSet descSet)
 	: m_descriptorSet(descSet)
 {
-	m_isInUse.AssignValue(false);
+	m_isInUse = false;
 }
 
 DrawingDescriptorSetLayout_Vulkan::DrawingDescriptorSetLayout_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings)

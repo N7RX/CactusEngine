@@ -7,7 +7,7 @@
 namespace SampleScript
 {
 	// TODO: find a better solution
-	std::shared_ptr<Engine::IScript> GenerateScriptByID(EScriptID id, const std::shared_ptr<Engine::IEntity> pEntity)
+	inline std::shared_ptr<Engine::IScript> GenerateScriptByID(EScriptID id, const std::shared_ptr<Engine::IEntity> pEntity)
 	{
 		switch (id)
 		{

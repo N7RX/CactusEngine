@@ -5,7 +5,7 @@ namespace Engine
 	class DrawingCommandBuffer
 	{
 	public:
-		uint32_t m_debugID = 0;
+		unsigned int m_debugID = 0;
 
 	protected:
 		DrawingCommandBuffer() = default;
@@ -15,5 +15,11 @@ namespace Engine
 	{
 	protected:
 		DrawingCommandPool() = default;
+	};
+
+	class DrawingSemaphore
+	{
+	protected:
+		DrawingSemaphore() = default;
 	};
 }

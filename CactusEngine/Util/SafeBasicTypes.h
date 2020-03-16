@@ -1,19 +1,6 @@
 #pragma once
 #include <mutex>
-
-class SafeBool
-{
-public:
-	SafeBool() : m_boolImpl(false) {};
-
-	void GetValue(bool& val) const;
-	bool Get() const;
-	void AssignValue(bool val);
-
-private:
-	bool m_boolImpl;
-	mutable std::mutex m_mutex;
-};
+#include <atomic>
 
 class SafeCounter
 {
@@ -27,8 +14,7 @@ public:
 	void Reset();
 
 private:
-	unsigned int m_countImpl;
-	mutable std::mutex m_mutex;
+	std::atomic<unsigned int> m_countImpl;
 };
 
 class ThreadSemaphore

@@ -156,6 +156,7 @@
     <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="Assets\Shader\SPIRV-Source\AnimeStyle.frag" />
     <None Include="Assets\Shader\SPIRV-Source\AnimeStyle.vert" />
+    <None Include="Assets\Shader\SPIRV-Source\AsyncCompute.frag" />
     <None Include="Assets\Shader\SPIRV-Source\Basic.frag" />
     <None Include="Assets\Shader\SPIRV-Source\Basic.vert" />
     <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.frag" />
@@ -211,6 +212,7 @@
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
     <ClInclude Include="Graphics\Renderer\ForwardRenderer.h" />
     <ClInclude Include="Graphics\Renderer\HPForwardRenderer.h" />
+    <ClInclude Include="Graphics\Renderer\HPForwardRenderer_Async.h" />
     <ClInclude Include="Graphics\Renderer\HPForwardRenderer_HG.h" />
     <ClInclude Include="Graphics\RenderGraph\RenderGraph.h" />
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h" />
@@ -286,6 +288,7 @@
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\HPForwardRenderer.cpp" />
+    <ClCompile Include="Graphics\Renderer\HPForwardRenderer_Async.cpp" />
     <ClCompile Include="Graphics\Renderer\HPForwardRenderer_HG.cpp" />
     <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />

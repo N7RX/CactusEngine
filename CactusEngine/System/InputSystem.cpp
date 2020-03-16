@@ -41,7 +41,8 @@ void InputSystem::FrameBegin()
 
 void InputSystem::Tick()
 {
-	// TODO: remove this temporary workaround
+	// TODO: remove these temporary workarounds
+
 	static bool pressedF = false;
 	if (glfwGetKey(m_pGLFWWindow, GLFW_KEY_F) == GLFW_PRESS)
 	{
@@ -51,6 +52,38 @@ void InputSystem::Tick()
 	{
 		std::cout << "FPS: " << Timer::GetAverageFPS() << std::endl;
 		pressedF = false;
+	}
+
+	static bool pressedL = false;
+	static bool isTesting = false;
+	static uint64_t frameBegin = 0;
+	static float timeBegin = 0;
+	if (glfwGetKey(m_pGLFWWindow, GLFW_KEY_L) == GLFW_PRESS)
+	{
+		pressedL = true;
+	}
+	else if (pressedL && glfwGetKey(m_pGLFWWindow, GLFW_KEY_L) == GLFW_RELEASE)
+	{
+		std::cout << "Framerate measuring started...\n";
+
+		isTesting = true;
+		pressedL = false;
+
+		frameBegin = Timer::GetCurrentFrame();
+		timeBegin = Timer::Now();
+	}
+
+	if (isTesting)
+	{
+		float elapsedTime = Timer::Now() - timeBegin;
+		if (elapsedTime >= 20.0f)
+		{
+			uint64_t elapsedFrame = Timer::GetCurrentFrame() - frameBegin;
+
+			std::cout << "Average frame time in 20 seconds: " << (elapsedTime / elapsedFrame) * 1000.0f << "ms\n";
+
+			isTesting = false;
+		}
 	}
 }
 

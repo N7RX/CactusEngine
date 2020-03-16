@@ -346,7 +346,8 @@ namespace Engine
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_Vulkan>& updateInfos);
 
 	private:
-		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 128; // TODO: figure out the proper value for this limit
+
+		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 1024; // TODO: figure out the proper value for this limit
 
 		struct ResourceDescription
 		{

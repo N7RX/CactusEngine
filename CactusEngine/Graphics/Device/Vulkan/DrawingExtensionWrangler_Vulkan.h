@@ -2,8 +2,8 @@
 
 #define VK_USE_PLATFORM_WIN32_KHR
 
-#define ENABLE_HETEROGENEOUS_GPUS_VK
-//#define ENABLE_TRANSFER_QUEUE_VK // Transfer queue is used to transfer data from discrete device to integrated device
+//#define ENABLE_HETEROGENEOUS_GPUS_VK
+//#define ENABLE_TRANSFER_QUEUE_VK
 
 #include <vulkan.h>
 #include <vector>

@@ -694,4 +694,26 @@ namespace Engine
 			return VMA_MEMORY_USAGE_CPU_TO_GPU;
 		}
 	}
+
+	inline VkPipelineStageFlags VulkanSemaphoreWaitStage(ESemaphoreWaitStage stage)
+	{
+		switch (stage)
+		{
+		case ESemaphoreWaitStage::TopOfPipeline:
+			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+		case ESemaphoreWaitStage::ColorAttachmentOutput:
+			return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		case ESemaphoreWaitStage::Transfer:
+			return VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+		case ESemaphoreWaitStage::BottomOfPipeline:
+			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+		default:
+			std::cerr << "Vulkan: Unhandled semaphore wait stage: " << (unsigned int)stage << std::endl;
+			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		}
+	}
 }

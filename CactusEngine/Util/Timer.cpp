@@ -9,6 +9,7 @@ unsigned int Timer::m_sCurrentFPS = 0;
 unsigned int Timer::m_sAverageFPS = 0;
 std::chrono::duration<float, std::milli> Timer::m_sOneSecDuration;
 unsigned int Timer::m_sOneSecTicks = 0;
+uint64_t Timer::m_frameCount = 0;
 
 void Timer::Initialize()
 {
@@ -19,6 +20,7 @@ void Timer::Initialize()
 void Timer::FrameBegin()
 {
 	m_sTimeAtBeginOfFrame = std::chrono::high_resolution_clock::now();
+	m_frameCount++;
 }
 
 void Timer::FrameEnd()
@@ -64,4 +66,9 @@ unsigned int Timer::GetAverageFPS()
 float Timer::GetFrameDeltaTime()
 {
 	return m_sFrameDeltaTime;
+}
+
+uint64_t Timer::GetCurrentFrame()
+{
+	return m_frameCount;
 }

@@ -533,21 +533,33 @@ std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGP
 #endif
 }
 
-std::shared_ptr<DrawingCommandPool> DrawingDevice_Vulkan::RequestExternalCommandPool(EGPUType deviceType)
+std::shared_ptr<DrawingCommandPool> DrawingDevice_Vulkan::RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType)
 {
+	std::shared_ptr<LogicalDevice_Vulkan> pDevice = nullptr;
+
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	switch (deviceType)
+	pDevice = deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
+#else
+	pDevice = m_pDevice_0;
+#endif
+
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	switch (queueType)
 	{
-	case EGPUType::Integrated:
-		return m_pDevice_1->pGraphicsCommandManager->RequestExternalCommandPool();
-	case EGPUType::Discrete:
-		return m_pDevice_0->pGraphicsCommandManager->RequestExternalCommandPool();
+	case EQueueType::Graphics:
+		return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
+
+	case EQueueType::Transfer:
+		return deviceType == EGPUType::Discrete ? 
+			pDevice->pTransferCommandManager->RequestExternalCommandPool()
+			: pDevice->pGraphicsCommandManager->RequestExternalCommandPool(); // UHD 630 doesn't provide transfer queue
+
 	default:
-		std::cerr << "Vulkan: Unhandled GPU type: " << (unsigned int)deviceType << std::endl;
+		std::cerr << "Vulkan: Unhandled queue type: " << (unsigned int)queueType << std::endl;
 		return nullptr;
 	}
 #else
-	return m_pDevice_0->pGraphicsCommandManager->RequestExternalCommandPool();
+	return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
 #endif
 }
 
@@ -561,8 +573,18 @@ std::shared_ptr<DrawingCommandBuffer> DrawingDevice_Vulkan::RequestCommandBuffer
 
 void DrawingDevice_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->m_pAllocatedPool->
-		m_pDevice->pGraphicsCommandManager->ReturnExternalCommandBuffer(std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer));
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer(std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer));
+}
+
+std::shared_ptr<DrawingSemaphore> DrawingDevice_Vulkan::RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage)
+{
+#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
+	auto pSemaphore = deviceType == EGPUType::Discrete ? m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore() : m_pDevice_1->pSyncObjectManager->RequestTimelineSemaphore();
+#else
+	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+#endif
+	pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
+	return pSemaphore;
 }
 
 bool DrawingDevice_Vulkan::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
@@ -946,6 +968,22 @@ void DrawingDevice_Vulkan::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer
 	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->EndCommandBuffer();
 }
 
+void DrawingDevice_Vulkan::CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	if (pSemaphore == nullptr)
+	{
+		return;
+	}
+	assert(pCommandBuffer != nullptr);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->WaitSemaphore(std::static_pointer_cast<TimelineSemaphore_Vulkan>(pSemaphore));
+}
+
+void DrawingDevice_Vulkan::CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	assert(pCommandBuffer != nullptr && pSemaphore != nullptr);
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->SignalSemaphore(std::static_pointer_cast<TimelineSemaphore_Vulkan>(pSemaphore));
+}
+
 void DrawingDevice_Vulkan::Present()
 {
 	assert(m_pSwapchain != nullptr);
@@ -955,12 +993,15 @@ void DrawingDevice_Vulkan::Present()
 	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit | (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
 
 	auto pRenderFinishSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestSemaphore();
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->SignalSemaphore(pRenderFinishSemaphore);
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
 
-	auto pFrameFence = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestFence();
-	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameFence, cmdBufferSubmitMask);
+	auto pFrameSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask);
 
-	pFrameFence->Wait();
+	if (pFrameSemaphore->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
+	}
 
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer = m_pSwapchain->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
@@ -974,7 +1015,7 @@ void DrawingDevice_Vulkan::Present()
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAME_IN_FLIGHT;
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
 void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags)
@@ -986,90 +1027,89 @@ void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitC
 	}
 
 #if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	if (!waitExecution)
+	std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore_0 = nullptr;
+	std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore_1 = nullptr;
+
+	if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
 	{
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
+		pSemaphore_0 = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_0, cmdBufferSubmitMask);
+
+		if (flushImplicitCommands)
 		{
-			auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-			m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
-
-			if (flushImplicitCommands)
-			{
-				m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-			}
-		}
-
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
-		{
-			auto pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-			m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
-
-			if (flushImplicitCommands)
-			{
-				m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-			}
+			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 		}
 	}
-	else
+
+	if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
 	{
-		std::shared_ptr<DrawingFence_Vulkan> pFence_0 = nullptr;
-		std::shared_ptr<DrawingFence_Vulkan> pFence_1 = nullptr;
+		pSemaphore_1 = m_pDevice_1->pSyncObjectManager->RequestTimelineSemaphore();
+		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_1, cmdBufferSubmitMask);
 
+		if (flushImplicitCommands)
+		{
+			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		}
+	}
+
+	if (waitExecution)
+	{
 		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
 		{
-			pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-			m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
-
-			if (flushImplicitCommands)
+			if (pSemaphore_0->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
 			{
-				m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+				throw std::runtime_error("Vulkan: Flush command timeout.");
 			}
-		}
-
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
-		{
-			pFence_1 = m_pDevice_1->pSyncObjectManager->RequestFence();
-			m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pFence_1, cmdBufferSubmitMask);
-
-			if (flushImplicitCommands)
-			{
-				m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-			}
-		}
-
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
-		{
-			pFence_0->Wait();
 		}
 		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
 		{
-			pFence_1->Wait();
+			if (pSemaphore_1->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Vulkan: Flush command timeout.");
+			}
 		}
 	}
 #else
-	if (!waitExecution)
-	{
-		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
+	auto pSemaphore_0 = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_0, cmdBufferSubmitMask);
 
-		if (flushImplicitCommands)
-		{
-			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-		}
+	if (flushImplicitCommands)
+	{
+		m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 	}
-	else
+
+	if (waitExecution)
 	{
-		auto pFence_0 = m_pDevice_0->pSyncObjectManager->RequestFence();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pFence_0, cmdBufferSubmitMask);
-
-		if (flushImplicitCommands)
+		if (pSemaphore_0->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
 		{
-			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+			throw std::runtime_error("Vulkan: Flush command timeout.");
 		}
-
-		pFence_0->Wait();
 	}
 #endif
+}
+
+void DrawingDevice_Vulkan::FlushTransferCommands(bool waitExecution)
+{
+#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit | (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
+
+	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pDevice_0->pTransferCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
+
+	if (waitExecution)
+	{
+		pSemaphore->Wait();
+	}
+#else
+	throw std::runtime_error("Vulkan: Transfer queue usage not enabled.");
+#endif
+}
+
+void DrawingDevice_Vulkan::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	auto pVkSemaphore = std::static_pointer_cast<TimelineSemaphore_Vulkan>(pSemaphore);
+	pVkSemaphore->Wait(FRAME_TIMEOUT);
+	pVkSemaphore->m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 }
 
 std::shared_ptr<TextureSampler> DrawingDevice_Vulkan::GetDefaultTextureSampler(EGPUType deviceType) const
@@ -1180,6 +1220,57 @@ void DrawingDevice_Vulkan::CopyDataTransferBufferCrossDevice(std::shared_ptr<Dat
 	}
 }
 
+void DrawingDevice_Vulkan::CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pSrcBuffer);
+	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pDstBuffer);
+
+	assert(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
+
+	VkBufferCopy region = {};
+	region.srcOffset = 0;
+	region.dstOffset = 0;
+	region.size = pSrcVkBuffer->m_sizeInBytes;
+
+	std::static_pointer_cast<DrawingCommandBuffer_Vulkan>(pCommandBuffer)->CopyBufferToBuffer(pSrcVkBuffer->m_pBufferImpl, pDstVkBuffer->m_pBufferImpl, region);
+}
+
+void DrawingDevice_Vulkan::CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size)
+{
+	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pDstBuffer);
+
+	assert(pDstVkBuffer->m_sizeInBytes >= size);
+
+	if (!pDstVkBuffer->m_constantlyMapped)
+	{
+		pDstVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation, &pDstVkBuffer->m_ppMappedData);
+	}
+
+	memcpy(pDstVkBuffer->m_ppMappedData, pData, size);
+
+	if (!pDstVkBuffer->m_constantlyMapped)
+	{
+		pDstVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation);
+	}
+}
+
+void DrawingDevice_Vulkan::CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc)
+{
+	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_Vulkan>(pSrcBuffer);
+
+	if (!pSrcVkBuffer->m_constantlyMapped)
+	{
+		pSrcVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation, &pSrcVkBuffer->m_ppMappedData);
+	}
+
+	memcpy(pDataLoc, pSrcVkBuffer->m_ppMappedData, pSrcVkBuffer->m_sizeInBytes);
+
+	if (!pSrcVkBuffer->m_constantlyMapped)
+	{
+		pSrcVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
+	}
+}
+
 void DrawingDevice_Vulkan::ConfigureStates_Test()
 {
 
@@ -1195,7 +1286,7 @@ void DrawingDevice_Vulkan::CreateInstance()
 	// Check validation layers
 	if (m_enableValidationLayers && !CheckValidationLayerSupport_VK(m_validationLayers))
 	{
-		throw std::runtime_error("Validation layers requested, but not available.");
+		throw std::runtime_error("Vulkan: Validation layers requested, but not available.");
 	}
 
 	// Check extentions support
@@ -1218,7 +1309,7 @@ void DrawingDevice_Vulkan::CreateInstance()
 	m_appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 	m_appInfo.pEngineName = "Cactus Engine";
 	m_appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	m_appInfo.apiVersion = VK_API_VERSION_1_1;
+	m_appInfo.apiVersion = VK_API_VERSION_1_2;
 
 	// Generate creation info
 	VkInstanceCreateInfo instanceCreateInfo = {};
@@ -1407,12 +1498,21 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 		queueCreateInfos.push_back(queueCreateInfo);
 	}
 
+	// Enabling timeline semaphore
+	VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {};
+	timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+	timelineSemaphoreFeatures.timelineSemaphore = true;
+
+	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
+	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	physicalDeviceFeatures2.pNext = &timelineSemaphoreFeatures;
+	physicalDeviceFeatures2.features = m_deviceFeatures;
+
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
+	deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.pEnabledFeatures = &m_deviceFeatures;
 	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
 	deviceCreateInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
@@ -1448,10 +1548,13 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->presentQueue.queueFamilyIndex, 0, &pDevice->presentQueue.queue);
 	}
 
+	// Query timeline semaphore function support
+	//std::cout << vkGetDeviceProcAddr(pDevice->logicalDevice, "vkWaitSemaphores") << std::endl;
+
 #if defined(ENABLE_TRANSFER_QUEUE_VK)
 	if (queueFamilyIndices.transferFamily.has_value())
 	{
-		pDevice->transferQueue.type = EQueueType::Copy;
+		pDevice->transferQueue.type = EQueueType::Transfer;
 		pDevice->transferQueue.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->transferQueue.queueFamilyIndex, 0, &pDevice->transferQueue.queue);
 	}
@@ -1468,8 +1571,21 @@ void DrawingDevice_Vulkan::SetupSwapchain()
 
 	DrawingSwapchainCreateInfo_Vulkan createInfo = {};
 	createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
+
+#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
+	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
+	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
+	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
+
+	createInfo.surface = m_presentationSurface;
+	createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
+	createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
+		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
+
+	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
+#else
 #if defined (ENABLE_HETEROGENEOUS_GPUS_VK)
-	createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
 	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
 	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
 #else
@@ -1487,9 +1603,10 @@ void DrawingDevice_Vulkan::SetupSwapchain()
 #else
 	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
 #endif
+#endif
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
 VkSurfaceFormatKHR DrawingDevice_Vulkan::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

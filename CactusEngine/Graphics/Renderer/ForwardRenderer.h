@@ -34,6 +34,9 @@ namespace Engine
 		void CreateLineDrawingMatrices();
 
 	private:
+
+		const uint32_t SHADOW_MAP_RESOLUTION = 4096;
+
 		std::shared_ptr<FrameBuffer>	m_pShadowMapPassFrameBuffer;
 		std::shared_ptr<Texture2D>		m_pShadowMapPassDepthOutput;
 

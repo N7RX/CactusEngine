@@ -651,15 +651,15 @@ std::shared_ptr<DrawingDescriptorSet_Vulkan> ShaderProgram_Vulkan::GetDescriptor
 			AllocateDescriptorSet(1); // ERROR: this would cause threading error if multiple threads are accessing the same descriptor pool
 
 			m_descriptorSetAccessIndex = 0;
-			m_descriptorSets[m_descriptorSets.size() - 1]->m_isInUse.AssignValue(true);
+			m_descriptorSets[m_descriptorSets.size() - 1]->m_isInUse = true;
 			return m_descriptorSets[m_descriptorSets.size() - 1];
 		}
 		flag = false;
 
-		if (!m_descriptorSets[i]->m_isInUse.Get())
+		if (!m_descriptorSets[i]->m_isInUse)
 		{
 			m_descriptorSetAccessIndex = (i + 1) % m_descriptorSets.size();
-			m_descriptorSets[i]->m_isInUse.AssignValue(true);
+			m_descriptorSets[i]->m_isInUse = true;
 			return m_descriptorSets[i];
 		}
 	}

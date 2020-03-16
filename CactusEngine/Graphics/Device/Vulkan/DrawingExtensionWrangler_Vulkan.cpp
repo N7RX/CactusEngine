@@ -200,7 +200,7 @@ QueueFamilyIndices_VK Engine::FindQueueFamilies_VK(const VkPhysicalDevice& devic
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
-	for (uint32_t index = 0; index < static_cast<uint32_t>(queueFamilies.size()); ++index)
+	for (uint32_t index = 0; index < (uint32_t)queueFamilies.size(); ++index)
 	{
 		if (queueFamilies[index].queueCount > 0 && queueFamilies[index].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{

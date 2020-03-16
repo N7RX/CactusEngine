@@ -15,7 +15,8 @@ namespace Engine
 		static unsigned int GetCurrentFPS();
 		static unsigned int GetAverageFPS(); // Average FPS in approximately 1 second
 		static float GetFrameDeltaTime();	 // In seconds
-	
+		static uint64_t GetCurrentFrame();
+
 	private:
 		static std::chrono::time_point<std::chrono::high_resolution_clock> m_sTimeAtStartUp;
 		static std::chrono::time_point<std::chrono::high_resolution_clock> m_sTimeAtBeginOfFrame;
@@ -24,5 +25,6 @@ namespace Engine
 		static unsigned int m_sAverageFPS;
 		static std::chrono::duration<float, std::milli> m_sOneSecDuration;
 		static unsigned int m_sOneSecTicks;
+		static uint64_t m_frameCount;
 	};
 }

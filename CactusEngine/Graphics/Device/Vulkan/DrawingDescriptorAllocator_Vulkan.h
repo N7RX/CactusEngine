@@ -48,7 +48,7 @@ namespace Engine
 
 	private:
 		VkDescriptorSet m_descriptorSet;
-		SafeBool m_isInUse;
+		std::atomic<bool> m_isInUse;
 		
 		friend class DrawingDescriptorPool_Vulkan;
 		friend class DrawingDescriptorAllocator_Vulkan;

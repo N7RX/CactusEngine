@@ -13,7 +13,11 @@ DrawingUploadAllocator_Vulkan::DrawingUploadAllocator_Vulkan(const std::shared_p
 	VmaAllocatorCreateInfo createInfo = {};
 	createInfo.physicalDevice = pDevice->physicalDevice;
 	createInfo.device = pDevice->logicalDevice;
-	vmaCreateAllocator(&createInfo, &m_allocator);
+
+	if (vmaCreateAllocator(&createInfo, &m_allocator) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Vulkan: Failed to create VMA allocator.");
+	}
 }
 
 DrawingUploadAllocator_Vulkan::~DrawingUploadAllocator_Vulkan()
@@ -80,7 +84,12 @@ bool DrawingUploadAllocator_Vulkan::CreateTexture2D(const Texture2DCreateInfo_Vu
 
 bool DrawingUploadAllocator_Vulkan::MapMemory(VmaAllocation& allocation, void** mappedData)
 {
-	return vmaMapMemory(m_allocator, allocation, mappedData) == VK_SUCCESS;
+	if (vmaMapMemory(m_allocator, allocation, mappedData) != VK_SUCCESS)
+	{
+		throw std::runtime_error("Vulkan: Failed to map CPU memory.");
+		return false;
+	}
+	return true;
 }
 
 void DrawingUploadAllocator_Vulkan::UnmapMemory(VmaAllocation& allocation)

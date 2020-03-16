@@ -42,7 +42,8 @@ namespace Engine
 
 		const std::vector<const char*> m_deviceExtensions =
 		{
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME
 		};
 
 		const VkPhysicalDeviceFeatures m_deviceFeatures =
@@ -82,9 +83,10 @@ namespace Engine
 		void SetupDevice();
 		std::shared_ptr<LogicalDevice_Vulkan> GetLogicalDevice(EGPUType type) const;
 
-		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType) override;
+		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType = EQueueType::Graphics) override;
 		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		std::shared_ptr<DrawingSemaphore> RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage) override;
 
 		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput) override;
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) override;
@@ -106,9 +108,13 @@ namespace Engine
 		void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) override;
+		void CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
 		void Present() override;	
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) override;
+		void FlushTransferCommands(bool waitExecution) override;
+		void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
 		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
@@ -117,6 +123,9 @@ namespace Engine
 		void CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer) override;
+		void CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
+		void CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size) override;
+		void CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc) override;
 
 		void ConfigureStates_Test() override;
 

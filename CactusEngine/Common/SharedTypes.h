@@ -38,7 +38,6 @@ namespace Engine
 	enum class ERendererType
 	{
 		Forward = 0,
-		Deferred,
 		COUNT
 	};
 
@@ -56,7 +55,7 @@ namespace Engine
 	enum class EQueueType
 	{
 		Graphics = 0,
-		Copy,
+		Transfer,
 		Compute,	
 		COUNT,
 		Present
@@ -300,6 +299,15 @@ namespace Engine
 		CPU_To_GPU,
 		GPU_Only,
 		GPU_To_CPU,
+		COUNT
+	};
+
+	enum class ESemaphoreWaitStage
+	{
+		TopOfPipeline = 0,
+		ColorAttachmentOutput,
+		Transfer,
+		BottomOfPipeline,
 		COUNT
 	};
 }

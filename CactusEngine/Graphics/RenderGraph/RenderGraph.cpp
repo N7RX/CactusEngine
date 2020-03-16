@@ -97,6 +97,11 @@ RenderGraph::RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t 
 RenderGraph::~RenderGraph()
 {
 	m_isRunning = false;
+
+	for (unsigned int i = 0; i < m_executionThreadCount; i++)
+	{
+		m_executionThreads[i].join();
+	}
 }
 
 void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
@@ -189,16 +194,20 @@ void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext>
 		}
 	}
 
-	// Alert: current implementation doesn't have optimized scheduling
-	while (!m_startingNodes.empty())
 	{
-		EnqueueRenderNode(m_startingNodes.front());
-		m_startingNodes.pop();
-	}
+		std::lock_guard<std::mutex> guard(m_nodeExecutionMutex);
 
-	for (auto& pNode : m_nodes)
-	{
-		pNode.second->m_finishedExecution = false;
+		// Alert: current implementation doesn't have optimized scheduling
+		while (!m_startingNodes.empty())
+		{
+			EnqueueRenderNode(m_startingNodes.front());
+			m_startingNodes.pop();
+		}
+
+		for (auto& pNode : m_nodes)
+		{
+			pNode.second->m_finishedExecution = false;
+		}
 	}
 
 	m_nodeExecutionCv.notify_all();
@@ -221,16 +230,22 @@ uint32_t RenderGraph::GetRenderNodeCount() const
 
 void RenderGraph::ExecuteRenderNodeParallel()
 {
-	std::unique_lock<std::mutex> lock(m_nodeExecutionMutex, std::defer_lock);
-	lock.lock();
-
 	auto pCmdContext = std::make_shared<CommandContext>();
 	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(m_deviceType);
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+	if (m_deviceType == EGPUType::Discrete)
+	{
+		pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(m_deviceType, EQueueType::Transfer);
+	}
+#endif
 
 	std::shared_ptr<RenderNode> pNode = nullptr;
 	while (m_isRunning)
 	{
-		m_nodeExecutionCv.wait(lock, [this]() { return !m_executionNodeQueue.Empty(); });
+		{
+			std::unique_lock<std::mutex> lock(m_nodeExecutionMutex);
+			m_nodeExecutionCv.wait(lock, [this]() { return !m_executionNodeQueue.Empty(); });
+		}
 
 		while (m_executionNodeQueue.TryPop(pNode))
 		{

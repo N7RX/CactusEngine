@@ -13,7 +13,7 @@ namespace Engine
 	{
 	public:
 		HPForwardRenderer_HG(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
-		~HPForwardRenderer_HG() = default;
+		~HPForwardRenderer_HG();
 
 		void BuildRenderGraph() override;
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
@@ -22,6 +22,11 @@ namespace Engine
 
 		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
 		void WriteCommandRecordList_IG(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+		void WriteTransferCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer);
+		void AddTransferSignalSemaphore(const char* pNodeName, const std::shared_ptr<DrawingSemaphore> pSemaphore);
+		std::shared_ptr<DrawingSemaphore> GetTransferSignalSemaphore(const char* pNodeName) const;
+#endif
 
 	private:
 		void ExecuteIntegratedGPUCycles(std::shared_ptr<RenderContext> pContext);
@@ -54,9 +59,11 @@ namespace Engine
 
 	private:
 
+		const uint32_t SHADOW_MAP_RESOLUTION = 4096;
+
 		// Uniform buffers use subresgions from a large buffer
 
-		const uint32_t MAX_UNIFORM_SUB_ALLOCATION = 1024;
+		const uint32_t MAX_UNIFORM_SUB_ALLOCATION = 4096;
 		const uint32_t MIN_UNIFORM_SUB_ALLOCATION = 32;
 
 		// Graphics pipelines are organized by ShaderProgram-PassName identifier
@@ -66,7 +73,6 @@ namespace Engine
 
 		// Extra render graphs for heterogeneous working model
 
-		std::shared_ptr<RenderGraph> m_pRenderGraph_1;  // Extra render graph for discrete GPU swap cycle
 		std::shared_ptr<RenderGraph> m_pRenderGraph_IG; // IG stands for integrated GPU
 
 		// Discrete GPU work cycle is managed from a separate thread, since integrated GPU is in sync with presentation
@@ -86,7 +92,12 @@ namespace Engine
 		// Command record list for discrete GPU
 
 		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
-		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag;  // Submit Priority - Ready to submit or has been submitted
+		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+		std::unordered_map<const char*, std::shared_ptr<DrawingCommandBuffer>> m_transferCommandRecordReadyList; // Node Name - Recorded Command Buffer
+		std::unordered_map<const char*, std::shared_ptr<DrawingSemaphore>> m_transferSignalSemaphoreList; // Node Name - Ready to submit or has been submitted
+		mutable std::mutex m_transferSemaphoreRWMutex;
+#endif
 
 		std::mutex m_commandRecordListWriteMutex;
 		std::condition_variable m_commandRecordListCv;
@@ -95,8 +106,8 @@ namespace Engine
 
 		// Command record list for integrated GPU
 
-		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList_IG;
-		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag_IG;
+		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList_IG; // Submit Priority - Recorded Command Buffer
+		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag_IG; // Submit Priority - Ready to submit or has been submitted
 
 		std::mutex m_commandRecordListWriteMutex_IG;
 		std::condition_variable m_commandRecordListCv_IG;
@@ -151,14 +162,13 @@ namespace Engine
 		std::shared_ptr<Texture2D>			m_pBlendPassColorOutput_IG;
 		std::shared_ptr<Texture2D>			m_pNormalOnlyPassPositionOutput_IG;
 		std::shared_ptr<Texture2D>			m_pOpaquePassShadowOutput_IG;
-
 		std::shared_ptr<Texture2D>			m_pDOFPassHorizontalOutput;
 		std::shared_ptr<RenderPassObject>	m_pDOFRenderPassObject;
 
 		std::shared_ptr<SwapchainFrameBuffers> m_pPresentFrameBuffers;
 		std::shared_ptr<RenderPassObject>	m_pPresentRenderPassObject;
 
-		// Extra input resources
+		// Post-processing resources
 
 		std::shared_ptr<Texture2D>			m_pBrushMaskImageTexture_1;
 		std::shared_ptr<Texture2D>			m_pBrushMaskImageTexture_2;
@@ -179,7 +189,7 @@ namespace Engine
 		std::shared_ptr<UniformBuffer>		m_pSystemVariables_UB_IG;
 		std::shared_ptr<UniformBuffer>		m_pControlVariables_UB_IG;
 
-		// In order to output to integrated GPU, we need two set of output resources for swapping
+		// In order to output to integrated GPU, we need two sets of output resources for swapping
 
 		std::shared_ptr<DataTransferBuffer> m_pNormalOnlyPassPositionOutputTransferBuffer[2];
 		std::shared_ptr<DataTransferBuffer> m_pOpaquePassShadowOutputTransferBuffer[2];
@@ -250,7 +260,7 @@ namespace Engine
 
 		static const char* FB_BLEND = "BlendFrameBuffer";
 		static const char* TX_BLEND_COLOR = "BlendColor";
-		static const char* TX_BLEND_RPO = "BlendRPO";
+		static const char* RPO_BLEND = "BlendRPO";
 
 		static const char* FB_DOF_HORI = "DOFFrameBuffer_Horizontal";
 		static const char* TX_DOF_HORIZONTAL = "DOFHorizontal";
@@ -271,8 +281,15 @@ namespace Engine
 		static const char* UB_SYSTEM_VARIABLES = "SystemVariables";
 		static const char* UB_CONTROL_VARIABLES = "ControlVariables";
 
-		static const char* TB_NORMALONLY_POSITION = "NormalOnlyPositionTB";
-		static const char* TB_OPAQUE_SHADOW = "OpaqueShadowTB";
-		static const char* TB_BLEND_COLOR = "BlendColorTB";
+		static const char* TB_NORMALONLY_POSITION_0 = "NormalOnlyPositionTB_0";
+		static const char* TB_NORMALONLY_POSITION_1 = "NormalOnlyPositionTB_1";
+		static const char* TB_OPAQUE_SHADOW_0 = "OpaqueShadowTB_0";
+		static const char* TB_OPAQUE_SHADOW_1 = "OpaqueShadowTB_1";
+		static const char* TB_BLEND_COLOR_0 = "BlendColorTB_0";
+		static const char* TB_BLEND_COLOR_1 = "BlendColorTB_1";
+
+		static const char* TB_NORMALONLY_POSITION_IG = "NormalOnlyPositionTB_IG";
+		static const char* TB_OPAQUE_SHADOW_IG = "OpaqueShadowTB_IG";
+		static const char* TB_BLEND_COLOR_IG = "BlendColorTB_IG";
 	}
 }

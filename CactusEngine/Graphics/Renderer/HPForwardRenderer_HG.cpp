@@ -6,21 +6,25 @@
 
 // For line drawing computation
 #include <Eigen/Dense>
-
 #include <iostream>
 
 using namespace Engine;
 
 HPForwardRenderer_HG::HPForwardRenderer_HG(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem)
-	: BaseRenderer(ERendererType::Forward, pDevice, pSystem), m_discreteGPUexecutionCycle(0), m_isRunning(true), m_firstFrame(true)
+	: BaseRenderer(ERendererType::Forward, pDevice, pSystem), m_discreteGPUexecutionCycle(0), m_isRunning(true), m_firstFrame(true), 
+	m_newCommandRecorded(false), m_newCommandRecorded_IG(false)
 {
 	m_discreteGPUManagementThread = std::thread(&HPForwardRenderer_HG::ExecuteDiscreteGPUCycles, this);
+}
+
+HPForwardRenderer_HG::~HPForwardRenderer_HG()
+{
+	m_discreteGPUManagementThread.join();
 }
 
 void HPForwardRenderer_HG::BuildRenderGraph()
 {
 	m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice, 4, EGPUType::Discrete);
-	m_pRenderGraph_1 = std::make_shared<RenderGraph>(m_pDevice, 4, EGPUType::Discrete);
 	m_pRenderGraph_IG = std::make_shared<RenderGraph>(m_pDevice, 1, EGPUType::Integrated);
 
 	BuildRenderResources();
@@ -35,6 +39,13 @@ void HPForwardRenderer_HG::BuildRenderGraph()
 	BuildDepthOfFieldPass();
 
 	BuildRenderNodeDependencies();
+
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+	// For the first cycle, there is no read operation to wait
+	m_transferSignalSemaphoreList[HPForwardHGGraphRes::NODE_NORMALONLY] = nullptr;
+	m_transferSignalSemaphoreList[HPForwardHGGraphRes::NODE_OPAQUE] = nullptr;
+	m_transferSignalSemaphoreList[HPForwardHGGraphRes::NODE_COLORBLEND_D2] = nullptr;
+#endif
 }
 
 void HPForwardRenderer_HG::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera)
@@ -79,9 +90,9 @@ void HPForwardRenderer_HG::WriteCommandRecordList(const char* pNodeName, const s
 	{
 		std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);
 
-		m_commandRecordReadyList[m_pRenderGraph->m_renderNodePriorities[pNodeName]] = pCommandBuffer;
-		m_newCommandRecorded = true;
+		m_commandRecordReadyList[m_pRenderGraph->m_renderNodePriorities[pNodeName]] = pCommandBuffer;	
 		m_writtenCommandPriorities.push(m_pRenderGraph->m_renderNodePriorities[pNodeName]);
+		m_newCommandRecorded = true;
 	}
 
 	m_commandRecordListCv.notify_all();
@@ -92,32 +103,71 @@ void HPForwardRenderer_HG::WriteCommandRecordList_IG(const char* pNodeName, cons
 	{
 		std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex_IG);
 
-		m_commandRecordReadyList_IG[m_pRenderGraph_IG->m_renderNodePriorities[pNodeName]] = pCommandBuffer;
-		m_newCommandRecorded_IG = true;
+		m_commandRecordReadyList_IG[m_pRenderGraph_IG->m_renderNodePriorities[pNodeName]] = pCommandBuffer;		
 		m_writtenCommandPriorities_IG.push(m_pRenderGraph_IG->m_renderNodePriorities[pNodeName]);
+		m_newCommandRecorded_IG = true;
 	}
 
 	m_commandRecordListCv_IG.notify_all();
 }
 
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+void HPForwardRenderer_HG::WriteTransferCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer)
+{
+	{
+		std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);
+		m_transferCommandRecordReadyList[pNodeName] = pCommandBuffer;
+	}
+}
+
+void HPForwardRenderer_HG::AddTransferSignalSemaphore(const char* pNodeName, const std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	std::lock_guard<std::mutex> guard(m_transferSemaphoreRWMutex);
+	m_transferSignalSemaphoreList[pNodeName] = pSemaphore;
+}
+
+std::shared_ptr<DrawingSemaphore> HPForwardRenderer_HG::GetTransferSignalSemaphore(const char* pNodeName) const
+{
+	std::lock_guard<std::mutex> guard(m_transferSemaphoreRWMutex);
+	if (m_transferSignalSemaphoreList.find(pNodeName) != m_transferSignalSemaphoreList.end())
+	{
+		return m_transferSignalSemaphoreList.at(pNodeName);
+	}
+	std::cerr << "Couldn't find transfer semaphore set for " << pNodeName << std::endl;
+	return nullptr;
+}
+#endif
+
 void HPForwardRenderer_HG::ExecuteIntegratedGPUCycles(std::shared_ptr<RenderContext> pContext)
 {
-	pContext->discreteGPUExecutionCycle = m_firstFrame ? 0 : (m_discreteGPUexecutionCycle + 1) % MAX_DISCRETE_GPU_EXECUTION_CYCLE; // Begin next cycle other than the first frame
+	// Begin next cycle other than the first frame
+	pContext->discreteGPUExecutionCycle = m_firstFrame ? 0 : (m_discreteGPUexecutionCycle + 1) % MAX_DISCRETE_GPU_EXECUTION_CYCLE;
 
-// Dispatch task to discrete GPU
+	// Dispatch task to discrete GPU
 
-	m_discreteGPUexecutionTaskQueue.Push(pContext);
+	{
+		std::lock_guard<std::mutex> guard(m_discreteGPUExecutionMutex);
+		m_discreteGPUexecutionTaskQueue.Push(pContext);
+	}
 	m_discreteGPUExecutionCv.notify_all();
 
-	m_swapSemaphore.Wait(); // Wait for the last submission to finish execution (the one submitted in last frame), so that we can read from the "front buffer"
+	m_swapSemaphore.Wait(); // Wait for the last discrete GPU cycle to finish execution
 
 	if (m_firstFrame)
 	{
+		// Push in the rendering task for next frame
 		m_firstFrame = false;
 
-		// Push in the "pong" rendering task
-		pContext->discreteGPUExecutionCycle = 1;
-		m_discreteGPUexecutionTaskQueue.Push(pContext);
+		auto pContextEx = std::make_shared<RenderContext>();
+		pContextEx->pCamera = pContext->pCamera;
+		pContextEx->pDrawList = pContext->pDrawList;
+		pContextEx->pRenderer = pContext->pRenderer;
+		pContextEx->discreteGPUExecutionCycle = 1;
+
+		{
+			std::lock_guard<std::mutex> guard(m_discreteGPUExecutionMutex);
+			m_discreteGPUexecutionTaskQueue.Push(pContextEx);
+		}
 		m_discreteGPUExecutionCv.notify_all();
 	}
 
@@ -131,12 +181,12 @@ void HPForwardRenderer_HG::ExecuteIntegratedGPUCycles(std::shared_ptr<RenderCont
 		m_commandRecordReadyListFlag_IG[item.first] = false;
 	}
 
+	m_pRenderGraph_IG->BeginRenderPassesParallel(pContext);
+
 	// Data copy between discrete GPU and integrated GPU resources
 	m_pDevice->CopyDataTransferBufferCrossDevice(m_pNormalOnlyPassPositionOutputTransferBuffer[m_discreteGPUexecutionCycle], m_pNormalOnlyPassPositionOutputTransferBuffer_IG);
 	m_pDevice->CopyDataTransferBufferCrossDevice(m_pOpaquePassShadowOutputTransferBuffer[m_discreteGPUexecutionCycle], m_pOpaquePassShadowOutputTransferBuffer_IG);
 	m_pDevice->CopyDataTransferBufferCrossDevice(m_pBlendPassColorOutputTransferBuffer[m_discreteGPUexecutionCycle], m_pBlendPassColorOutputTransferBuffer_IG);
-
-	m_pRenderGraph_IG->BeginRenderPassesParallel(pContext);
 
 	// Submit async recorded command buffers by correct sequence (integrated GPU)
 
@@ -144,47 +194,50 @@ void HPForwardRenderer_HG::ExecuteIntegratedGPUCycles(std::shared_ptr<RenderCont
 
 	while (finishedNodeCount < m_pRenderGraph_IG->GetRenderNodeCount())
 	{
-		std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex_IG);
-		m_commandRecordListCv_IG.wait(lock, [this]() { return m_newCommandRecorded_IG; });
-		m_newCommandRecorded_IG = false;
-
 		std::vector<std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>> buffersToReturn;
-		std::vector<uint32_t> sortedQueueContents;
-		std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
 
-		// Eliminate dependency jump
-		while (!m_writtenCommandPriorities_IG.empty())
 		{
-			sortedQueueContents.emplace_back(m_writtenCommandPriorities_IG.front());
-			m_writtenCommandPriorities_IG.pop();
-		}
-		std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
+			std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex_IG);
+			m_commandRecordListCv_IG.wait(lock, [this]() { return m_newCommandRecorded_IG; });
+			m_newCommandRecorded_IG = false;
 
-		for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
-		{
-			bool proceed = true;
-			uint32_t currPriority = sortedQueueContents[i];
-			for (uint32_t& id : m_pRenderGraph_IG->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
+			std::vector<uint32_t> sortedQueueContents;
+			std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
+
+			// Eliminate dependency jump
+			while (!m_writtenCommandPriorities_IG.empty())
 			{
-				if (!m_commandRecordReadyListFlag_IG[id])
+				sortedQueueContents.emplace_back(m_writtenCommandPriorities_IG.front());
+				m_writtenCommandPriorities_IG.pop();
+			}
+			std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
+
+			for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
+			{
+				bool proceed = true;
+				uint32_t currPriority = sortedQueueContents[i];
+				for (uint32_t& id : m_pRenderGraph_IG->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
 				{
-					continueWaitQueue.push(currPriority);
-					proceed = false;
-					break;
+					if (!m_commandRecordReadyListFlag_IG[id])
+					{
+						continueWaitQueue.push(currPriority);
+						proceed = false;
+						break;
+					}
+				}
+				if (proceed)
+				{
+					m_commandRecordReadyListFlag_IG[currPriority] = true;
+					m_commandRecordReadyList_IG[currPriority]->m_debugID = currPriority;
+					buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList_IG[currPriority]);
 				}
 			}
-			if (proceed)
-			{
-				m_commandRecordReadyListFlag_IG[currPriority] = true;
-				m_commandRecordReadyList_IG[currPriority]->m_debugID = currPriority;
-				buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList_IG[currPriority]);
-			}
-		}
 
-		while (!continueWaitQueue.empty())
-		{
-			m_writtenCommandPriorities_IG.push(continueWaitQueue.front());
-			continueWaitQueue.pop();
+			while (!continueWaitQueue.empty())
+			{
+				m_writtenCommandPriorities_IG.push(continueWaitQueue.front());
+				continueWaitQueue.pop();
+			}
 		}
 
 		if (buffersToReturn.size() > 0)
@@ -214,18 +267,17 @@ void HPForwardRenderer_HG::ExecuteIntegratedGPUCycles(std::shared_ptr<RenderCont
 
 void HPForwardRenderer_HG::ExecuteDiscreteGPUCycles()
 {
-	std::unique_lock<std::mutex> lock(m_discreteGPUExecutionMutex, std::defer_lock);
-	lock.lock();
-
 	std::shared_ptr<RenderContext> pContext = nullptr;
+
 	while (m_isRunning)
 	{
-		m_discreteGPUExecutionCv.wait(lock, [this]() { return !m_discreteGPUexecutionTaskQueue.Empty(); });
+		{
+			std::unique_lock<std::mutex> lock(m_discreteGPUExecutionMutex);
+			m_discreteGPUExecutionCv.wait(lock, [this]() { return !m_discreteGPUexecutionTaskQueue.Empty(); });
+		}
 
 		while (m_discreteGPUexecutionTaskQueue.TryPop(pContext))
 		{
-			std::shared_ptr<RenderGraph> pRenderGraph = pContext->discreteGPUExecutionCycle == 0 ? m_pRenderGraph : m_pRenderGraph_1;
-
 			ResetUniformBufferSubAllocation();
 
 			for (auto& item : m_commandRecordReadyList)
@@ -234,55 +286,58 @@ void HPForwardRenderer_HG::ExecuteDiscreteGPUCycles()
 				m_commandRecordReadyListFlag[item.first] = false;
 			}
 
-			pRenderGraph->BeginRenderPassesParallel(pContext);
+			m_pRenderGraph->BeginRenderPassesParallel(pContext);
 
 			// Submit async recorded command buffers by correct sequence (discrete GPU)
 
 			unsigned int finishedNodeCount = 0;
 
-			while (finishedNodeCount < pRenderGraph->GetRenderNodeCount())
+			while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
 			{
-				std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
-				m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded; });
-				m_newCommandRecorded = false;
-
 				std::vector<std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>> buffersToReturn;
-				std::vector<uint32_t> sortedQueueContents;
-				std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
 
-				// Eliminate dependency jump
-				while (!m_writtenCommandPriorities.empty())
 				{
-					sortedQueueContents.emplace_back(m_writtenCommandPriorities.front());
-					m_writtenCommandPriorities.pop();
-				}
-				std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
+					std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
+					m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded; });
+					m_newCommandRecorded = false;
 
-				for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
-				{
-					bool proceed = true;
-					uint32_t currPriority = sortedQueueContents[i];
-					for (uint32_t& id : pRenderGraph->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
+					std::vector<uint32_t> sortedQueueContents;
+					std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
+
+					// Eliminate dependency jump
+					while (!m_writtenCommandPriorities.empty())
 					{
-						if (!m_commandRecordReadyListFlag[id])
+						sortedQueueContents.emplace_back(m_writtenCommandPriorities.front());
+						m_writtenCommandPriorities.pop();
+					}
+					std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
+
+					for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
+					{
+						bool proceed = true;
+						uint32_t currPriority = sortedQueueContents[i];
+						for (uint32_t& id : m_pRenderGraph->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
 						{
-							continueWaitQueue.push(currPriority);
-							proceed = false;
-							break;
+							if (!m_commandRecordReadyListFlag[id])
+							{
+								continueWaitQueue.push(currPriority);
+								proceed = false;
+								break;
+							}
+						}
+						if (proceed)
+						{
+							m_commandRecordReadyListFlag[currPriority] = true;
+							m_commandRecordReadyList[currPriority]->m_debugID = currPriority;
+							buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList[currPriority]);
 						}
 					}
-					if (proceed)
-					{
-						m_commandRecordReadyListFlag[currPriority] = true;
-						m_commandRecordReadyList[currPriority]->m_debugID = currPriority;
-						buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList[currPriority]);
-					}
-				}
 
-				while (!continueWaitQueue.empty())
-				{
-					m_writtenCommandPriorities.push(continueWaitQueue.front());
-					continueWaitQueue.pop();
+					while (!continueWaitQueue.empty())
+					{
+						m_writtenCommandPriorities.push(continueWaitQueue.front());
+						continueWaitQueue.pop();
+					}
 				}
 
 				if (buffersToReturn.size() > 0)
@@ -298,8 +353,25 @@ void HPForwardRenderer_HG::ExecuteDiscreteGPUCycles()
 						m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i].second);
 					}
 
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+					bool hasNewTransferCommand = false;
+					for (auto& transferCmdBuffer : m_transferCommandRecordReadyList)
+					{
+						if (transferCmdBuffer.second != nullptr)
+						{
+							m_pDevice->ReturnExternalCommandBuffer(transferCmdBuffer.second);
+							transferCmdBuffer.second = nullptr;
+							hasNewTransferCommand = true;
+						}
+					}
+					if (hasNewTransferCommand)
+					{
+						m_pDevice->FlushTransferCommands(false);
+					}
+#endif
+
 					finishedNodeCount += buffersToReturn.size();
-					if (finishedNodeCount != pRenderGraph->GetRenderNodeCount())
+					if (finishedNodeCount != m_pRenderGraph->GetRenderNodeCount())
 					{
 						m_pDevice->FlushCommands(false, false, (uint32_t)EGPUType::Discrete);
 					}
@@ -309,8 +381,9 @@ void HPForwardRenderer_HG::ExecuteDiscreteGPUCycles()
 					}
 				}
 			}
-
 			m_swapSemaphore.Signal();
+
+			std::this_thread::yield();
 		}
 	}
 }
@@ -337,8 +410,8 @@ void HPForwardRenderer_HG::CreateFrameTextures()
 
 	// Depth attachment for shadow map pass
 
-	texCreateInfo.textureWidth = 4096; // Shadow map resolution
-	texCreateInfo.textureHeight = 4096;
+	texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION; // Shadow map resolution
+	texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION;
 	texCreateInfo.dataType = EDataType::Float32;
 	texCreateInfo.format = ETextureFormat::Depth;
 	texCreateInfo.textureType = ETextureType::DepthAttachment;
@@ -640,7 +713,7 @@ void HPForwardRenderer_HG::CreateRenderPassObjects()
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
@@ -666,7 +739,7 @@ void HPForwardRenderer_HG::CreateRenderPassObjects()
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
@@ -733,7 +806,7 @@ void HPForwardRenderer_HG::CreateRenderPassObjects()
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
@@ -759,7 +832,7 @@ void HPForwardRenderer_HG::CreateRenderPassObjects()
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
@@ -785,7 +858,7 @@ void HPForwardRenderer_HG::CreateRenderPassObjects()
 		RenderPassAttachmentDescription colorDesc = {};
 		colorDesc.format = ETextureFormat::BGRA8_UNORM;
 		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
+		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
@@ -810,8 +883,8 @@ void HPForwardRenderer_HG::CreateFrameBuffers()
 
 	FrameBufferCreateInfo shadowMapFBCreateInfo = {};
 	shadowMapFBCreateInfo.attachments.emplace_back(m_pShadowMapPassDepthOutput);
-	shadowMapFBCreateInfo.framebufferWidth = 4096;
-	shadowMapFBCreateInfo.framebufferHeight = 4096;
+	shadowMapFBCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION;
+	shadowMapFBCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION;
 	shadowMapFBCreateInfo.deviceType = EGPUType::Discrete;
 	shadowMapFBCreateInfo.pRenderPass = m_pShadowMapRenderPassObject;
 
@@ -1464,8 +1537,8 @@ void HPForwardRenderer_HG::CreatePipelineObjects()
 		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
 		PipelineViewportStateCreateInfo shadowMapViewportStateCreateInfo = {};
-		shadowMapViewportStateCreateInfo.width = 4096; // Correspond to shadow map resolution
-		shadowMapViewportStateCreateInfo.height = 4096;
+		shadowMapViewportStateCreateInfo.width = SHADOW_MAP_RESOLUTION;
+		shadowMapViewportStateCreateInfo.height = SHADOW_MAP_RESOLUTION;
 
 		std::shared_ptr<PipelineViewportState> pShadowMapViewportState;
 		m_pDevice->CreatePipelineViewportState(shadowMapViewportStateCreateInfo, pShadowMapViewportState);
@@ -1577,7 +1650,7 @@ void HPForwardRenderer_HG::BuildShadowMapPass()
 
 	passOutput.Add(HPForwardHGGraphRes::TX_SHADOWMAP_DEPTH, m_pShadowMapPassDepthOutput);
 
-	RenderNode ShadowMapPass = RenderNode(
+	auto pShadowMapPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			Vector3   lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
@@ -1665,10 +1738,7 @@ void HPForwardRenderer_HG::BuildShadowMapPass()
 		passInput,
 		passOutput);
 
-	RenderNode ShadowMapPass_1 = ShadowMapPass;
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_SHADOWMAP, std::make_shared<RenderNode>(ShadowMapPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_SHADOWMAP, std::make_shared<RenderNode>(ShadowMapPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_SHADOWMAP, pShadowMapPass);
 }
 
 void HPForwardRenderer_HG::BuildNormalOnlyPass()
@@ -1682,9 +1752,10 @@ void HPForwardRenderer_HG::BuildNormalOnlyPass()
 
 	passOutput.Add(HPForwardHGGraphRes::TX_NORMALONLY_NORMAL, m_pNormalOnlyPassNormalOutput);
 	passOutput.Add(HPForwardHGGraphRes::TX_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutput);
-	passOutput.Add(HPForwardHGGraphRes::TB_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_NORMALONLY_POSITION_0, m_pNormalOnlyPassPositionOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_NORMALONLY_POSITION_1, m_pNormalOnlyPassPositionOutputTransferBuffer[1]);
 
-	RenderNode NormalOnlyPass = RenderNode(
+	auto pNormalOnlyPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -1752,6 +1823,14 @@ void HPForwardRenderer_HG::BuildNormalOnlyPass()
 				for (size_t i = 0; i < subMeshes->size(); ++i)
 				{
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
+
+#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
+					// Dump garbage operations into discrete GPU
+					for (unsigned int j = 0; j < 25; j++)
+					{
+						pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
+					}
+#endif
 				}
 			}
 
@@ -1759,20 +1838,35 @@ void HPForwardRenderer_HG::BuildNormalOnlyPass()
 
 			// Copy texture results to transfer buffer
 			auto pPositionOutput = std::static_pointer_cast<Texture2D>(output.Get(HPForwardHGGraphRes::TX_NORMALONLY_POSITION));
-			auto pPositionOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(output.Get(HPForwardHGGraphRes::TB_NORMALONLY_POSITION));
-			pDevice->CopyTexture2DToDataTransferBuffer(pPositionOutput, pPositionOutputTransferBuffer, pCommandBuffer);
+			auto pPositionOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(
+				output.Get(pContext->discreteGPUExecutionCycle == 0 ? 
+					HPForwardHGGraphRes::TB_NORMALONLY_POSITION_0 : HPForwardHGGraphRes::TB_NORMALONLY_POSITION_1));
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+			pDevice->CommandWaitSemaphore(pCommandBuffer, ((HPForwardRenderer_HG*)(pContext->pRenderer))->GetTransferSignalSemaphore(HPForwardHGGraphRes::NODE_NORMALONLY));
 
-			pDevice->EndCommandBuffer(pCommandBuffer);			
+			auto pWriteSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::Transfer);
+			pDevice->CommandSignalSemaphore(pCommandBuffer, pWriteSemaphore);
+
+			// Add semaphore to ensure correct attachment read/write sequence; this semaphore will be waited on in the next cycle
+			auto pReadSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::ColorAttachmentOutput);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->AddTransferSignalSemaphore(HPForwardHGGraphRes::NODE_NORMALONLY, pReadSemaphore);
+
+			auto pTransferCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pTransferCommandPool);
+			pDevice->CommandWaitSemaphore(pTransferCommandBuffer, pWriteSemaphore);
+			pDevice->CommandSignalSemaphore(pTransferCommandBuffer, pReadSemaphore);
+			pDevice->CopyTexture2DToDataTransferBuffer(pPositionOutput, pPositionOutputTransferBuffer, pTransferCommandBuffer);
+			pDevice->EndCommandBuffer(pTransferCommandBuffer);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteTransferCommandRecordList(HPForwardHGGraphRes::NODE_NORMALONLY, pTransferCommandBuffer);
+#else
+			pDevice->CopyTexture2DToDataTransferBuffer(pPositionOutput, pPositionOutputTransferBuffer, pCommandBuffer);
+#endif
+			pDevice->EndCommandBuffer(pCommandBuffer);
 			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardHGGraphRes::NODE_NORMALONLY, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
 
-	RenderNode NormalOnlyPass_1 = NormalOnlyPass;
-	NormalOnlyPass_1.SwapOutputResource(HPForwardHGGraphRes::TB_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutputTransferBuffer[1]);
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_NORMALONLY, std::make_shared<RenderNode>(NormalOnlyPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_NORMALONLY, std::make_shared<RenderNode>(NormalOnlyPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_NORMALONLY, pNormalOnlyPass);
 }
 
 void HPForwardRenderer_HG::BuildOpaquePass()
@@ -1792,9 +1886,10 @@ void HPForwardRenderer_HG::BuildOpaquePass()
 	passOutput.Add(HPForwardHGGraphRes::TX_OPAQUE_COLOR, m_pOpaquePassColorOutput);
 	passOutput.Add(HPForwardHGGraphRes::TX_OPAQUE_SHADOW, m_pOpaquePassShadowOutput);
 	passOutput.Add(HPForwardHGGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
-	passOutput.Add(HPForwardHGGraphRes::TB_OPAQUE_SHADOW, m_pOpaquePassShadowOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_OPAQUE_SHADOW_0, m_pOpaquePassShadowOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_OPAQUE_SHADOW_1, m_pOpaquePassShadowOutputTransferBuffer[1]);
 
-	RenderNode OpaquePass = RenderNode(
+	auto pOpaquePass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -1923,6 +2018,14 @@ void HPForwardRenderer_HG::BuildOpaquePass()
 
 					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
+
+#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
+					// Dump garbage operations into discrete GPU
+					for (unsigned int j = 0; j < 25; j++)
+					{
+						pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
+					}
+#endif
 				}
 
 			}
@@ -1930,20 +2033,34 @@ void HPForwardRenderer_HG::BuildOpaquePass()
 			pDevice->EndRenderPass(pCommandBuffer);
 
 			auto pShadowOutput = std::static_pointer_cast<Texture2D>(output.Get(HPForwardHGGraphRes::TX_OPAQUE_SHADOW));
-			auto pShadowOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(output.Get(HPForwardHGGraphRes::TB_OPAQUE_SHADOW));
-			pDevice->CopyTexture2DToDataTransferBuffer(pShadowOutput, pShadowOutputTransferBuffer, pCommandBuffer);
+			auto pShadowOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(
+				output.Get(pContext->discreteGPUExecutionCycle == 0 ?
+					HPForwardHGGraphRes::TB_OPAQUE_SHADOW_0 : HPForwardHGGraphRes::TB_OPAQUE_SHADOW_1));
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+			pDevice->CommandWaitSemaphore(pCommandBuffer, ((HPForwardRenderer_HG*)(pContext->pRenderer))->GetTransferSignalSemaphore(HPForwardHGGraphRes::NODE_OPAQUE));
 
+			auto pWriteSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::Transfer);
+			pDevice->CommandSignalSemaphore(pCommandBuffer, pWriteSemaphore);
+
+			auto pReadSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::ColorAttachmentOutput);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->AddTransferSignalSemaphore(HPForwardHGGraphRes::NODE_OPAQUE, pReadSemaphore);
+
+			auto pTransferCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pTransferCommandPool);
+			pDevice->CommandWaitSemaphore(pTransferCommandBuffer, pWriteSemaphore);
+			pDevice->CommandSignalSemaphore(pTransferCommandBuffer, pReadSemaphore);
+			pDevice->CopyTexture2DToDataTransferBuffer(pShadowOutput, pShadowOutputTransferBuffer, pTransferCommandBuffer);
+			pDevice->EndCommandBuffer(pTransferCommandBuffer);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteTransferCommandRecordList(HPForwardHGGraphRes::NODE_OPAQUE, pTransferCommandBuffer);
+#else
+			pDevice->CopyTexture2DToDataTransferBuffer(pShadowOutput, pShadowOutputTransferBuffer, pCommandBuffer);
+#endif
 			pDevice->EndCommandBuffer(pCommandBuffer);			
 			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardHGGraphRes::NODE_OPAQUE, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
 
-		RenderNode OpaquePass_1 = OpaquePass;
-		OpaquePass_1.SwapOutputResource(HPForwardHGGraphRes::TB_OPAQUE_SHADOW, m_pOpaquePassShadowOutputTransferBuffer[1]);
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_OPAQUE, std::make_shared<RenderNode>(OpaquePass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_OPAQUE, std::make_shared<RenderNode>(OpaquePass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_OPAQUE, pOpaquePass);
 }
 
 void HPForwardRenderer_HG::BuildGaussianBlurPass()
@@ -1960,7 +2077,7 @@ void HPForwardRenderer_HG::BuildGaussianBlurPass()
 
 	passOutput.Add(HPForwardHGGraphRes::TX_BLUR_FINAL_COLOR, m_pBlurPassFinalColorOutput);
 
-	RenderNode GaussianBlurPass = RenderNode(
+	auto pGaussianBlurPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -2018,10 +2135,7 @@ void HPForwardRenderer_HG::BuildGaussianBlurPass()
 		passInput,
 		passOutput);
 
-	RenderNode GaussianBlurPass_1 = GaussianBlurPass;
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_BLUR, std::make_shared<RenderNode>(GaussianBlurPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_BLUR, std::make_shared<RenderNode>(GaussianBlurPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_BLUR, pGaussianBlurPass);
 }
 
 void HPForwardRenderer_HG::BuildLineDrawingPass()
@@ -2045,7 +2159,7 @@ void HPForwardRenderer_HG::BuildLineDrawingPass()
 
 	passOutput.Add(HPForwardHGGraphRes::TX_LINEDRAWING_COLOR, m_pLineDrawingPassColorOutput);
 
-	RenderNode LineDrawingPass = RenderNode(
+	auto pLineDrawingPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
@@ -2167,10 +2281,7 @@ void HPForwardRenderer_HG::BuildLineDrawingPass()
 		passInput,
 		passOutput);
 
-		RenderNode LineDrawingPass_1 = LineDrawingPass;
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_LINEDRAWING, std::make_shared<RenderNode>(LineDrawingPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_LINEDRAWING, std::make_shared<RenderNode>(LineDrawingPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_LINEDRAWING, pLineDrawingPass);
 }
 
 void HPForwardRenderer_HG::BuildTransparentPass()
@@ -2190,7 +2301,7 @@ void HPForwardRenderer_HG::BuildTransparentPass()
 	passOutput.Add(HPForwardHGGraphRes::TX_TRANSP_COLOR, m_pTranspPassColorOutput);
 	passOutput.Add(HPForwardHGGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
 
-	RenderNode TransparentPass = RenderNode(
+	auto pTransparentPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pContext->pCamera->GetComponent(EComponentType::Transform));
@@ -2323,10 +2434,7 @@ void HPForwardRenderer_HG::BuildTransparentPass()
 		passInput,
 		passOutput);
 
-		RenderNode TransparentPass_1 = TransparentPass;
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_TRANSP, std::make_shared<RenderNode>(TransparentPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_TRANSP, std::make_shared<RenderNode>(TransparentPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_TRANSP, pTransparentPass);
 }
 
 void HPForwardRenderer_HG::BuildOpaqueTranspBlendPass()
@@ -2339,19 +2447,20 @@ void HPForwardRenderer_HG::BuildOpaqueTranspBlendPass()
 	passInput.Add(HPForwardHGGraphRes::TX_OPAQUE_DEPTH, m_pOpaquePassDepthOutput);
 	passInput.Add(HPForwardHGGraphRes::TX_TRANSP_COLOR, m_pTranspPassColorOutput);
 	passInput.Add(HPForwardHGGraphRes::TX_TRANSP_DEPTH, m_pTranspPassDepthOutput);
-	passInput.Add(HPForwardHGGraphRes::TX_BLEND_RPO, m_pBlendRenderPassObject);
+	passInput.Add(HPForwardHGGraphRes::RPO_BLEND, m_pBlendRenderPassObject);
 
 	passOutput.Add(HPForwardHGGraphRes::TX_BLEND_COLOR, m_pBlendPassColorOutput);
-	passOutput.Add(HPForwardHGGraphRes::TB_BLEND_COLOR, m_pBlendPassColorOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_BLEND_COLOR_0, m_pBlendPassColorOutputTransferBuffer[0]);
+	passOutput.Add(HPForwardHGGraphRes::TB_BLEND_COLOR_1, m_pBlendPassColorOutputTransferBuffer[1]);
 
-	RenderNode BlendPass = RenderNode(
+	auto pBlendPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
 		{
 			auto pDevice = pContext->pRenderer->GetDrawingDevice();
 			auto pCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 			pDevice->BindGraphicsPipeline(((HPForwardRenderer_HG*)(pContext->pRenderer))->GetGraphicsPipeline(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, HPForwardHGGraphRes::PASSNAME_BLEND), pCommandBuffer);
-			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardHGGraphRes::TX_BLEND_RPO)),
+			pDevice->BeginRenderPass(std::static_pointer_cast<RenderPassObject>(input.Get(HPForwardHGGraphRes::RPO_BLEND)),
 				std::static_pointer_cast<FrameBuffer>(input.Get(HPForwardHGGraphRes::FB_BLEND)), pCommandBuffer);
 
 			auto pShaderProgram = (pContext->pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
@@ -2375,20 +2484,34 @@ void HPForwardRenderer_HG::BuildOpaqueTranspBlendPass()
 			pDevice->EndRenderPass(pCommandBuffer);
 
 			auto pColorOutput = std::static_pointer_cast<Texture2D>(output.Get(HPForwardHGGraphRes::TX_BLEND_COLOR));
-			auto pColorOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(output.Get(HPForwardHGGraphRes::TB_BLEND_COLOR));
-			pDevice->CopyTexture2DToDataTransferBuffer(pColorOutput, pColorOutputTransferBuffer, pCommandBuffer);
+			auto pColorOutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(
+				output.Get(pContext->discreteGPUExecutionCycle == 0 ?
+					HPForwardHGGraphRes::TB_BLEND_COLOR_0 : HPForwardHGGraphRes::TB_BLEND_COLOR_1));
+#if defined(ENABLE_TRANSFER_QUEUE_CE)
+			pDevice->CommandWaitSemaphore(pCommandBuffer, ((HPForwardRenderer_HG*)(pContext->pRenderer))->GetTransferSignalSemaphore(HPForwardHGGraphRes::NODE_COLORBLEND_D2));
 
+			auto pWriteSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::Transfer);
+			pDevice->CommandSignalSemaphore(pCommandBuffer, pWriteSemaphore);
+
+			auto pReadSemaphore = pDevice->RequestDrawingSemaphore(EGPUType::Discrete, ESemaphoreWaitStage::ColorAttachmentOutput);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->AddTransferSignalSemaphore(HPForwardHGGraphRes::NODE_COLORBLEND_D2, pReadSemaphore);
+
+			auto pTransferCommandBuffer = pDevice->RequestCommandBuffer(pCmdContext->pTransferCommandPool);
+			pDevice->CommandWaitSemaphore(pTransferCommandBuffer, pWriteSemaphore);
+			pDevice->CommandSignalSemaphore(pTransferCommandBuffer, pReadSemaphore);
+			pDevice->CopyTexture2DToDataTransferBuffer(pColorOutput, pColorOutputTransferBuffer, pTransferCommandBuffer);
+			pDevice->EndCommandBuffer(pTransferCommandBuffer);
+			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteTransferCommandRecordList(HPForwardHGGraphRes::NODE_COLORBLEND_D2, pTransferCommandBuffer);
+#else
+			pDevice->CopyTexture2DToDataTransferBuffer(pColorOutput, pColorOutputTransferBuffer, pCommandBuffer);
+#endif
 			pDevice->EndCommandBuffer(pCommandBuffer);
 			((HPForwardRenderer_HG*)(pContext->pRenderer))->WriteCommandRecordList(HPForwardHGGraphRes::NODE_COLORBLEND_D2, pCommandBuffer);
 		},
 		passInput,
 		passOutput);
 
-	RenderNode BlendPass_1 = BlendPass;
-	BlendPass_1.SwapOutputResource(HPForwardHGGraphRes::TB_BLEND_COLOR, m_pBlendPassColorOutputTransferBuffer[1]);
-
-	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_COLORBLEND_D2, std::make_shared<RenderNode>(BlendPass));
-	m_pRenderGraph_1->AddRenderNode(HPForwardHGGraphRes::NODE_COLORBLEND_D2, std::make_shared<RenderNode>(BlendPass_1));
+	m_pRenderGraph->AddRenderNode(HPForwardHGGraphRes::NODE_COLORBLEND_D2, pBlendPass);
 }
 
 void HPForwardRenderer_HG::BuildDepthOfFieldPass()
@@ -2412,9 +2535,9 @@ void HPForwardRenderer_HG::BuildDepthOfFieldPass()
 	passInput.Add(HPForwardHGGraphRes::UB_SYSTEM_VARIABLES, m_pSystemVariables_UB_IG);
 	passInput.Add(HPForwardHGGraphRes::UB_CAMERA_PROPERTIES, m_pCameraPropertie_UB_IG);
 	passInput.Add(HPForwardHGGraphRes::UB_CONTROL_VARIABLES, m_pControlVariables_UB_IG);
-	passInput.Add(HPForwardHGGraphRes::TB_NORMALONLY_POSITION, m_pNormalOnlyPassPositionOutputTransferBuffer_IG); // Results from discrete GPU are passed in by buffers
-	passInput.Add(HPForwardHGGraphRes::TB_OPAQUE_SHADOW, m_pOpaquePassShadowOutputTransferBuffer_IG);
-	passInput.Add(HPForwardHGGraphRes::TB_BLEND_COLOR, m_pBlendPassColorOutputTransferBuffer_IG);
+	passInput.Add(HPForwardHGGraphRes::TB_NORMALONLY_POSITION_IG, m_pNormalOnlyPassPositionOutputTransferBuffer_IG); // Results from discrete GPU are passed in by buffers
+	passInput.Add(HPForwardHGGraphRes::TB_OPAQUE_SHADOW_IG, m_pOpaquePassShadowOutputTransferBuffer_IG);
+	passInput.Add(HPForwardHGGraphRes::TB_BLEND_COLOR_IG, m_pBlendPassColorOutputTransferBuffer_IG);
 
 	auto pDOFPass = std::make_shared<RenderNode>(
 		[](const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext)
@@ -2437,9 +2560,9 @@ void HPForwardRenderer_HG::BuildDepthOfFieldPass()
 			auto pShadowIutput = std::static_pointer_cast<Texture2D>(input.Get(HPForwardHGGraphRes::TX_OPAQUE_SHADOW));
 			auto pColorIutput = std::static_pointer_cast<Texture2D>(input.Get(HPForwardHGGraphRes::TX_BLEND_COLOR));
 
-			auto pPositionIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_NORMALONLY_POSITION));
-			auto pShadowIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_OPAQUE_SHADOW));
-			auto pColorIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_BLEND_COLOR));
+			auto pPositionIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_NORMALONLY_POSITION_IG));
+			auto pShadowIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_OPAQUE_SHADOW_IG));
+			auto pColorIutputTransferBuffer = std::static_pointer_cast<DataTransferBuffer>(input.Get(HPForwardHGGraphRes::TB_BLEND_COLOR_IG));
 
 			pDevice->CopyDataTransferBufferToTexture2D(pPositionIutputTransferBuffer, pPositionIutput, pCommandBuffer);
 			pDevice->CopyDataTransferBufferToTexture2D(pShadowIutputTransferBuffer, pShadowIutput, pCommandBuffer);
@@ -2556,6 +2679,13 @@ void HPForwardRenderer_HG::BuildDepthOfFieldPass()
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 			pDevice->DrawFullScreenQuad(pCommandBuffer);
 
+#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
+			// Dump garbage operations into discrete GPU
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
+			pDevice->DrawFullScreenQuad(pCommandBuffer);
+#endif
+
 			pDevice->EndRenderPass(pCommandBuffer);
 
 			pDevice->EndCommandBuffer(pCommandBuffer);			
@@ -2585,23 +2715,6 @@ void HPForwardRenderer_HG::BuildRenderNodeDependencies()
 	pTransparentPass->AddNextNode(pBlendPass);
 
 	m_pRenderGraph->BuildRenderNodePriorities();
-
-	auto pShadowMapPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_SHADOWMAP);
-	auto pNormalOnlyPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_NORMALONLY);
-	auto pOpaquePass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_OPAQUE);
-	auto pGaussianBlurPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_BLUR);
-	auto pLineDrawingPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_LINEDRAWING);
-	auto pTransparentPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_TRANSP);
-	auto pBlendPass_1 = m_pRenderGraph_1->GetNodeByName(HPForwardHGGraphRes::NODE_COLORBLEND_D2);
-
-	pShadowMapPass_1->AddNextNode(pOpaquePass_1);
-	pNormalOnlyPass_1->AddNextNode(pOpaquePass_1);
-	pOpaquePass_1->AddNextNode(pGaussianBlurPass_1);
-	pGaussianBlurPass_1->AddNextNode(pLineDrawingPass_1);
-	pLineDrawingPass_1->AddNextNode(pTransparentPass_1);
-	pTransparentPass_1->AddNextNode(pBlendPass_1);
-
-	m_pRenderGraph_1->BuildRenderNodePriorities();
 
 	for (uint32_t i = 0; i < m_pRenderGraph->GetRenderNodeCount(); i++)
 	{

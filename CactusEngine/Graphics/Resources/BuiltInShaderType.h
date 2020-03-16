@@ -20,6 +20,7 @@ namespace Engine
 		GaussianBlur,
 		ShadowMap,
 		DOF,
+		AsyncCompute,
 		COUNT,
 		NONE
 	};
@@ -38,7 +39,9 @@ namespace Engine
 	// Uniform block structures
 	// Alert: the alignment should be set according to min device uniform buffer alignment requirement
 
-	struct alignas(64) UBTransformMatrices
+	static const size_t UNIFORM_BUFFER_ALIGNMENT_CE = 256;
+
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBTransformMatrices
 	{
 		Matrix4x4 modelMatrix;
 		Matrix4x4 viewMatrix;
@@ -46,19 +49,19 @@ namespace Engine
 		Matrix4x4 normalMatrix;
 	};
 
-	struct alignas(64) UBLightSpaceTransformMatrix
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBLightSpaceTransformMatrix
 	{
 		Matrix4x4 lightSpaceMatrix;
 	};
 
-	struct alignas(64) UBMaterialNumericalProperties
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBMaterialNumericalProperties
 	{
 		Vector4	albedoColor;
 		float	anisotropy;
 		float	roughness;
 	};
 
-	struct alignas(64) UBCameraProperties
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBCameraProperties
 	{
 		Vector3	cameraPosition;
 		float	aperture;
@@ -66,12 +69,12 @@ namespace Engine
 		float	imageDistance;
 	};
 
-	struct alignas(64) UBSystemVariables
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBSystemVariables
 	{
 		float timeInSec;
 	};
 
-	struct alignas(64) UBControlVariables
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBControlVariables
 	{
 		int bool_1;
 	};

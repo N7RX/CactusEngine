@@ -42,9 +42,10 @@ namespace Engine
 		// For low-level devices, e.g. Vulkan
 
 		// For multithreading
-		virtual std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType) = 0;
+		virtual std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType = EQueueType::Graphics) = 0;
 		virtual std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) = 0;
 		virtual void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual std::shared_ptr<DrawingSemaphore> RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage) = 0;
 
 		virtual bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput) = 0;
 		virtual bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput) = 0;
@@ -66,9 +67,13 @@ namespace Engine
 		virtual void BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual void EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual void EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
+		virtual void CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
 
 		virtual void Present() = 0;
 		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) = 0;
+		virtual void FlushTransferCommands(bool waitExecution) = 0;
+		virtual void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
 
 		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const = 0;
 		virtual void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const = 0;
@@ -77,6 +82,9 @@ namespace Engine
 		virtual void CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual void CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual void CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer) = 0;
+		virtual void CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
+		virtual void CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size) = 0;
+		virtual void CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc) = 0;
 
 		// TODO: discard this function in the future, it's for temporary test
 		virtual void ConfigureStates_Test() = 0;

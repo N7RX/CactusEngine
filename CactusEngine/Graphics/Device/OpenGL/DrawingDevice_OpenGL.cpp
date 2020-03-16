@@ -310,7 +310,7 @@ EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const
 	return EGraphicsDeviceType::OpenGL;
 }
 
-std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommandPool(EGPUType deviceType)
+std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType)
 {
 	std::cerr << "OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.\n";
 	return nullptr;
@@ -325,6 +325,12 @@ std::shared_ptr<DrawingCommandBuffer> DrawingDevice_OpenGL::RequestCommandBuffer
 void DrawingDevice_OpenGL::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.\n";
+}
+
+std::shared_ptr<DrawingSemaphore> DrawingDevice_OpenGL::RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage)
+{
+	std::cerr << "OpenGL: shouldn't call RequestDrawingSemaphore on OpenGL device.\n";
+	return nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
@@ -428,6 +434,16 @@ void DrawingDevice_OpenGL::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer
 	std::cerr << "OpenGL: shouldn't call EndCommandBuffer on OpenGL device.\n";
 }
 
+void DrawingDevice_OpenGL::CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	std::cerr << "OpenGL: shouldn't call CommandWaitSemaphore on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	std::cerr << "OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.\n";
+}
+
 void DrawingDevice_OpenGL::Present()
 {
 	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
@@ -441,6 +457,18 @@ void DrawingDevice_OpenGL::FlushCommands(bool waitExecution, bool flushImplicitC
 	{
 		glFinish();
 	}
+}
+
+void DrawingDevice_OpenGL::FlushTransferCommands(bool waitExecution)
+{
+	std::cerr << "OpenGL: shouldn't call FlushTransferCommands on OpenGL device.\n";
+	glFlush();
+}
+
+void DrawingDevice_OpenGL::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore)
+{
+	std::cerr << "OpenGL: shouldn't call WaitSemaphore on OpenGL device.\n";
+	glFinish();
 }
 
 std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType) const
@@ -473,6 +501,21 @@ void DrawingDevice_OpenGL::CopyDataTransferBufferToTexture2D(std::shared_ptr<Dat
 void DrawingDevice_OpenGL::CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferCrossDevice on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+{
+	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferWithinDevice on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size)
+{
+	std::cerr << "OpenGL: shouldn't call CopyHostDataToDataTransferBuffer on OpenGL device.\n";
+}
+
+void DrawingDevice_OpenGL::CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc)
+{
+	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToHostDataLocation on OpenGL device.\n";
 }
 
 void DrawingDevice_OpenGL::ConfigureStates_Test()

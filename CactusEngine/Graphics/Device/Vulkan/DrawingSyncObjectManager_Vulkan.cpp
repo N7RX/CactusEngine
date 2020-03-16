@@ -10,35 +10,32 @@ DrawingSemaphore_Vulkan::DrawingSemaphore_Vulkan(const VkSemaphore& semaphoreHan
 
 }
 
-DrawingFence_Vulkan::DrawingFence_Vulkan(const VkFence& fenceHandle, uint32_t assignedID)
-	: fence(fenceHandle), id(assignedID), m_signaled(false)
+TimelineSemaphore_Vulkan::TimelineSemaphore_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const VkSemaphore& semaphoreHandle, uint32_t assignedID)
+	: m_pDevice(pDevice), semaphore(semaphoreHandle), id(assignedID), m_waitValue(1), m_signalValue(1)
 {
-
+	m_waitInfo = {};
+	m_waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
+	m_waitInfo.semaphoreCount = 1;
+	m_waitInfo.pSemaphores = &semaphore;
 }
 
-void DrawingFence_Vulkan::Wait()
+VkResult TimelineSemaphore_Vulkan::Wait(uint64_t timeout)
 {
-	std::unique_lock<std::mutex> lock(m_fenceMutex);
-	m_fenceCv.wait(lock, [this]() { return m_signaled; });
-	m_signaled = false;
+	m_waitInfo.pValues = &m_waitValue;
+	return vkWaitSemaphores(m_pDevice->logicalDevice, &m_waitInfo, timeout);
 }
 
-void DrawingFence_Vulkan::Notify()
+void TimelineSemaphore_Vulkan::UpdateTimeline()
 {
-	{
-		std::lock_guard<std::mutex> guard(m_fenceMutex);
-		assert(!m_signaled);
-		m_signaled = true;
-	}
-
-	m_fenceCv.notify_all();
+	m_waitValue = m_signalValue + 1;
+	m_signalValue = m_waitValue;
 }
 
 DrawingSyncObjectManager_Vulkan::DrawingSyncObjectManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
 	: m_pDevice(pDevice)
 {
-	CreateNewSemaphore(8); // TODO: adjust the initial count based on usage scenario
-	CreateNewFence(4);
+	CreateNewSemaphore(3); // TODO: adjust the initial count based on usage scenario
+	CreateNewTimelineSemaphore(16);
 }
 
 DrawingSyncObjectManager_Vulkan::~DrawingSyncObjectManager_Vulkan()
@@ -49,10 +46,10 @@ DrawingSyncObjectManager_Vulkan::~DrawingSyncObjectManager_Vulkan()
 		vkDestroySemaphore(m_pDevice->logicalDevice, pSemaphore->semaphore, nullptr);
 	}
 
-	for (auto& pFence : m_fencePool)
+	for (auto& pSemaphore : m_timelineSemaphorePool)
 	{
-		assert(pFence->fence != VK_NULL_HANDLE);
-		vkDestroyFence(m_pDevice->logicalDevice, pFence->fence, nullptr);
+		assert(pSemaphore->semaphore != VK_NULL_HANDLE);
+		vkDestroySemaphore(m_pDevice->logicalDevice, pSemaphore->semaphore, nullptr);
 	}
 }
 
@@ -75,25 +72,24 @@ std::shared_ptr<DrawingSemaphore_Vulkan> DrawingSyncObjectManager_Vulkan::Reques
 	return m_semaphorePool[id];
 }
 
-std::shared_ptr<DrawingFence_Vulkan> DrawingSyncObjectManager_Vulkan::RequestFence()
+std::shared_ptr<TimelineSemaphore_Vulkan> DrawingSyncObjectManager_Vulkan::RequestTimelineSemaphore()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	for (auto& entry : m_fenceAvailability)
+	for (auto& entry : m_timelineSemaphoreAvailability)
 	{
 		if (entry.second)
 		{
 			entry.second = false;
-			m_fencePool[entry.first]->m_signaled = false;
-			return m_fencePool[entry.first];
+			m_timelineSemaphorePool[entry.first]->UpdateTimeline();
+			return m_timelineSemaphorePool[entry.first];
 		}
 	}
 
-	CreateNewFence(1);
-	uint32_t id = static_cast<uint32_t>(m_fencePool.size() - 1);
-	m_fenceAvailability.at(id) = false;
-	m_fencePool[id]->m_signaled = false;
-	return m_fencePool[id];
+	CreateNewTimelineSemaphore(1);
+	uint32_t id = static_cast<uint32_t>(m_timelineSemaphorePool.size() - 1);
+	m_timelineSemaphoreAvailability.at(id) = false;
+	return m_timelineSemaphorePool[id];
 }
 
 void DrawingSyncObjectManager_Vulkan::ReturnSemaphore(std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
@@ -101,10 +97,9 @@ void DrawingSyncObjectManager_Vulkan::ReturnSemaphore(std::shared_ptr<DrawingSem
 	m_semaphoreAvailability.at(pSemaphore->id) = true;
 }
 
-void DrawingSyncObjectManager_Vulkan::ReturnFence(std::shared_ptr<DrawingFence_Vulkan> pFence)
+void DrawingSyncObjectManager_Vulkan::ReturnTimelineSemaphore(std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore)
 {
-	vkResetFences(m_pDevice->logicalDevice, 1, &pFence->fence);
-	m_fenceAvailability.at(pFence->id) = true;
+	m_timelineSemaphoreAvailability.at(pSemaphore->id) = true;	
 }
 
 bool DrawingSyncObjectManager_Vulkan::CreateNewSemaphore(uint32_t count)
@@ -133,26 +128,31 @@ bool DrawingSyncObjectManager_Vulkan::CreateNewSemaphore(uint32_t count)
 	return true;
 }
 
-bool DrawingSyncObjectManager_Vulkan::CreateNewFence(uint32_t count, bool signaled)
+bool DrawingSyncObjectManager_Vulkan::CreateNewTimelineSemaphore(uint32_t count, uint64_t initialValue)
 {
-	assert(m_fencePool.size() + count <= MAX_FENCE_COUNT);
+	assert(m_timelineSemaphorePool.size() + count <= MAX_TIMELINE_SEMAPHORE_COUNT);
 
-	VkFenceCreateInfo fenceInfo = {};
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+	VkSemaphoreTypeCreateInfo timelineCreateInfo = {};
+	timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+	timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+	timelineCreateInfo.initialValue = initialValue;
+
+	VkSemaphoreCreateInfo semaphoreInfo = {};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	semaphoreInfo.pNext = &timelineCreateInfo;
 
 	for (uint32_t i = 0; i < count; ++i)
 	{
-		VkFence newFence;
-		if (vkCreateFence(m_pDevice->logicalDevice, &fenceInfo, nullptr, &newFence) == VK_SUCCESS)
+		VkSemaphore newSemaphore;
+		if (vkCreateSemaphore(m_pDevice->logicalDevice, &semaphoreInfo, nullptr, &newSemaphore) == VK_SUCCESS)
 		{
-			uint32_t newID = static_cast<uint32_t>(m_fencePool.size()); // We use current pool size as assigned ID
-			m_fencePool.emplace_back(std::make_shared<DrawingFence_Vulkan>(newFence, newID));
-			m_fenceAvailability.emplace(newID, true);			
+			uint32_t newID = static_cast<uint32_t>(m_timelineSemaphorePool.size()); // We use current pool size as assigned ID
+			m_timelineSemaphorePool.emplace_back(std::make_shared<TimelineSemaphore_Vulkan>(m_pDevice, newSemaphore, newID));
+			m_timelineSemaphoreAvailability.emplace(newID, true);
 		}
 		else
 		{
-			throw std::runtime_error("Vulkan: Failed to create new fence.");
+			throw std::runtime_error("Vulkan: Failed to create timeline semaphore.");
 			return false;
 		}
 	}

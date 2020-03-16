@@ -8,7 +8,7 @@
 using namespace Engine;
 
 DrawingCommandBuffer_Vulkan::DrawingCommandBuffer_Vulkan(const VkCommandBuffer& cmdBuffer)
-	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedFence(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE), 
+	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedSubmitSemaphore(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE), 
 	m_pSyncObjectManager(nullptr), m_isExternal(false), m_usageFlags(0)
 {
 
@@ -21,13 +21,21 @@ DrawingCommandBuffer_Vulkan::~DrawingCommandBuffer_Vulkan()
 		assert(m_pSyncObjectManager != nullptr);
 
 		// Alert: freeing the semaphores here may result in conflicts
-		for (auto& pSemaphore : m_waitSemaphores)
+		for (auto& pSemaphore : m_waitPresentationSemaphores)
 		{
 			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
 		}
-		for (auto& pSemaphore : m_signalSemaphores)
+		for (auto& pSemaphore : m_signalPresentationSemaphores)
 		{
 			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
+		}
+		for (auto& pSemaphore : m_waitSemaphores)
+		{
+			m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+		}
+		for (auto& pSemaphore : m_signalSemaphores)
+		{
+			m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
 		}
 	}
 	else
@@ -346,18 +354,28 @@ void DrawingCommandBuffer_Vulkan::CopyTexture2DToBuffer(std::shared_ptr<Texture2
 	vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
 }
 
-void DrawingCommandBuffer_Vulkan::WaitSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
+void DrawingCommandBuffer_Vulkan::WaitPresentationSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
+{
+	m_waitPresentationSemaphores.emplace_back(pSemaphore);
+}
+
+void DrawingCommandBuffer_Vulkan::SignalPresentationSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
+{
+	m_signalPresentationSemaphores.emplace_back(pSemaphore);
+}
+
+void DrawingCommandBuffer_Vulkan::WaitSemaphore(const std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore)
 {
 	m_waitSemaphores.emplace_back(pSemaphore);
 }
 
-void DrawingCommandBuffer_Vulkan::SignalSemaphore(const std::shared_ptr<DrawingSemaphore_Vulkan> pSemaphore)
+void DrawingCommandBuffer_Vulkan::SignalSemaphore(const std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore)
 {
 	m_signalSemaphores.emplace_back(pSemaphore);
 }
 
-DrawingCommandPool_Vulkan::DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle)
-	: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0)
+DrawingCommandPool_Vulkan::DrawingCommandPool_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkCommandPool poolHandle, DrawingCommandManager_Vulkan* pManager)
+	: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0), m_pManager(pManager)
 {
 
 }
@@ -416,7 +434,7 @@ bool DrawingCommandPool_Vulkan::AllocatePrimaryCommandBuffer(uint32_t count)
 DrawingCommandManager_Vulkan::DrawingCommandManager_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const DrawingCommandQueue_Vulkan& queue)
 	: m_pDevice(pDevice), m_workingQueue(queue)
 {
-	m_pDefaultCommandPool = std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool());
+	m_pDefaultCommandPool = std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool(), this);
 
 	m_isRunning = true;
 
@@ -435,6 +453,9 @@ DrawingCommandManager_Vulkan::~DrawingCommandManager_Vulkan()
 void DrawingCommandManager_Vulkan::Destroy()
 {
 	m_isRunning = false;
+
+	m_commandBufferSubmissionThread.join();
+	m_commandBufferRecycleThread.join();
 }
 
 EQueueType DrawingCommandManager_Vulkan::GetWorkingQueueType() const
@@ -451,9 +472,9 @@ std::shared_ptr<DrawingCommandBuffer_Vulkan> DrawingCommandManager_Vulkan::Reque
 	return pCommandBuffer;
 }
 
-void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingFence_Vulkan> pFence, uint32_t usageMask)
+void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_Vulkan> pSubmitSemaphore, uint32_t usageMask)
 {
-	assert(pFence != nullptr);
+	assert(pSubmitSemaphore != nullptr);
 
 	std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> inUseBuffers;
 	m_inUseCommandBuffers.TryPopAll(inUseBuffers);
@@ -482,7 +503,7 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 
 		if (!ptrCopy->m_isExternal) // External command buffers should only be ended by their host thread
 		{
-			ptrCopy->EndCommandBuffer();
+			ptrCopy->EndCommandBuffer(); // TODO: check for command buffer threading error here
 		}
 
 		pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
@@ -491,28 +512,51 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 		for (auto& pSemaphore : ptrCopy->m_signalSemaphores)
 		{
 			pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
+			pSubmitInfo->signalSemaphoreValues.emplace_back(pSemaphore->m_signalValue);
 		}
-
-		for (auto & pSemaphore : ptrCopy->m_waitSemaphores)
+		for (auto& pSemaphore : ptrCopy->m_waitSemaphores)
 		{
 			pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
 			pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
+			pSubmitInfo->waitSemaphoreValues.emplace_back(pSemaphore->m_waitValue);
 		}
 
-		ptrCopy->m_pAssociatedFence = pFence;
+		for (auto& pSemaphore : ptrCopy->m_signalPresentationSemaphores)
+		{
+			pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
+			pSubmitInfo->signalSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+		}
+		for (auto & pSemaphore : ptrCopy->m_waitPresentationSemaphores)
+		{
+			pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
+			pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
+			pSubmitInfo->waitSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+		}
+
+		ptrCopy->m_pAssociatedSubmitSemaphore = pSubmitSemaphore;
 
 		inUseBuffers.pop();
 	}
 	
 	if (pSubmitInfo->buffersAwaitSubmit.size() == 0)
 	{
-		pFence->Notify();
-		m_pDevice->pSyncObjectManager->ReturnFence(pFence);
+		m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSubmitSemaphore);
 		return;
 	}
 
+	pSubmitInfo->semaphoresToSignal.emplace_back(pSubmitSemaphore->semaphore);
+	pSubmitInfo->signalSemaphoreValues.emplace_back(pSubmitSemaphore->m_signalValue);
+
+	pSubmitInfo->timelineSemaphoreSubmitInfo = {};
+	pSubmitInfo->timelineSemaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+	pSubmitInfo->timelineSemaphoreSubmitInfo.signalSemaphoreValueCount = (uint32_t)pSubmitInfo->signalSemaphoreValues.size();
+	pSubmitInfo->timelineSemaphoreSubmitInfo.pSignalSemaphoreValues = pSubmitInfo->signalSemaphoreValues.data();
+	pSubmitInfo->timelineSemaphoreSubmitInfo.waitSemaphoreValueCount = (uint32_t)pSubmitInfo->waitSemaphoreValues.size();
+	pSubmitInfo->timelineSemaphoreSubmitInfo.pWaitSemaphoreValues = pSubmitInfo->waitSemaphoreValues.data();
+
 	pSubmitInfo->submitInfo = {};
 	pSubmitInfo->submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	pSubmitInfo->submitInfo.pNext = &pSubmitInfo->timelineSemaphoreSubmitInfo;
 	pSubmitInfo->submitInfo.commandBufferCount = (uint32_t)pSubmitInfo->buffersAwaitSubmit.size();
 	pSubmitInfo->submitInfo.pCommandBuffers = pSubmitInfo->buffersAwaitSubmit.data();
 	pSubmitInfo->submitInfo.signalSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToSignal.size();
@@ -521,11 +565,12 @@ void DrawingCommandManager_Vulkan::SubmitCommandBuffers(std::shared_ptr<DrawingF
 	pSubmitInfo->submitInfo.pWaitSemaphores = pSubmitInfo->semaphoresToWait.data();
 	pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
 
-	pSubmitInfo->fence = pFence == nullptr ? VK_NULL_HANDLE : pFence->fence;
-
 	m_commandSubmissionQueue.Push(pSubmitInfo);
 
-	m_commandBufferSubmissionFlag.AssignValue(true);
+	{
+		std::lock_guard<std::mutex> guard(m_commandBufferSubmissionMutex);
+		m_commandBufferSubmissionFlag = true;
+	}
 	m_commandBufferSubmissionCv.notify_one();
 }
 
@@ -550,6 +595,7 @@ void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &pCmdBuffer->m_commandBuffer;
 		submitInfo.pWaitDstStageMask = 0;
+		// TODO: handle possible semaphore submission
 
 		vkQueueSubmit(m_workingQueue.queue, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(m_workingQueue.queue);
@@ -566,7 +612,7 @@ void DrawingCommandManager_Vulkan::SubmitSingleCommandBuffer_Immediate(const std
 std::shared_ptr<DrawingCommandPool_Vulkan> DrawingCommandManager_Vulkan::RequestExternalCommandPool()
 {
 	std::lock_guard<std::mutex> lock(m_externalCommandPoolCreationMutex);
-	return std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool());
+	return std::make_shared<DrawingCommandPool_Vulkan>(m_pDevice, CreateCommandPool(), this);
 }
 
 void DrawingCommandManager_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer_Vulkan> pCmdBuffer)
@@ -596,19 +642,19 @@ VkCommandPool DrawingCommandManager_Vulkan::CreateCommandPool()
 
 void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 {
-	std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex, std::defer_lock);
 	std::shared_ptr<CommandSubmitInfo_Vulkan> pCommandSubmitInfo;
 
-	lock.lock();
-
 	while (m_isRunning)
-	{		
-		m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag.Get(); });
-		m_commandBufferSubmissionFlag.AssignValue(false);
+	{
+		{
+			std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex);
+			m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag == true; });
+			m_commandBufferSubmissionFlag = false;
+		}
 
 		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
 		{
-			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, pCommandSubmitInfo->fence);
+			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, VK_NULL_HANDLE);			
 
 			{
 				std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
@@ -621,7 +667,10 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 				}
 			}
 
-			m_commandBufferRecycleFlag.AssignValue(true);
+			{
+				std::lock_guard<std::mutex> guard(m_commandBufferRecycleMutex);
+				m_commandBufferRecycleFlag = true;
+			}
 			m_commandBufferRecycleCv.notify_one();
 
 			std::this_thread::yield();
@@ -631,78 +680,84 @@ void DrawingCommandManager_Vulkan::SubmitCommandBufferAsync()
 
 void DrawingCommandManager_Vulkan::RecycleCommandBufferAsync()
 {
-	std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex, std::defer_lock);
-	std::unordered_map<std::shared_ptr<DrawingFence_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> fenceGroups;
-
-	lock.lock(); // If the mutex object is not initially locked when waited, it would cause undefined behavior
+	std::unordered_map<std::shared_ptr<TimelineSemaphore_Vulkan>, std::vector<std::shared_ptr<DrawingCommandBuffer_Vulkan>>> timelineGroups;
 
 	while (m_isRunning)
 	{
-		m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag.Get(); });
-		m_commandBufferRecycleFlag.AssignValue(false);
+		{
+			std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex);
+			m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag == true; });
+			m_commandBufferRecycleFlag = false;
+		}
 
 		std::queue<std::shared_ptr<DrawingCommandBuffer_Vulkan>> inExecutionCmdBufferQueue;
+
 		{
 			std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
 			m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
 		}
-		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by fence
+		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by timeline semaphore
 		{
 			std::shared_ptr<DrawingCommandBuffer_Vulkan> ptrCopy = inExecutionCmdBufferQueue.front();
-			assert(ptrCopy->m_pAssociatedFence);
-			fenceGroups[ptrCopy->m_pAssociatedFence].emplace_back(ptrCopy);
+			assert(ptrCopy->m_pAssociatedSubmitSemaphore);
+			timelineGroups[ptrCopy->m_pAssociatedSubmitSemaphore].emplace_back(ptrCopy);
 			inExecutionCmdBufferQueue.pop();
 		}
 
-		for (auto& fenceGroup : fenceGroups)
+		for (auto& timelineGroup : timelineGroups)
 		{
-			if (fenceGroup.second.size() > 0)
+			if (timelineGroup.second.size() > 0)
 			{
-				VkFence fenceToQuery = fenceGroup.first->fence;
-				if (vkWaitForFences(m_pDevice->logicalDevice, 1, &fenceToQuery, VK_FALSE, RECYCLE_TIMEOUT) == VK_SUCCESS)
+				auto pSemaphoreToWait = timelineGroup.first;
+
+				if (pSemaphoreToWait->Wait(RECYCLE_TIMEOUT) == VK_SUCCESS)
 				{
-					for (auto& pCmdBuffer : fenceGroup.second)
+					for (auto& pCmdBuffer : timelineGroup.second)
 					{
-						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
+						for (auto& pSemaphore : pCmdBuffer->m_waitPresentationSemaphores)
 						{
 							m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
 						}
+						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
+						{
+							m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+						}
+						pCmdBuffer->m_waitPresentationSemaphores.clear();
+						pCmdBuffer->m_signalPresentationSemaphores.clear();
 						pCmdBuffer->m_waitSemaphores.clear();
 						pCmdBuffer->m_signalSemaphores.clear();
 
 						while (!pCmdBuffer->m_boundDescriptorSets.empty())
 						{
-							pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse.AssignValue(false);
+							pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse = false;
 							pCmdBuffer->m_boundDescriptorSets.pop();
 						}
 
-						pCmdBuffer->m_pAssociatedFence = nullptr;
+						pCmdBuffer->m_pAssociatedSubmitSemaphore = nullptr;
 						pCmdBuffer->m_inExecution = false;
 
 						pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
 					}
 
-					fenceGroup.first->Notify();
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);				
+					m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
 				}
 				else
 				{
-					for (auto& pCmdBuffer : fenceGroup.second)
+					for (auto& pCmdBuffer : timelineGroup.second)
 					{
 						std::cerr << "Vulkan: Command buffer " << pCmdBuffer->m_commandBuffer << " exection timeout. Usage flag is " 
 							<< pCmdBuffer->m_usageFlags << ". DebugID is " << pCmdBuffer->m_debugID  << "." << std::endl;
 					}
 					throw std::runtime_error("Vulkan: command execution timeout.");
 
-					fenceGroup.first->Notify();
-					m_pDevice->pSyncObjectManager->ReturnFence(fenceGroup.first);				
+					m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
 				}
-				fenceGroup.second.clear();
+				timelineGroup.second.clear();
 			}
 		}
 
 		std::this_thread::yield();
 	}
 
-	fenceGroups.clear();
+	timelineGroups.clear();
 }
