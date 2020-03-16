@@ -10,12 +10,12 @@ This project is working in progress.<br/><br/>Completed parts include:
 - Multi-pass forward rendering (OpenGL)
 - Multi-pass forward rendering (Vulkan)
 - Multi-threaded render command recording (Vulkan)
+- Heterogeneous-GPU rendering (Vulkan)
 - Render Graph Prototype (Vulkan)
 - Scene saving and reading with JSON file
 
 Currently working on:
 
-* Heterogeneous-GPU rendering (Vulkan) 
 * Render Graph (Vulkan)
 * ImGui support under Vulkan
 
@@ -23,10 +23,12 @@ Currently working on:
 
 #### Dependencies
 
+- Vulkan 1.2
+- OpenGL 4.3
 - GLFW, GLAD
 - GLM
 - Dear ImGui
-- Assimp
+- Assimp 5.0
 - Eigen
 - stb_image
 - jsoncpp
