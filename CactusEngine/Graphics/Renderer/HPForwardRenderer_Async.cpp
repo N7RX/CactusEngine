@@ -2803,7 +2803,7 @@ void HPForwardRenderer_Async::ApplyAsyncComputeResults()
 #endif
 }
 
-static float SudoRand(Vector2 co)
+static float PseudoRand(Vector2 co)
 {
 	double discard;
 	return std::modf(std::sin(glm::dot(co, Vector2(12.9898, 78.233))) * 43758.5453, &discard);
@@ -2813,23 +2813,23 @@ static Vector4 UpdatePosition(Vector4 origin, Vector2 seed)
 {
 	Vector4 result = origin;
 
-	float coeff = 0.1f * SudoRand(seed);
+	float coeff = 0.1f * PseudoRand(seed);
 
 	Vector4 pressureVal = Vector4(0.0);
 	for (int i = 0; i < 5000; i += 2)
 	{
 		pressureVal += 0.001f * Vector4(
-			SudoRand(Vector2(std::cos(SudoRand(Vector2(i, origin.z))) * std::sin(SudoRand(Vector2(i, origin.y))), seed.y)),
-			SudoRand(Vector2(std::sin(SudoRand(Vector2(i, origin.x))) * std::cos(SudoRand(Vector2(i, origin.z))), seed.y)),
-			SudoRand(Vector2(seed.y, std::cos(SudoRand(Vector2(i, origin.y))) * std::sin(SudoRand(Vector2(i, origin.x))))),
+			PseudoRand(Vector2(std::cos(PseudoRand(Vector2(i, origin.z))) * std::sin(PseudoRand(Vector2(i, origin.y))), seed.y)),
+			PseudoRand(Vector2(std::sin(PseudoRand(Vector2(i, origin.x))) * std::cos(PseudoRand(Vector2(i, origin.z))), seed.y)),
+			PseudoRand(Vector2(seed.y, std::cos(PseudoRand(Vector2(i, origin.y))) * std::sin(PseudoRand(Vector2(i, origin.x))))),
 			0);
 	}
 	for (int i = 1; i < 5000; i += 2)
 	{
 		pressureVal -= 0.001f * Vector4(
-			SudoRand(Vector2(std::cos(SudoRand(Vector2(i, origin.z))) * std::sin(SudoRand(Vector2(i, origin.y))), seed.y)),
-			SudoRand(Vector2(std::sin(SudoRand(Vector2(i, origin.x))) * std::cos(SudoRand(Vector2(i, origin.z))), seed.y)),
-			SudoRand(Vector2(seed.y, std::cos(SudoRand(Vector2(i, origin.y))) * std::sin(SudoRand(Vector2(i, origin.x))))),
+			PseudoRand(Vector2(std::cos(PseudoRand(Vector2(i, origin.z))) * std::sin(PseudoRand(Vector2(i, origin.y))), seed.y)),
+			PseudoRand(Vector2(std::sin(PseudoRand(Vector2(i, origin.x))) * std::cos(PseudoRand(Vector2(i, origin.z))), seed.y)),
+			PseudoRand(Vector2(seed.y, std::cos(PseudoRand(Vector2(i, origin.y))) * std::sin(PseudoRand(Vector2(i, origin.x))))),
 			0);
 	}
 

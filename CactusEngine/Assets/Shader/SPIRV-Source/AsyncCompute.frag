@@ -12,7 +12,7 @@ layout(std140, binding = 18) uniform SystemVariables
 };
 
 
-float SudoRand(vec2 co)
+float PseudoRand(vec2 co)
 {
 	return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -21,23 +21,23 @@ vec4 UpdatePosition(vec4 origin, vec2 seed)
 {
 	vec4 result = origin;
 
-	float coeff = 0.1f * SudoRand(seed);
+	float coeff = 0.1f * PseudoRand(seed);
 
 	vec4 pressureVal = vec4(0.0);
 	for (int i = 0; i < 5000; i += 2)
 	{
 		pressureVal += 0.001f * vec4(
-			SudoRand(vec2(cos(SudoRand(vec2(i, origin.z))) * sin(SudoRand(vec2(i, origin.y))), seed.y)),
-			SudoRand(vec2(sin(SudoRand(vec2(i, origin.x))) * cos(SudoRand(vec2(i, origin.z))), seed.y)),
-			SudoRand(vec2(seed.y, cos(SudoRand(vec2(i, origin.y))) * sin(SudoRand(vec2(i, origin.x))))),
+			PseudoRand(vec2(cos(PseudoRand(vec2(i, origin.z))) * sin(PseudoRand(vec2(i, origin.y))), seed.y)),
+			PseudoRand(vec2(sin(PseudoRand(vec2(i, origin.x))) * cos(PseudoRand(vec2(i, origin.z))), seed.y)),
+			PseudoRand(vec2(seed.y, cos(PseudoRand(vec2(i, origin.y))) * sin(PseudoRand(vec2(i, origin.x))))),
 			0);
 	}
 	for (int i = 1; i < 5000; i += 2)
 	{
 		pressureVal -= 0.001f * vec4(
-			SudoRand(vec2(cos(SudoRand(vec2(i, origin.z))) * sin(SudoRand(vec2(i, origin.y))), seed.y)),
-			SudoRand(vec2(sin(SudoRand(vec2(i, origin.x))) * cos(SudoRand(vec2(i, origin.z))), seed.y)),
-			SudoRand(vec2(seed.y, cos(SudoRand(vec2(i, origin.y))) * sin(SudoRand(vec2(i, origin.x))))),
+			PseudoRand(vec2(cos(PseudoRand(vec2(i, origin.z))) * sin(PseudoRand(vec2(i, origin.y))), seed.y)),
+			PseudoRand(vec2(sin(PseudoRand(vec2(i, origin.x))) * cos(PseudoRand(vec2(i, origin.z))), seed.y)),
+			PseudoRand(vec2(seed.y, cos(PseudoRand(vec2(i, origin.y))) * sin(PseudoRand(vec2(i, origin.x))))),
 			0);
 	}
 
