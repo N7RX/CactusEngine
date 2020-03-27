@@ -7,7 +7,7 @@ namespace Engine
 	class ImageTexture : public Texture2D
 	{
 	public:
-		ImageTexture(const char* filePath, EGPUType deviceType = EGPUType::Discrete);
+		ImageTexture(const char* filePath, EGPUType deviceType = EGPUType::Main);
 		~ImageTexture() = default;
 
 		std::shared_ptr<Texture2D> GetTexture() const;

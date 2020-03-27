@@ -2,9 +2,6 @@
 
 #define VK_USE_PLATFORM_WIN32_KHR
 
-//#define ENABLE_HETEROGENEOUS_GPUS_VK
-#define ENABLE_TRANSFER_QUEUE_VK
-
 #include <vulkan.h>
 #include <vector>
 #include <optional>
@@ -15,17 +12,11 @@ namespace Engine
 	{
 		std::optional<uint32_t> graphicsFamily;
 		std::optional<uint32_t> presentFamily;
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 		std::optional<uint32_t> transferFamily;
-#endif
 
 		bool isComplete()
 		{
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 			return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
-#else
-			return graphicsFamily.has_value() && presentFamily.has_value();
-#endif
 		}
 	};
 

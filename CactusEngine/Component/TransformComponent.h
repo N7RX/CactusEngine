@@ -26,14 +26,6 @@ namespace Engine
 		Matrix4x4 GetModelMatrix() const;
 		Matrix4x4 GetNormalMatrix() const;
 
-#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
-	public:
-		static Vector4 Shared_PositionBuffer_Async[513];	
-
-	private:
-		static uint32_t m_sharedBufferAssignID;
-		uint32_t m_assginedBufferID;
-#endif
 	private:
 		Vector3 m_position;
 		Vector3 m_scale;

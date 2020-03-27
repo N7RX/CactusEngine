@@ -7,17 +7,6 @@
 
 #define GLFW_IMPLEMENTATION_CE
 
-// For heterogeneous-GPU render test (Vulkan)
-//#define ENABLE_HETEROGENEOUS_GPUS_CE
-#define ENABLE_TRANSFER_QUEUE_CE
-//#define SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE
-
-// For heterogeneous-GPU asycn process test (Vulkan)
-#define ENABLE_ASYNC_COMPUTE_TEST_CE
-//#define ASYNC_COMPUTE_TEST_CPU_CE
-#define ASYNC_COMPUTE_TEST_DISCRETE_GPU_CE
-//#define ASYNC_COMPUTE_TEST_HETEROGENEOUS_GPUS_CE
-
 namespace Engine
 {
 	class BaseApplication;

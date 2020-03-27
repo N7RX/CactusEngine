@@ -1487,14 +1487,6 @@ void HPForwardRenderer::BuildNormalOnlyPass()
 				for (size_t i = 0; i < subMeshes->size(); ++i)
 				{
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-
-#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
-					// Dump garbage operations into discrete GPU
-					for (unsigned int j = 0; j < 25; j++)
-					{
-						pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-					}
-#endif
 				}
 			}
 
@@ -1656,14 +1648,6 @@ void HPForwardRenderer::BuildOpaquePass()
 
 					pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 					pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-
-#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
-					// Dump garbage operations into discrete GPU
-					for (unsigned int j = 0; j < 25; j++)
-					{
-						pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-					}
-#endif
 				}
 
 			}
@@ -2253,12 +2237,6 @@ void HPForwardRenderer::BuildDepthOfFieldPass()
 
 			pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 			pDevice->DrawFullScreenQuad(pCommandBuffer);
-
-#if defined(SIMULATE_DISCRETE_GPU_UNDER_PRESSURE_CE)
-			// Dump garbage operations into discrete GPU
-			pDevice->DrawFullScreenQuad(pCommandBuffer);
-			pDevice->DrawFullScreenQuad(pCommandBuffer);
-#endif
 
 			pDevice->EndRenderPass(pCommandBuffer);
 

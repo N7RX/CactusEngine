@@ -42,7 +42,7 @@ namespace Engine
 		// For low-level devices, e.g. Vulkan
 
 		// For multithreading
-		virtual std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType = EQueueType::Graphics) = 0;
+		virtual std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType = EGPUType::Main) = 0;
 		virtual std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) = 0;
 		virtual void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual std::shared_ptr<DrawingSemaphore> RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage) = 0;
@@ -71,11 +71,11 @@ namespace Engine
 		virtual void CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
 
 		virtual void Present() = 0;
-		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) = 0;
+		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Main | (uint32_t)EGPUType::Secondary) = 0;
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
 
-		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const = 0;
+		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main) const = 0;
 		virtual void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
 

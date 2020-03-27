@@ -113,9 +113,6 @@
     <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
-    <None Include="Assets\Shader\SPIRV-Source\AsyncCompute.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">
@@ -444,12 +441,6 @@
     <ClInclude Include="Graphics\Device\CommandResources.h">
       <Filter>Graphics\Device</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Renderer\HPForwardRenderer_HG.h">
-      <Filter>Graphics\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Renderer\HPForwardRenderer_Async.h">
-      <Filter>Graphics\Renderer</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -618,12 +609,6 @@
       <Filter>Util</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\HPForwardRenderer.cpp">
-      <Filter>Graphics\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Renderer\HPForwardRenderer_HG.cpp">
-      <Filter>Graphics\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Renderer\HPForwardRenderer_Async.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
   </ItemGroup>

@@ -36,9 +36,7 @@ namespace Engine
 	struct CommandContext
 	{
 		std::shared_ptr<DrawingCommandPool> pCommandPool = nullptr;
-#if defined(ENABLE_TRANSFER_QUEUE_CE)
 		std::shared_ptr<DrawingCommandPool> pTransferCommandPool = nullptr;
-#endif
 	};
 	
 	class RenderNode : std::enable_shared_from_this<RenderNode>
@@ -74,7 +72,7 @@ namespace Engine
 	class RenderGraph : public NoCopy
 	{
 	public:
-		RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Discrete);
+		RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Main);
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);

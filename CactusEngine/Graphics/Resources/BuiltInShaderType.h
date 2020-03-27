@@ -20,7 +20,6 @@ namespace Engine
 		GaussianBlur,
 		ShadowMap,
 		DOF,
-		AsyncCompute,
 		COUNT,
 		NONE
 	};
@@ -39,7 +38,7 @@ namespace Engine
 	// Uniform block structures
 	// Alert: the alignment should be set according to min device uniform buffer alignment requirement
 
-	static const size_t UNIFORM_BUFFER_ALIGNMENT_CE = 256;
+	static const size_t UNIFORM_BUFFER_ALIGNMENT_CE = 64;
 
 	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBTransformMatrices
 	{

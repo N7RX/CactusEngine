@@ -36,7 +36,7 @@ namespace Engine
 		EGraphicsDeviceType GetDeviceType() const override;
 
 		// Low-level functions that shouldn't be called on OpenGL device
-		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType = EQueueType::Graphics) override;
+		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType = EGPUType::Main) override;
 		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		std::shared_ptr<DrawingSemaphore> RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage) override;
@@ -65,11 +65,11 @@ namespace Engine
 		void CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
 		void Present() override;
-		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) override;
+		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Main | (uint32_t)EGPUType::Secondary) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
-		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const override;
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
 

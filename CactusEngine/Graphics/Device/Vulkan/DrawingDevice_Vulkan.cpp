@@ -42,12 +42,7 @@ void DrawingDevice_Vulkan::ShutDown()
 		// TODO: correctly organize the sequence of resource release
 		// ...
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
 		vkDestroyDevice(m_pDevice_0->logicalDevice, nullptr);
-		vkDestroyDevice(m_pDevice_1->logicalDevice, nullptr);
-#else
-		vkDestroyDevice(m_pDevice_0->logicalDevice, nullptr);
-#endif
 
 		if (m_enableValidationLayers)
 		{
@@ -63,10 +58,6 @@ void DrawingDevice_Vulkan::ShutDown()
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	std::cerr << "Vulkan: must specify GPU type when creating shader in heterogeneous-GPU rendering mode.\n";
-	return nullptr;
-#else
 	VkShaderModule vertexModule = VK_NULL_HANDLE;
 	VkShaderModule fragmentModule = VK_NULL_HANDLE;
 
@@ -86,7 +77,6 @@ std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile
 #endif
 
 	return pShaderProgram;
-#endif
 }
 
 std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType)
@@ -97,47 +87,7 @@ std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile
 	std::vector<char> vertexRawCode;
 	std::vector<char> fragmentRawCode;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	switch (gpuType)
-	{
-	case EGPUType::Discrete:
-	{
-		CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
-		CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
-
-		auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_0, vertexModule, vertexRawCode);
-		auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_0, fragmentModule, fragmentRawCode);
-
-#if defined(_DEBUG)
-		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#else
-		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_0, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#endif
-
-		return pShaderProgram;
-	}
-	case EGPUType::Integrated:
-	{
-		CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_1, vertexModule, vertexRawCode);
-		CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_1, fragmentModule, fragmentRawCode);
-		
-		auto pVertexShader = std::make_shared<VertexShader_Vulkan>(m_pDevice_1, vertexModule, vertexRawCode);
-		auto pFragmentShader = std::make_shared<FragmentShader_Vulkan>(m_pDevice_1, fragmentModule, fragmentRawCode);
-
-#if defined(_DEBUG)
-		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_1, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#else
-		auto pShaderProgram = std::make_shared<ShaderProgram_Vulkan>(this, m_pDevice_1, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#endif
-
-		return pShaderProgram;
-	}
-	default:
-		std::cerr << "Vulkan: unhandled GPU type.\n";
-		return nullptr;
-	}
-#else
-	// GPU type specification will be ignored
+	// GPU type specification is be ignored in this branch
 	CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
 	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
 
@@ -151,7 +101,6 @@ std::shared_ptr<ShaderProgram> DrawingDevice_Vulkan::CreateShaderProgramFromFile
 #endif
 
 	return pShaderProgram;
-#endif
 }
 
 bool DrawingDevice_Vulkan::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
@@ -233,20 +182,13 @@ bool DrawingDevice_Vulkan::CreateTexture2D(const Texture2DCreateInfo& createInfo
 	tex2dCreateInfo.format = VulkanImageFormat(createInfo.format);
 	tex2dCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL; // Alert: TILING_OPTIMAL could be incompatible with certain formats on certain devices
 	tex2dCreateInfo.usage = DetermineImageUsage_VK(createInfo.textureType);
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	tex2dCreateInfo.memoryUsage = createInfo.deviceType == EGPUType::Discrete ? VMA_MEMORY_USAGE_GPU_ONLY : VMA_MEMORY_USAGE_CPU_ONLY;
-#else
 	tex2dCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-#endif
 	tex2dCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	tex2dCreateInfo.aspect = createInfo.textureType == ETextureType::DepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	tex2dCreateInfo.mipLevels = createInfo.generateMipmap ? DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight)) : 1;
 	
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pDevice = createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
-#else
 	auto pDevice = m_pDevice_0;
-#endif
+
 	pOutput = std::make_shared<Texture2D_Vulkan>(pDevice, tex2dCreateInfo);
 	auto pVkTexture2D = std::static_pointer_cast<Texture2D_Vulkan>(pOutput);
 
@@ -312,11 +254,8 @@ bool DrawingDevice_Vulkan::CreateFrameBuffer(const FrameBufferCreateInfo& create
 {
 	assert(pOutput == nullptr);
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pOutput = std::make_shared<FrameBuffer_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1);
-#else
 	pOutput = std::make_shared<FrameBuffer_Vulkan>(m_pDevice_0);
-#endif
+
 	auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_Vulkan>(pOutput);
 
 	std::vector<VkImageView> viewAttachments;
@@ -348,11 +287,7 @@ bool DrawingDevice_Vulkan::CreateUniformBuffer(const UniformBufferCreateInfo& cr
 	vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
 	vkUniformBufferCreateInfo.type = EUniformBufferType_Vulkan::Uniform;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pOutput = std::make_shared<UniformBuffer_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1, vkUniformBufferCreateInfo);
-#else
 	pOutput = std::make_shared<UniformBuffer_Vulkan>(m_pDevice_0, vkUniformBufferCreateInfo);
-#endif
 
 	return pOutput != nullptr;
 }
@@ -517,50 +452,34 @@ void DrawingDevice_Vulkan::SetupDevice()
 
 std::shared_ptr<LogicalDevice_Vulkan> DrawingDevice_Vulkan::GetLogicalDevice(EGPUType type) const
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	switch (type)
-	{
-	case EGPUType::Integrated:
-		return m_pDevice_1;
-	case EGPUType::Discrete:
-		return m_pDevice_0;
-	default:
-		std::cerr << "Vulkan: Unhandled GPU type: " << (unsigned int)type << std::endl;
-		return nullptr;
-	}
-#else
+	// GPU type specification is ignored in this branch
 	return m_pDevice_0;
-#endif
 }
 
-std::shared_ptr<DrawingCommandPool> DrawingDevice_Vulkan::RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType)
+std::shared_ptr<DrawingCommandPool> DrawingDevice_Vulkan::RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType)
 {
-	std::shared_ptr<LogicalDevice_Vulkan> pDevice = nullptr;
+	auto pDevice = m_pDevice_0;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pDevice = deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
-#else
-	pDevice = m_pDevice_0;
-#endif
-
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 	switch (queueType)
 	{
 	case EQueueType::Graphics:
 		return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
 
 	case EQueueType::Transfer:
-		return deviceType == EGPUType::Discrete ? 
-			pDevice->pTransferCommandManager->RequestExternalCommandPool()
-			: pDevice->pGraphicsCommandManager->RequestExternalCommandPool(); // UHD 630 doesn't provide transfer queue
+		if (pDevice->pTransferCommandManager != nullptr)
+		{
+			return pDevice->pTransferCommandManager->RequestExternalCommandPool();
+		}
+		else
+		{
+			std::cerr << "Vulkan: Transfer command pool requested but transfer queue is not supported.\n";
+			return nullptr;
+		}
 
 	default:
 		std::cerr << "Vulkan: Unhandled queue type: " << (unsigned int)queueType << std::endl;
 		return nullptr;
 	}
-#else
-	return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
-#endif
 }
 
 std::shared_ptr<DrawingCommandBuffer> DrawingDevice_Vulkan::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
@@ -578,11 +497,7 @@ void DrawingDevice_Vulkan::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCo
 
 std::shared_ptr<DrawingSemaphore> DrawingDevice_Vulkan::RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	auto pSemaphore = deviceType == EGPUType::Discrete ? m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore() : m_pDevice_1->pSyncObjectManager->RequestTimelineSemaphore();
-#else
 	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
-#endif
 	pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
 	return pSemaphore;
 }
@@ -594,12 +509,8 @@ bool DrawingDevice_Vulkan::CreateDataTransferBuffer(const DataTransferBufferCrea
 	vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
 	vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
 
-	std::shared_ptr<LogicalDevice_Vulkan> pDevice = nullptr;
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pDevice = createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1;
-#else
-	pDevice = m_pDevice_0;
-#endif
+	auto pDevice = m_pDevice_0;
+
 	pOutput = std::make_shared<DataTransferBuffer_Vulkan>(pDevice, vkBufferCreateInfo);
 
 	if (createInfo.cpuMapped)
@@ -614,11 +525,7 @@ bool DrawingDevice_Vulkan::CreateDataTransferBuffer(const DataTransferBufferCrea
 
 bool DrawingDevice_Vulkan::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pOutput = std::make_shared<RenderPass_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1);
-#else
 	pOutput = std::make_shared<RenderPass_Vulkan>(m_pDevice_0);
-#endif
 
 	auto pRenderPass = std::static_pointer_cast<RenderPass_Vulkan>(pOutput);
 
@@ -729,11 +636,7 @@ bool DrawingDevice_Vulkan::CreateSampler(const TextureSamplerCreateInfo& createI
 	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pOutput = std::make_shared<Sampler_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1, samplerCreateInfo);
-#else
 	pOutput = std::make_shared<Sampler_Vulkan>(m_pDevice_0, samplerCreateInfo);
-#endif
 
 	return pOutput != nullptr;
 }
@@ -837,13 +740,7 @@ bool DrawingDevice_Vulkan::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 	pipelineLayoutCreateInfo.pPushConstantRanges = pShaderProgram->GetPushConstantRanges();
 	pipelineLayoutCreateInfo.pSetLayouts = pShaderProgram->GetDescriptorSetLayout()->GetDescriptorSetLayout();
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	if (vkCreatePipelineLayout(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0->logicalDevice : m_pDevice_1->logicalDevice,
-		&pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-#else
-	if (vkCreatePipelineLayout(m_pDevice_0->logicalDevice,
-		&pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-#endif
+	if (vkCreatePipelineLayout(m_pDevice_0->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Vulkan: failed to create graphics pipeline layout.\n");
 		return false;
@@ -871,13 +768,7 @@ bool DrawingDevice_Vulkan::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 	pipelineCreateInfo.subpass = 0;
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	pOutput = std::make_shared<GraphicsPipeline_Vulkan>(createInfo.deviceType == EGPUType::Discrete ? m_pDevice_0 : m_pDevice_1,
-		pShaderProgram, pipelineCreateInfo);
-#else
-	pOutput = std::make_shared<GraphicsPipeline_Vulkan>(m_pDevice_0,
-		pShaderProgram, pipelineCreateInfo);
-#endif
+	pOutput = std::make_shared<GraphicsPipeline_Vulkan>(m_pDevice_0, pShaderProgram, pipelineCreateInfo);
 
 	return pOutput != nullptr;
 }
@@ -1026,52 +917,8 @@ void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitC
 		cmdBufferSubmitMask |= (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
 	}
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore_0 = nullptr;
-	std::shared_ptr<TimelineSemaphore_Vulkan> pSemaphore_1 = nullptr;
-
-	if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
-	{
-		pSemaphore_0 = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
-		m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_0, cmdBufferSubmitMask);
-
-		if (flushImplicitCommands)
-		{
-			m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-		}
-	}
-
-	if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
-	{
-		pSemaphore_1 = m_pDevice_1->pSyncObjectManager->RequestTimelineSemaphore();
-		m_pDevice_1->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_1, cmdBufferSubmitMask);
-
-		if (flushImplicitCommands)
-		{
-			m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-		}
-	}
-
-	if (waitExecution)
-	{
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Discrete) != 0)
-		{
-			if (pSemaphore_0->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
-			{
-				throw std::runtime_error("Vulkan: Flush command timeout.");
-			}
-		}
-		if ((deviceTypeFlags & (uint32_t)EGPUType::Integrated) != 0)
-		{
-			if (pSemaphore_1->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
-			{
-				throw std::runtime_error("Vulkan: Flush command timeout.");
-			}
-		}
-	}
-#else
-	auto pSemaphore_0 = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
-	m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore_0, cmdBufferSubmitMask);
+	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
 
 	if (flushImplicitCommands)
 	{
@@ -1080,17 +927,21 @@ void DrawingDevice_Vulkan::FlushCommands(bool waitExecution, bool flushImplicitC
 
 	if (waitExecution)
 	{
-		if (pSemaphore_0->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+		if (pSemaphore->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Vulkan: Flush command timeout.");
 		}
 	}
-#endif
 }
 
 void DrawingDevice_Vulkan::FlushTransferCommands(bool waitExecution)
 {
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
+	if (m_pDevice_0->pTransferCommandManager == nullptr)
+	{
+		std::cerr << "Vulkan: Shouldn't flush transfer commands when transfer queue is not supported.\n ";
+		return;
+	}
+
 	uint32_t cmdBufferSubmitMask = (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Explicit | (uint32_t)EDrawingCommandBufferUsageFlagBits_Vulkan::Implicit;
 
 	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
@@ -1100,9 +951,6 @@ void DrawingDevice_Vulkan::FlushTransferCommands(bool waitExecution)
 	{
 		pSemaphore->Wait();
 	}
-#else
-	throw std::runtime_error("Vulkan: Transfer queue usage not enabled.");
-#endif
 }
 
 void DrawingDevice_Vulkan::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore)
@@ -1114,11 +962,7 @@ void DrawingDevice_Vulkan::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSema
 
 std::shared_ptr<TextureSampler> DrawingDevice_Vulkan::GetDefaultTextureSampler(EGPUType deviceType) const
 {
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	return deviceType == EGPUType::Discrete ? m_pDefaultSampler_0 : m_pDefaultSampler_1;
-#else
 	return m_pDefaultSampler_0;
-#endif
 }
 
 void DrawingDevice_Vulkan::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
@@ -1424,10 +1268,7 @@ void DrawingDevice_Vulkan::SelectPhysicalDevice()
 		return;
 	}
 
-	m_pDevice_0 = std::make_shared< LogicalDevice_Vulkan>();
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pDevice_1 = std::make_shared< LogicalDevice_Vulkan>();
-#endif
+	m_pDevice_0 = std::make_shared<LogicalDevice_Vulkan>();
 
 	for (const auto& device : suitableDevices)
 	{
@@ -1442,27 +1283,17 @@ void DrawingDevice_Vulkan::SelectPhysicalDevice()
 #if defined(_DEBUG)
 			PrintPhysicalDeviceInfo_VK(deviceProperties);
 #endif
+			return;
 		}
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-		else if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
-		{
-			m_pDevice_1->physicalDevice = device;
-			m_pDevice_1->deviceProperties = deviceProperties;
-
-#if defined(_DEBUG)
-			PrintPhysicalDeviceInfo_VK(deviceProperties);
-#endif
-		}
-#endif
 	}
+
+	std::cerr << "Vulkan: Couldn't find a suitable discrete GPU.\n";
 }
 
 void DrawingDevice_Vulkan::CreateLogicalDevice()
 {
 	CreateLogicalDevice(m_pDevice_0);
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	CreateLogicalDevice(m_pDevice_1);
-#endif
+	//... (Extend required GPU here)
 }
 
 void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vulkan> pDevice)
@@ -1480,12 +1311,10 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 	{
 		uniqueQueueFamilies.emplace(queueFamilyIndices.presentFamily.value());
 	}
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 	if (queueFamilyIndices.transferFamily.has_value())
 	{
 		uniqueQueueFamilies.emplace(queueFamilyIndices.transferFamily.value());
 	}
-#endif
 
 	float queuePriority = 1.0f;
 	for (uint32_t queueFamily : uniqueQueueFamilies)
@@ -1551,14 +1380,16 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 	// Query timeline semaphore function support
 	//std::cout << vkGetDeviceProcAddr(pDevice->logicalDevice, "vkWaitSemaphores") << std::endl;
 
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 	if (queueFamilyIndices.transferFamily.has_value())
 	{
 		pDevice->transferQueue.type = EQueueType::Transfer;
 		pDevice->transferQueue.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
 		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->transferQueue.queueFamilyIndex, 0, &pDevice->transferQueue.queue);
 	}
-#endif
+	else
+	{
+		pDevice->transferQueue.isValid = false;
+	}
 
 #if defined(_DEBUG)
 	std::cout << "Vulkan: Logical device created on " << pDevice->deviceProperties.deviceName << "\n";
@@ -1567,43 +1398,17 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 
 void DrawingDevice_Vulkan::SetupSwapchain()
 {
-	// Integrated GPU is used to present under heterogeneous-GPU mode
-
 	DrawingSwapchainCreateInfo_Vulkan createInfo = {};
 	createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
-
-#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
 	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
 	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
-
 	createInfo.surface = m_presentationSurface;
 	createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
 	createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
 
 	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
-#else
-#if defined (ENABLE_HETEROGENEOUS_GPUS_VK)
-	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
-	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
-	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_1->physicalDevice, m_presentationSurface);
-#else
-	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
-	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
-	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
-#endif
-	createInfo.surface = m_presentationSurface;
-	createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
-	createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
-		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
-
-#if defined (ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_1, createInfo);
-#else
-	m_pSwapchain = std::make_shared<DrawingSwapchain_Vulkan>(m_pDevice_0, createInfo);
-#endif
-#endif
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
@@ -1631,7 +1436,7 @@ VkSurfaceFormatKHR DrawingDevice_Vulkan::ChooseSwapSurfaceFormat(const std::vect
 void DrawingDevice_Vulkan::CreateDefaultSampler()
 {
 	TextureSamplerCreateInfo createInfo = {};
-	createInfo.deviceType = EGPUType::Discrete;
+	createInfo.deviceType = EGPUType::Main;
 	createInfo.magMode = ESamplerFilterMode::Linear;
 	createInfo.minMode = ESamplerFilterMode::Linear;
 	createInfo.addressMode = ESamplerAddressMode::Repeat;
@@ -1647,14 +1452,6 @@ void DrawingDevice_Vulkan::CreateDefaultSampler()
 	std::shared_ptr<TextureSampler> pSampler_0;
 	CreateSampler(createInfo, pSampler_0);
 	m_pDefaultSampler_0 = std::static_pointer_cast<Sampler_Vulkan>(pSampler_0);
-
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	createInfo.deviceType = EGPUType::Integrated;
-
-	std::shared_ptr<TextureSampler> pSampler_1;
-	CreateSampler(createInfo, pSampler_1);
-	m_pDefaultSampler_1 = std::static_pointer_cast<Sampler_Vulkan>(pSampler_1);
-#endif
 
 	// TODO: create another default sampler that does not include mipmap sampling
 }
@@ -1690,44 +1487,34 @@ void DrawingDevice_Vulkan::CreateShaderModuleFromFile(const char* shaderFilePath
 
 void DrawingDevice_Vulkan::SetupCommandManager()
 {
+	// Graphics queue by default must be supported
 	m_pDevice_0->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->graphicsQueue);
-	m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
-	m_pDevice_0->pTransferCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->transferQueue);
-#endif
 
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pDevice_1->pGraphicsCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_1, m_pDevice_1->graphicsQueue);
-	m_pDevice_1->pImplicitCmdBuffer = m_pDevice_1->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
-	// UHD 630 GPU doesn't have standalone transfer queue
-	m_pDevice_1->pTransferCommandManager = nullptr;
-#endif
-#endif
+	if (m_pDevice_0->transferQueue.isValid)
+	{
+		m_pDevice_0->pTransferCommandManager = std::make_shared<DrawingCommandManager_Vulkan>(m_pDevice_0, m_pDevice_0->transferQueue);
+	}
+	else
+	{
+		m_pDevice_0->pTransferCommandManager = nullptr;
+	}
+
+	m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 }
 
 void DrawingDevice_Vulkan::SetupSyncObjectManager()
 {
 	m_pDevice_0->pSyncObjectManager = std::make_shared<DrawingSyncObjectManager_Vulkan>(m_pDevice_0);
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pDevice_1->pSyncObjectManager = std::make_shared<DrawingSyncObjectManager_Vulkan>(m_pDevice_1);
-#endif
 }
 
 void DrawingDevice_Vulkan::SetupUploadAllocator()
 {
 	m_pDevice_0->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_0);
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pDevice_1->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_1);
-#endif
 }
 
 void DrawingDevice_Vulkan::SetupDescriptorAllocator()
 {
 	m_pDevice_0->pDescriptorAllocator = std::make_shared<DrawingDescriptorAllocator_Vulkan>(m_pDevice_0);
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-	m_pDevice_1->pDescriptorAllocator = std::make_shared<DrawingDescriptorAllocator_Vulkan>(m_pDevice_1);
-#endif
 }
 
 EDescriptorResourceType_Vulkan DrawingDevice_Vulkan::VulkanDescriptorResourceType(EDescriptorType type) const

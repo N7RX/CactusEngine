@@ -310,7 +310,7 @@ EGraphicsDeviceType DrawingDevice_OpenGL::GetDeviceType() const
 	return EGraphicsDeviceType::OpenGL;
 }
 
-std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType)
+std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType)
 {
 	std::cerr << "OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.\n";
 	return nullptr;

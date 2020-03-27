@@ -17,14 +17,10 @@ namespace Engine
 
 		DrawingCommandQueue_Vulkan presentQueue;
 		DrawingCommandQueue_Vulkan graphicsQueue;
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
 		DrawingCommandQueue_Vulkan transferQueue;
-#endif
 
-		std::shared_ptr<DrawingCommandManager_Vulkan> pGraphicsCommandManager;
-#if defined(ENABLE_TRANSFER_QUEUE_VK)
-		std::shared_ptr<DrawingCommandManager_Vulkan> pTransferCommandManager;
-#endif
+		std::shared_ptr<DrawingCommandManager_Vulkan>		pGraphicsCommandManager;
+		std::shared_ptr<DrawingCommandManager_Vulkan>		pTransferCommandManager;
 		std::shared_ptr<DrawingUploadAllocator_Vulkan>		pUploadAllocator;
 		std::shared_ptr<DrawingDescriptorAllocator_Vulkan>	pDescriptorAllocator;
 		std::shared_ptr<DrawingSyncObjectManager_Vulkan>	pSyncObjectManager;
@@ -83,7 +79,7 @@ namespace Engine
 		void SetupDevice();
 		std::shared_ptr<LogicalDevice_Vulkan> GetLogicalDevice(EGPUType type) const;
 
-		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EGPUType deviceType, EQueueType queueType = EQueueType::Graphics) override;
+		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType = EGPUType::Main) override;
 		std::shared_ptr<DrawingCommandBuffer> RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool) override;
 		void ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		std::shared_ptr<DrawingSemaphore> RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage) override;
@@ -112,11 +108,11 @@ namespace Engine
 		void CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
 		void Present() override;	
-		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Discrete | (uint32_t)EGPUType::Integrated) override;
+		void FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags = (uint32_t)EGPUType::Main | (uint32_t)EGPUType::Secondary) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
-		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Discrete) const override;
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
 
@@ -168,10 +164,6 @@ namespace Engine
 #endif
 
 	private:
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0; // Discrete GPU
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_1; // Integrated GPU
-#endif		
 		VkInstance m_instance;
 		VkSurfaceKHR m_presentationSurface;
 		VkDebugUtilsMessengerEXT m_debugMessenger;
@@ -181,14 +173,14 @@ namespace Engine
 		std::vector<const char*> m_requiredExtensions;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
+		std::shared_ptr<LogicalDevice_Vulkan> m_pDevice_0; // Main GPU
+		//... (Extend required GPU here)
+
 		std::shared_ptr<DrawingSwapchain_Vulkan> m_pSwapchain;
 		unsigned int m_currentFrame;
 
-		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_0;
-#if defined(ENABLE_HETEROGENEOUS_GPUS_VK)
-		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_1; // For integrated GPU
-#endif
-
+		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_0; // For main GPU
+		//... (Extend required GPU here)
 	};
 
 	template<>

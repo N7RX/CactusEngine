@@ -1,8 +1,6 @@
 #include "DrawingSystem.h"
 #include "ForwardRenderer.h"
 #include "HPForwardRenderer.h"
-#include "HPForwardRenderer_HG.h"
-#include "HPForwardRenderer_Async.h"
 #include "DrawingDevice_OpenGL.h"
 #include "DrawingDevice_Vulkan.h"
 #include "MeshRendererComponent.h"
@@ -110,15 +108,7 @@ bool DrawingSystem::RegisterRenderers()
 		RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
 		break;
 	case EGraphicsDeviceType::Vulkan:
-#if defined(ENABLE_ASYNC_COMPUTE_TEST_CE)
-		RegisterRenderer<HPForwardRenderer_Async>(ERendererType::Forward, 1);
-#else
-#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
-		RegisterRenderer<HPForwardRenderer_HG>(ERendererType::Forward, 1);
-#else
 		RegisterRenderer<HPForwardRenderer>(ERendererType::Forward, 1);
-#endif
-#endif
 		break;
 	default:
 		throw std::runtime_error("Unsupported drawing device type.");
@@ -150,24 +140,6 @@ bool DrawingSystem::LoadShaders()
 	}
 	case EGraphicsDeviceType::Vulkan:
 	{
-#if defined(ENABLE_HETEROGENEOUS_GPUS_CE)
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::NormalOnly] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_NORMALONLY_VK, BuiltInResourcesPath::SHADER_FRAGMENT_NORMALONLY_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::GaussianBlur] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_GAUSSIANBLUR_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_VK, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Curvature] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_CURVATURE_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Color] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_COLOR_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND_VK, EGPUType::Discrete);
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_VK, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_VK, EGPUType::Discrete);
-#if defined(ASYNC_COMPUTE_TEST_HETEROGENEOUS_GPUS_CE)
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK, EGPUType::Discrete);
-#else
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK, EGPUType::Integrated);
-#endif
-#else
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_VK);
@@ -180,13 +152,6 @@ bool DrawingSystem::LoadShaders()
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::LineDrawing_Blend] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_LINEDRAWING_BLEND_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_VK, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK);
-#endif
-#if defined(ASYNC_COMPUTE_TEST_DISCRETE_GPU_CE)
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AsyncCompute] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_ASYNC_COMPUTE_VK, EGPUType::Discrete);
-#endif
-#if defined(ASYNC_COMPUTE_TEST_HETEROGENEOUS_GPUS_CE)
-		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AsyncCompute] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_ASYNC_COMPUTE_VK, EGPUType::Integrated);
-#endif
 		break;
 	}
 	default:

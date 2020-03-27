@@ -77,8 +77,8 @@ namespace Engine
 
 	enum class EGPUType
 	{
-		Discrete = 0x1,
-		Integrated = 0x2,
+		Main = 0x1,
+		Secondary = 0x2,
 		COUNT = 2
 	};
 

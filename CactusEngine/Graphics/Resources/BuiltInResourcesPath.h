@@ -49,7 +49,6 @@ namespace Engine
 		static const char* SHADER_FRAGMENT_LINEDRAWING_COLOR_VK = "Assets/Shader/SPIRV/LineDrawing_Color_frag.spv";
 		static const char* SHADER_FRAGMENT_LINEDRAWING_BLEND_VK = "Assets/Shader/SPIRV/LineDrawing_Blend_frag.spv";
 		static const char* SHADER_FRAGMENT_DEPTH_OF_FIELD_VK = "Assets/Shader/SPIRV/DepthOfField_frag.spv";
-		static const char* SHADER_FRAGMENT_ASYNC_COMPUTE_VK = "Assets/Shader/SPIRV/AsyncCompute_frag.spv";
 
 		static const char* SHADER_VERTEX_NORMALONLY_VK = "Assets/Shader/SPIRV/NormalOnly_vert.spv";
 		static const char* SHADER_FRAGMENT_NORMALONLY_VK = "Assets/Shader/SPIRV/NormalOnly_frag.spv";

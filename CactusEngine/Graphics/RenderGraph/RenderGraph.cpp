@@ -231,13 +231,8 @@ uint32_t RenderGraph::GetRenderNodeCount() const
 void RenderGraph::ExecuteRenderNodeParallel()
 {
 	auto pCmdContext = std::make_shared<CommandContext>();
-	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(m_deviceType);
-#if defined(ENABLE_TRANSFER_QUEUE_CE)
-	if (m_deviceType == EGPUType::Discrete)
-	{
-		pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(m_deviceType, EQueueType::Transfer);
-	}
-#endif
+	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
+	pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
 
 	std::shared_ptr<RenderNode> pNode = nullptr;
 	while (m_isRunning)

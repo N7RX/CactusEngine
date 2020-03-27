@@ -19,6 +19,8 @@ namespace Engine
 		EQueueType	type;
 		uint32_t	queueFamilyIndex;
 		VkQueue		queue;
+
+		bool		isValid = true;
 	};
 
 	enum EDrawingCommandBufferUsageFlagBits_Vulkan
