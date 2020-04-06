@@ -202,6 +202,9 @@
     <Filter Include="Graphics\Device\Vulkan\GLSL Source">
       <UniqueIdentifier>{bc30fc22-1f4d-4f3c-8732-e8ba981e3f4d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Graphics\RenderGraph\Nodes">
+      <UniqueIdentifier>{67e69f48-ee39-4634-937a-16353098cb4c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -274,9 +277,6 @@
       <Filter>Graphics\Resources</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h">
-      <Filter>Graphics\Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Renderer\ForwardRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="GUI\BaseWindow.h">
@@ -435,11 +435,38 @@
     <ClInclude Include="Util\SafeBasicTypes.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Renderer\HPForwardRenderer.h">
-      <Filter>Graphics\Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Device\CommandResources.h">
       <Filter>Graphics\Device</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\ShadowMapRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\BlurRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\TransparencyBlendRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\DepthOfFieldRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer\StandardRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\AllRenderNodes.h">
+      <Filter>Graphics\RenderGraph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -495,9 +522,6 @@
       <Filter>Graphics\Resources</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp">
-      <Filter>Graphics\Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="GUI\BaseWindow.cpp">
@@ -608,7 +632,31 @@
     <ClCompile Include="Util\SafeBasicTypes.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Renderer\HPForwardRenderer.cpp">
+    <ClCompile Include="Graphics\RenderGraph\Nodes\ShadowMapRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\BlurRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\TransparencyBlendRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\DepthOfFieldRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\StandardRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
     </ClCompile>
   </ItemGroup>

@@ -21,6 +21,7 @@ namespace Engine
 
 		virtual void BuildRenderGraph() = 0;
 		virtual void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) = 0;
+		virtual void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer) = 0;
 
 		ERendererType GetRendererType() const;
 
@@ -36,5 +37,6 @@ namespace Engine
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 		std::shared_ptr<DrawingDevice> m_pDevice;
 		DrawingSystem* m_pSystem;
+		EGraphicsDeviceType	m_eGraphicsDeviceType;
 	};
 }

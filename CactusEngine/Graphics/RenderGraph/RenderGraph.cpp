@@ -1,5 +1,6 @@
 #include "RenderGraph.h"
 #include "DrawingDevice.h"
+#include "BaseRenderer.h"
 #include <assert.h>
 #include <iostream>
 
@@ -32,30 +33,32 @@ void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pR
 	}
 }
 
-RenderNode::RenderNode(
-	void(*pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext),
-	const RenderGraphResource& input, const RenderGraphResource& output)
-	: m_pRenderPassFunc(pRenderPassFunc), m_input(input), m_output(output), m_finishedExecution(false), m_pName(nullptr)
+RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
+	: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
 {
+	assert(m_pGraphResources != nullptr);
+	m_pDevice = m_pRenderer->GetDrawingDevice();
+	m_eGraphicsDeviceType = m_pDevice->GetDeviceType();
 }
 
-void RenderNode::AddNextNode(std::shared_ptr<RenderNode> pNode)
+void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
 {
 	m_nextNodes.emplace_back(pNode);
 	pNode->m_prevNodes.emplace_back(this);
 }
 
-void RenderNode::SwapInputResource(const char* name, std::shared_ptr<RawResource> pResource)
+void RenderNode::SetInputResource(const char* slot, const char* pResourceName)
 {
-	m_input.Swap(name, pResource);
+	assert(m_inputResourceNames.find(slot) != m_inputResourceNames.end());
+	m_inputResourceNames.at(slot) = pResourceName;
 }
 
-void RenderNode::SwapOutputResource(const char* name, std::shared_ptr<RawResource> pResource)
+void RenderNode::Setup()
 {
-	m_output.Swap(name, pResource);
+	SetupFunction(m_pGraphResources);
 }
 
-void RenderNode::Execute()
+void RenderNode::ExecuteSequential()
 {
 	for (auto& pNode : m_prevNodes)
 	{
@@ -65,20 +68,18 @@ void RenderNode::Execute()
 		}
 	}
 
-	assert(m_pRenderPassFunc != nullptr);
-	m_pRenderPassFunc(m_input, m_output, m_pContext, m_pCmdContext);
+	RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
 	m_finishedExecution = true;
 
 	for (auto& pNode : m_nextNodes)
 	{
-		pNode->Execute();
+		pNode->ExecuteSequential();
 	}
 }
 
 void RenderNode::ExecuteParallel()
 {
-	assert(m_pRenderPassFunc != nullptr);
-	m_pRenderPassFunc(m_input, m_output, m_pContext, m_pCmdContext);
+	RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
 	m_finishedExecution = true;
 }
 
@@ -108,6 +109,14 @@ void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pN
 {
 	m_nodes.emplace(name, pNode);
 	m_nodes[name]->m_pName = name;
+}
+
+void RenderGraph::SetupRenderNodes()
+{
+	for (auto& node : m_nodes)
+	{
+		node.second->Setup();
+	}
 }
 
 void RenderGraph::BuildRenderNodePriorities()
@@ -160,11 +169,11 @@ void RenderGraph::BuildRenderNodePriorities()
 	}
 }
 
-void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContext)
+void RenderGraph::BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext)
 {
 	for (auto& pNode : m_nodes)
 	{
-		pNode.second->m_pContext = pContext;
+		pNode.second->m_pRenderContext = pContext;
 		pNode.second->m_finishedExecution = false;
 
 		if (pNode.second->m_prevNodes.empty())
@@ -173,10 +182,9 @@ void RenderGraph::BeginRenderPasses(const std::shared_ptr<RenderContext> pContex
 		}
 	}
 
-	// Alert: current implementation doesn't have optimized scheduling
 	while (!m_startingNodes.empty())
 	{
-		m_startingNodes.front()->Execute();
+		m_startingNodes.front()->ExecuteSequential();
 		m_startingNodes.pop();
 	}
 }
@@ -185,7 +193,7 @@ void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext>
 {
 	for (auto& pNode : m_nodes)
 	{
-		pNode.second->m_pContext = pContext;
+		pNode.second->m_pRenderContext = pContext;
 		pNode.second->m_finishedExecution = false;
 
 		if (pNode.second->m_prevNodes.empty())
@@ -197,7 +205,6 @@ void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext>
 	{
 		std::lock_guard<std::mutex> guard(m_nodeExecutionMutex);
 
-		// Alert: current implementation doesn't have optimized scheduling
 		while (!m_startingNodes.empty())
 		{
 			EnqueueRenderNode(m_startingNodes.front());

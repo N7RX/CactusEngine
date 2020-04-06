@@ -7,14 +7,14 @@ A tiny ECS rendering engine based on Vulkan and OpenGL.
 This project is working in progress.<br/><br/>Completed parts include:
 
 - Fundamental ECS
-- Multi-pass forward rendering
+- Multi-pass forward rendering (Vulkan/OpenGL)
 - Multi-thread rendering (Vulkan)
-- Render Graph (Prototype)
+- Render Graph (Basic)
 - Scene saving and reading with JSON file
 
 Currently working on:
 
-* Advanced Render Graph (Vulkan)
+* Render Graph (Advanced)
 * ImGui support under Vulkan
 
 <br/>
@@ -27,10 +27,9 @@ Available in `heterogeneous` branch:
 
 #### Dependencies
 
-- Visual Studio 2019
 - Vulkan 1.2
 - OpenGL 4.3
-- GLFW, GLAD
+- GLFW 3, GLAD
 - GLM
 - Dear ImGui
 - Assimp 5.0
@@ -39,6 +38,7 @@ Available in `heterogeneous` branch:
 - jsoncpp
 - VMA
 - SPIRV-Cross
+- Visual Studio 2019
 
 
 

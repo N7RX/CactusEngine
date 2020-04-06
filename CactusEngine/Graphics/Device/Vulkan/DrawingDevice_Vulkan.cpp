@@ -294,27 +294,27 @@ bool DrawingDevice_Vulkan::CreateUniformBuffer(const UniformBufferCreateInfo& cr
 
 void DrawingDevice_Vulkan::ClearRenderTarget()
 {
-	std::cerr << "Vulkan: shouldn't call ClearRenderTarget on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call ClearRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
 {
-	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call SetRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
-	std::cerr << "Vulkan: shouldn't call SetRenderTarget on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call SetRenderTarget on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetClearColor(Color4 color)
 {
-	std::cerr << "Vulkan: shouldn't call SetClearColor on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call SetClearColor on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 {
-	std::cerr << "Vulkan: shouldn't call SetBlendState on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call SetBlendState on Vulkan device.\n";
 }
 
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
@@ -432,7 +432,7 @@ void DrawingDevice_Vulkan::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuff
 
 void DrawingDevice_Vulkan::ResizeViewPort(uint32_t width, uint32_t height)
 {
-	std::cerr << "Vulkan: shouldn't call ResizeViewPort on Vulkan device.\n";
+	std::cerr << "Vulkan: Shouldn't call ResizeViewPort on Vulkan device.\n";
 }
 
 EGraphicsDeviceType DrawingDevice_Vulkan::GetDeviceType() const

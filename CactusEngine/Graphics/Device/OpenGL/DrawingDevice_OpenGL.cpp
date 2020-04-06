@@ -473,7 +473,6 @@ void DrawingDevice_OpenGL::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSema
 
 std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType) const
 {
-	std::cerr << "OpenGL: shouldn't call GetDefaultTextureSampler on OpenGL device.\n";
 	return nullptr;
 }
 

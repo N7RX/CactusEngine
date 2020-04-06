@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)CactusEngine\Third-party\SPIRV_Cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\SPIRV_Cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Debug;.\Third-party\SPIRV_Cross\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)CactusEngine\Third-party\SPIRV_Cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\SPIRV_Cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\Vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Util;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\Vulkan\lib;.\Third-party\jsoncpp\lib\Release;.\Third-party\SPIRV_Cross\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -209,8 +209,16 @@
     <ClInclude Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.h" />
     <ClInclude Include="Graphics\Device\Vulkan\DrawingUtil_Vulkan.h" />
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
-    <ClInclude Include="Graphics\Renderer\ForwardRenderer.h" />
-    <ClInclude Include="Graphics\Renderer\HPForwardRenderer.h" />
+    <ClInclude Include="Graphics\Renderer\StandardRenderer.h" />
+    <ClInclude Include="Graphics\RenderGraph\AllRenderNodes.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\BlurRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\DepthOfFieldRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\ShadowMapRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\TransparencyBlendRenderNode.h" />
+    <ClInclude Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.h" />
     <ClInclude Include="Graphics\RenderGraph\RenderGraph.h" />
     <ClInclude Include="Graphics\Resources\BuiltInResourcesPath.h" />
     <ClInclude Include="Graphics\Resources\BuiltInShaderType.h" />
@@ -283,8 +291,15 @@
     <ClCompile Include="Graphics\Device\Vulkan\DrawingSyncObjectManager_Vulkan.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\DrawingUploadAllocator_Vulkan.cpp" />
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp" />
-    <ClCompile Include="Graphics\Renderer\ForwardRenderer.cpp" />
-    <ClCompile Include="Graphics\Renderer\HPForwardRenderer.cpp" />
+    <ClCompile Include="Graphics\Renderer\StandardRenderer.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\BlurRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\DepthOfFieldRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\ShadowMapRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\TransparencyBlendRenderNode.cpp" />
+    <ClCompile Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.cpp" />
     <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp" />
     <ClCompile Include="Graphics\Resources\DrawingResources.cpp" />
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp" />

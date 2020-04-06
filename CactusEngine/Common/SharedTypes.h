@@ -37,7 +37,7 @@ namespace Engine
 
 	enum class ERendererType
 	{
-		Forward = 0,
+		Standard = 0,
 		COUNT
 	};
 

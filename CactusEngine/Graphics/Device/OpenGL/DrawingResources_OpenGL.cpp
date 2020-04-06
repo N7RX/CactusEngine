@@ -53,7 +53,7 @@ bool Texture2D_OpenGL::HasSampler() const
 
 void Texture2D_OpenGL::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
 {
-	std::cerr << "OpenGL: shouldn't call SetSampler on OpenGL texture 2D.\n";
+	// "OpenGL: shouldn't call SetSampler on OpenGL texture 2D."
 }
 
 std::shared_ptr<TextureSampler> Texture2D_OpenGL::GetSampler() const
@@ -105,7 +105,7 @@ std::shared_ptr<SubUniformBuffer> UniformBuffer_OpenGL::AllocateSubBuffer(uint32
 
 void UniformBuffer_OpenGL::ResetSubBufferAllocation()
 {
-	std::cerr << "OpenGL: shouldn't call ResetSubBufferAllocation on OpenGL uniform buffer.\n";
+	// "OpenGL: shouldn't call ResetSubBufferAllocation on OpenGL uniform buffer."
 }
 
 FrameBuffer_OpenGL::~FrameBuffer_OpenGL()

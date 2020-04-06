@@ -5,6 +5,9 @@
 #include "SafeQueue.h"
 #include "Global.h"
 #include "CommandResources.h"
+#include "DrawingDevice.h"
+#include "BuiltInShaderType.h"
+
 #include <queue>
 #include <mutex>
 
@@ -28,9 +31,6 @@ namespace Engine
 	{
 		const std::vector<std::shared_ptr<IEntity>>* pDrawList = nullptr;
 		std::shared_ptr<IEntity> pCamera;
-		BaseRenderer* pRenderer = nullptr;
-
-		unsigned int discreteGPUExecutionCycle;
 	};
 
 	struct CommandContext
@@ -42,29 +42,34 @@ namespace Engine
 	class RenderNode : std::enable_shared_from_this<RenderNode>
 	{
 	public:
-		RenderNode(
-			void(*pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, std::shared_ptr<CommandContext> pCmdContext), 
-			const RenderGraphResource& input, const RenderGraphResource& output);
-		void AddNextNode(std::shared_ptr<RenderNode> pNode);
+		RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer);
 
-		void SwapInputResource(const char* name, std::shared_ptr<RawResource> pResource);
-		void SwapOutputResource(const char* name, std::shared_ptr<RawResource> pResource);
+		void ConnectNext(std::shared_ptr<RenderNode> pNode);
+		void SetInputResource(const char* slot, const char* pResourceName);
 
-	private:
-		void Execute();
-		void ExecuteParallel();
+	protected:
+		void Setup();
+		void ExecuteSequential(); // For OpenGL
+		void ExecuteParallel();	  // For Vulkan
 
-	private:
-		void(*m_pRenderPassFunc)(const RenderGraphResource& input, RenderGraphResource& output, const std::shared_ptr<RenderContext> pContext, const std::shared_ptr<CommandContext> pCmdContext);
-		std::shared_ptr<RenderContext> m_pContext;
-		std::shared_ptr<CommandContext> m_pCmdContext;
-		RenderGraphResource m_input;
-		RenderGraphResource m_output;
-		std::vector<RenderNode*> m_prevNodes;
-		std::vector<std::shared_ptr<RenderNode>> m_nextNodes;
-		bool m_finishedExecution;
+		virtual void SetupFunction(std::shared_ptr<RenderGraphResource> pGraphResources) = 0;
+		virtual void RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext) = 0;
 
-		const char* m_pName;
+	protected:
+		const char*									m_pName;
+		BaseRenderer*								m_pRenderer;
+		std::shared_ptr<DrawingDevice>				m_pDevice;
+		EGraphicsDeviceType							m_eGraphicsDeviceType;
+
+		std::vector<RenderNode*>					m_prevNodes;
+		std::vector<std::shared_ptr<RenderNode>>	m_nextNodes;
+		bool										m_finishedExecution;
+
+		std::shared_ptr<RenderGraphResource>		m_pGraphResources;
+		std::shared_ptr<RenderContext>				m_pRenderContext;
+		std::shared_ptr<CommandContext>				m_pCmdContext;
+		std::unordered_map<const char*, const char*> m_inputResourceNames;
+		std::unordered_map<EBuiltInShaderProgramType, std::shared_ptr<GraphicsPipelineObject>> m_graphicsPipelines;
 
 		friend class RenderGraph;
 	};
@@ -76,9 +81,10 @@ namespace Engine
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
+		void SetupRenderNodes();
 		void BuildRenderNodePriorities();
 
-		void BeginRenderPasses(const std::shared_ptr<RenderContext> pContext);
+		void BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext);
 		void BeginRenderPassesParallel(const std::shared_ptr<RenderContext> pContext);
 
 		std::shared_ptr<RenderNode> GetNodeByName(const char* name) const;

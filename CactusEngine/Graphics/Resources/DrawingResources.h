@@ -187,6 +187,7 @@ namespace Engine
 	struct RenderPassCreateInfo
 	{
 		EGPUType	 deviceType;
+
 		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
 		Color4		 clearColor;
 		float		 clearDepth;
@@ -345,7 +346,7 @@ namespace Engine
 		}
 	};
 
-	// TODO: remove this legacy struct
+	// Legacy struct for OpenGL
 	struct DeviceBlendStateInfo
 	{
 		bool enabled;

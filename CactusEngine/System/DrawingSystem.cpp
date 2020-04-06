@@ -1,6 +1,5 @@
 #include "DrawingSystem.h"
-#include "ForwardRenderer.h"
-#include "HPForwardRenderer.h"
+#include "StandardRenderer.h"
 #include "DrawingDevice_OpenGL.h"
 #include "DrawingDevice_Vulkan.h"
 #include "MeshRendererComponent.h"
@@ -102,18 +101,7 @@ bool DrawingSystem::CreateDevice()
 
 bool DrawingSystem::RegisterRenderers()
 {
-	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
-	{
-	case EGraphicsDeviceType::OpenGL:
-		RegisterRenderer<ForwardRenderer>(ERendererType::Forward, 1);
-		break;
-	case EGraphicsDeviceType::Vulkan:
-		RegisterRenderer<HPForwardRenderer>(ERendererType::Forward, 1);
-		break;
-	default:
-		throw std::runtime_error("Unsupported drawing device type.");
-		return false;
-	}
+	RegisterRenderer<StandardRenderer>(ERendererType::Standard, 1);
 
 	return true;
 }
