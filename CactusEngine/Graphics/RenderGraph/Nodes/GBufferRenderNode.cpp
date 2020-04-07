@@ -237,7 +237,7 @@ void GBufferRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGrap
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::NormalOnly);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
 	pipelineCreateInfo.pVertexInputState = pVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -250,7 +250,7 @@ void GBufferRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGrap
 	std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
-	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::NormalOnly, pPipeline);
+	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::GBuffer, pPipeline);
 }
 
 void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
@@ -276,7 +276,7 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 		
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NormalOnly), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 	}
 	else
 	{
@@ -289,7 +289,7 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 	}
 
 	// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::NormalOnly);
+	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
 
 	UBTransformMatrices ubTransformMatrices = {};
 	ubTransformMatrices.projectionMatrix = projectionMat;

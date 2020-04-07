@@ -215,7 +215,6 @@ void BlurRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGr
 	else
 	{
 		m_pDevice->SetRenderTarget(m_pFrameBuffer_Horizontal);
-		m_pDevice->ClearRenderTarget();
 	}
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);

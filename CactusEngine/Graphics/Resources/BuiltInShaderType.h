@@ -13,9 +13,8 @@ namespace Engine
 		WaterBasic,
 		DepthBased_ColorBlend_2,
 		AnimeStyle,
-		NormalOnly,
-		LineDrawing_Curvature,
-		LineDrawing_Color,
+		GBuffer,
+		LineDrawing_Simplified,
 		LineDrawing_Blend,
 		GaussianBlur,
 		ShadowMap,
@@ -114,8 +113,6 @@ namespace Engine
 
 		static const char* MASK_TEXTURE_1 = "MaskTexture_1";
 		static const char* MASK_TEXTURE_2 = "MaskTexture_2";
-
-		static const char* SAMPLE_MATRIX_TEXTURE = "SampleMatrixTexture";
 	}
 
 	// TODO: optimize the speed of the matching process, this linear search is very slow
@@ -197,10 +194,6 @@ namespace Engine
 		if (std::strcmp(ShaderParamNames::MASK_TEXTURE_2, cstr) == 0)
 		{
 			return ShaderParamNames::MASK_TEXTURE_2;
-		}
-		if (std::strcmp(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, cstr) == 0)
-		{
-			return ShaderParamNames::SAMPLE_MATRIX_TEXTURE;
 		}
 
 		std::cerr << "Unhandled shader parameter name: " << cstr << std::endl;

@@ -306,7 +306,6 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	else
 	{
 		m_pDevice->SetRenderTarget(m_pFrameBuffer_Horizontal);
-		m_pDevice->ClearRenderTarget();
 	}
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);

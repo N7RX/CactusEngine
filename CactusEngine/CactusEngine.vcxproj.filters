@@ -26,19 +26,7 @@
     <None Include="Assets\Shader\GLSL\AnimeStyle.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
-    <None Include="Assets\Shader\GLSL\NormalOnly.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\NormalOnly.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
     <None Include="Assets\Shader\GLSL\Gaussian.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LineDrawing_Curvature.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LineDrawing_Color.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
     <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag">
@@ -77,15 +65,6 @@
     <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Blend.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Color.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Curvature.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\SPIRV-Source\NormalOnly.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
     <None Include="Assets\Shader\SPIRV-Source\ShadowMap.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
@@ -101,9 +80,6 @@
     <None Include="Assets\Shader\SPIRV-Source\FullScreenQuad.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
-    <None Include="Assets\Shader\SPIRV-Source\NormalOnly.vert">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
     <None Include="Assets\Shader\SPIRV-Source\ShadowMap.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
@@ -111,6 +87,24 @@
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.vert">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\GBuffer.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\GBuffer.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\GBuffer.frag">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\GBuffer.vert">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LineDrawing_Simplified.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Simplified.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
   </ItemGroup>

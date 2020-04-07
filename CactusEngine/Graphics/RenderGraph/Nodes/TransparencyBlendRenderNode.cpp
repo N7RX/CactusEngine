@@ -193,7 +193,6 @@ void TransparencyBlendRenderNode::RenderPassFunction(std::shared_ptr<RenderGraph
 		m_pDevice->SetBlendState(blendInfo);
 
 		m_pDevice->SetRenderTarget(m_pFrameBuffer);
-		m_pDevice->ClearRenderTarget();
 	}
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);

@@ -16,6 +16,7 @@ namespace Engine
 		static const char* OUTPUT_DEPTH_TEXTURE;
 		static const char* OUTPUT_SHADOW_MARK_TEXTURE;
 
+		static const char* INPUT_GBUFFER_POSITION;
 		static const char* INPUT_GBUFFER_NORMAL;
 		static const char* INPUT_SHADOW_MAP;
 

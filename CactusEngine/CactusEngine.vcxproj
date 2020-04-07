@@ -146,10 +146,9 @@
     <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag" />
     <None Include="Assets\Shader\GLSL\FullScreenQuad.vert" />
     <None Include="Assets\Shader\GLSL\Gaussian.frag" />
-    <None Include="Assets\Shader\GLSL\LineDrawing_Color.frag" />
-    <None Include="Assets\Shader\GLSL\LineDrawing_Curvature.frag" />
-    <None Include="Assets\Shader\GLSL\NormalOnly.frag" />
-    <None Include="Assets\Shader\GLSL\NormalOnly.vert" />
+    <None Include="Assets\Shader\GLSL\GBuffer.frag" />
+    <None Include="Assets\Shader\GLSL\GBuffer.vert" />
+    <None Include="Assets\Shader\GLSL\LineDrawing_Simplified.frag" />
     <None Include="Assets\Shader\GLSL\ShadowMap.frag" />
     <None Include="Assets\Shader\GLSL\ShadowMap.vert" />
     <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
@@ -165,10 +164,9 @@
     <None Include="Assets\Shader\SPIRV-Source\FullScreenQuad.vert" />
     <None Include="Assets\Shader\SPIRV-Source\Gaussian.frag" />
     <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Blend.frag" />
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Color.frag" />
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Curvature.frag" />
-    <None Include="Assets\Shader\SPIRV-Source\NormalOnly.frag" />
-    <None Include="Assets\Shader\SPIRV-Source\NormalOnly.vert" />
+    <None Include="Assets\Shader\SPIRV-Source\GBuffer.frag" />
+    <None Include="Assets\Shader\SPIRV-Source\GBuffer.vert" />
+    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Simplified.frag" />
     <None Include="Assets\Shader\SPIRV-Source\ShadowMap.frag" />
     <None Include="Assets\Shader\SPIRV-Source\ShadowMap.vert" />
     <None Include="Assets\Shader\SPIRV-Source\Water_Basic.frag" />

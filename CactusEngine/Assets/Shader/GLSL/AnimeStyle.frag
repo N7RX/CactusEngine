@@ -20,6 +20,7 @@ layout(std140, binding = 14) uniform TransformMatrices
 };
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;
+layout(binding = 3) uniform sampler2D GPositionTexture;
 layout(binding = 5) uniform sampler2D GNormalTexture;
 layout(binding = 8) uniform sampler2D ToneTexture;
 layout(binding = 0) uniform sampler2D ShadowMapDepthTexture;
@@ -210,6 +211,16 @@ void main(void)
 	// Intensity profile function
 	float I = pow(clamp(Beta + (1.0f - Beta) * cos(u), 0.0f, 1e10), Gamma);
 
+	// Cook-Torrance specular term
+	// Fresnel-Schlick
+	vec3 F0 = LightColor.xyz * 0.75f;
+	vec3 F_term = F0 + (vec3(1.0) - F0) * pow(1.0 - max(0.0, dot(v2fNormal, v)), 5);
+	// Distribution factor
+	float D_term = exp(-(1.0-pow(max(0.0, dot(v2fNormal, h)), 2)) / (pow(max(0.0001, dot(v2fNormal, h)), 2)*Roughness*Roughness)) / (4*Roughness*Roughness*pow(max(0.0001, dot(v2fNormal, h)), 4));
+	// Geometrical attenuation
+	float G_term = min(1.0, min(2*max(0.0, dot(v2fNormal, h))*max(0.0, dot(v2fNormal, v)) / max(0.0001, dot(v, h)), 2*max(0.0, dot(v2fNormal, h))*max(0.0, dot(v2fNormal, LightDirection)) / max(0.0001, dot(v, h))));
+	vec4 specularColor = vec4(F_term, 1.0)*D_term*G_term / (PI*dot(v2fNormal, v)) * 0.1f;
+
 	// Toon mapping
 
 	float fragDepth = (2.0f * CameraZNear * CameraZFar) / (CameraZNear + CameraZFar - (2.0f * gl_FragCoord.z - 1.0f) * (CameraZFar - CameraZNear));
@@ -220,9 +231,6 @@ void main(void)
 	// Applying shadow map
 	float shadowValue = ComputeShadow(vec4(v2fLightSpacePosition, 1.0f), v2fNormal);
 
-	outColor = I * toneColor * colorFromAlbedoTexture * (2.0f - shadowValue);
-	outShadow = vec4(min(shadowValue, (1.0f- toonCoord.x)));
-
-	// For line drawing
-	outColor.a = toonCoord.x;
+	outColor = (I * toneColor * colorFromAlbedoTexture + specularColor) * (2.0f - shadowValue);
+	outShadow = vec4(min(shadowValue, (1.0f- toonCoord.x)), texture(GPositionTexture, screenCoord).z, toonCoord.x, 0);
 }

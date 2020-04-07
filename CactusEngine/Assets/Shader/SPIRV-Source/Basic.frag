@@ -16,6 +16,7 @@ layout(std140, binding = 14) uniform TransformMatrices
 };
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;
+layout(binding = 3) uniform sampler2D GPositionTexture;
 layout(binding = 5) uniform sampler2D GNormalTexture;
 layout(binding = 8) uniform sampler2D ToneTexture;
 layout(binding = 0) uniform sampler2D ShadowMapDepthTexture;
@@ -50,6 +51,6 @@ void main(void)
 		discard;
 	}
 
-	outColor = AlbedoColor * colorFromAlbedoTexture * LightColor * (clamp(dot(v2fNormal, LightDirection), 0.0f, 1e10) + AmbientIntensity) * LightIntensity; // 0.1f is ambient intensity
+	outColor = AlbedoColor * colorFromAlbedoTexture * LightColor * (clamp(dot(v2fNormal, LightDirection), 0.0f, 1e10) + AmbientIntensity) * LightIntensity;
 	outShadow = vec4(0.0);
 }

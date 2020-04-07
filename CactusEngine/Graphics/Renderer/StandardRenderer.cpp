@@ -18,6 +18,8 @@ void StandardRenderer::BuildRenderGraph()
 {
 	m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice, 4);
 
+	// Create required nodes
+
 	auto pShadowMapNode = std::make_shared<ShadowMapRenderNode>(m_pGraphResources, this);
 	auto pGBufferNode = std::make_shared<GBufferRenderNode>(m_pGraphResources, this);
 	auto pOpaqueNode = std::make_shared<OpaqueContentRenderNode>(m_pGraphResources, this);
@@ -48,12 +50,13 @@ void StandardRenderer::BuildRenderGraph()
 	// Define resource dependencies
 
 	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_SHADOW_MAP, ShadowMapRenderNode::OUTPUT_DEPTH_TEXTURE);
+	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
 	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_GBUFFER_NORMAL, GBufferRenderNode::OUTPUT_NORMAL_GBUFFER);
 
-	pBlurNode->SetInputResource(BlurRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
+	pBlurNode->SetInputResource(BlurRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_SHADOW_MARK_TEXTURE);
 
 	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
-	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_BLURRED_COLOR_TEXTURE, BlurRenderNode::OUTPUT_COLOR_TEXTURE);
+	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_LINE_SPACE_TEXTURE, BlurRenderNode::OUTPUT_COLOR_TEXTURE);
 
 	pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_COLOR_TEXTURE, LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE);
 	pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_BACKGROUND_DEPTH, OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE);
@@ -66,6 +69,8 @@ void StandardRenderer::BuildRenderGraph()
 	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_COLOR_TEXTURE, TransparencyBlendRenderNode::OUTPUT_COLOR_TEXTURE);
 	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
 	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_SHADOW_MARK_TEXTURE, OpaqueContentRenderNode::OUTPUT_SHADOW_MARK_TEXTURE);
+
+	// Initialize render graph
 
 	m_pRenderGraph->SetupRenderNodes();
 	m_pRenderGraph->BuildRenderNodePriorities();

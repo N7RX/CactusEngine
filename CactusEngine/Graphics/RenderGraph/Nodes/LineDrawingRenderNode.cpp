@@ -11,14 +11,14 @@ using namespace Engine;
 
 const char* LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE = "LineDrawingOutputColorTexture";
 
-const char* LineDrawingRenderNode::INPUT_COLOR_TEXTURE = "LineDrawingInputColorTexture";
-const char* LineDrawingRenderNode::INPUT_BLURRED_COLOR_TEXTURE = "LineDrawingInputBlurredColorTexture";
+const char* LineDrawingRenderNode::INPUT_COLOR_TEXTURE = "LineDrawingBackgroundColorTexture";
+const char* LineDrawingRenderNode::INPUT_LINE_SPACE_TEXTURE = "LineDrawingSpaceColorTexture";
 
 LineDrawingRenderNode::LineDrawingRenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
-	: RenderNode(pGraphResources, pRenderer)
+	: RenderNode(pGraphResources, pRenderer), m_enableLineSmooth(false)
 {
 	m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
-	m_inputResourceNames[INPUT_BLURRED_COLOR_TEXTURE] = nullptr;
+	m_inputResourceNames[INPUT_LINE_SPACE_TEXTURE] = nullptr;
 }
 
 void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphResources)
@@ -39,11 +39,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pColorOutput);
-	m_pDevice->CreateTexture2D(texCreateInfo, m_pCurvatureTexture);
-	m_pDevice->CreateTexture2D(texCreateInfo, m_pBlurLineResult);
-
-	// Pre-calculate local parameterization matrices
-	CreateMatrixTexture();
+	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineResult);
 
 	pGraphResources->Add(OUTPUT_COLOR_TEXTURE, m_pColorOutput);
 
@@ -74,29 +70,11 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	}
 
 	// Frame buffers
-	FrameBufferCreateInfo fbCreateInfo_Curvature = {};
-	fbCreateInfo_Curvature.attachments.emplace_back(m_pCurvatureTexture);
-	fbCreateInfo_Curvature.framebufferWidth = screenWidth;
-	fbCreateInfo_Curvature.framebufferHeight = screenHeight;
-	fbCreateInfo_Curvature.pRenderPass = m_pRenderPassObject;
-
-	FrameBufferCreateInfo fbCreateInfo_RidgeSearch = {};
-	fbCreateInfo_RidgeSearch.attachments.emplace_back(m_pColorOutput);
-	fbCreateInfo_RidgeSearch.framebufferWidth = screenWidth;
-	fbCreateInfo_RidgeSearch.framebufferHeight = screenHeight;
-	fbCreateInfo_RidgeSearch.pRenderPass = m_pRenderPassObject;
-
-	FrameBufferCreateInfo fbCreateInfo_BlurHorizontal = {};
-	fbCreateInfo_BlurHorizontal.attachments.emplace_back(m_pCurvatureTexture);
-	fbCreateInfo_BlurHorizontal.framebufferWidth = screenWidth;
-	fbCreateInfo_BlurHorizontal.framebufferHeight = screenHeight;
-	fbCreateInfo_BlurHorizontal.pRenderPass = m_pRenderPassObject;
-
-	FrameBufferCreateInfo fbCreateInfo_BlurFinal = {};
-	fbCreateInfo_BlurFinal.attachments.emplace_back(m_pBlurLineResult);
-	fbCreateInfo_BlurFinal.framebufferWidth = screenWidth;
-	fbCreateInfo_BlurFinal.framebufferHeight = screenHeight;
-	fbCreateInfo_BlurFinal.pRenderPass = m_pRenderPassObject;
+	FrameBufferCreateInfo fbCreateInfo_Line = {};
+	fbCreateInfo_Line.attachments.emplace_back(m_pLineResult);
+	fbCreateInfo_Line.framebufferWidth = screenWidth;
+	fbCreateInfo_Line.framebufferHeight = screenHeight;
+	fbCreateInfo_Line.pRenderPass = m_pRenderPassObject;
 
 	FrameBufferCreateInfo fbCreateInfo_FinalBlend = {};
 	fbCreateInfo_FinalBlend.attachments.emplace_back(m_pColorOutput);
@@ -104,11 +82,26 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	fbCreateInfo_FinalBlend.framebufferHeight = screenHeight;
 	fbCreateInfo_FinalBlend.pRenderPass = m_pRenderPassObject;
 
-	m_pDevice->CreateFrameBuffer(fbCreateInfo_Curvature, m_pFrameBuffer_Curvature);
-	m_pDevice->CreateFrameBuffer(fbCreateInfo_RidgeSearch, m_pFrameBuffer_RidgeSearch);
-	m_pDevice->CreateFrameBuffer(fbCreateInfo_BlurHorizontal, m_pFrameBuffer_BlurHorizontal);
-	m_pDevice->CreateFrameBuffer(fbCreateInfo_BlurFinal, m_pFrameBuffer_BlurFinal);
+	m_pDevice->CreateFrameBuffer(fbCreateInfo_Line, m_pFrameBuffer_Line);
 	m_pDevice->CreateFrameBuffer(fbCreateInfo_FinalBlend, m_pFrameBuffer_FinalBlend);
+
+	if (m_enableLineSmooth)
+	{
+		FrameBufferCreateInfo fbCreateInfo_BlurHorizontal = {};
+		fbCreateInfo_BlurHorizontal.attachments.emplace_back(m_pColorOutput);
+		fbCreateInfo_BlurHorizontal.framebufferWidth = screenWidth;
+		fbCreateInfo_BlurHorizontal.framebufferHeight = screenHeight;
+		fbCreateInfo_BlurHorizontal.pRenderPass = m_pRenderPassObject;
+
+		FrameBufferCreateInfo fbCreateInfo_BlurFinal = {};
+		fbCreateInfo_BlurFinal.attachments.emplace_back(m_pLineResult);
+		fbCreateInfo_BlurFinal.framebufferWidth = screenWidth;
+		fbCreateInfo_BlurFinal.framebufferHeight = screenHeight;
+		fbCreateInfo_BlurFinal.pRenderPass = m_pRenderPassObject;
+
+		m_pDevice->CreateFrameBuffer(fbCreateInfo_BlurHorizontal, m_pFrameBuffer_BlurHorizontal);
+		m_pDevice->CreateFrameBuffer(fbCreateInfo_BlurFinal, m_pFrameBuffer_BlurFinal);
+	}
 
 	// Uniform buffer
 
@@ -199,7 +192,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Color);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -209,28 +202,26 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	pipelineCreateInfo.pViewportState = pViewportState;
 	pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
 
-	std::shared_ptr<GraphicsPipelineObject> pPipeline_Color = nullptr;
-	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Color);
-
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Curvature);
-
-	std::shared_ptr<GraphicsPipelineObject> pPipeline_Curvature = nullptr;
-	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Curvature);
+	std::shared_ptr<GraphicsPipelineObject> pPipeline_Simplified = nullptr;
+	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Simplified);
 
 	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 
 	std::shared_ptr<GraphicsPipelineObject> pPipeline_Blend = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Blend);
 
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
-
-	std::shared_ptr<GraphicsPipelineObject> pPipeline_Blur = nullptr;
-	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Blur);
-
-	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::LineDrawing_Color, pPipeline_Color);
-	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::LineDrawing_Curvature, pPipeline_Curvature);
+	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::LineDrawing_Simplified, pPipeline_Simplified);
 	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::LineDrawing_Blend, pPipeline_Blend);
-	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::GaussianBlur, pPipeline_Blur);
+
+	if (m_enableLineSmooth)
+	{
+		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+
+		std::shared_ptr<GraphicsPipelineObject> pPipeline_Blur = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Blur);
+
+		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::GaussianBlur, pPipeline_Blur);
+	}
 }
 
 void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
@@ -241,13 +232,13 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 	UBControlVariables ubControlVariables = {};
 
-	// Curvature computation pass
+	// Outlining pass
 
 	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
 	{
 		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Curvature), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Curvature, pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Simplified), pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Line, pCommandBuffer);
 	}
 	else
 	{
@@ -255,18 +246,14 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 		blendInfo.enabled = false;
 		m_pDevice->SetBlendState(blendInfo);
 
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_Curvature);
-		m_pDevice->ClearRenderTarget();
+		m_pDevice->SetRenderTarget(m_pFrameBuffer_Line);
 	}
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Curvature);
+	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-		pGraphResources->Get(m_inputResourceNames.at(INPUT_BLURRED_COLOR_TEXTURE)));
-
-	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SAMPLE_MATRIX_TEXTURE), EDescriptorType::CombinedImageSampler,
-		m_pMatrixTexture);
+		pGraphResources->Get(m_inputResourceNames.at(INPUT_LINE_SPACE_TEXTURE)));
 
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
@@ -280,124 +267,94 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 		pShaderProgram->Reset();
 	}
 
-	// Ridge searching pass
-
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_enableLineSmooth)
 	{
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Color), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_RidgeSearch, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_RidgeSearch);
-		m_pDevice->ClearRenderTarget();
-	}
+		// Gaussian blur passes
 
-	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Color);
-	pShaderParamTable->Clear();
+		pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 
-	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-		m_pCurvatureTexture);
+		// Horizontal pass
 
-	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
-	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
+			m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurHorizontal, pCommandBuffer);
+		}
+		else
+		{
+			m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurHorizontal);
+		}
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->EndRenderPass(pCommandBuffer);
-	}
-	else
-	{
-		pShaderProgram->Reset();
-	}
+		pShaderParamTable->Clear();
 
-	// Gaussian blur passes
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+			m_pLineResult);
 
-	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+		ubControlVariables.bool_1 = 1;
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
+		}
+		else
+		{
+			m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, m_pControlVariables_UB);
+		}
 
-	// Horizontal pass
+		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurHorizontal, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurHorizontal);
-		m_pDevice->ClearRenderTarget();
-	}
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			m_pDevice->EndRenderPass(pCommandBuffer);
+		}
+		else
+		{
+			pShaderProgram->Reset();
+		}
 
-	pShaderParamTable->Clear();
+		// Vertical pass
 
-	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-		m_pColorOutput);
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurFinal, pCommandBuffer);
+		}
+		else
+		{
+			m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurFinal);
+		}
 
-	ubControlVariables.bool_1 = 1;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
-	}
-	else
-	{
-		m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, m_pControlVariables_UB);
-	}
+		pShaderParamTable->Clear();
 
-	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
-	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+			m_pColorOutput);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->EndRenderPass(pCommandBuffer);
-	}
-	else
-	{
-		pShaderProgram->Reset();
-	}
+		ubControlVariables.bool_1 = 0;
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
+		}
+		else
+		{
+			m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, m_pControlVariables_UB);
+		}
 
-	// Vertical pass
+		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurFinal, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurFinal);
-		m_pDevice->ClearRenderTarget();
-	}
-
-	pShaderParamTable->Clear();
-
-	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-		m_pCurvatureTexture);
-
-	ubControlVariables.bool_1 = 0;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
-	}
-	else
-	{
-		m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, m_pControlVariables_UB);
-	}
-
-	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
-	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
-
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->EndRenderPass(pCommandBuffer);
-	}
-	else
-	{
-		pShaderProgram->Reset();
+		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		{
+			m_pDevice->EndRenderPass(pCommandBuffer);
+		}
+		else
+		{
+			pShaderProgram->Reset();
+		}
 	}
 
 	// Final blend pass
@@ -410,14 +367,13 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 	else
 	{
 		m_pDevice->SetRenderTarget(m_pFrameBuffer_FinalBlend);
-		m_pDevice->ClearRenderTarget();
 	}
 
 	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 	pShaderParamTable->Clear();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-		m_pBlurLineResult);
+		m_pLineResult);
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler,
 		pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
@@ -436,74 +392,4 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 	{
 		pShaderProgram->Reset();
 	}
-}
-
-void LineDrawingRenderNode::CreateMatrixTexture()
-{
-	// Alert: current implementation does not support window scaling
-
-	auto width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-	auto height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-
-	// Storing the 6x9 sampling matrix
-	// But a5 is not used, so we are only storing 5x9
-	std::vector<float> linearResults;
-	linearResults.resize(12 * 4, 0);
-	m_pMatrixTexture = std::make_shared<RenderTexture>(12, 1); // Store the matrix in a 4-channel linear texture
-
-	float xPixelSize = 1.0f / width;
-	float yPixelSize = 1.0f / height;
-
-	Eigen::MatrixXf H(6, 9);
-	Eigen::MatrixXf X(9, 6);
-
-	// 3x3 grid sample
-	int rowIndex = 0;
-	int lineWidth = 1;
-	for (int m = -lineWidth; m < lineWidth + 1; m += lineWidth)
-	{
-		for (int n = -lineWidth; n < lineWidth + 1; n += lineWidth)
-		{
-			float xSample = m * xPixelSize;
-			float ySample = n * yPixelSize;
-
-			X(rowIndex, 0) = xSample * xSample;
-			X(rowIndex, 1) = 2 * xSample * ySample;
-			X(rowIndex, 2) = ySample * ySample;
-			X(rowIndex, 3) = xSample;
-			X(rowIndex, 4) = ySample;
-			X(rowIndex, 5) = 1;
-
-			rowIndex++;
-		}
-	}
-
-	H = (X.transpose() * X).inverse() * X.transpose();
-
-	// H is divided as
-	// | 1 | 2 |   |
-	// | 3 | 4 |   |
-	// | 5 | 6 | 11|
-	// | 7 | 8 |---|
-	// | 9 | 10| 12|
-
-	int linearIndex = 0;
-	for (int p = 0; p < 5; ++p) // a5 is not used, so instead of 6 rows, 5 rows are taken
-	{
-		for (int q = 0; q < 8; ++q)
-		{
-			linearResults[linearIndex] = H(p, q);
-			linearIndex++;
-		}
-	}
-
-	// Store the 9th column
-	for (int p = 0; p < 5; ++p)
-	{
-		linearResults[linearIndex] = H(p, 8);
-		linearIndex++;
-	}
-
-	std::static_pointer_cast<RenderTexture>(m_pMatrixTexture)->FlushData(linearResults.data(), EDataType::Float32, ETextureFormat::RGBA32F);
-	m_pMatrixTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
 }

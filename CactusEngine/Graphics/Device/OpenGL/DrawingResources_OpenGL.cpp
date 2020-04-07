@@ -319,8 +319,6 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_1, 11);
 	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_2, 12);
 
-	m_paramBindings.emplace(ShaderParamNames::SAMPLE_MATRIX_TEXTURE, 13);
-
 	// Uniform blocks
 
 	m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 14);
