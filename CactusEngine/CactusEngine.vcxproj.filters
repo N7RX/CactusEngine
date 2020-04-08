@@ -107,6 +107,9 @@
     <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Simplified.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\Basic_Transparent.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

@@ -7,12 +7,13 @@
 
 using namespace Engine;
 
-DrawingUploadAllocator_Vulkan::DrawingUploadAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice)
+DrawingUploadAllocator_Vulkan::DrawingUploadAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkInstance instance)
 	: m_pDevice(pDevice)
 {
 	VmaAllocatorCreateInfo createInfo = {};
 	createInfo.physicalDevice = pDevice->physicalDevice;
 	createInfo.device = pDevice->logicalDevice;
+	createInfo.instance = instance;
 
 	if (vmaCreateAllocator(&createInfo, &m_allocator) != VK_SUCCESS)
 	{

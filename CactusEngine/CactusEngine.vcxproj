@@ -137,6 +137,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Assets\Shader\GLSL\Basic_Transparent.frag" />
+    <None Include="Assets\Shader\GLSL\Basic_Transparent.vert" />
     <None Include="Assets\Shader\GLSL\DepthOfField.frag" />
     <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag" />
     <None Include="Assets\Shader\GLSL\AnimeStyle.frag" />

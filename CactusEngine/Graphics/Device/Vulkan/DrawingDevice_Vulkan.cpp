@@ -1509,7 +1509,7 @@ void DrawingDevice_Vulkan::SetupSyncObjectManager()
 
 void DrawingDevice_Vulkan::SetupUploadAllocator()
 {
-	m_pDevice_0->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_0);
+	m_pDevice_0->pUploadAllocator = std::make_shared<DrawingUploadAllocator_Vulkan>(m_pDevice_0, m_instance);
 }
 
 void DrawingDevice_Vulkan::SetupDescriptorAllocator()

@@ -35,7 +35,7 @@ namespace Engine
 	class DrawingUploadAllocator_Vulkan
 	{
 	public:
-		DrawingUploadAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice);
+		DrawingUploadAllocator_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, VkInstance instance);
 		~DrawingUploadAllocator_Vulkan();
 
 		bool CreateBuffer(const RawBufferCreateInfo_Vulkan& createInfo, RawBuffer_Vulkan& rawBuffer);
