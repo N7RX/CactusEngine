@@ -9,8 +9,8 @@ layout(binding = 4) uniform sampler2D DepthTexture_1;
 layout(binding = 7) uniform sampler2D ColorTexture_2;
 layout(binding = 5) uniform sampler2D DepthTexture_2;
 
-const float CameraGamma = 1.2f;
-const float Exposure = 2.9f;
+const float CameraGamma = 1.04f;
+const float Exposure = 3.6f;
 
 
 void main(void)
