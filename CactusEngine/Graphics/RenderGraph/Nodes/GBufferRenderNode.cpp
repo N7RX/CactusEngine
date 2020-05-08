@@ -297,6 +297,7 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 
 	for (auto& entity : *pRenderContext->pDrawList)
 	{
+		auto pMaterialComp   = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(EComponentType::Material));
 		auto pTransformComp  = std::static_pointer_cast<TransformComponent>(entity->GetComponent(EComponentType::Transform));
 		auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(EComponentType::MeshFilter));
 
@@ -335,6 +336,13 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 		auto subMeshes = pMesh->GetSubMeshes();
 		for (size_t i = 0; i < subMeshes->size(); ++i)
 		{
+			auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
+
+			if (pMaterial->IsTransparent())
+			{
+				continue;
+			}
+
 			m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 		}
 

@@ -15,7 +15,7 @@ namespace Engine
 		ERendererType GetRendererType() const;
 
 	private:
-		ERendererType m_rendererType;
+		ERendererType m_rendererType; // TODO: deprecate this property
 		// TODO: add additional render properties here
 	};
 }

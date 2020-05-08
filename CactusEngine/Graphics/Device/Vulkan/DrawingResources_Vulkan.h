@@ -12,8 +12,8 @@
 namespace Engine
 {
 	struct LogicalDevice_Vulkan;
-	class DrawingDevice_Vulkan;
-	class DrawingCommandBuffer_Vulkan;	
+	class  DrawingDevice_Vulkan;
+	class  DrawingCommandBuffer_Vulkan;	
 
 	enum class EAllocatorType_Vulkan
 	{

@@ -4,7 +4,7 @@ layout(location = 0) in vec2 v2fTexCoord;
 
 layout(location = 0) out vec4 outColor;
 
-layout(binding = 6) uniform sampler2D ColorTexture_1; // GBuffer position z (g); Tone value (b)
+layout(binding = 6) uniform sampler2D ColorTexture_1; // GBuffer normal (rgb); Tone value (a)
 
 
 float determineLineOpacity(void)
@@ -20,15 +20,14 @@ float determineLineOpacity(void)
 		return opacity;
 	}
 
-	vec2 left  = texelFetch(ColorTexture_1, fragCoord - ivec2(1, 0), 0).gb;
-	vec2 right = texelFetch(ColorTexture_1, fragCoord + ivec2(1, 0), 0).gb;
-	vec2 above = texelFetch(ColorTexture_1, fragCoord + ivec2(0, 1), 0).gb;
-	vec2 below = texelFetch(ColorTexture_1, fragCoord - ivec2(0, 1), 0).gb;
+	vec4 left  = texelFetch(ColorTexture_1, fragCoord - ivec2(1, 0), 0);
+	vec4 right = texelFetch(ColorTexture_1, fragCoord + ivec2(1, 0), 0);
+	vec4 above = texelFetch(ColorTexture_1, fragCoord + ivec2(0, 1), 0);
+	vec4 below = texelFetch(ColorTexture_1, fragCoord - ivec2(0, 1), 0);
 
-	float zposResult = pow((left.x - right.x), 2) + pow((above.x - below.x), 2);
-	float toneResult = pow((left.y - right.y), 2) + pow((above.y - below.y), 2) * 10.0;
+	float toneResult = (pow((left.a - right.a), 2) + pow((above.a - below.a), 2)) * 5.0;
 
-	opacity = clamp(zposResult + toneResult, 0.0, 1.0);
+	opacity = clamp(dot(left.rgb - right.rgb, left.rgb - right.rgb) + dot(above.rgb - below.rgb, above.rgb - below.rgb) + toneResult, 0.0, 1.0);
 
 	return opacity;
 }

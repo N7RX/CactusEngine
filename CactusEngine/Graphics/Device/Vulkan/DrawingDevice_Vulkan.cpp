@@ -317,6 +317,16 @@ void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 	std::cerr << "Vulkan: Shouldn't call SetBlendState on Vulkan device.\n";
 }
 
+void DrawingDevice_Vulkan::SetCullState(const DeviceCullStateInfo& cullInfo)
+{
+	std::cerr << "Vulkan: Shouldn't call SetCullState on Vulkan device.\n";
+}
+
+void DrawingDevice_Vulkan::SetDepthState(const DeviceDepthStateInfo& depthInfo)
+{
+	std::cerr << "Vulkan: Shouldn't call SetDepthState on Vulkan device.\n";
+}
+
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	assert(pCommandBuffer != nullptr);
@@ -960,9 +970,9 @@ void DrawingDevice_Vulkan::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSema
 	pVkSemaphore->m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 }
 
-std::shared_ptr<TextureSampler> DrawingDevice_Vulkan::GetDefaultTextureSampler(EGPUType deviceType) const
+std::shared_ptr<TextureSampler> DrawingDevice_Vulkan::GetDefaultTextureSampler(EGPUType deviceType, bool withDefaultAF) const
 {
-	return m_pDefaultSampler_0;
+	return withDefaultAF ? m_pDefaultSampler_1 : m_pDefaultSampler_1;
 }
 
 void DrawingDevice_Vulkan::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
@@ -1332,10 +1342,14 @@ void DrawingDevice_Vulkan::CreateLogicalDevice(std::shared_ptr<LogicalDevice_Vul
 	timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
 	timelineSemaphoreFeatures.timelineSemaphore = true;
 
+	// TODO: configure device features by configuration settings
+	VkPhysicalDeviceFeatures deviceFeatures = {};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	physicalDeviceFeatures2.pNext = &timelineSemaphoreFeatures;
-	physicalDeviceFeatures2.features = m_deviceFeatures;
+	physicalDeviceFeatures2.features = deviceFeatures;
 
 	VkDeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1440,8 +1454,8 @@ void DrawingDevice_Vulkan::CreateDefaultSampler()
 	createInfo.magMode = ESamplerFilterMode::Linear;
 	createInfo.minMode = ESamplerFilterMode::Linear;
 	createInfo.addressMode = ESamplerAddressMode::Repeat;
-	createInfo.enableAnisotropy = false; // TODO: enable required extensions
-	createInfo.maxAnisotropy = 16;
+	createInfo.enableAnisotropy = false;
+	createInfo.maxAnisotropy = 1;
 	createInfo.enableCompareOp = false;
 	createInfo.compareOp = ECompareOperation::Always;
 	createInfo.mipmapMode = ESamplerMipmapMode::Linear;
@@ -1452,6 +1466,13 @@ void DrawingDevice_Vulkan::CreateDefaultSampler()
 	std::shared_ptr<TextureSampler> pSampler_0;
 	CreateSampler(createInfo, pSampler_0);
 	m_pDefaultSampler_0 = std::static_pointer_cast<Sampler_Vulkan>(pSampler_0);
+
+	createInfo.enableAnisotropy = true;
+	createInfo.maxAnisotropy = 4.0f;
+
+	std::shared_ptr<TextureSampler> pSampler_1;
+	CreateSampler(createInfo, pSampler_1);
+	m_pDefaultSampler_1 = std::static_pointer_cast<Sampler_Vulkan>(pSampler_1);
 
 	// TODO: create another default sampler that does not include mipmap sampling
 }

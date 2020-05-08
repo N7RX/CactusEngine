@@ -7,7 +7,7 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 6) uniform sampler2D ColorTexture_1;
 layout(binding = 3) uniform sampler2D GPositionTexture;
 
-layout(binding = 7) uniform sampler2D ColorTexture_2; // Shadow values (r)
+layout(binding = 7) uniform sampler2D ColorTexture_2; // Shadow value (a)
 layout(binding = 11) uniform sampler2D MaskTexture_1;
 layout(binding = 9) uniform sampler2D NoiseTexture_1;
 layout(binding = 12) uniform sampler2D MaskTexture_2;
@@ -105,7 +105,7 @@ void main(void)
 		float pencilStrength_1 = texture(MaskTexture_2, v2fTexCoord).r;
 		float pencilStrength_2 = texture(NoiseTexture_2, v2fTexCoord).r;
 
-		float interpVal = texture(ColorTexture_2, v2fTexCoord).r; // Interpolate by shadow
+		float interpVal = texture(ColorTexture_2, v2fTexCoord).a; // Interpolate by shadow
 		float interpMin = 0.86f * interpVal + 0.98f * (1.0f - interpVal);
 
 		float coeff = step(0, fract(Time) - 0.5f); // 0-0.5 and 0.5-1.0

@@ -42,11 +42,6 @@ namespace Engine
 			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME
 		};
 
-		const VkPhysicalDeviceFeatures m_deviceFeatures =
-		{
-			// TODO: List required features
-		};
-
 	public:
 		~DrawingDevice_Vulkan();
 
@@ -65,7 +60,10 @@ namespace Engine
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
 		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
 		void SetClearColor(Color4 color) override;
+
 		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
+		void SetCullState(const DeviceCullStateInfo& cullInfo) override;
+		void SetDepthState(const DeviceDepthStateInfo& depthInfo) override;
 
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
@@ -112,7 +110,7 @@ namespace Engine
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) override;
 
-		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main) const override;
+		std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main, bool withDefaultAF = false) const override;
 		void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
 
@@ -180,6 +178,7 @@ namespace Engine
 		unsigned int m_currentFrame;
 
 		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_0; // For main GPU
+		std::shared_ptr<Sampler_Vulkan> m_pDefaultSampler_1;
 		//... (Extend required GPU here)
 	};
 

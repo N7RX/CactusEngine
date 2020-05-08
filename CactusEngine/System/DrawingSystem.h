@@ -58,7 +58,7 @@ namespace Engine
 		std::shared_ptr<DrawingDevice> m_pDevice;
 		std::vector<std::shared_ptr<ShaderProgram>> m_shaderPrograms;
 
-		RendererTable m_rendererTable;
+		RendererTable	m_rendererTable;
 		RenderTaskTable m_renderTaskTable;
 	};
 }

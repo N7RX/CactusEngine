@@ -19,6 +19,7 @@ namespace Engine
 		Animation = 0x10,
 		Camera = 0x20,
 		Script = 0x40,
+		Light = 0x80,
 		COUNT = 7
 	};
 
@@ -38,6 +39,7 @@ namespace Engine
 	enum class ERendererType
 	{
 		Standard = 0,
+		RayTracing,
 		COUNT
 	};
 
@@ -141,6 +143,7 @@ namespace Engine
 	{
 		SrcAlpha = 0,
 		OneMinusSrcAlpha,
+		One,
 		COUNT
 	};
 

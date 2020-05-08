@@ -7,3 +7,4 @@
 #include "ShadowMapRenderNode.h"
 #include "TransparencyBlendRenderNode.h"
 #include "TransparentContentRenderNode.h"
+#include "DeferredLightingRenderNode.h"

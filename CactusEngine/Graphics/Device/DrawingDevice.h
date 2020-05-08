@@ -29,7 +29,11 @@ namespace Engine
 		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) = 0;
 		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
 		virtual void SetClearColor(Color4 color) = 0;
+
+		// TODO: replace these functions with universal pipeline state
 		virtual void SetBlendState(const DeviceBlendStateInfo& blendInfo) = 0;
+		virtual void SetCullState(const DeviceCullStateInfo& cullInfo) = 0;
+		virtual void SetDepthState(const DeviceDepthStateInfo& depthInfo) = 0;
 
 		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
@@ -75,7 +79,7 @@ namespace Engine
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore) = 0;
 
-		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main) const = 0;
+		virtual std::shared_ptr<TextureSampler> GetDefaultTextureSampler(EGPUType deviceType = EGPUType::Main, bool withDefaultAF = false) const = 0;
 		virtual void GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
 

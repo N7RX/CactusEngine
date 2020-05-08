@@ -14,6 +14,7 @@ This project is working in progress.<br/><br/>Completed parts include:
 
 Currently working on:
 
+* Ray tracing pipeline (Vulkan)
 * Render Graph (Advanced)
 * ImGui support under Vulkan
 
@@ -28,7 +29,7 @@ Available in `heterogeneous` branch:
 #### Dependencies
 
 - Vulkan 1.2
-- OpenGL 4.3
+- OpenGL 4.6
 - GLFW 3, GLAD
 - GLM
 - Dear ImGui

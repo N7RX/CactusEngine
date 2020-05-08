@@ -8,6 +8,12 @@
 #include "ECSSceneWriter.h"
 #include "ECSSceneReader.h"
 
+#include "LightComponent.h"
+#include "TransformComponent.h"
+#include "ExternalMesh.h"
+#include "StandardEntity.h"
+#include "LightScript.h"
+
 // This is the entry of the program
 
 using namespace Engine;
@@ -84,7 +90,7 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Alert: the registration sequence may correspond to execution sequence
 	pWorld->RegisterSystem<InputSystem>(ESystemType::Input);
-	//pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation);
+	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation);
 	pWorld->RegisterSystem<DrawingSystem>(ESystemType::Script);
 	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
 
@@ -95,6 +101,46 @@ void TestSetup(GraphicsApplication* pApp)
 
 	// Or manually add contents here
 	// ...
+
+	// 121 point lights for deferred lighting test
+
+	LightComponent::Profile lightProfile = {};
+	lightProfile.sourceType = LightComponent::SourceType::PointLight;
+	lightProfile.lightColor = Color3(1.0f);
+	lightProfile.lightIntensity = 10.0f;
+	lightProfile.radius = 1.0f;
+	lightProfile.pVolumeMesh = std::make_shared<ExternalMesh>("Assets/Models/light_sphere.obj");
+
+	Color3 colors[7] = {
+		Color3(1.0f),
+		Color3(1.0f, 0.0f, 0.0f),
+		Color3(0.0f, 1.0f, 0.0f),
+		Color3(0.0f, 0.0f, 1.0f),
+		Color3(1.0f, 0.0f, 1.0f),
+		Color3(0.0f, 1.0f, 1.0f),
+		Color3(1.0f, 1.0f, 0.0f)
+	};
+	int colorIndex = 0;
+
+	for (int i = -5; i < 6; i++)
+	{
+		for (int j = -5; j < 6; j++)
+		{
+			auto pTransformComp = pWorld->CreateComponent<TransformComponent>();		
+			auto pLightComp = pWorld->CreateComponent<LightComponent>();
+			auto pScriptComp = pWorld->CreateComponent<ScriptComponent>();
+
+			auto pLight = pWorld->CreateEntity<StandardEntity>();
+			pLight->AttachComponent(pTransformComp);
+			pLight->AttachComponent(pLightComp);
+			pLight->AttachComponent(pScriptComp);
+
+			pTransformComp->SetPosition(Vector3(4.0f * (i / 5.0f), 0.1f, 8.0f * (j / 5.0f)));
+			lightProfile.lightColor = colors[(colorIndex++) % 7];
+			pLightComp->UpdateProfile(lightProfile);
+			pScriptComp->BindScript(std::make_shared<SampleScript::LightScript>(pLight));
+		}
+	}
 
 	// Write scene to file
 	//WriteECSWorldToJson(pWorld, "Assets/Scene/NewScene.json");

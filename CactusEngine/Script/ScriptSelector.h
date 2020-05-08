@@ -3,6 +3,7 @@
 #include "CameraScript.h"
 #include "CubeScript.h"
 #include "BunnyScript.h"
+#include "LightScript.h"
 
 namespace SampleScript
 {
@@ -17,6 +18,8 @@ namespace SampleScript
 			return std::make_shared<CubeScript>(pEntity);
 		case EScriptID::Bunny:
 			return std::make_shared<BunnyScript>(pEntity);
+		case EScriptID::Light:
+			return std::make_shared<LightScript>(pEntity);
 		default:
 			std::cout << "ScriptSelector: Unhandled script type: " << (uint32_t)id << std::endl;
 			break;

@@ -23,6 +23,7 @@ void StandardRenderer::BuildRenderGraph()
 	auto pShadowMapNode = std::make_shared<ShadowMapRenderNode>(m_pGraphResources, this);
 	auto pGBufferNode = std::make_shared<GBufferRenderNode>(m_pGraphResources, this);
 	auto pOpaqueNode = std::make_shared<OpaqueContentRenderNode>(m_pGraphResources, this);
+	auto pDeferredLightingNode = std::make_shared<DeferredLightingRenderNode>(m_pGraphResources, this);
 	auto pBlurNode = std::make_shared<BlurRenderNode>(m_pGraphResources, this);
 	auto pLineDrawingNode = std::make_shared<LineDrawingRenderNode>(m_pGraphResources, this);
 	auto pTransparencyNode = std::make_shared<TransparentContentRenderNode>(m_pGraphResources, this);
@@ -32,6 +33,7 @@ void StandardRenderer::BuildRenderGraph()
 	m_pRenderGraph->AddRenderNode("ShadowMapNode", pShadowMapNode);
 	m_pRenderGraph->AddRenderNode("GBufferNode", pGBufferNode);
 	m_pRenderGraph->AddRenderNode("OpaqueNode", pOpaqueNode);
+	m_pRenderGraph->AddRenderNode("DeferredLightingNode", pDeferredLightingNode);
 	m_pRenderGraph->AddRenderNode("BlurNode", pBlurNode);
 	m_pRenderGraph->AddRenderNode("LineDrawingNode", pLineDrawingNode);
 	m_pRenderGraph->AddRenderNode("TransparencyNode", pTransparencyNode);
@@ -41,7 +43,8 @@ void StandardRenderer::BuildRenderGraph()
 	// TODO: make the connection automatic
 	pShadowMapNode->ConnectNext(pOpaqueNode);
 	pGBufferNode->ConnectNext(pOpaqueNode);
-	pOpaqueNode->ConnectNext(pBlurNode);
+	pOpaqueNode->ConnectNext(pDeferredLightingNode);
+	pDeferredLightingNode->ConnectNext(pBlurNode);
 	pBlurNode->ConnectNext(pLineDrawingNode);
 	pLineDrawingNode->ConnectNext(pTransparencyNode);
 	pTransparencyNode->ConnectNext(pBlendNode);
@@ -50,12 +53,16 @@ void StandardRenderer::BuildRenderGraph()
 	// Define resource dependencies
 
 	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_SHADOW_MAP, ShadowMapRenderNode::OUTPUT_DEPTH_TEXTURE);
-	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
 	pOpaqueNode->SetInputResource(OpaqueContentRenderNode::INPUT_GBUFFER_NORMAL, GBufferRenderNode::OUTPUT_NORMAL_GBUFFER);
 
-	pBlurNode->SetInputResource(BlurRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_SHADOW_MARK_TEXTURE);
+	pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_GBUFFER_COLOR, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
+	pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_GBUFFER_NORMAL, GBufferRenderNode::OUTPUT_NORMAL_GBUFFER);
+	pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
+	pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_DEPTH_TEXTURE, OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 
-	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
+	pBlurNode->SetInputResource(BlurRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_LINE_SPACE_TEXTURE);
+
+	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_COLOR_TEXTURE, DeferredLightingRenderNode::OUTPUT_COLOR_TEXTURE);
 	pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_LINE_SPACE_TEXTURE, BlurRenderNode::OUTPUT_COLOR_TEXTURE);
 
 	pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_COLOR_TEXTURE, LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE);
@@ -68,7 +75,7 @@ void StandardRenderer::BuildRenderGraph()
 
 	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_COLOR_TEXTURE, TransparencyBlendRenderNode::OUTPUT_COLOR_TEXTURE);
 	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
-	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_SHADOW_MARK_TEXTURE, OpaqueContentRenderNode::OUTPUT_SHADOW_MARK_TEXTURE);
+	pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_SHADOW_MARK_TEXTURE, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
 
 	// Initialize render graph
 

@@ -485,6 +485,9 @@ namespace Engine
 		case EBlendFactor::OneMinusSrcAlpha:
 			return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
+		case EBlendFactor::One:
+			return VK_BLEND_FACTOR_ONE;
+
 		default:
 			std::cerr << "Vulkan: Unhandled blend factor: " << (unsigned int)factor << std::endl;
 			return VK_BLEND_FACTOR_ONE;

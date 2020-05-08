@@ -265,6 +265,40 @@ void DrawingDevice_OpenGL::SetBlendState(const DeviceBlendStateInfo& blendInfo)
 	}
 }
 
+void DrawingDevice_OpenGL::SetCullState(const DeviceCullStateInfo& cullInfo)
+{
+	if (cullInfo.enabled)
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(cullInfo.cullMode == ECullMode::Front ? GL_FRONT : GL_BACK);
+	}
+	else
+	{
+		glDisable(GL_CULL_FACE);
+	}
+}
+
+void DrawingDevice_OpenGL::SetDepthState(const DeviceDepthStateInfo& depthInfo)
+{
+	if (depthInfo.enableDepthTest)
+	{
+		glEnable(GL_DEPTH_TEST);
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
+	}
+
+	if (depthInfo.enableDepthMask)
+	{
+		glDepthMask(GL_TRUE);
+	}
+	else
+	{
+		glDepthMask(GL_FALSE);
+	}
+}
+
 void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	auto pProgram = std::static_pointer_cast<ShaderProgram_OpenGL>(pShaderProgram);
@@ -471,7 +505,7 @@ void DrawingDevice_OpenGL::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSema
 	glFinish();
 }
 
-std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType) const
+std::shared_ptr<TextureSampler> DrawingDevice_OpenGL::GetDefaultTextureSampler(EGPUType deviceType, bool withDefaultAF) const
 {
 	return nullptr;
 }

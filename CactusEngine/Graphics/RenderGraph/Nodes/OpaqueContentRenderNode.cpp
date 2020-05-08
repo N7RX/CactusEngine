@@ -8,16 +8,14 @@ using namespace Engine;
 
 const char* OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE = "OpaqueColorTexture";
 const char* OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE = "OpaqueDepthTexture";
-const char* OpaqueContentRenderNode::OUTPUT_SHADOW_MARK_TEXTURE = "OpaqueShadowMarkTexture";
+const char* OpaqueContentRenderNode::OUTPUT_LINE_SPACE_TEXTURE = "OpaqueLineSpaceTexture";
 
-const char* OpaqueContentRenderNode::INPUT_GBUFFER_POSITION = "OpaqueInputGBufferPosition";
 const char* OpaqueContentRenderNode::INPUT_GBUFFER_NORMAL = "OpaqueInputGBufferNormal";
 const char* OpaqueContentRenderNode::INPUT_SHADOW_MAP = "OpaqueInputShadowMap";
 
 OpaqueContentRenderNode::OpaqueContentRenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
 	: RenderNode(pGraphResources, pRenderer)
 {
-	m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
 	m_inputResourceNames[INPUT_GBUFFER_NORMAL] = nullptr;
 	m_inputResourceNames[INPUT_SHADOW_MAP] = nullptr;
 }
@@ -40,7 +38,7 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 	texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 	m_pDevice->CreateTexture2D(texCreateInfo, m_pColorOutput);
-	m_pDevice->CreateTexture2D(texCreateInfo, m_pShadowMarkOutput);
+	m_pDevice->CreateTexture2D(texCreateInfo, m_pLineSpaceOutput);
 
 	// Depth output
 
@@ -51,7 +49,7 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 
 	pGraphResources->Add(OUTPUT_COLOR_TEXTURE, m_pColorOutput);
 	pGraphResources->Add(OUTPUT_DEPTH_TEXTURE, m_pDepthOutput);
-	pGraphResources->Add(OUTPUT_SHADOW_MARK_TEXTURE, m_pShadowMarkOutput);
+	pGraphResources->Add(OUTPUT_LINE_SPACE_TEXTURE, m_pLineSpaceOutput);
 
 	// Render pass object
 
@@ -111,7 +109,7 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 
 	FrameBufferCreateInfo fbCreateInfo = {};
 	fbCreateInfo.attachments.emplace_back(m_pColorOutput);
-	fbCreateInfo.attachments.emplace_back(m_pShadowMarkOutput);
+	fbCreateInfo.attachments.emplace_back(m_pLineSpaceOutput);
 	fbCreateInfo.attachments.emplace_back(m_pDepthOutput);
 	fbCreateInfo.framebufferWidth = screenWidth;
 	fbCreateInfo.framebufferHeight = screenHeight;
@@ -315,7 +313,6 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 	Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 	Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
-	auto pGBufferPositionTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
 	auto pGBufferNormalTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_NORMAL)));
 	auto pShadowMapTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MAP)));
 
@@ -404,7 +401,6 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);
 			}
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, m_pCameraProperties_UB);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferPositionTexture);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, m_pLightSpaceTransformMatrix_UB);
@@ -427,7 +423,7 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 			auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 			if (pAlbedoTexture)
 			{
-				pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
+				pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler(EGPUType::Main, true));
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 			}
 

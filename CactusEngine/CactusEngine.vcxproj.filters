@@ -110,6 +110,24 @@
     <None Include="Assets\Shader\GLSL\Basic_Transparent.vert">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
+    <None Include="Assets\Shader\GLSL\LightDeferred.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LightDeferred.vert">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\GLSL\LightDeferred_Directional.frag">
+      <Filter>Graphics\Device\OpenGL\Shader</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\LightDeferred.frag">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\LightDeferred_Directional.frag">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
+    <None Include="Assets\Shader\SPIRV-Source\LightDeferred.vert">
+      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">
@@ -465,6 +483,18 @@
     <ClInclude Include="Graphics\RenderGraph\AllRenderNodes.h">
       <Filter>Graphics\RenderGraph</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Renderer\RayTracingRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\LightComponent.h">
+      <Filter>Component\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.h">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\LightScript.h">
+      <Filter>Script</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -655,6 +685,18 @@
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\StandardRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\RayTracingRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\LightComponent.cpp">
+      <Filter>Component\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.cpp">
+      <Filter>Graphics\RenderGraph\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\LightScript.cpp">
+      <Filter>Script</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

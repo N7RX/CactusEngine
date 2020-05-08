@@ -3,7 +3,7 @@
 	{
 		"camera" : 
 		{
-			"aperture" : 3.0,
+			"aperture" : 5.0,
 			"clearColor" : 
 			{
 				"a" : 0.0,
@@ -12,7 +12,7 @@
 				"r" : 0.25499999523162842
 			},
 			"farClip" : 1000.0,
-			"focalDistance" : 2.0,
+			"focalDistance" : 3.0,
 			"fov" : 45.0,
 			"imageDistance" : 2.0,
 			"nearClip" : 0.10000000149011612,

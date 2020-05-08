@@ -9,7 +9,7 @@ layout(location = 5) in vec3 v2fBitangent;
 layout(location = 6) in mat3 v2fTBNMatrix;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outShadow;
+layout(location = 1) out vec4 outLineSpace;
 
 layout(std140, binding = 14) uniform TransformMatrices
 {
@@ -20,8 +20,7 @@ layout(std140, binding = 14) uniform TransformMatrices
 };
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;
-layout(binding = 3) uniform sampler2D GPositionTexture;
-layout(binding = 5) uniform sampler2D GNormalTexture;
+layout(binding = 2) uniform sampler2D GNormalTexture;
 layout(binding = 8) uniform sampler2D ToneTexture;
 layout(binding = 0) uniform sampler2D ShadowMapDepthTexture;
 
@@ -234,5 +233,6 @@ void main(void)
 	float shadowValue = ComputeShadow(v2fLightSpacePosition, v2fNormal);
 
 	outColor = (I * toneColor * colorFromAlbedoTexture + specularColor) * (1.8f - shadowValue);
-	outShadow = vec4(min(shadowValue, (1.0f- toonCoord.x)), texture(GPositionTexture, screenCoord).z, toonCoord.x, 0);
+	outColor.a = min(shadowValue, (1.0f - toonCoord.x));
+	outLineSpace = vec4(texture(GNormalTexture, screenCoord).rgb, toonCoord.x);
 }

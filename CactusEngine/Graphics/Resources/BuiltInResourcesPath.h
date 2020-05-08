@@ -30,6 +30,10 @@ namespace Engine
 		static const char* SHADER_VERTEX_SHADOWMAP_OPENGL = "Assets/Shader/GLSL/ShadowMap.vert";
 		static const char* SHADER_FRAGMENT_SHADOWMAP_OPENGL = "Assets/Shader/GLSL/ShadowMap.frag";
 
+		static const char* SHADER_VERTEX_DEFERRED_LIGHTING_OPENGL = "Assets/Shader/GLSL/LightDeferred.vert";
+		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_OPENGL = "Assets/Shader/GLSL/LightDeferred.frag";
+		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL = "Assets/Shader/GLSL/LightDeferred_Directional.frag";
+
 		//========
 		// Vulkan
 
@@ -57,5 +61,8 @@ namespace Engine
 		static const char* SHADER_VERTEX_SHADOWMAP_VK = "Assets/Shader/SPIRV/ShadowMap_vert.spv";
 		static const char* SHADER_FRAGMENT_SHADOWMAP_VK = "Assets/Shader/SPIRV/ShadowMap_frag.spv";
 
+		static const char* SHADER_VERTEX_DEFERRED_LIGHTING_VK = "Assets/Shader/SPIRV/LightDeferred_vert.spv";
+		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_VK = "Assets/Shader/SPIRV/LightDeferred_frag.spv";
+		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_VK = "Assets/Shader/SPIRV/LightDeferred_Directional_frag.spv";
 	}
 }

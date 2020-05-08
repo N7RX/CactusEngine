@@ -8,5 +8,6 @@ namespace SampleScript
 		Camera = 0,
 		Cube,
 		Bunny,
+		Light
 	};
 }

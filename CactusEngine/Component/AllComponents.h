@@ -6,3 +6,4 @@
 #include "MeshRendererComponent.h"
 #include "TransformComponent.h"
 #include "ScriptComponent.h"
+#include "LightComponent.h"

@@ -118,6 +118,8 @@ namespace Engine
 			return GL_SRC_ALPHA;
 		case EBlendFactor::OneMinusSrcAlpha:
 			return GL_ONE_MINUS_SRC_ALPHA;
+		case EBlendFactor::One:
+			return GL_ONE;
 		default:
 			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;
 			break;

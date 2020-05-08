@@ -19,6 +19,8 @@ namespace Engine
 		GaussianBlur,
 		ShadowMap,
 		DOF,
+		DeferredLighting,
+		DeferredLighting_Directional,
 		COUNT,
 		NONE
 	};
@@ -77,6 +79,14 @@ namespace Engine
 		int bool_1;
 	};
 
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBLightSourceProperties
+	{
+		Vector4 source;
+		Color4  color;
+		float	intensity;
+		float	radius;
+	};
+
 	namespace ShaderParamNames
 	{
 		// Uniform blocks
@@ -88,6 +98,8 @@ namespace Engine
 
 		static const char* CAMERA_PROPERTIES = "CameraProperties";
 
+		static const char* LIGHTSOURCE_PROPERTIES = "LightSourceProperties";
+
 		static const char* SYSTEM_VARIABLES = "SystemVariables";
 		static const char* CONTROL_VARIABLES = "ControlVariables";
 
@@ -97,6 +109,7 @@ namespace Engine
 
 		static const char* ALBEDO_TEXTURE = "AlbedoTexture";
 
+		static const char* GCOLOR_TEXTURE = "GColorTexture";
 		static const char* GNORMAL_TEXTURE = "GNormalTexture";
 		static const char* GPOSITION_TEXTURE = "GPositionTexture";
 
@@ -134,6 +147,10 @@ namespace Engine
 		{
 			return ShaderParamNames::CAMERA_PROPERTIES;
 		}
+		if (std::strcmp(ShaderParamNames::LIGHTSOURCE_PROPERTIES, cstr) == 0)
+		{
+			return ShaderParamNames::LIGHTSOURCE_PROPERTIES;
+		}
 		if (std::strcmp(ShaderParamNames::SYSTEM_VARIABLES, cstr) == 0)
 		{
 			return ShaderParamNames::SYSTEM_VARIABLES;
@@ -150,6 +167,10 @@ namespace Engine
 		if (std::strcmp(ShaderParamNames::ALBEDO_TEXTURE, cstr) == 0)
 		{
 			return ShaderParamNames::ALBEDO_TEXTURE;
+		}
+		if (std::strcmp(ShaderParamNames::GCOLOR_TEXTURE, cstr) == 0)
+		{
+			return ShaderParamNames::GCOLOR_TEXTURE;
 		}
 		if (std::strcmp(ShaderParamNames::GNORMAL_TEXTURE, cstr) == 0)
 		{

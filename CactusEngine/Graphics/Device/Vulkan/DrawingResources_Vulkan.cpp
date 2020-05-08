@@ -84,7 +84,8 @@ Sampler_Vulkan::Sampler_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevi
 Sampler_Vulkan::~Sampler_Vulkan()
 {
 	assert(m_sampler != VK_NULL_HANDLE);
-	vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
+	//vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
+	std::cout << "Sampler destroyed\n";
 }
 
 Texture2D_Vulkan::Texture2D_Vulkan(const std::shared_ptr<LogicalDevice_Vulkan> pDevice, const Texture2DCreateInfo_Vulkan& createInfo)

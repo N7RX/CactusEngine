@@ -302,6 +302,7 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 
 	m_paramBindings.emplace(ShaderParamNames::ALBEDO_TEXTURE, 1);
 
+	m_paramBindings.emplace(ShaderParamNames::GCOLOR_TEXTURE, 20);
 	m_paramBindings.emplace(ShaderParamNames::GNORMAL_TEXTURE, 2);
 	m_paramBindings.emplace(ShaderParamNames::GPOSITION_TEXTURE, 3);
 
@@ -330,4 +331,8 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 
 	m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 18);
 	m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 19);
+
+	m_paramBindings.emplace(ShaderParamNames::LIGHTSOURCE_PROPERTIES, 21);
+
+	// Next to be: 22
 }
