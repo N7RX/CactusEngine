@@ -46,29 +46,26 @@ void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResou
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffer
 
@@ -81,11 +78,6 @@ void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResou
 	m_pDevice->CreateFrameBuffer(fbCreateInfo, m_pFrameBuffer);
 
 	// Pipeline objects
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -178,22 +170,11 @@ void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResou
 
 void TransparencyBlendRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
 {
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
-		m_pDevice->SetRenderTarget(m_pFrameBuffer);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();

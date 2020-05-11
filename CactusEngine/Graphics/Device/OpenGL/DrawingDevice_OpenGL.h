@@ -21,16 +21,6 @@ namespace Engine
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;	
 		bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput) override;
 
-		void ClearRenderTarget() override;
-		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
-		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
-		void SetClearColor(Color4 color) override;
-
-		// Alert: these functions will be soon deprecated
-		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
-		void SetCullState(const DeviceCullStateInfo& cullInfo) override;
-		void SetDepthState(const DeviceDepthStateInfo& depthInfo) override;
-
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
@@ -84,12 +74,15 @@ namespace Engine
 		void CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size) override;
 		void CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc) override;
 
-		void ConfigureStates_Test() override;
+		void SetPrimitiveTopology(GLenum mode);
 
 	private:
+		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments);
+		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer);
 
+	private:
 		GLuint m_attributeless_vao = -1;
-
+		GLenum m_primitiveTopologyMode = GL_TRIANGLES;
 	};
 
 	template<>

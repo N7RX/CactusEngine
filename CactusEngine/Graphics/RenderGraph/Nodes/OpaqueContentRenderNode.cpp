@@ -53,57 +53,54 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::Clear;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;	
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::Clear;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;	
 
-		RenderPassAttachmentDescription shadowDesc = {};
-		shadowDesc.format = ETextureFormat::RGBA32F;
-		shadowDesc.sampleCount = 1;
-		shadowDesc.loadOp = EAttachmentOperation::Clear;
-		shadowDesc.storeOp = EAttachmentOperation::Store;
-		shadowDesc.stencilLoadOp = EAttachmentOperation::None;
-		shadowDesc.stencilStoreOp = EAttachmentOperation::None;
-		shadowDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		shadowDesc.usageLayout = EImageLayout::ColorAttachment;
-		shadowDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		shadowDesc.type = EAttachmentType::Color;
-		shadowDesc.index = 1;
+	RenderPassAttachmentDescription shadowDesc = {};
+	shadowDesc.format = ETextureFormat::RGBA32F;
+	shadowDesc.sampleCount = 1;
+	shadowDesc.loadOp = EAttachmentOperation::Clear;
+	shadowDesc.storeOp = EAttachmentOperation::Store;
+	shadowDesc.stencilLoadOp = EAttachmentOperation::None;
+	shadowDesc.stencilStoreOp = EAttachmentOperation::None;
+	shadowDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	shadowDesc.usageLayout = EImageLayout::ColorAttachment;
+	shadowDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	shadowDesc.type = EAttachmentType::Color;
+	shadowDesc.index = 1;
 
-		RenderPassAttachmentDescription depthDesc = {};
-		depthDesc.format = ETextureFormat::Depth;
-		depthDesc.sampleCount = 1;
-		depthDesc.loadOp = EAttachmentOperation::Clear;
-		depthDesc.storeOp = EAttachmentOperation::Store;
-		depthDesc.stencilLoadOp = EAttachmentOperation::None;
-		depthDesc.stencilStoreOp = EAttachmentOperation::None;
-		depthDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		depthDesc.usageLayout = EImageLayout::DepthStencilAttachment;
-		depthDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		depthDesc.type = EAttachmentType::Depth;
-		depthDesc.index = 2;
+	RenderPassAttachmentDescription depthDesc = {};
+	depthDesc.format = ETextureFormat::Depth;
+	depthDesc.sampleCount = 1;
+	depthDesc.loadOp = EAttachmentOperation::Clear;
+	depthDesc.storeOp = EAttachmentOperation::Store;
+	depthDesc.stencilLoadOp = EAttachmentOperation::None;
+	depthDesc.stencilStoreOp = EAttachmentOperation::None;
+	depthDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	depthDesc.usageLayout = EImageLayout::DepthStencilAttachment;
+	depthDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	depthDesc.type = EAttachmentType::Depth;
+	depthDesc.index = 2;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;	
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
-		passCreateInfo.attachmentDescriptions.emplace_back(shadowDesc);
-		passCreateInfo.attachmentDescriptions.emplace_back(depthDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;	
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	passCreateInfo.attachmentDescriptions.emplace_back(shadowDesc);
+	passCreateInfo.attachmentDescriptions.emplace_back(depthDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffer
 
@@ -137,11 +134,6 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pMaterialNumericalProperties_UB);
 
 	// Pipeline objects
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -291,22 +283,9 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 		pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
-
-		m_pDevice->SetRenderTarget(m_pFrameBuffer);
-		m_pDevice->ClearRenderTarget();
-	}
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 	Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
 	Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
@@ -383,10 +362,7 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 
 			if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 			{
-				if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-				{
-					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
-				}
+				m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
 				pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 				lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 			}

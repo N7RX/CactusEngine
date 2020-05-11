@@ -108,6 +108,57 @@ void UniformBuffer_OpenGL::ResetSubBufferAllocation()
 	// "OpenGL: shouldn't call ResetSubBufferAllocation on OpenGL uniform buffer."
 }
 
+RenderPass_OpenGL::RenderPass_OpenGL()
+	: m_clearColorOnLoad(false), m_clearDepthOnLoad(false), m_clearColor(Color4(1))
+{
+
+}
+
+void RenderPass_OpenGL::Initialize()
+{
+	if (m_clearColorOnLoad)
+	{
+		glClearColor(m_clearColor.r, m_clearColor.g, m_clearColor.b, m_clearColor.a);
+	}
+
+	if (m_clearColorOnLoad && m_clearDepthOnLoad)
+	{
+		GLboolean depthMaskState;
+		glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskState);
+		if (!depthMaskState)
+		{
+			glDepthMask(GL_TRUE);
+		}
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		if (!depthMaskState)
+		{
+			glDepthMask(GL_FALSE);
+		}
+	}
+	else if (m_clearColorOnLoad)
+	{
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+	else if (m_clearDepthOnLoad)
+	{
+		GLboolean depthMaskState;
+		glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskState);
+		if (!depthMaskState)
+		{
+			glDepthMask(GL_TRUE);
+		}
+
+		glClear(GL_DEPTH_BUFFER_BIT);
+
+		if (!depthMaskState)
+		{
+			glDepthMask(GL_FALSE);
+		}
+	}
+}
+
 FrameBuffer_OpenGL::~FrameBuffer_OpenGL()
 {
 	glDeleteFramebuffers(1, &m_glFrameBufferID);
@@ -247,7 +298,6 @@ unsigned int ShaderProgram_OpenGL::GetParamBinding(const char* paramName) const
 void ShaderProgram_OpenGL::Reset()
 {
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glUseProgram(0);
 }
 
 void ShaderProgram_OpenGL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes)
@@ -335,4 +385,119 @@ void ShaderProgram_OpenGL::ReflectParamLocations()
 	m_paramBindings.emplace(ShaderParamNames::LIGHTSOURCE_PROPERTIES, 21);
 
 	// Next to be: 22
+}
+
+GraphicsPipeline_OpenGL::GraphicsPipeline_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<ShaderProgram_OpenGL> pShaderProgram, GraphicsPipelineCreateInfo_OpenGL& createInfo)
+	: m_pDevice(pDevice), m_pShaderProgram(pShaderProgram)
+{
+	m_primitiveTopologyMode = OpenGLAssemblyTopologyMode(createInfo.topologyMode);
+	m_enablePrimitiveRestart = createInfo.enablePrimitiveRestart;
+
+	m_enableBlend = createInfo.enableBlend;
+	if (m_enableBlend)
+	{
+		m_blendSrcFactor = OpenGLBlendFactor(createInfo.blendSrcFactor);
+		m_blendDstFactor = OpenGLBlendFactor(createInfo.blendDstFactor);
+	}
+
+	m_enableCulling = createInfo.enableCulling;
+	if (m_enableCulling)
+	{
+		m_cullMode = OpenGLCullMode(createInfo.cullMode);
+	}
+	m_polygonMode = OpenGLPolygonMode(createInfo.polygonMode);
+
+	m_enableDepthTest = createInfo.enableDepthTest;
+	m_enableDepthMask = createInfo.enableDepthMask;
+
+	m_viewportWidth = createInfo.viewportWidth;
+	m_viewportHeight = createInfo.viewportHeight;
+}
+
+void GraphicsPipeline_OpenGL::Apply() const
+{
+	glUseProgram(m_pShaderProgram->GetGLProgramID());
+
+	m_pDevice->SetPrimitiveTopology(m_primitiveTopologyMode);
+	if (m_enablePrimitiveRestart)
+	{
+		glEnable(GL_PRIMITIVE_RESTART);
+	}
+	else
+	{
+		glDisable(GL_PRIMITIVE_RESTART);
+	}
+
+	if (m_enableBlend)
+	{
+		glEnable(GL_BLEND);
+		glBlendFunc(m_blendSrcFactor, m_blendDstFactor);
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+	}
+
+	if (m_enableCulling)
+	{
+		glEnable(GL_CULL_FACE);
+		glCullFace(m_cullMode);
+	}
+	else
+	{
+		glDisable(GL_CULL_FACE);
+	}
+	glPolygonMode(GL_FRONT_AND_BACK, m_polygonMode);
+
+	if (m_enableDepthTest)
+	{
+		glEnable(GL_DEPTH_TEST);
+	}
+	else
+	{
+		glDisable(GL_DEPTH_TEST);
+	}
+	glDepthMask(m_enableDepthMask ? GL_TRUE : GL_FALSE);
+
+	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
+}
+
+PipelineInputAssemblyState_OpenGL::PipelineInputAssemblyState_OpenGL(const PipelineInputAssemblyStateCreateInfo& createInfo)
+{
+	topologyMode = createInfo.topology;
+	enablePrimitiveRestart = createInfo.enablePrimitiveRestart;
+}
+
+PipelineColorBlendState_OpenGL::PipelineColorBlendState_OpenGL(const PipelineColorBlendStateCreateInfo& createInfo)
+{
+	if (createInfo.blendStateDescs.size() == 0)
+	{
+		enableBlend = false;
+		return;
+	}
+
+	// For OpenGL, take the first desc as blend state configuration
+
+	enableBlend = createInfo.blendStateDescs[0].enableBlend;
+	blendSrcFactor = createInfo.blendStateDescs[0].srcColorBlendFactor;
+	blendDstFactor = createInfo.blendStateDescs[0].dstColorBlendFactor;
+}
+
+PipelineRasterizationState_OpenGL::PipelineRasterizationState_OpenGL(const PipelineRasterizationStateCreateInfo& createInfo)
+{
+	enableCull = createInfo.cullMode == ECullMode::None ? false : true;
+	cullMode = createInfo.cullMode;
+	polygonMode = createInfo.polygonMode;
+}
+
+PipelineDepthStencilState_OpenGL::PipelineDepthStencilState_OpenGL(const PipelineDepthStencilStateCreateInfo& createInfo)
+{
+	enableDepthTest = createInfo.enableDepthTest;
+	enableDepthMask = createInfo.enableDepthWrite;
+}
+
+PipelineViewportState_OpenGL::PipelineViewportState_OpenGL(const PipelineViewportStateCreateInfo& createInfo)
+{
+	viewportWidth = createInfo.width;
+	viewportHeight = createInfo.height;
 }

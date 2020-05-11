@@ -346,30 +346,6 @@ namespace Engine
 		}
 	};
 
-	// Legacy structs for OpenGL
-	// ---
-
-	struct DeviceBlendStateInfo
-	{
-		bool enabled;
-		EBlendFactor srcFactor;
-		EBlendFactor dstFactor;
-	};
-
-	struct DeviceCullStateInfo
-	{
-		bool enabled;
-		ECullMode cullMode;
-	};
-
-	struct DeviceDepthStateInfo
-	{
-		bool enableDepthTest;
-		bool enableDepthMask;
-	};
-
-	// ---
-
 	struct VertexInputBindingDescription
 	{
 		uint32_t			binding;

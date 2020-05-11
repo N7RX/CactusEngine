@@ -45,29 +45,26 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffers
 	FrameBufferCreateInfo fbCreateInfo_Line = {};
@@ -113,11 +110,6 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
 
 	// Pipeline objects
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -228,26 +220,15 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 {
 	m_pControlVariables_UB->ResetSubBufferAllocation();
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	UBControlVariables ubControlVariables = {};
 
 	// Outlining pass
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Simplified), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Line, pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Line, pCommandBuffer);
 
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_Line);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Simplified), pCommandBuffer);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -275,15 +256,9 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 		// Horizontal pass
 
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-		{
-			m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
-			m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurHorizontal, pCommandBuffer);
-		}
-		else
-		{
-			m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurHorizontal);
-		}
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
+
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurHorizontal, pCommandBuffer);
 
 		pShaderParamTable->Clear();
 
@@ -317,14 +292,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 		// Vertical pass
 
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-		{
-			m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurFinal, pCommandBuffer);
-		}
-		else
-		{
-			m_pDevice->SetRenderTarget(m_pFrameBuffer_BlurFinal);
-		}
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_BlurFinal, pCommandBuffer);
 
 		pShaderParamTable->Clear();
 
@@ -359,15 +327,9 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 	// Final blend pass
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Blend), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_FinalBlend, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_FinalBlend);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Blend), pCommandBuffer);
+
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_FinalBlend, pCommandBuffer);
 
 	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 	pShaderParamTable->Clear();

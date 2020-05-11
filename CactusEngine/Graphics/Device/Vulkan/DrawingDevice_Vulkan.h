@@ -56,15 +56,6 @@ namespace Engine
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) override;
 		bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput) override;
 
-		void ClearRenderTarget() override;
-		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) override;
-		void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) override;
-		void SetClearColor(Color4 color) override;
-
-		void SetBlendState(const DeviceBlendStateInfo& blendInfo) override;
-		void SetCullState(const DeviceCullStateInfo& cullInfo) override;
-		void SetDepthState(const DeviceDepthStateInfo& depthInfo) override;
-
 		void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
@@ -121,8 +112,6 @@ namespace Engine
 		void CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size) override;
 		void CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc) override;
 
-		void ConfigureStates_Test() override;
-
 	private:
 		// Initialization functions
 		void GetRequiredExtensions();
@@ -154,7 +143,6 @@ namespace Engine
 		const static unsigned int MAX_FRAME_IN_FLIGHT = 2;
 
 	private:
-
 #if defined(_DEBUG)
 		const bool m_enableValidationLayers = true;
 #else

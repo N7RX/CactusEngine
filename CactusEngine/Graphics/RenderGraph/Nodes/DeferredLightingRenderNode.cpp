@@ -45,29 +45,26 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffer
 
@@ -96,11 +93,6 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSourceProperties_UB);
 
 	// Pipeline object
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input states
 
@@ -278,25 +270,13 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 	auto pGBufferPositionTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
 	auto pSceneDepthTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_DEPTH_TEXTURE)));
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 	// Directional light pass (pass through)
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
-
-		m_pDevice->SetRenderTarget(m_pFrameBuffer);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
 	auto pShaderParamTable_ext = std::make_shared<ShaderParameterTable>();
@@ -325,28 +305,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 		pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting), pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = true;
-		blendInfo.srcFactor = EBlendFactor::SrcAlpha;
-		blendInfo.dstFactor = EBlendFactor::One;
-		m_pDevice->SetBlendState(blendInfo);
-
-		DeviceCullStateInfo cullInfo = {};
-		cullInfo.enabled = true;
-		cullInfo.cullMode = ECullMode::Front;
-		m_pDevice->SetCullState(cullInfo);
-
-		DeviceDepthStateInfo depthInfo = {};
-		depthInfo.enableDepthTest = false;
-		depthInfo.enableDepthMask = false;
-		m_pDevice->SetDepthState(depthInfo);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting), pCommandBuffer);
 
 	UBTransformMatrices ubTransformMatrices = {};
 	UBCameraProperties ubCameraProperties = {};
@@ -450,15 +409,5 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 	else
 	{
 		pShaderProgram->Reset();
-
-		DeviceCullStateInfo cullInfo = {};
-		cullInfo.enabled = true;
-		cullInfo.cullMode = ECullMode::Back;
-		m_pDevice->SetCullState(cullInfo);
-
-		DeviceDepthStateInfo depthInfo = {};
-		depthInfo.enableDepthTest = true;
-		depthInfo.enableDepthMask = true;
-		m_pDevice->SetDepthState(depthInfo);
 	}
 }

@@ -110,7 +110,7 @@ namespace Engine
 		return 0;
 	}
 
-	inline int OpenGLBlendFactor(EBlendFactor factor)
+	inline GLenum OpenGLBlendFactor(EBlendFactor factor)
 	{
 		switch (factor)
 		{
@@ -122,6 +122,63 @@ namespace Engine
 			return GL_ONE;
 		default:
 			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;
+			break;
+		}
+		return -1;
+	}
+
+	inline GLenum OpenGLCullMode(ECullMode mode)
+	{
+		switch (mode)
+		{
+		case ECullMode::Front:
+			return GL_FRONT;
+		case ECullMode::Back:
+			return GL_BACK;
+		case ECullMode::FrontAndBack:
+			return GL_FRONT_AND_BACK;
+		default:
+			std::cerr << "Unhandled OpenGL cull mode." << std::endl;
+			break;
+		}
+		return -1;
+	}
+
+	inline GLenum OpenGLAssemblyTopologyMode(EAssemblyTopology mode)
+	{
+		switch (mode)
+		{
+		case EAssemblyTopology::TriangleList:
+			return GL_TRIANGLES;
+		case EAssemblyTopology::TriangleStrip:
+			return GL_TRIANGLE_STRIP;
+		case EAssemblyTopology::TriangleFan:
+			return GL_TRIANGLE_FAN;
+		case EAssemblyTopology::LineList:
+			return GL_LINES;
+		case EAssemblyTopology::LineStrip:
+			return GL_LINE_STRIP;
+		case EAssemblyTopology::PointList:
+			return GL_POINTS;
+		default:
+			std::cerr << "Unhandled OpenGL assembly topology mode." << std::endl;
+			break;
+		}
+		return -1;
+	}
+
+	inline GLenum OpenGLPolygonMode(EPolygonMode mode)
+	{
+		switch (mode)
+		{
+		case EPolygonMode::Fill:
+			return GL_FILL;
+		case EPolygonMode::Line:
+			return GL_LINE;
+		case EPolygonMode::Point:
+			return GL_POINT;
+		default:
+			std::cerr << "Unhandled OpenGL polygon mode." << std::endl;
 			break;
 		}
 		return -1;

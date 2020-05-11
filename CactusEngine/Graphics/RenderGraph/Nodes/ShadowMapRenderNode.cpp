@@ -37,29 +37,26 @@ void ShadowMapRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGr
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription depthDesc = {};
-		depthDesc.format = ETextureFormat::Depth;
-		depthDesc.sampleCount = 1;
-		depthDesc.loadOp = EAttachmentOperation::Clear;
-		depthDesc.storeOp = EAttachmentOperation::Store;
-		depthDesc.stencilLoadOp = EAttachmentOperation::None;
-		depthDesc.stencilStoreOp = EAttachmentOperation::None;
-		depthDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		depthDesc.usageLayout = EImageLayout::DepthStencilAttachment;
-		depthDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		depthDesc.type = EAttachmentType::Depth;
-		depthDesc.index = 0;
+	RenderPassAttachmentDescription depthDesc = {};
+	depthDesc.format = ETextureFormat::Depth;
+	depthDesc.sampleCount = 1;
+	depthDesc.loadOp = EAttachmentOperation::Clear;
+	depthDesc.storeOp = EAttachmentOperation::Store;
+	depthDesc.stencilLoadOp = EAttachmentOperation::None;
+	depthDesc.stencilStoreOp = EAttachmentOperation::None;
+	depthDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	depthDesc.usageLayout = EImageLayout::DepthStencilAttachment;
+	depthDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	depthDesc.type = EAttachmentType::Depth;
+	depthDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(depthDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(depthDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffer
 
@@ -84,11 +81,6 @@ void ShadowMapRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGr
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSpaceTransformMatrix_UB);
 
 	// Pipeline object
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -230,26 +222,11 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 	}
 	Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->ResizeViewPort(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
-
-		m_pDevice->SetRenderTarget(m_pFrameBuffer);
-		m_pDevice->ClearRenderTarget();
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 

@@ -25,16 +25,6 @@ namespace Engine
 		virtual bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput) = 0;
 		virtual bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput) = 0;
 
-		virtual void ClearRenderTarget() = 0;
-		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments) = 0;
-		virtual void SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer) = 0;
-		virtual void SetClearColor(Color4 color) = 0;
-
-		// TODO: replace these functions with universal pipeline state
-		virtual void SetBlendState(const DeviceBlendStateInfo& blendInfo) = 0;
-		virtual void SetCullState(const DeviceCullStateInfo& cullInfo) = 0;
-		virtual void SetDepthState(const DeviceDepthStateInfo& depthInfo) = 0;
-
 		virtual void UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
@@ -89,9 +79,6 @@ namespace Engine
 		virtual void CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) = 0;
 		virtual void CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size) = 0;
 		virtual void CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc) = 0;
-
-		// TODO: discard this function in the future, it's for temporary test
-		virtual void ConfigureStates_Test() = 0;
 
 	public:
 		static const uint32_t ATTRIB_POSITION_LOCATION = 0;

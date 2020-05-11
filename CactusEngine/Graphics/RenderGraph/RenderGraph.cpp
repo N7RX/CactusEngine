@@ -171,9 +171,12 @@ void RenderGraph::BuildRenderNodePriorities()
 
 void RenderGraph::BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext)
 {
+	static std::shared_ptr<CommandContext> pEmptyCmdContext = std::make_shared<CommandContext>();
+
 	for (auto& pNode : m_nodes)
 	{
 		pNode.second->m_pRenderContext = pContext;
+		pNode.second->m_pCmdContext = pEmptyCmdContext;
 		pNode.second->m_finishedExecution = false;
 
 		if (pNode.second->m_prevNodes.empty())

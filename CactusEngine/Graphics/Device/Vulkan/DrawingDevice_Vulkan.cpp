@@ -292,41 +292,6 @@ bool DrawingDevice_Vulkan::CreateUniformBuffer(const UniformBufferCreateInfo& cr
 	return pOutput != nullptr;
 }
 
-void DrawingDevice_Vulkan::ClearRenderTarget()
-{
-	std::cerr << "Vulkan: Shouldn't call ClearRenderTarget on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer, const std::vector<uint32_t>& attachments)
-{
-	std::cerr << "Vulkan: Shouldn't call SetRenderTarget on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
-{
-	std::cerr << "Vulkan: Shouldn't call SetRenderTarget on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetClearColor(Color4 color)
-{
-	std::cerr << "Vulkan: Shouldn't call SetClearColor on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetBlendState(const DeviceBlendStateInfo& blendInfo)
-{
-	std::cerr << "Vulkan: Shouldn't call SetBlendState on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetCullState(const DeviceCullStateInfo& cullInfo)
-{
-	std::cerr << "Vulkan: Shouldn't call SetCullState on Vulkan device.\n";
-}
-
-void DrawingDevice_Vulkan::SetDepthState(const DeviceDepthStateInfo& depthInfo)
-{
-	std::cerr << "Vulkan: Shouldn't call SetDepthState on Vulkan device.\n";
-}
-
 void DrawingDevice_Vulkan::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	assert(pCommandBuffer != nullptr);
@@ -1123,11 +1088,6 @@ void DrawingDevice_Vulkan::CopyDataTransferBufferToHostDataLocation(std::shared_
 	{
 		pSrcVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
 	}
-}
-
-void DrawingDevice_Vulkan::ConfigureStates_Test()
-{
-
 }
 
 void DrawingDevice_Vulkan::GetRequiredExtensions()

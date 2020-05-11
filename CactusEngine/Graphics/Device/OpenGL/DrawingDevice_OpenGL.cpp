@@ -203,11 +203,6 @@ bool DrawingDevice_OpenGL::CreateUniformBuffer(const UniformBufferCreateInfo& cr
 	return bufferID != -1;
 }
 
-void DrawingDevice_OpenGL::ClearRenderTarget()
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
 void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pFrameBuffer)
 {
 	SetRenderTarget(pFrameBuffer, std::vector<uint32_t>());
@@ -247,63 +242,9 @@ void DrawingDevice_OpenGL::SetRenderTarget(const std::shared_ptr<FrameBuffer> pF
 	}
 }
 
-void DrawingDevice_OpenGL::SetClearColor(Color4 color)
-{
-	glClearColor(color.r, color.g, color.b, color.a);
-}
-
-void DrawingDevice_OpenGL::SetBlendState(const DeviceBlendStateInfo& blendInfo)
-{
-	if (blendInfo.enabled)
-	{
-		glEnable(GL_BLEND);
-		glBlendFunc(OpenGLBlendFactor(blendInfo.srcFactor), OpenGLBlendFactor(blendInfo.dstFactor));
-	}
-	else
-	{
-		glDisable(GL_BLEND);
-	}
-}
-
-void DrawingDevice_OpenGL::SetCullState(const DeviceCullStateInfo& cullInfo)
-{
-	if (cullInfo.enabled)
-	{
-		glEnable(GL_CULL_FACE);
-		glCullFace(cullInfo.cullMode == ECullMode::Front ? GL_FRONT : GL_BACK);
-	}
-	else
-	{
-		glDisable(GL_CULL_FACE);
-	}
-}
-
-void DrawingDevice_OpenGL::SetDepthState(const DeviceDepthStateInfo& depthInfo)
-{
-	if (depthInfo.enableDepthTest)
-	{
-		glEnable(GL_DEPTH_TEST);
-	}
-	else
-	{
-		glDisable(GL_DEPTH_TEST);
-	}
-
-	if (depthInfo.enableDepthMask)
-	{
-		glDepthMask(GL_TRUE);
-	}
-	else
-	{
-		glDepthMask(GL_FALSE);
-	}
-}
-
 void DrawingDevice_OpenGL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
 	auto pProgram = std::static_pointer_cast<ShaderProgram_OpenGL>(pShaderProgram);
-
-	glUseProgram(pProgram->GetGLProgramID());
 
 	for (auto& entry : pTable->m_table)
 	{
@@ -323,7 +264,7 @@ void DrawingDevice_OpenGL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> p
 
 void DrawingDevice_OpenGL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-	glDrawElementsBaseVertex(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
+	glDrawElementsBaseVertex(m_primitiveTopologyMode, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
 }
 
 void DrawingDevice_OpenGL::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
@@ -352,7 +293,6 @@ std::shared_ptr<DrawingCommandPool> DrawingDevice_OpenGL::RequestExternalCommand
 
 std::shared_ptr<DrawingCommandBuffer> DrawingDevice_OpenGL::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
 {
-	std::cerr << "OpenGL: shouldn't call RequestCommandBuffer on OpenGL device.\n";
 	return nullptr;
 }
 
@@ -375,8 +315,27 @@ bool DrawingDevice_OpenGL::CreateDataTransferBuffer(const DataTransferBufferCrea
 
 bool DrawingDevice_OpenGL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreateRenderPassObject on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<RenderPass_OpenGL>();
+	auto pRenderPass = std::static_pointer_cast<RenderPass_OpenGL>(pOutput);
+
+	for (int i = 0; i < createInfo.attachmentDescriptions.size(); i++)
+	{
+		if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Color)
+		{
+			pRenderPass->m_clearColorOnLoad = pRenderPass->m_clearColorOnLoad || (createInfo.attachmentDescriptions[i].loadOp == EAttachmentOperation::Clear);
+		}
+		else if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Depth)
+		{
+			pRenderPass->m_clearDepthOnLoad = (createInfo.attachmentDescriptions[i].loadOp == EAttachmentOperation::Clear);
+		}
+	}
+
+	if (pRenderPass->m_clearColorOnLoad)
+	{
+		pRenderPass->m_clearColor = createInfo.clearColor;
+	}
+
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)
@@ -387,50 +346,69 @@ bool DrawingDevice_OpenGL::CreateSampler(const TextureSamplerCreateInfo& createI
 
 bool DrawingDevice_OpenGL::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineVertexInputState on OpenGL device.\n";
+	pOutput = nullptr;
 	return false;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, std::shared_ptr<PipelineInputAssemblyState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineInputAssemblyState on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<PipelineInputAssemblyState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, std::shared_ptr<PipelineColorBlendState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineColorBlendState on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<PipelineColorBlendState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, std::shared_ptr<PipelineRasterizationState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineRasterizationState on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<PipelineRasterizationState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, std::shared_ptr<PipelineDepthStencilState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineDepthStencilState on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<PipelineDepthStencilState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineMultisampleState on OpenGL device.\n";
+	pOutput = nullptr;
 	return false;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreatePipelineViewportState on OpenGL device.\n";
-	return false;
+	pOutput = std::make_shared<PipelineViewportState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreateGraphicsPipelineObject on OpenGL device.\n";
-	return false;
+	GraphicsPipelineCreateInfo_OpenGL glCreateInfo = {};
+
+	glCreateInfo.topologyMode = std::static_pointer_cast<PipelineInputAssemblyState_OpenGL>(createInfo.pInputAssemblyState)->topologyMode;
+	glCreateInfo.enablePrimitiveRestart = std::static_pointer_cast<PipelineInputAssemblyState_OpenGL>(createInfo.pInputAssemblyState)->enablePrimitiveRestart;
+
+	glCreateInfo.enableBlend = std::static_pointer_cast<PipelineColorBlendState_OpenGL>(createInfo.pColorBlendState)->enableBlend;
+	glCreateInfo.blendSrcFactor = std::static_pointer_cast<PipelineColorBlendState_OpenGL>(createInfo.pColorBlendState)->blendSrcFactor;
+	glCreateInfo.blendDstFactor = std::static_pointer_cast<PipelineColorBlendState_OpenGL>(createInfo.pColorBlendState)->blendDstFactor;
+
+	glCreateInfo.enableCulling = std::static_pointer_cast<PipelineRasterizationState_OpenGL>(createInfo.pRasterizationState)->enableCull;
+	glCreateInfo.cullMode = std::static_pointer_cast<PipelineRasterizationState_OpenGL>(createInfo.pRasterizationState)->cullMode;
+
+	glCreateInfo.enableDepthTest = std::static_pointer_cast<PipelineDepthStencilState_OpenGL>(createInfo.pDepthStencilState)->enableDepthTest;
+	glCreateInfo.enableDepthMask = std::static_pointer_cast<PipelineDepthStencilState_OpenGL>(createInfo.pDepthStencilState)->enableDepthMask;
+
+	glCreateInfo.viewportWidth = std::static_pointer_cast<PipelineViewportState_OpenGL>(createInfo.pViewportState)->viewportWidth;
+	glCreateInfo.viewportHeight = std::static_pointer_cast<PipelineViewportState_OpenGL>(createInfo.pViewportState)->viewportHeight;
+
+	pOutput = std::make_shared<GraphicsPipeline_OpenGL>(this, std::static_pointer_cast<ShaderProgram_OpenGL>(createInfo.pShaderProgram), glCreateInfo);
+
+	return pOutput != nullptr;
 }
 
 void DrawingDevice_OpenGL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
@@ -450,12 +428,13 @@ void DrawingDevice_OpenGL::ResizeSwapchain(uint32_t width, uint32_t height)
 
 void DrawingDevice_OpenGL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call BindGraphicsPipeline on OpenGL device.\n";
+	std::static_pointer_cast<GraphicsPipeline_OpenGL>(pPipeline)->Apply();
 }
 
 void DrawingDevice_OpenGL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call BeginRenderPass on OpenGL device.\n";
+	SetRenderTarget(pFrameBuffer);
+	std::static_pointer_cast<RenderPass_OpenGL>(pRenderPass)->Initialize();
 }
 
 void DrawingDevice_OpenGL::EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
@@ -551,10 +530,7 @@ void DrawingDevice_OpenGL::CopyDataTransferBufferToHostDataLocation(std::shared_
 	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToHostDataLocation on OpenGL device.\n";
 }
 
-void DrawingDevice_OpenGL::ConfigureStates_Test()
+void DrawingDevice_OpenGL::SetPrimitiveTopology(GLenum mode)
 {
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	m_primitiveTopologyMode = mode;
 }

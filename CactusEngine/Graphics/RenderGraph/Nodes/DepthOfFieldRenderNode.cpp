@@ -54,50 +54,47 @@ void DepthOfFieldRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> 
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		// Horizontal pass
+	// Horizontal pass
 
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Horizontal);
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Horizontal);
 
-		// Vertical + present pass
+	// Vertical + present pass
 
-		colorDesc.format = ETextureFormat::BGRA8_UNORM;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::PresentSrc;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::PresentSrc;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	colorDesc.format = ETextureFormat::BGRA8_UNORM;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::PresentSrc;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::PresentSrc;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		passCreateInfo.attachmentDescriptions.clear();
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	passCreateInfo.attachmentDescriptions.clear();
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Present);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Present);
 
 	// Frame buffers
 
@@ -151,11 +148,6 @@ void DepthOfFieldRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> 
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
 
 	// Pipeline objects
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -265,17 +257,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	Vector3 cameraPos = pCameraTransform->GetPosition();
 	Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
-	}
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -296,17 +278,11 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
 	m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
 
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DOF), pCommandBuffer);
+
 	// Horizontal pass
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DOF), pCommandBuffer);
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, m_pFrameBuffer_Horizontal, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_Horizontal);
-	}
+	m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, m_pFrameBuffer_Horizontal, pCommandBuffer);
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, m_pCameraProperties_UB);
@@ -361,16 +337,17 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 
 	// Vertical pass
 
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NONE), pCommandBuffer);
+
 	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
 	{
 		// Set to swapchain image output
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NONE), pCommandBuffer);
 		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_pFrameBuffers_Present->frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
 	}
 	else
 	{
 		// Set to back-buffer output
-		m_pDevice->SetRenderTarget(nullptr);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, nullptr, pCommandBuffer);
 	}
 
 	pShaderParamTable->Clear();

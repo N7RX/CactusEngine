@@ -50,7 +50,6 @@ void DrawingSystem::FrameBegin()
 void DrawingSystem::Tick()
 {
 	BuildRenderTask();
-	ConfigureRenderEnvironment();
 	ExecuteRenderTask();
 }
 
@@ -179,25 +178,10 @@ void DrawingSystem::BuildRenderTask()
 	}
 }
 
-void DrawingSystem::ConfigureRenderEnvironment()
-{
-	m_pDevice->ConfigureStates_Test();
-}
-
 void DrawingSystem::ExecuteRenderTask()
 {
 	auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
 	auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(EComponentType::Camera)) : nullptr;
-
-	if (m_pDevice->GetDeviceType() == EGraphicsDeviceType::OpenGL)
-	{
-		if (pCameraComp)
-		{
-			m_pDevice->SetClearColor(pCameraComp->GetClearColor());
-		}
-
-		m_pDevice->ClearRenderTarget();
-	}
 
 	// Alert: we are ignoring renderer priority at this moment
 	for (auto& renderList : m_renderTaskTable)

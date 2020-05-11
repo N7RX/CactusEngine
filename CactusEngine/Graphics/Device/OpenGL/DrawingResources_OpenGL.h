@@ -53,6 +53,19 @@ namespace Engine
 		GLuint m_glBufferID = -1;
 	};
 
+	// OpenGL render pass object is simply an attachment clear state record
+	class RenderPass_OpenGL : public RenderPassObject
+	{
+	public:
+		RenderPass_OpenGL();
+		~RenderPass_OpenGL() = default;
+		void Initialize();
+
+		bool   m_clearColorOnLoad;
+		bool   m_clearDepthOnLoad;
+		Color4 m_clearColor;
+	};
+
 	class FrameBuffer_OpenGL : public FrameBuffer
 	{
 	public:
@@ -116,5 +129,103 @@ namespace Engine
 	private:
 		GLuint m_glProgramID;
 		std::unordered_map<const char*, unsigned int> m_paramBindings;
+	};
+
+	struct GraphicsPipelineCreateInfo_OpenGL
+	{
+		EAssemblyTopology	topologyMode;
+		bool				enablePrimitiveRestart;
+
+		bool				enableBlend;
+		EBlendFactor		blendSrcFactor;
+		EBlendFactor		blendDstFactor;
+
+		bool				enableCulling;
+		ECullMode			cullMode;
+		EPolygonMode		polygonMode;
+
+		bool				enableDepthTest;
+		bool				enableDepthMask;
+
+		uint32_t			viewportWidth;
+		uint32_t			viewportHeight;
+	};
+
+	// OpenGL graphics pipeline object is simply abstracted as a state record
+	class GraphicsPipeline_OpenGL : public GraphicsPipelineObject
+	{
+	public:
+		GraphicsPipeline_OpenGL(DrawingDevice_OpenGL* pDevice, const std::shared_ptr<ShaderProgram_OpenGL> pShaderProgram, GraphicsPipelineCreateInfo_OpenGL& createInfo);
+		~GraphicsPipeline_OpenGL() = default;
+
+		void Apply() const;
+
+	private:
+		DrawingDevice_OpenGL* m_pDevice;
+		std::shared_ptr<ShaderProgram_OpenGL> m_pShaderProgram;
+
+		GLenum m_primitiveTopologyMode;
+		bool   m_enablePrimitiveRestart;
+
+		bool   m_enableBlend;
+		GLenum m_blendSrcFactor;
+		GLenum m_blendDstFactor;
+
+		bool   m_enableCulling;
+		GLenum m_cullMode;
+		GLenum m_polygonMode;
+
+		bool   m_enableDepthTest;
+		bool   m_enableDepthMask;
+
+		uint32_t m_viewportWidth;
+		uint32_t m_viewportHeight;
+	};
+
+	class PipelineInputAssemblyState_OpenGL : public PipelineInputAssemblyState
+	{
+	public:
+		PipelineInputAssemblyState_OpenGL(const PipelineInputAssemblyStateCreateInfo& createInfo);
+
+		EAssemblyTopology topologyMode;
+		bool enablePrimitiveRestart;
+	};
+
+	class PipelineColorBlendState_OpenGL : public PipelineColorBlendState
+	{
+	public:
+		PipelineColorBlendState_OpenGL(const PipelineColorBlendStateCreateInfo& createInfo);
+
+		bool enableBlend;
+		EBlendFactor blendSrcFactor;
+		EBlendFactor blendDstFactor;
+	};
+
+	class PipelineRasterizationState_OpenGL : public PipelineRasterizationState
+	{
+	public:
+		PipelineRasterizationState_OpenGL(const PipelineRasterizationStateCreateInfo& createInfo);
+
+		bool enableCull;
+		ECullMode cullMode;
+		EPolygonMode polygonMode;
+	};
+
+	class PipelineDepthStencilState_OpenGL : public PipelineDepthStencilState
+	{
+	public:
+		PipelineDepthStencilState_OpenGL(const PipelineDepthStencilStateCreateInfo& createInfo);
+
+		bool enableDepthTest;
+		bool enableDepthMask;
+	};
+
+	class PipelineViewportState_OpenGL : public PipelineViewportState
+	{
+	public:
+		PipelineViewportState_OpenGL(const PipelineViewportStateCreateInfo& createInfo);
+
+		unsigned int viewportWidth;
+		unsigned int viewportHeight;
 	};
 }

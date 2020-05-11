@@ -49,7 +49,6 @@ namespace Engine
 		bool LoadShaders();
 		void BuildRenderGraphs();
 		void BuildRenderTask();
-		void ConfigureRenderEnvironment();
 		void ExecuteRenderTask();
 
 	private:

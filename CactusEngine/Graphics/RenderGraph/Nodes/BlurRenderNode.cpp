@@ -40,29 +40,26 @@ void BlurRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphRe
 
 	// Render pass object
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		RenderPassAttachmentDescription colorDesc = {};
-		colorDesc.format = ETextureFormat::RGBA32F;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
+	RenderPassAttachmentDescription colorDesc = {};
+	colorDesc.format = ETextureFormat::RGBA32F;
+	colorDesc.sampleCount = 1;
+	colorDesc.loadOp = EAttachmentOperation::None;
+	colorDesc.storeOp = EAttachmentOperation::Store;
+	colorDesc.stencilLoadOp = EAttachmentOperation::None;
+	colorDesc.stencilStoreOp = EAttachmentOperation::None;
+	colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.usageLayout = EImageLayout::ColorAttachment;
+	colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+	colorDesc.type = EAttachmentType::Color;
+	colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
+	RenderPassCreateInfo passCreateInfo = {};
+	passCreateInfo.clearColor = Color4(1);
+	passCreateInfo.clearDepth = 1.0f;
+	passCreateInfo.clearStencil = 0;
+	passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-	}
+	m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 	// Frame buffers
 
@@ -91,11 +88,6 @@ void BlurRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphRe
 	m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
 
 	// Pipeline object
-
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
-	{
-		return;
-	}
 
 	// Vertex input state
 
@@ -190,32 +182,15 @@ void BlurRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGr
 {
 	m_pControlVariables_UB->ResetSubBufferAllocation();
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr;
+	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
-	}
-	else
-	{
-		DeviceBlendStateInfo blendInfo = {};
-		blendInfo.enabled = false;
-		m_pDevice->SetBlendState(blendInfo);
-	}
+	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
 
 	UBControlVariables ubControlVariables = {};
 
 	// Horizontal pass
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Horizontal, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_Horizontal);
-	}
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Horizontal, pCommandBuffer);
 
 	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
@@ -250,14 +225,7 @@ void BlurRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGr
 
 	// Vertical pass
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
-	{
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Final, pCommandBuffer);
-	}
-	else
-	{
-		m_pDevice->SetRenderTarget(m_pFrameBuffer_Final);
-	}
+	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Final, pCommandBuffer);
 
 	pShaderParamTable->Clear();
 
