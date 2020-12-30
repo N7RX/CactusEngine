@@ -147,6 +147,8 @@ namespace Engine
 		bool				enableDepthTest;
 		bool				enableDepthMask;
 
+		bool				enableMultisampling;
+
 		uint32_t			viewportWidth;
 		uint32_t			viewportHeight;
 	};
@@ -177,6 +179,8 @@ namespace Engine
 
 		bool   m_enableDepthTest;
 		bool   m_enableDepthMask;
+
+		bool   m_enableMultisampling;
 
 		uint32_t m_viewportWidth;
 		uint32_t m_viewportHeight;
@@ -218,6 +222,14 @@ namespace Engine
 
 		bool enableDepthTest;
 		bool enableDepthMask;
+	};
+
+	class PipelineMultisampleState_OpenGL : public PipelineMultisampleState
+	{
+	public:
+		PipelineMultisampleState_OpenGL(const PipelineMultisampleStateCreateInfo& createInfo);
+
+		bool enableMultisampling;
 	};
 
 	class PipelineViewportState_OpenGL : public PipelineViewportState

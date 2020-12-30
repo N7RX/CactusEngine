@@ -376,8 +376,8 @@ bool DrawingDevice_OpenGL::CreatePipelineDepthStencilState(const PipelineDepthSt
 
 bool DrawingDevice_OpenGL::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput)
 {
-	pOutput = nullptr;
-	return false;
+	pOutput = std::make_shared<PipelineMultisampleState_OpenGL>(createInfo);
+	return pOutput != nullptr;
 }
 
 bool DrawingDevice_OpenGL::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput)
@@ -402,6 +402,8 @@ bool DrawingDevice_OpenGL::CreateGraphicsPipelineObject(const GraphicsPipelineCr
 
 	glCreateInfo.enableDepthTest = std::static_pointer_cast<PipelineDepthStencilState_OpenGL>(createInfo.pDepthStencilState)->enableDepthTest;
 	glCreateInfo.enableDepthMask = std::static_pointer_cast<PipelineDepthStencilState_OpenGL>(createInfo.pDepthStencilState)->enableDepthMask;
+
+	glCreateInfo.enableMultisampling = std::static_pointer_cast<PipelineMultisampleState_OpenGL>(createInfo.pMultisampleState)->enableMultisampling;
 
 	glCreateInfo.viewportWidth = std::static_pointer_cast<PipelineViewportState_OpenGL>(createInfo.pViewportState)->viewportWidth;
 	glCreateInfo.viewportHeight = std::static_pointer_cast<PipelineViewportState_OpenGL>(createInfo.pViewportState)->viewportHeight;

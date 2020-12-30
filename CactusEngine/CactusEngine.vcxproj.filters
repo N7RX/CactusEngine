@@ -495,6 +495,15 @@
     <ClInclude Include="Script\LightScript.h">
       <Filter>Script</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\RayTracingExtensionWrangler_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\RayTracingResources_Vulkan.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\RayTracingResources.h">
+      <Filter>Graphics\Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -697,6 +706,15 @@
     </ClCompile>
     <ClCompile Include="Script\LightScript.cpp">
       <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\RayTracingExtensionWrangler_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\RayTracingResources_Vulkan.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Resources\RayTracingResources.cpp">
+      <Filter>Graphics\Resources</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

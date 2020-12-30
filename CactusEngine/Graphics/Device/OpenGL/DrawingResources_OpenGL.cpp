@@ -410,6 +410,8 @@ GraphicsPipeline_OpenGL::GraphicsPipeline_OpenGL(DrawingDevice_OpenGL* pDevice, 
 	m_enableDepthTest = createInfo.enableDepthTest;
 	m_enableDepthMask = createInfo.enableDepthMask;
 
+	m_enableMultisampling = createInfo.enableMultisampling;
+
 	m_viewportWidth = createInfo.viewportWidth;
 	m_viewportHeight = createInfo.viewportHeight;
 }
@@ -459,6 +461,15 @@ void GraphicsPipeline_OpenGL::Apply() const
 	}
 	glDepthMask(m_enableDepthMask ? GL_TRUE : GL_FALSE);
 
+	if (m_enableMultisampling)
+	{
+		glEnable(GL_MULTISAMPLE);
+	}
+	else
+	{
+		glDisable(GL_MULTISAMPLE);
+	}
+
 	glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 }
 
@@ -494,6 +505,11 @@ PipelineDepthStencilState_OpenGL::PipelineDepthStencilState_OpenGL(const Pipelin
 {
 	enableDepthTest = createInfo.enableDepthTest;
 	enableDepthMask = createInfo.enableDepthWrite;
+}
+
+PipelineMultisampleState_OpenGL::PipelineMultisampleState_OpenGL(const PipelineMultisampleStateCreateInfo& createInfo)
+{
+	enableMultisampling = createInfo.enableSampleShading;
 }
 
 PipelineViewportState_OpenGL::PipelineViewportState_OpenGL(const PipelineViewportStateCreateInfo& createInfo)
