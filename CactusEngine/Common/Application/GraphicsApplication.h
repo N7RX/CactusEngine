@@ -1,7 +1,7 @@
 #pragma once
 #include "BaseApplication.h"
 #include "ECSWorld.h"
-#include "DrawingDevice.h"
+#include "GraphicsDevice.h"
 #if defined(GLFW_IMPLEMENTATION_CE)
 #include "GLFWWindow.h"
 #endif
@@ -21,11 +21,11 @@ namespace Engine
 		bool ShouldQuit() const override;
 
 		std::shared_ptr<ECSWorld> GetECSWorld() const;
-		std::shared_ptr<DrawingDevice> GetDrawingDevice() const;
+		std::shared_ptr<GraphicsDevice> GetDrawingDevice() const;
 		std::shared_ptr<BaseWindow> GetWindow() const;
 		void* GetWindowHandle() const override;
 
-		void SetDrawingDevice(const std::shared_ptr<DrawingDevice> pDevice);
+		void SetDrawingDevice(const std::shared_ptr<GraphicsDevice> pDevice);
 		void AddSetupFunction(void(*pSetupFunc)(GraphicsApplication* pApp));
 
 	private:
@@ -34,7 +34,7 @@ namespace Engine
 
 	private:
 		std::shared_ptr<ECSWorld> m_pECSWorld;
-		std::shared_ptr<DrawingDevice> m_pDevice;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
 #if defined(GLFW_IMPLEMENTATION_CE)
 		std::shared_ptr<GLFWWindow> m_pWindow;
 #endif

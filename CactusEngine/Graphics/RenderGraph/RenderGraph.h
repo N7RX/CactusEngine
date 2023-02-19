@@ -1,11 +1,11 @@
 #pragma once
-#include "DrawingResources.h"
+#include "GraphicsResources.h"
 #include "IEntity.h"
 #include "NoCopy.h"
 #include "SafeQueue.h"
 #include "Global.h"
 #include "CommandResources.h"
-#include "DrawingDevice.h"
+#include "GraphicsDevice.h"
 #include "BuiltInShaderType.h"
 
 #include <queue>
@@ -58,7 +58,7 @@ namespace Engine
 	protected:
 		const char*									m_pName;
 		BaseRenderer*								m_pRenderer;
-		std::shared_ptr<DrawingDevice>				m_pDevice;
+		std::shared_ptr<GraphicsDevice>				m_pDevice;
 		EGraphicsDeviceType							m_eGraphicsDeviceType;
 
 		std::vector<RenderNode*>					m_prevNodes;
@@ -77,7 +77,7 @@ namespace Engine
 	class RenderGraph : public NoCopy
 	{
 	public:
-		RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Main);
+		RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Main);
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
@@ -100,7 +100,7 @@ namespace Engine
 		std::unordered_map<uint32_t, std::vector<uint32_t>> m_nodePriorityDependencies; // Submit Priority - Dependent Submit Priority
 
 	private:
-		std::shared_ptr<DrawingDevice> m_pDevice;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
 		EGPUType m_deviceType;
 		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>> m_startingNodes; // Nodes that has no previous dependencies

@@ -2,7 +2,7 @@
 
 using namespace Engine;
 
-Mesh::Mesh(const std::shared_ptr<DrawingDevice> pDevice)
+Mesh::Mesh(const std::shared_ptr<GraphicsDevice> pDevice)
 	: m_pDevice(pDevice), m_type(EBuiltInMeshType::External), m_planeDimension(0, 0)
 {
 }

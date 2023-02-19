@@ -1,5 +1,5 @@
 #include "RenderTexture.h"
-#include "DrawingDevice.h"
+#include "GraphicsDevice.h"
 #include "Global.h"
 #include "GraphicsApplication.h"
 

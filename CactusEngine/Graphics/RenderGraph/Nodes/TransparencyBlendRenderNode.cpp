@@ -1,6 +1,6 @@
 #pragma once
 #include "TransparencyBlendRenderNode.h"
-#include "DrawingSystem.h"
+#include "RenderingSystem.h"
 #include "BaseRenderer.h"
 #include "AllComponents.h"
 

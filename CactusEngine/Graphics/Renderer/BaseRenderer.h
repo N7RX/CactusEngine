@@ -1,16 +1,16 @@
 #pragma once
 #include "IRenderer.h"
 #include "IEntity.h"
-#include "DrawingDevice.h"
+#include "GraphicsDevice.h"
 #include "RenderGraph.h"
 
 namespace Engine
 {
-	class DrawingSystem;
+	class RenderingSystem;
 	class BaseRenderer : public IRenderer
 	{
 	public:
-		BaseRenderer(ERendererType type, const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
+		BaseRenderer(ERendererType type, const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem);
 
 		virtual void Initialize() {}
 		virtual void ShutDown() {}
@@ -28,15 +28,15 @@ namespace Engine
 		void SetRendererPriority(uint32_t priority);
 		uint32_t GetRendererPriority() const;
 
-		std::shared_ptr<DrawingDevice> GetDrawingDevice() const;
-		DrawingSystem* GetDrawingSystem() const;
+		std::shared_ptr<GraphicsDevice> GetDrawingDevice() const;
+		RenderingSystem* GetDrawingSystem() const;
 
 	protected:
 		ERendererType m_rendererType;
 		uint32_t m_renderPriority;
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
-		std::shared_ptr<DrawingDevice> m_pDevice;
-		DrawingSystem* m_pSystem;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
+		RenderingSystem* m_pSystem;
 		EGraphicsDeviceType	m_eGraphicsDeviceType;
 	};
 }

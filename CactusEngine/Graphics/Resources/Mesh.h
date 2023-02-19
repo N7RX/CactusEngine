@@ -1,6 +1,6 @@
 #pragma once
-#include "DrawingResources.h"
-#include "DrawingDevice.h"
+#include "GraphicsResources.h"
+#include "GraphicsDevice.h"
 #include <memory>
 #include <vector>
 
@@ -26,12 +26,12 @@ namespace Engine
 		Vector2 GetPlaneDimenstion() const;
 
 	protected:
-		Mesh(const std::shared_ptr<DrawingDevice> pDevice);
+		Mesh(const std::shared_ptr<GraphicsDevice> pDevice);
 
 		void CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<float>& tangents, std::vector<float>& bitangents, std::vector<int>& indices);
 
 	protected:
-		std::shared_ptr<DrawingDevice> m_pDevice;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
 		std::shared_ptr<VertexBuffer> m_pVertexBuffer;
 		std::vector<SubMesh> m_subMeshes;
 

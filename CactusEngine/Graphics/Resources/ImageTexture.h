@@ -1,9 +1,9 @@
 #pragma once
-#include "DrawingResources.h"
+#include "GraphicsResources.h"
 
 namespace Engine
 {
-	class DrawingDevice;
+	class GraphicsDevice;
 	class ImageTexture : public Texture2D
 	{
 	public:
@@ -20,7 +20,7 @@ namespace Engine
 		void LoadAndCreateTexture(const char* filePath, EGPUType deviceType);
 
 	private:
-		std::shared_ptr<DrawingDevice> m_pDevice;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
 		std::shared_ptr<Texture2D> m_pTextureImpl;
 	};
 }

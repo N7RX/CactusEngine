@@ -9,7 +9,7 @@ namespace Engine
 	class StandardRenderer : public BaseRenderer, std::enable_shared_from_this<StandardRenderer>
 	{
 	public:
-		StandardRenderer(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem);
+		StandardRenderer(const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem);
 		~StandardRenderer() = default;
 
 		void BuildRenderGraph() override;

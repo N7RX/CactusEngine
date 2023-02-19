@@ -2,7 +2,7 @@
 
 using namespace Engine;
 
-BaseRenderer::BaseRenderer(ERendererType type, const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem)
+BaseRenderer::BaseRenderer(ERendererType type, const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem)
 	: m_rendererType(type), m_renderPriority(0), m_pDevice(pDevice), m_pSystem(pSystem)
 {
 	m_eGraphicsDeviceType = m_pDevice->GetDeviceType();
@@ -23,12 +23,12 @@ uint32_t BaseRenderer::GetRendererPriority() const
 	return m_renderPriority;
 }
 
-std::shared_ptr<DrawingDevice> BaseRenderer::GetDrawingDevice() const
+std::shared_ptr<GraphicsDevice> BaseRenderer::GetDrawingDevice() const
 {
 	return m_pDevice;
 }
 
-DrawingSystem* BaseRenderer::GetDrawingSystem() const
+RenderingSystem* BaseRenderer::GetDrawingSystem() const
 {
 	return m_pSystem;
 }

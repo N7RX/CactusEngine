@@ -1,6 +1,6 @@
 #pragma once
 #include "BaseComponent.h"
-#include "DrawingResources.h"
+#include "GraphicsResources.h"
 #include "BuiltInShaderType.h"
 
 namespace Engine

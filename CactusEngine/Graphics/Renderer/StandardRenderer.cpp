@@ -1,5 +1,5 @@
 #include "StandardRenderer.h"
-#include "DrawingSystem.h"
+#include "RenderingSystem.h"
 #include "AllComponents.h"
 #include "Timer.h"
 #include "AllRenderNodes.h"
@@ -8,7 +8,7 @@
 
 using namespace Engine;
 
-StandardRenderer::StandardRenderer(const std::shared_ptr<DrawingDevice> pDevice, DrawingSystem* pSystem)
+StandardRenderer::StandardRenderer(const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem)
 	: BaseRenderer(ERendererType::Standard, pDevice, pSystem), m_newCommandRecorded(false)
 {
 	m_pGraphResources = std::make_shared<RenderGraphResource>();

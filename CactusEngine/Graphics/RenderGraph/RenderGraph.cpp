@@ -1,5 +1,5 @@
 #include "RenderGraph.h"
-#include "DrawingDevice.h"
+#include "GraphicsDevice.h"
 #include "BaseRenderer.h"
 #include <assert.h>
 #include <iostream>
@@ -83,7 +83,7 @@ void RenderNode::ExecuteParallel()
 	m_finishedExecution = true;
 }
 
-RenderGraph::RenderGraph(const std::shared_ptr<DrawingDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType)
+RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType)
 	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount), m_deviceType(deviceType)
 {
 	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::Vulkan)

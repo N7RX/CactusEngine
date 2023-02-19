@@ -1,6 +1,6 @@
 #pragma once
 #include "BlurRenderNode.h"
-#include "DrawingSystem.h"
+#include "RenderingSystem.h"
 #include "BaseRenderer.h"
 #include "AllComponents.h"
 

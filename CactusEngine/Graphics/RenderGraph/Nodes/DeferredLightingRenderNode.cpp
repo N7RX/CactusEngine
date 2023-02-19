@@ -1,6 +1,6 @@
 #pragma once
 #include "DeferredLightingRenderNode.h"
-#include "DrawingSystem.h"
+#include "RenderingSystem.h"
 #include "BaseRenderer.h"
 #include "AllComponents.h"
 
@@ -103,31 +103,31 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 
 	VertexInputAttributeDescription positionAttributeDesc = {};
 	positionAttributeDesc.binding = vertexInputBindingDesc.binding;
-	positionAttributeDesc.location = DrawingDevice::ATTRIB_POSITION_LOCATION;
+	positionAttributeDesc.location = GraphicsDevice::ATTRIB_POSITION_LOCATION;
 	positionAttributeDesc.offset = VertexBufferCreateInfo::positionOffset;
 	positionAttributeDesc.format = ETextureFormat::RGB32F;
 
 	VertexInputAttributeDescription normalAttributeDesc = {};
 	normalAttributeDesc.binding = vertexInputBindingDesc.binding;
-	normalAttributeDesc.location = DrawingDevice::ATTRIB_NORMAL_LOCATION;
+	normalAttributeDesc.location = GraphicsDevice::ATTRIB_NORMAL_LOCATION;
 	normalAttributeDesc.offset = VertexBufferCreateInfo::normalOffset;
 	normalAttributeDesc.format = ETextureFormat::RGB32F;
 
 	VertexInputAttributeDescription texcoordAttributeDesc = {};
 	texcoordAttributeDesc.binding = vertexInputBindingDesc.binding;
-	texcoordAttributeDesc.location = DrawingDevice::ATTRIB_TEXCOORD_LOCATION;
+	texcoordAttributeDesc.location = GraphicsDevice::ATTRIB_TEXCOORD_LOCATION;
 	texcoordAttributeDesc.offset = VertexBufferCreateInfo::texcoordOffset;
 	texcoordAttributeDesc.format = ETextureFormat::RG32F;
 
 	VertexInputAttributeDescription tangentAttributeDesc = {};
 	tangentAttributeDesc.binding = vertexInputBindingDesc.binding;
-	tangentAttributeDesc.location = DrawingDevice::ATTRIB_TANGENT_LOCATION;
+	tangentAttributeDesc.location = GraphicsDevice::ATTRIB_TANGENT_LOCATION;
 	tangentAttributeDesc.offset = VertexBufferCreateInfo::tangentOffset;
 	tangentAttributeDesc.format = ETextureFormat::RGB32F;
 
 	VertexInputAttributeDescription bitangentAttributeDesc = {};
 	bitangentAttributeDesc.binding = vertexInputBindingDesc.binding;
-	bitangentAttributeDesc.location = DrawingDevice::ATTRIB_BITANGENT_LOCATION;
+	bitangentAttributeDesc.location = GraphicsDevice::ATTRIB_BITANGENT_LOCATION;
 	bitangentAttributeDesc.offset = VertexBufferCreateInfo::bitangentOffset;
 	bitangentAttributeDesc.format = ETextureFormat::RGB32F;
 

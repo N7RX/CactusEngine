@@ -1,9 +1,9 @@
 #pragma once
-#include "DrawingResources.h"
+#include "GraphicsResources.h"
 
 namespace Engine
 {
-	class DrawingDevice;
+	class GraphicsDevice;
 	class RenderTexture : public Texture2D
 	{
 	public:
@@ -19,7 +19,7 @@ namespace Engine
 		std::shared_ptr<TextureSampler> GetSampler() const override;
 
 	private:
-		std::shared_ptr<DrawingDevice> m_pDevice;
+		std::shared_ptr<GraphicsDevice> m_pDevice;
 		std::shared_ptr<Texture2D> m_pTextureImpl;
 	};
 }

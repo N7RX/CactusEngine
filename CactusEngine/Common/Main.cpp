@@ -1,7 +1,7 @@
 #include <iostream>
 #include "GraphicsApplication.h"
 #include "Global.h"
-#include "DrawingSystem.h"
+#include "RenderingSystem.h"
 #include "InputSystem.h"
 #include "AnimationSystem.h"
 #include "ScriptSystem.h"
@@ -78,10 +78,10 @@ void ConfigSetup()
 	gpGlobal->CreateConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics);
 
 	// TODO: read setitings from file
-	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine - Legacy");
+	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetDeviceType(EGraphicsDeviceType::Vulkan);
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1600, 900);
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(true);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
 }
 
 void TestSetup(GraphicsApplication* pApp)
@@ -91,7 +91,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// Alert: the registration sequence may correspond to execution sequence
 	pWorld->RegisterSystem<InputSystem>(ESystemType::Input);
 	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation);
-	pWorld->RegisterSystem<DrawingSystem>(ESystemType::Script);
+	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script);
 	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
 
 	// Read scene from file
