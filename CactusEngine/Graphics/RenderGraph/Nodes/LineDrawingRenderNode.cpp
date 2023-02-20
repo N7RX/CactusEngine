@@ -5,8 +5,6 @@
 #include "AllComponents.h"
 #include "RenderTexture.h"
 
-#include <Eigen/Dense>
-
 using namespace Engine;
 
 const char* LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE = "LineDrawingOutputColorTexture";
@@ -102,7 +100,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 
 	// Uniform buffer
 
-	uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 8 : 1;
+	uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 8 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * perPassAllocation;
@@ -239,7 +237,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 	}
@@ -266,7 +264,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 			m_pLineResult);
 
 		ubControlVariables.bool_1 = 1;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
@@ -281,7 +279,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			m_pDevice->EndRenderPass(pCommandBuffer);
 		}
@@ -300,7 +298,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 			m_pColorOutput);
 
 		ubControlVariables.bool_1 = 0;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
@@ -315,7 +313,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			m_pDevice->EndRenderPass(pCommandBuffer);
 		}
@@ -343,7 +341,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

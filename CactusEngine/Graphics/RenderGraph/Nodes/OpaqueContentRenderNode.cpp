@@ -116,7 +116,7 @@ void OpaqueContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource>
 
 	// Uniform buffers
 
-	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 4096 : 1;
+	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 4096 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
@@ -334,7 +334,7 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 		ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
 
 		std::shared_ptr<SubUniformBuffer> pSubTransformMatricesUB = nullptr;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
@@ -368,7 +368,7 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 			}
 			pShaderParamTable->Clear();
 
-			if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 			}
@@ -384,7 +384,7 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 			ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 			ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
 			ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
-			if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
 				auto pSubMaterialNumericalPropertiesUB = m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 				pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
@@ -413,14 +413,14 @@ void OpaqueContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphReso
 			m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 			m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 
-			if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
 			{
 				pShaderProgram->Reset();
 			}
 		}
 	}
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

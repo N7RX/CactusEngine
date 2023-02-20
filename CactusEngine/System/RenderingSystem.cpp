@@ -61,7 +61,7 @@ void RenderingSystem::FrameEnd()
 	}
 }
 
-EGraphicsDeviceType RenderingSystem::GetDeviceType() const
+EGraphicsAPIType RenderingSystem::GetDeviceType() const
 {
 	return m_pDevice->GetDeviceType();
 }
@@ -82,11 +82,11 @@ bool RenderingSystem::CreateDevice()
 {
 	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
 	{
-	case EGraphicsDeviceType::OpenGL:
-		m_pDevice = CreateDrawingDevice<EGraphicsDeviceType::OpenGL>();
+	case EGraphicsAPIType::OpenGL:
+		m_pDevice = CreateDrawingDevice<EGraphicsAPIType::OpenGL>();
 		break;
-	case EGraphicsDeviceType::Vulkan:
-		m_pDevice = CreateDrawingDevice<EGraphicsDeviceType::Vulkan>();
+	case EGraphicsAPIType::Vulkan:
+		m_pDevice = CreateDrawingDevice<EGraphicsAPIType::Vulkan>();
 		break;
 	default:
 		throw std::runtime_error("Unsupported drawing device type.");
@@ -110,7 +110,7 @@ bool RenderingSystem::LoadShaders()
 {
 	switch (m_pDevice->GetDeviceType())
 	{
-	case EGraphicsDeviceType::OpenGL:
+	case EGraphicsAPIType::OpenGL:
 	{
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
@@ -127,7 +127,7 @@ bool RenderingSystem::LoadShaders()
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL);
 		break;
 	}
-	case EGraphicsDeviceType::Vulkan:
+	case EGraphicsAPIType::Vulkan:
 	{
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
 		m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK);
@@ -192,7 +192,7 @@ void RenderingSystem::ExecuteRenderTask()
 		}
 	}
 
-	if (m_pDevice->GetDeviceType() == EGraphicsDeviceType::Vulkan)
+	if (m_pDevice->GetDeviceType() == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->Present();
 	}

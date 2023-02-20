@@ -86,7 +86,7 @@ void RenderNode::ExecuteParallel()
 RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType)
 	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount), m_deviceType(deviceType)
 {
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::Vulkan)
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::Vulkan)
 	{
 		for (unsigned int i = 0; i < m_executionThreadCount; i++)
 		{

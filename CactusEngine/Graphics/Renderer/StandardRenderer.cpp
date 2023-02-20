@@ -100,7 +100,7 @@ void StandardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLis
 	pContext->pCamera = pCamera;
 	pContext->pDrawList = &drawList;
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		for (auto& item : m_commandRecordReadyList)
 		{

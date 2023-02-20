@@ -78,7 +78,7 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 
 	// Uniform buffer
 
-	uint32_t perLightSourceAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 1024 : 1;
+	uint32_t perLightSourceAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 1024 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perLightSourceAllocation;
@@ -286,7 +286,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable_ext, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
 	{
 		pShaderProgram->Reset();
 	}
@@ -339,7 +339,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 		ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 
 		std::shared_ptr<SubUniformBuffer> pSubTransformMatricesUB = nullptr;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
@@ -355,7 +355,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 		ubLightSourceProperties.radius = lightProfile.radius;
 
 		std::shared_ptr<SubUniformBuffer> pSubLightSourcePropertiesUB = nullptr;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			pSubLightSourcePropertiesUB = m_pLightSourceProperties_UB->AllocateSubBuffer(sizeof(UBLightSourceProperties));
 			pSubLightSourcePropertiesUB->UpdateSubBufferData(&ubLightSourceProperties);
@@ -378,7 +378,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, m_pCameraProperties_UB);
 
-			if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubLightSourcePropertiesUB);
@@ -399,7 +399,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 		}
 	}
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

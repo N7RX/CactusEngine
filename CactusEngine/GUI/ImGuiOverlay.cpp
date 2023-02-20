@@ -8,13 +8,18 @@ using namespace Engine;
 
 void Engine::InitImGui(GLFWwindow* window)
 {
+	const char* glsl_version = "#version 130";
+
 	ImGui::SetCurrentContext(ImGui::CreateContext());
-	ImGui_ImplGlfwGL3_Init(window, true);
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
 void Engine::DrawImGui()
 {
-	ImGui_ImplGlfwGL3_NewFrame();
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
 
 	ImGui::Begin("Status", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 	ImGui::TextColored(ImVec4(0.0, 1.0, 0.0, 1.0), "FPS: %u", Timer::GetAverageFPS());
@@ -44,4 +49,5 @@ void Engine::DrawImGui()
 	ImGui::End();
 
 	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

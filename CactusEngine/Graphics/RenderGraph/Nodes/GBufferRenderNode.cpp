@@ -111,7 +111,7 @@ void GBufferRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGrap
 
 	// Uniform buffer
 
-	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 4096 : 1;
+	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 4096 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
@@ -297,7 +297,7 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 		ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 		ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
 
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			auto pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
@@ -325,13 +325,13 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 			m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 		}
 
-		if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
 		{
 			pShaderProgram->Reset();
 		}
 	}
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

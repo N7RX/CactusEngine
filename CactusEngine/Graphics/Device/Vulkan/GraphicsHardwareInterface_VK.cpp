@@ -414,9 +414,9 @@ void GraphicsHardwareInterface_VK::ResizeViewPort(uint32_t width, uint32_t heigh
 	std::cerr << "Vulkan: Shouldn't call ResizeViewPort on Vulkan device.\n";
 }
 
-EGraphicsDeviceType GraphicsHardwareInterface_VK::GetDeviceType() const
+EGraphicsAPIType GraphicsHardwareInterface_VK::GetDeviceType() const
 {
-	return EGraphicsDeviceType::Vulkan;
+	return EGraphicsAPIType::Vulkan;
 }
 
 void GraphicsHardwareInterface_VK::SetupDevice()

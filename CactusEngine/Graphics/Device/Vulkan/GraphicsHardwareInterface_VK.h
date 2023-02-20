@@ -64,7 +64,7 @@ namespace Engine
 		void DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer) override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
-		EGraphicsDeviceType GetDeviceType() const override;
+		EGraphicsAPIType GetDeviceType() const override;
 
 		// Low-level functions exclusive to Vulkan device
 		void SetupDevice();
@@ -173,7 +173,7 @@ namespace Engine
 	};
 
 	template<>
-	static std::shared_ptr<GraphicsDevice> CreateDrawingDevice<EGraphicsDeviceType::Vulkan>()
+	static std::shared_ptr<GraphicsDevice> CreateDrawingDevice<EGraphicsAPIType::Vulkan>()
 	{
 		auto pDevice = std::make_shared<GraphicsHardwareInterface_VK>();
 		pDevice->SetupDevice();

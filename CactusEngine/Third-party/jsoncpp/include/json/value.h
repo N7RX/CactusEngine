@@ -21,6 +21,24 @@
 #endif
 #endif
 
+// Support for '= delete' with template declarations was a late addition
+// to the c++11 standard and is rejected by clang 3.8 and Apple clang 8.2
+// even though these declare themselves to be c++11 compilers.
+#if !defined(JSONCPP_TEMPLATE_DELETE)
+#if defined(__clang__) && defined(__apple_build_version__)
+#if __apple_build_version__ <= 8000042
+#define JSONCPP_TEMPLATE_DELETE
+#endif
+#elif defined(__clang__)
+#if __clang_major__ == 3 && __clang_minor__ <= 8
+#define JSONCPP_TEMPLATE_DELETE
+#endif
+#endif
+#if !defined(JSONCPP_TEMPLATE_DELETE)
+#define JSONCPP_TEMPLATE_DELETE = delete
+#endif
+#endif
+
 #include <array>
 #include <exception>
 #include <map>
@@ -32,10 +50,11 @@
 // be used by...
 #if defined(JSONCPP_DISABLE_DLL_INTERFACE_WARNING)
 #pragma warning(push)
-#pragma warning(disable : 4251)
+#pragma warning(disable : 4251 4275)
 #endif // if defined(JSONCPP_DISABLE_DLL_INTERFACE_WARNING)
 
-#pragma pack(push, 8)
+#pragma pack(push)
+#pragma pack()
 
 /** \brief JSON (JavaScript Object Notation).
  */
@@ -49,8 +68,8 @@ namespace Json {
 class JSON_API Exception : public std::exception {
 public:
   Exception(String msg);
-  ~Exception() JSONCPP_NOEXCEPT override;
-  char const* what() const JSONCPP_NOEXCEPT override;
+  ~Exception() noexcept override;
+  char const* what() const noexcept override;
 
 protected:
   String msg_;
@@ -176,21 +195,21 @@ class JSON_API Value {
   friend class ValueIteratorBase;
 
 public:
-  typedef std::vector<String> Members;
-  typedef ValueIterator iterator;
-  typedef ValueConstIterator const_iterator;
-  typedef Json::UInt UInt;
-  typedef Json::Int Int;
+  using Members = std::vector<String>;
+  using iterator = ValueIterator;
+  using const_iterator = ValueConstIterator;
+  using UInt = Json::UInt;
+  using Int = Json::Int;
 #if defined(JSON_HAS_INT64)
-  typedef Json::UInt64 UInt64;
-  typedef Json::Int64 Int64;
+  using UInt64 = Json::UInt64;
+  using Int64 = Json::Int64;
 #endif // defined(JSON_HAS_INT64)
-  typedef Json::LargestInt LargestInt;
-  typedef Json::LargestUInt LargestUInt;
-  typedef Json::ArrayIndex ArrayIndex;
+  using LargestInt = Json::LargestInt;
+  using LargestUInt = Json::LargestUInt;
+  using ArrayIndex = Json::ArrayIndex;
 
   // Required for boost integration, e. g. BOOST_TEST
-  typedef std::string value_type;
+  using value_type = std::string;
 
 #if JSON_USE_NULLREF
   // Binary compatibility kludges, do not use.
@@ -245,10 +264,10 @@ private:
     CZString(ArrayIndex index);
     CZString(char const* str, unsigned length, DuplicationPolicy allocate);
     CZString(CZString const& other);
-    CZString(CZString&& other);
+    CZString(CZString&& other) noexcept;
     ~CZString();
     CZString& operator=(const CZString& other);
-    CZString& operator=(CZString&& other);
+    CZString& operator=(CZString&& other) noexcept;
 
     bool operator<(CZString const& other) const;
     bool operator==(CZString const& other) const;
@@ -324,14 +343,15 @@ public:
   Value(const StaticString& value);
   Value(const String& value);
   Value(bool value);
+  Value(std::nullptr_t ptr) = delete;
   Value(const Value& other);
-  Value(Value&& other);
+  Value(Value&& other) noexcept;
   ~Value();
 
   /// \note Overwrite existing comments. To preserve comments, use
   /// #swapPayload().
   Value& operator=(const Value& other);
-  Value& operator=(Value&& other);
+  Value& operator=(Value&& other) noexcept;
 
   /// Swap everything.
   void swap(Value& other);
@@ -390,8 +410,8 @@ public:
   bool isObject() const;
 
   /// The `as<T>` and `is<T>` member function templates and specializations.
-  template <typename T> T as() const = delete;
-  template <typename T> bool is() const = delete;
+  template <typename T> T as() const JSONCPP_TEMPLATE_DELETE;
+  template <typename T> bool is() const JSONCPP_TEMPLATE_DELETE;
 
   bool isConvertibleTo(ValueType other) const;
 
@@ -403,7 +423,7 @@ public:
   bool empty() const;
 
   /// Return !isNull()
-  JSONCPP_OP_EXPLICIT operator bool() const;
+  explicit operator bool() const;
 
   /// Remove all object members and array elements.
   /// \pre type() is arrayValue, objectValue, or nullValue
@@ -417,7 +437,7 @@ public:
   /// \post type() is arrayValue
   void resize(ArrayIndex newSize);
 
-  //@{
+  ///@{
   /// Access an array element (zero based index). If the array contains less
   /// than index element, then null value are inserted in the array so that
   /// its size is index+1.
@@ -425,15 +445,15 @@ public:
   /// this from the operator[] which takes a string.)
   Value& operator[](ArrayIndex index);
   Value& operator[](int index);
-  //@}
+  ///@}
 
-  //@{
+  ///@{
   /// Access an array element (zero based index).
   /// (You may need to say 'value[0u]' to get your compiler to distinguish
   /// this from the operator[] which takes a string.)
   const Value& operator[](ArrayIndex index) const;
   const Value& operator[](int index) const;
-  //@}
+  ///@}
 
   /// If the array contains at least index+1 elements, returns the element
   /// value, otherwise returns defaultValue.
@@ -445,8 +465,10 @@ public:
   /// Equivalent to jsonvalue[jsonvalue.size()] = value;
   Value& append(const Value& value);
   Value& append(Value&& value);
+
   /// \brief Insert value in array at specific index
-  bool insert(ArrayIndex index, Value newValue);
+  bool insert(ArrayIndex index, const Value& newValue);
+  bool insert(ArrayIndex index, Value&& newValue);
 
   /// Access an object value by name, create a null member if it does not exist.
   /// \note Because of our implementation, keys are limited to 2^30 -1 chars.
@@ -614,9 +636,9 @@ private:
   public:
     Comments() = default;
     Comments(const Comments& that);
-    Comments(Comments&& that);
+    Comments(Comments&& that) noexcept;
     Comments& operator=(const Comments& that);
-    Comments& operator=(Comments&& that);
+    Comments& operator=(Comments&& that) noexcept;
     bool has(CommentPlacement slot) const;
     String get(CommentPlacement slot) const;
     void set(CommentPlacement slot, String comment);
@@ -708,8 +730,8 @@ public:
   Value& make(Value& root) const;
 
 private:
-  typedef std::vector<const PathArgument*> InArgs;
-  typedef std::vector<PathArgument> Args;
+  using InArgs = std::vector<const PathArgument*>;
+  using Args = std::vector<PathArgument>;
 
   void makePath(const String& path, const InArgs& in);
   void addPathInArg(const String& path, const InArgs& in,
@@ -724,10 +746,10 @@ private:
  */
 class JSON_API ValueIteratorBase {
 public:
-  typedef std::bidirectional_iterator_tag iterator_category;
-  typedef unsigned int size_t;
-  typedef int difference_type;
-  typedef ValueIteratorBase SelfType;
+  using iterator_category = std::bidirectional_iterator_tag;
+  using size_t = unsigned int;
+  using difference_type = int;
+  using SelfType = ValueIteratorBase;
 
   bool operator==(const SelfType& other) const { return isEqual(other); }
 
@@ -800,12 +822,12 @@ class JSON_API ValueConstIterator : public ValueIteratorBase {
   friend class Value;
 
 public:
-  typedef const Value value_type;
+  using value_type = const Value;
   // typedef unsigned int size_t;
   // typedef int difference_type;
-  typedef const Value& reference;
-  typedef const Value* pointer;
-  typedef ValueConstIterator SelfType;
+  using reference = const Value&;
+  using pointer = const Value*;
+  using SelfType = ValueConstIterator;
 
   ValueConstIterator();
   ValueConstIterator(ValueIterator const& other);
@@ -851,12 +873,12 @@ class JSON_API ValueIterator : public ValueIteratorBase {
   friend class Value;
 
 public:
-  typedef Value value_type;
-  typedef unsigned int size_t;
-  typedef int difference_type;
-  typedef Value& reference;
-  typedef Value* pointer;
-  typedef ValueIterator SelfType;
+  using value_type = Value;
+  using size_t = unsigned int;
+  using difference_type = int;
+  using reference = Value&;
+  using pointer = Value*;
+  using SelfType = ValueIterator;
 
   ValueIterator();
   explicit ValueIterator(const ValueConstIterator& other);
@@ -897,8 +919,8 @@ public:
    *  because the returned references/pointers can be used
    *  to change state of the base class.
    */
-  reference operator*() { return deref(); }
-  pointer operator->() { return &deref(); }
+  reference operator*() const { return const_cast<reference>(deref()); }
+  pointer operator->() const { return const_cast<pointer>(&deref()); }
 };
 
 inline void swap(Value& a, Value& b) { a.swap(b); }

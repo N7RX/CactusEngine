@@ -27,7 +27,7 @@ namespace Engine
 		void DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
-		EGraphicsDeviceType GetDeviceType() const override;
+		EGraphicsAPIType GetDeviceType() const override;
 
 		// Low-level functions that shouldn't be called on OpenGL device
 		std::shared_ptr<DrawingCommandPool> RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType = EGPUType::Main) override;
@@ -86,7 +86,7 @@ namespace Engine
 	};
 
 	template<>
-	static std::shared_ptr<GraphicsDevice> CreateDrawingDevice<EGraphicsDeviceType::OpenGL>()
+	static std::shared_ptr<GraphicsDevice> CreateDrawingDevice<EGraphicsAPIType::OpenGL>()
 	{
 		auto pDevice = std::make_shared<GraphicsHardwareInterface_GL>();
 

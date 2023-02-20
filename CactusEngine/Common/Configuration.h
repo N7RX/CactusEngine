@@ -35,18 +35,18 @@ namespace Engine
 	public:
 		GraphicsConfiguration()
 		{
-			m_deviceType = EGraphicsDeviceType::OpenGL;
+			m_deviceType = EGraphicsAPIType::OpenGL;
 			m_windowWidth = 800;
 			m_windowHeight = 600;
 			m_enableVSync = false;
 		}
 
-		void SetDeviceType(EGraphicsDeviceType type)
+		void SetDeviceType(EGraphicsAPIType type)
 		{
 			m_deviceType = type;
 		}
 
-		EGraphicsDeviceType GetDeviceType() const
+		EGraphicsAPIType GetDeviceType() const
 		{
 			return m_deviceType;
 		}
@@ -83,7 +83,7 @@ namespace Engine
 		}
 
 	private:
-		EGraphicsDeviceType m_deviceType;
+		EGraphicsAPIType m_deviceType;
 		uint32_t m_windowWidth;
 		uint32_t m_windowHeight;
 		bool m_enableVSync;

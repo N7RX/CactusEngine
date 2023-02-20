@@ -70,7 +70,7 @@ namespace Engine
 		COUNT
 	};
 
-	enum class EGraphicsDeviceType
+	enum class EGraphicsAPIType
 	{
 		OpenGL = 0,
 		Vulkan,

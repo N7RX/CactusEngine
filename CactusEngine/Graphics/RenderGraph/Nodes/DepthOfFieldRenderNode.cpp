@@ -106,7 +106,7 @@ void DepthOfFieldRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> 
 
 	m_pDevice->CreateFrameBuffer(fbCreateInfo_Horizontal, m_pFrameBuffer_Horizontal);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		// Create a framebuffer arround each swapchain image
 
@@ -131,7 +131,7 @@ void DepthOfFieldRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> 
 
 	// Uniform buffers
 
-	uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 8 : 1;
+	uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 8 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
@@ -311,7 +311,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 		pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MARK_TEXTURE)));
 
 	ubControlVariables.bool_1 = 1;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 		pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
@@ -326,7 +326,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 	}
@@ -339,7 +339,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NONE), pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		// Set to swapchain image output
 		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_pFrameBuffers_Present->frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
@@ -379,7 +379,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 		pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MARK_TEXTURE)));
 
 	ubControlVariables.bool_1 = 0;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 		pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
@@ -394,7 +394,7 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

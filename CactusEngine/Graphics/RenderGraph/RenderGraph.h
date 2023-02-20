@@ -59,7 +59,7 @@ namespace Engine
 		const char*									m_pName;
 		BaseRenderer*								m_pRenderer;
 		std::shared_ptr<GraphicsDevice>				m_pDevice;
-		EGraphicsDeviceType							m_eGraphicsDeviceType;
+		EGraphicsAPIType							m_eGraphicsDeviceType;
 
 		std::vector<RenderNode*>					m_prevNodes;
 		std::vector<std::shared_ptr<RenderNode>>	m_nextNodes;

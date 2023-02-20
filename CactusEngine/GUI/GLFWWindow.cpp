@@ -31,7 +31,7 @@ void GLFWWindow::Initialize()
 
 	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
 	{
-	case EGraphicsDeviceType::OpenGL:
+	case EGraphicsAPIType::OpenGL:
 	{
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -54,7 +54,7 @@ void GLFWWindow::Initialize()
 		gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
 		break;
 	}
-	case EGraphicsDeviceType::Vulkan:
+	case EGraphicsAPIType::Vulkan:
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
@@ -80,22 +80,23 @@ void GLFWWindow::Initialize()
 		glfwSwapInterval(0);
 	}
 
-#if defined(_DEBUG) // To ensure same performance baseline before ImGui support is implemented for Vulkan device
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
+//#if defined(_DEBUG) // To ensure same performance baseline before ImGui support is implemented for Vulkan device
+	// TODO: Vulkan backend support
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::OpenGL)
 	{
 		InitImGui(m_pGLFWWindowHandle);
 	}
-#endif
+//#endif
 }
 
 void GLFWWindow::Tick()
 {
-#if defined(_DEBUG)
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsDeviceType::OpenGL)
+//#if defined(_DEBUG)
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::OpenGL)
 	{
 		DrawImGui();
 	}
-#endif
+//#endif
 
 	m_shouldQuit = glfwWindowShouldClose(m_pGLFWWindowHandle);
 	glfwSwapBuffers(m_pGLFWWindowHandle);

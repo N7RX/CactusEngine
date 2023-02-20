@@ -37,6 +37,6 @@ namespace Engine
 		std::shared_ptr<RenderGraph> m_pRenderGraph;
 		std::shared_ptr<GraphicsDevice> m_pDevice;
 		RenderingSystem* m_pSystem;
-		EGraphicsDeviceType	m_eGraphicsDeviceType;
+		EGraphicsAPIType	m_eGraphicsDeviceType;
 	};
 }

@@ -70,7 +70,7 @@ void ShadowMapRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGr
 
 	// Uniform buffers
 
-	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan ? 4096 : 1;
+	uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 4096 : 1;
 
 	UniformBufferCreateInfo ubCreateInfo = {};
 	ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
@@ -208,7 +208,7 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 
 	Matrix4x4 lightProjection;
 	Matrix4x4 lightView;
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan) // TODO: resolve this workaround for Vulkan
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) // TODO: resolve this workaround for Vulkan
 	{
 		Vector3 lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
 		lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -30.0f, 30.0f);
@@ -260,7 +260,7 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 
 		ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 		std::shared_ptr<SubUniformBuffer> pSubTransformMatricesUB = nullptr;
-		if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
 			pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
@@ -282,7 +282,7 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 
 			pShaderParamTable->Clear();
 
-			if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 			}
@@ -302,14 +302,14 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 			m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 			m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 
-			if (m_eGraphicsDeviceType != EGraphicsDeviceType::Vulkan)
+			if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
 			{
 				pShaderProgram->Reset();
 			}
 		}
 	}
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

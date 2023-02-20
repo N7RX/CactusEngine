@@ -79,7 +79,7 @@ void ConfigSetup()
 
 	// TODO: read setitings from file
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetDeviceType(EGraphicsDeviceType::Vulkan);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetDeviceType(EGraphicsAPIType::Vulkan);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
 }

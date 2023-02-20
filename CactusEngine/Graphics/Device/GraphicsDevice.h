@@ -31,7 +31,7 @@ namespace Engine
 		virtual void DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
-		virtual EGraphicsDeviceType GetDeviceType() const = 0;
+		virtual EGraphicsAPIType GetDeviceType() const = 0;
 
 		// For low-level devices, e.g. Vulkan
 
@@ -88,7 +88,7 @@ namespace Engine
 		static const uint32_t ATTRIB_BITANGENT_LOCATION = 4;
 	};
 
-	template<EGraphicsDeviceType>
+	template<EGraphicsAPIType>
 	static std::shared_ptr<GraphicsDevice> CreateDrawingDevice()
 	{
 		return nullptr;

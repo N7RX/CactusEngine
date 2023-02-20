@@ -330,9 +330,6 @@
     <ClInclude Include="Third-party\ImGui\imgui.h">
       <Filter>Third-party\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Third-party\ImGui\imgui_impl_glfw_gl3.h">
-      <Filter>Third-party\ImGui</Filter>
-    </ClInclude>
     <ClInclude Include="Third-party\ImGui\imgui_internal.h">
       <Filter>Third-party\ImGui</Filter>
     </ClInclude>
@@ -513,6 +510,15 @@
     <ClInclude Include="Utilities\Timer.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Third-party\imgui\imgui_impl_glfw.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -594,9 +600,6 @@
       <Filter>Third-party\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp">
-      <Filter>Third-party\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Third-party\ImGui\imgui_impl_glfw_gl3.cpp">
       <Filter>Third-party\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Third-party\glad\glad.c">
@@ -733,6 +736,15 @@
     </ClCompile>
     <ClCompile Include="Utilities\Timer.cpp">
       <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\imgui\imgui_impl_glfw.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\imgui\imgui_tables.cpp">
+      <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Third-party\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Third-party\ImGui</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

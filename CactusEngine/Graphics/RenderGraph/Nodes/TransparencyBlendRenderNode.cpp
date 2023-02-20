@@ -194,7 +194,7 @@ void TransparencyBlendRenderNode::RenderPassFunction(std::shared_ptr<RenderGraph
 	m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 	m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-	if (m_eGraphicsDeviceType == EGraphicsDeviceType::Vulkan)
+	if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);

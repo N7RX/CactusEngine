@@ -283,9 +283,9 @@ void GraphicsHardwareInterface_GL::ResizeViewPort(uint32_t width, uint32_t heigh
 	glViewport(0, 0, width, height);
 }
 
-EGraphicsDeviceType GraphicsHardwareInterface_GL::GetDeviceType() const
+EGraphicsAPIType GraphicsHardwareInterface_GL::GetDeviceType() const
 {
-	return EGraphicsDeviceType::OpenGL;
+	return EGraphicsAPIType::OpenGL;
 }
 
 std::shared_ptr<DrawingCommandPool> GraphicsHardwareInterface_GL::RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType)
