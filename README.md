@@ -1,49 +1,79 @@
 # Cactus Engine
-A tiny ECS rendering engine based on Vulkan and OpenGL. 
-*(You will feel like grabbing a cactus when using this engine.)*<br/>
+*(It will feel like hugging a cactus when using this engine.)*<br/><br/>A tiny game engine built for my small-scale personal projects. As of now it is still only a rendering engine and is WIP.
 <br/>
 <img src="/README_pix/Screenshot_0.png" width="640" height="360">
-<br/><br/>
-This project is working in progress.<br/><br/>Completed parts include:
+<br/>
+<br/>
 
-- Fundamental ECS
-- Multi-pass forward rendering (Vulkan/OpenGL)
-- Multi-thread rendering (Vulkan)
-- Render Graph (Basic)
-- Scene saving and reading with JSON file
+#### Features
 
-Currently working on:
+Engine features:
 
-* Ray tracing pipeline (Vulkan)
-* Render Graph (Advanced)
-* ImGui support under Vulkan
+- OpenGL and Vulkan support
+- Entity-Component-System structure
+- Deferred shading
+- Multi-thread rendering (Vulkan only)
+- Scene saving and reading
+- ImGUI support (OpenGL only)
+- Basic render graph
+
+Work in progress:
+
+* ImGUI support for Vulkan
+* Vulkan pipeline caching
+* Vulkan sub-pass support
+* Improved render graph
+* Compute pipeline support and GPU particles
+
+Planned features:
+
+* Frustum culling
+* PBR render graph
+* Audio support (possibly through OpenAL)
+* Enhanced GUI
+
+Ideas under consideration, may not put into work:
+
+* Physics system support (possibly through Bullet Physics)
+* Texture compression
+* LOD system
+* SPIR-V optimization
+* Bone animation system
+* Vulkan ray tracing
+* Video decoding support
 
 <br/>
 
-Available in `heterogeneous` branch:
+Deprecated feature(s):
 
-- Heterogeneous-GPU rendering (Vulkan)
+- Heterogeneous-GPU rendering (Vulkan only). Available in `heterogeneous` branch.
 
 <br/>
 
 #### Dependencies
 
-- Vulkan 1.2
+- [GLFW (Window/Input Utility)](https://github.com/glfw/glfw)
+- [GLM (Graphics Mathematics)](https://github.com/g-truc/glm)
+- [Dear ImGui (GUI Utility)](https://github.com/ocornut/imgui)
+- [Assimp (Asset Import)](https://github.com/assimp/assimp)
+- [stb (Image Utility)](https://github.com/nothings/stb)
+- [JsonCpp (JSON parser)](https://github.com/open-source-parsers/jsoncpp)
+- [Vulkan SDK 1.2+](https://www.lunarg.com/vulkan-sdk/)
+- [Volk (Vulkan Loader)](https://github.com/zeux/volk)
+- [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- [SPIRV-Cross (SPIR-V Utility)](https://github.com/KhronosGroup/SPIRV-Cross)
 - OpenGL 4.6
-- GLFW 3, GLAD
-- GLM
-- Dear ImGui
-- Assimp 5.0
-- Eigen
-- stb_image
-- jsoncpp
-- VMA
-- SPIRV-Cross
-- Visual Studio 2019
+- [GLAD (OpenGL Loader)](https://github.com/Dav1dde/glad/tree/master)
+- C++ 17
+- Visual Studio 2022
 
+<br/>
 
+#### Samples
 
-#### Sample
+(Sample screenshots taken from `legacy-2020` branch)
+
+<br/>
 
 <img src="/README_pix/Screenshot_1.png" width="640" height="360">
 
@@ -51,8 +81,8 @@ Available in `heterogeneous` branch:
 
 <img src="/README_pix/Screenshot_3.png" width="640" height="360">
 
-Model Copyright:
+3D Models Source:
 
-- Crytek Sponza & Serapis Bust from Morgan McGuire's [Computer Graphics Archive](https://casual-effects.com/data)
+- Crytek Sponza & Serapis Bust from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data)
 - Unity-Chan from [Unity-Chan Official Website](https://unity-chan.com/)
 - Lucy from [Stanford 3D Scanning Repository](http://graphics.stanford.edu/data/3Dscanrep/)
