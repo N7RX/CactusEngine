@@ -8,13 +8,13 @@ using namespace Engine;
 RenderTexture::RenderTexture(uint32_t width, uint32_t height)
 	: Texture2D(ETexture2DSource::RenderTexture)
 {
-	m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice();
+	m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
 
 	m_width = width;
 	m_height = height;
 }
 
-void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFormat format, EGPUType deviceType)
+void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFormat format)
 {
 	if (!m_pDevice)
 	{
@@ -29,7 +29,6 @@ void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFor
 	createInfo.format = format;
 	createInfo.generateMipmap = false; // TODO: test out the effect
 	createInfo.initialLayout = EImageLayout::ShaderReadOnly;
-	createInfo.deviceType = deviceType;
 
 	m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 }

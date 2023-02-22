@@ -21,15 +21,15 @@ namespace Engine
 
 		virtual void BuildRenderGraph() = 0;
 		virtual void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) = 0;
-		virtual void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer) = 0;
+		virtual void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer) = 0;
 
 		ERendererType GetRendererType() const;
 
 		void SetRendererPriority(uint32_t priority);
 		uint32_t GetRendererPriority() const;
 
-		std::shared_ptr<GraphicsDevice> GetDrawingDevice() const;
-		RenderingSystem* GetDrawingSystem() const;
+		std::shared_ptr<GraphicsDevice> GetGraphicsDevice() const;
+		RenderingSystem* GetRenderingSystem() const;
 
 	protected:
 		ERendererType m_rendererType;

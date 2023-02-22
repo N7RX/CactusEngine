@@ -162,7 +162,7 @@ void BlurRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphRe
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -182,7 +182,7 @@ void BlurRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGr
 {
 	m_pControlVariables_UB->ResetSubBufferAllocation();
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
 
@@ -192,7 +192,7 @@ void BlurRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGr
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_Horizontal, pCommandBuffer);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,

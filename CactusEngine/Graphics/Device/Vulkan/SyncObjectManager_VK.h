@@ -29,7 +29,7 @@ namespace Engine
 
 	// Timeline semaphore must be returned after each use to update timeline
 	// TODO: add external updating support
-	class TimelineSemaphore_VK : public DrawingSemaphore
+	class TimelineSemaphore_VK : public GraphicsSemaphore
 	{
 	public:
 		TimelineSemaphore_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkSemaphore& semaphoreHandle, uint32_t assignedID);

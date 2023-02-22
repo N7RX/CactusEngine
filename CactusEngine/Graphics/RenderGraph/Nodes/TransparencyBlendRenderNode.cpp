@@ -152,7 +152,7 @@ void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResou
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -170,13 +170,13 @@ void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResou
 
 void TransparencyBlendRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
 {
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,

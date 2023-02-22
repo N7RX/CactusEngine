@@ -233,7 +233,7 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
 	pipelineCreateInfo.pVertexInputState = pVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -248,7 +248,7 @@ void DeferredLightingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResour
 
 	m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DeferredLighting, pPipeline);
 
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorNoBlendState;
@@ -270,7 +270,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 	auto pGBufferPositionTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
 	auto pSceneDepthTexture = std::static_pointer_cast<Texture2D>(pGraphResources->Get(m_inputResourceNames.at(INPUT_DEPTH_TEXTURE)));
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
@@ -278,7 +278,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
 	auto pShaderParamTable_ext = std::make_shared<ShaderParameterTable>();
 
 	pShaderParamTable_ext->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
@@ -311,7 +311,7 @@ void DeferredLightingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphR
 	UBCameraProperties ubCameraProperties = {};
 	UBLightSourceProperties ubLightSourceProperties = {};
 
-	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
+	pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
 
 	ubTransformMatrices.projectionMatrix = projectionMat;
 	ubTransformMatrices.viewMatrix = viewMat;

@@ -222,7 +222,7 @@ void DepthOfFieldRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> 
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -257,9 +257,9 @@ void DepthOfFieldRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResou
 	Vector3 cameraPos = pCameraTransform->GetPosition();
 	Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 	UBTransformMatrices ubTransformMatrices = {};

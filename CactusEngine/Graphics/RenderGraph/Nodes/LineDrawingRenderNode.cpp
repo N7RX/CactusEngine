@@ -182,7 +182,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 	pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -195,7 +195,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 	std::shared_ptr<GraphicsPipelineObject> pPipeline_Simplified = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Simplified);
 
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 
 	std::shared_ptr<GraphicsPipelineObject> pPipeline_Blend = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Blend);
@@ -205,7 +205,7 @@ void LineDrawingRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> p
 
 	if (m_enableLineSmooth)
 	{
-		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 
 		std::shared_ptr<GraphicsPipelineObject> pPipeline_Blur = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_Blur);
@@ -218,7 +218,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 {
 	m_pControlVariables_UB->ResetSubBufferAllocation();
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	UBControlVariables ubControlVariables = {};
 
@@ -228,7 +228,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::LineDrawing_Simplified), pCommandBuffer);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 	auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
@@ -250,7 +250,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 	{
 		// Gaussian blur passes
 
-		pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
+		pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 
 		// Horizontal pass
 
@@ -329,7 +329,7 @@ void LineDrawingRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResour
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer_FinalBlend, pCommandBuffer);
 
-	pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
+	pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Blend);
 	pShaderParamTable->Clear();
 
 	pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,

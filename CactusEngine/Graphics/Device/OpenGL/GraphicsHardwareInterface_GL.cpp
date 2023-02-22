@@ -30,12 +30,6 @@ std::shared_ptr<ShaderProgram> GraphicsHardwareInterface_GL::CreateShaderProgram
 	return std::make_shared<ShaderProgram_GL>(this, pVertexShader, pFragmentShader);
 }
 
-std::shared_ptr<ShaderProgram> GraphicsHardwareInterface_GL::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType)
-{
-	// GPU type specification will be ignored in OpenGL implementation
-	return CreateShaderProgramFromFile(vertexShaderFilePath, fragmentShaderFilePath);
-}
-
 bool GraphicsHardwareInterface_GL::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
 {
 	std::shared_ptr<VertexBuffer_GL> pVertexBuffer = std::make_shared<VertexBuffer_GL>();
@@ -245,7 +239,7 @@ void GraphicsHardwareInterface_GL::SetRenderTarget(const std::shared_ptr<FrameBu
 	}
 }
 
-void GraphicsHardwareInterface_GL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	auto pProgram = std::static_pointer_cast<ShaderProgram_GL>(pShaderProgram);
 
@@ -255,7 +249,7 @@ void GraphicsHardwareInterface_GL::UpdateShaderParameter(std::shared_ptr<ShaderP
 	}
 }
 
-void GraphicsHardwareInterface_GL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	if (!pVertexBuffer)
 	{
@@ -265,12 +259,12 @@ void GraphicsHardwareInterface_GL::SetVertexBuffer(const std::shared_ptr<VertexB
 	glBindVertexArray(std::static_pointer_cast<VertexBuffer_GL>(pVertexBuffer)->m_vao);
 }
 
-void GraphicsHardwareInterface_GL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	glDrawElementsBaseVertex(m_primitiveTopologyMode, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int)*baseIndex), baseVertex);
 }
 
-void GraphicsHardwareInterface_GL::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	// This has to be used with FullScreenQuad shader
 	glBindVertexArray(m_attributeless_vao);
@@ -288,25 +282,25 @@ EGraphicsAPIType GraphicsHardwareInterface_GL::GetDeviceType() const
 	return EGraphicsAPIType::OpenGL;
 }
 
-std::shared_ptr<DrawingCommandPool> GraphicsHardwareInterface_GL::RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType)
+std::shared_ptr<GraphicsCommandPool> GraphicsHardwareInterface_GL::RequestExternalCommandPool(EQueueType queueType)
 {
 	std::cerr << "OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.\n";
 	return nullptr;
 }
 
-std::shared_ptr<DrawingCommandBuffer> GraphicsHardwareInterface_GL::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
+std::shared_ptr<GraphicsCommandBuffer> GraphicsHardwareInterface_GL::RequestCommandBuffer(std::shared_ptr<GraphicsCommandPool> pCommandPool)
 {
 	return nullptr;
 }
 
-void GraphicsHardwareInterface_GL::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::ReturnExternalCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.\n";
 }
 
-std::shared_ptr<DrawingSemaphore> GraphicsHardwareInterface_GL::RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage)
+std::shared_ptr<GraphicsSemaphore> GraphicsHardwareInterface_GL::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
 {
-	std::cerr << "OpenGL: shouldn't call RequestDrawingSemaphore on OpenGL device.\n";
+	std::cerr << "OpenGL: shouldn't call RequestGraphicsSemaphore on OpenGL device.\n";
 	return nullptr;
 }
 
@@ -431,33 +425,33 @@ void GraphicsHardwareInterface_GL::ResizeSwapchain(uint32_t width, uint32_t heig
 	std::cerr << "OpenGL: shouldn't call ResizeSwapchain on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::static_pointer_cast<GraphicsPipeline_GL>(pPipeline)->Apply();
 }
 
-void GraphicsHardwareInterface_GL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	SetRenderTarget(pFrameBuffer);
 	std::static_pointer_cast<RenderPass_GL>(pRenderPass)->Initialize();
 }
 
-void GraphicsHardwareInterface_GL::EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::EndRenderPass(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call EndRenderPass on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::EndCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call EndCommandBuffer on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_GL::CommandWaitSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	std::cerr << "OpenGL: shouldn't call CommandWaitSemaphore on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_GL::CommandSignalSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	std::cerr << "OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.\n";
 }
@@ -467,7 +461,7 @@ void GraphicsHardwareInterface_GL::Present()
 	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags)
+void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushImplicitCommands)
 {
 	glFlush();
 
@@ -483,13 +477,13 @@ void GraphicsHardwareInterface_GL::FlushTransferCommands(bool waitExecution)
 	glFlush();
 }
 
-void GraphicsHardwareInterface_GL::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_GL::WaitSemaphore(std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	std::cerr << "OpenGL: shouldn't call WaitSemaphore on OpenGL device.\n";
 	glFinish();
 }
 
-std::shared_ptr<TextureSampler> GraphicsHardwareInterface_GL::GetDefaultTextureSampler(EGPUType deviceType, bool withDefaultAF) const
+std::shared_ptr<TextureSampler> GraphicsHardwareInterface_GL::GetDefaultTextureSampler(bool withDefaultAF) const
 {
 	return nullptr;
 }
@@ -505,24 +499,19 @@ uint32_t GraphicsHardwareInterface_GL::GetSwapchainPresentImageIndex() const
 	return -1;
 }
 
-void GraphicsHardwareInterface_GL::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call CopyTexture2DToDataTransferBuffer on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_GL::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToTexture2D on OpenGL device.\n";
 }
 
-void GraphicsHardwareInterface_GL::CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer)
+void GraphicsHardwareInterface_GL::CopyDataTransferBuffer(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferCrossDevice on OpenGL device.\n";
-}
-
-void GraphicsHardwareInterface_GL::CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
-{
-	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferWithinDevice on OpenGL device.\n";
+	std::cerr << "OpenGL: shouldn't call CopyDataTransferBuffer on OpenGL device.\n";
 }
 
 void GraphicsHardwareInterface_GL::CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size)

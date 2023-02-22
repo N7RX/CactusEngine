@@ -37,7 +37,7 @@ RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, Bas
 	: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
 {
 	assert(m_pGraphResources != nullptr);
-	m_pDevice = m_pRenderer->GetDrawingDevice();
+	m_pDevice = m_pRenderer->GetGraphicsDevice();
 	m_eGraphicsDeviceType = m_pDevice->GetDeviceType();
 }
 
@@ -83,8 +83,8 @@ void RenderNode::ExecuteParallel()
 	m_finishedExecution = true;
 }
 
-RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType)
-	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount), m_deviceType(deviceType)
+RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount)
+	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
 {
 	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::Vulkan)
 	{

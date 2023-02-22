@@ -12,7 +12,7 @@ using namespace Engine;
 static Assimp::Importer gImporter;
 
 ExternalMesh::ExternalMesh(const char* filePath)
-	: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetDrawingDevice())
+	: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice())
 {
 	LoadMeshFromFile(filePath);
 }

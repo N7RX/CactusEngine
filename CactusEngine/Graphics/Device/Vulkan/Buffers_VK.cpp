@@ -4,10 +4,10 @@
 
 using namespace Engine;
 
-RawBuffer_VK::RawBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& createInfo)
-	: m_pDevice(pDevice), m_deviceSize(createInfo.size)
+RawBuffer_VK::RawBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo)
+	: m_pAllocator(pAllocator), m_deviceSize(createInfo.size)
 {
-	assert(pDevice);
+	assert(pAllocator);
 
 	m_buffer = VK_NULL_HANDLE;
 	m_allocation = VK_NULL_HANDLE;
@@ -15,7 +15,7 @@ RawBuffer_VK::RawBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, cons
 
 	if (m_deviceSize > 0)
 	{
-		m_pDevice->pUploadAllocator->CreateBuffer(createInfo, *this);
+		m_pAllocator->CreateBuffer(createInfo, *this);
 	}
 }
 
@@ -23,31 +23,31 @@ RawBuffer_VK::~RawBuffer_VK()
 {
 	if (m_buffer != VK_NULL_HANDLE)
 	{
-		m_pDevice->pUploadAllocator->FreeBuffer(m_buffer, m_allocation);
+		m_pAllocator->FreeBuffer(m_buffer, m_allocation);
 	}
 }
 
-DataTransferBuffer_VK::DataTransferBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& createInfo)
-	: m_pDevice(pDevice), m_constantlyMapped(false), m_ppMappedData(nullptr)
+DataTransferBuffer_VK::DataTransferBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo)
+	: m_pAllocator(pAllocator), m_constantlyMapped(false), m_ppMappedData(nullptr)
 {
 	m_sizeInBytes = createInfo.size;
-	m_pBufferImpl = std::make_shared<RawBuffer_VK>(pDevice, createInfo);
+	m_pBufferImpl = std::make_shared<RawBuffer_VK>(m_pAllocator, createInfo);
 }
 
 DataTransferBuffer_VK::~DataTransferBuffer_VK()
 {
 	if (m_constantlyMapped)
 	{
-		m_pDevice->pUploadAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
+		m_pAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
 	}
 }
 
-VertexBuffer_VK::VertexBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo)
-	: m_pDevice(pDevice)
+VertexBuffer_VK::VertexBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo)
+	: m_pAllocator(pAllocator)
 {
-	m_pVertexBufferImpl = std::make_shared<RawBuffer_VK>(pDevice, vertexBufferCreateInfo);
+	m_pVertexBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, vertexBufferCreateInfo);
 
-	m_pIndexBufferImpl = std::make_shared<RawBuffer_VK>(pDevice, indexBufferCreateInfo);
+	m_pIndexBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, indexBufferCreateInfo);
 	m_indexType = indexBufferCreateInfo.indexFormat;
 
 	m_sizeInBytes = vertexBufferCreateInfo.size + indexBufferCreateInfo.size;
@@ -68,7 +68,7 @@ VkIndexType VertexBuffer_VK::GetIndexFormat() const
 	return m_indexType;
 }
 
-UniformBuffer_VK::UniformBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const UniformBufferCreateInfo_VK& createInfo)
+UniformBuffer_VK::UniformBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const UniformBufferCreateInfo_VK& createInfo)
 	: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_pHostData(nullptr), m_subAllocatedSize(0)
 {
 	RawBufferCreateInfo_VK bufferImplCreateInfo = {};
@@ -76,12 +76,12 @@ UniformBuffer_VK::UniformBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevi
 	bufferImplCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 	bufferImplCreateInfo.size = createInfo.size;
 
-	m_pBufferImpl = std::make_shared<RawBuffer_VK>(pDevice, bufferImplCreateInfo);
+	m_pBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, bufferImplCreateInfo);
 	m_sizeInBytes = createInfo.size;
 
 	if (m_eType == EUniformBufferType_VK::Uniform)
 	{
-		if (!m_pBufferImpl->m_pDevice->pUploadAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData))
+		if (!m_pBufferImpl->m_pAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData))
 		{
 			std::cerr << "Vulkan: Failed to map uniform buffer memory.\n";
 		}
@@ -92,7 +92,7 @@ UniformBuffer_VK::~UniformBuffer_VK()
 {
 	if (m_eType == EUniformBufferType_VK::Uniform)
 	{
-		m_pBufferImpl->m_pDevice->pUploadAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
+		m_pBufferImpl->m_pAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
 	}
 }
 
@@ -137,7 +137,7 @@ void UniformBuffer_VK::ResetSubBufferAllocation()
 
 void UniformBuffer_VK::UpdateToDevice(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
 {
-	assert(m_pBufferImpl->m_pDevice);
+	assert(m_pBufferImpl->m_pAllocator);
 	assert(m_pRawData != nullptr);
 
 	switch (m_eType)

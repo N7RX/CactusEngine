@@ -1,7 +1,6 @@
 # Cactus Engine
-*(It will feel like hugging a cactus when using this engine.)*<br/><br/>A tiny game engine built for my small-scale personal projects. As of now it is still only a rendering engine and is WIP.
-<br/>
-<img src="/README_pix/Screenshot_0.png" width="640" height="360">
+*(It will feel like hugging a cactus when using this engine.)*<br/><br/>A tiny game engine built for small-scale personal projects, targeting desktop platform. As of now it is still only a rendering engine and is WIP.
+<br/><br/><img src="/README_pix/Screenshot_0.png" width="640" height="360">
 <br/>
 <br/>
 
@@ -81,7 +80,7 @@ Deprecated feature(s):
 
 <img src="/README_pix/Screenshot_3.png" width="640" height="360">
 
-3D Models Source:
+Sample model sources:
 
 - Crytek Sponza & Serapis Bust from [Morgan McGuire's Computer Graphics Archive](https://casual-effects.com/data)
 - Unity-Chan from [Unity-Chan Official Website](https://unity-chan.com/)

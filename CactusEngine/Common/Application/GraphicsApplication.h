@@ -21,11 +21,11 @@ namespace Engine
 		bool ShouldQuit() const override;
 
 		std::shared_ptr<ECSWorld> GetECSWorld() const;
-		std::shared_ptr<GraphicsDevice> GetDrawingDevice() const;
+		std::shared_ptr<GraphicsDevice> GetGraphicsDevice() const;
 		std::shared_ptr<BaseWindow> GetWindow() const;
 		void* GetWindowHandle() const override;
 
-		void SetDrawingDevice(const std::shared_ptr<GraphicsDevice> pDevice);
+		void SetGraphicsDevice(const std::shared_ptr<GraphicsDevice> pDevice);
 		void AddSetupFunction(void(*pSetupFunc)(GraphicsApplication* pApp));
 
 	private:

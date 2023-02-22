@@ -116,7 +116,7 @@ void StandardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLis
 
 		while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
 		{
-			std::vector<std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>> buffersToReturn;
+			std::vector<std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>> buffersToReturn;
 
 			{
 				std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
@@ -165,7 +165,7 @@ void StandardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLis
 			if (buffersToReturn.size() > 0)
 			{
 				std::sort(buffersToReturn.begin(), buffersToReturn.end(),
-					[](const std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>& lhs, std::pair<uint32_t, std::shared_ptr<DrawingCommandBuffer>>& rhs)
+					[](const std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>& lhs, std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>& rhs)
 					{
 						return lhs.first < rhs.first;
 					});
@@ -186,7 +186,7 @@ void StandardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawLis
 	}
 }
 
-void StandardRenderer::WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer)
+void StandardRenderer::WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer)
 {
 	{
 		std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);

@@ -36,7 +36,7 @@ namespace Engine
 	class  CommandPool_VK;
 	class  CommandManager_VK;
 
-	class CommandBuffer_VK : public DrawingCommandBuffer
+	class CommandBuffer_VK : public GraphicsCommandBuffer
 	{
 	public:
 		CommandBuffer_VK(const VkCommandBuffer& cmdBuffer);
@@ -100,7 +100,7 @@ namespace Engine
 		friend class GraphicsHardwareInterface_VK;
 	};
 
-	class CommandPool_VK : public NoCopy, public DrawingCommandPool, std::enable_shared_from_this<CommandPool_VK>
+	class CommandPool_VK : public NoCopy, public GraphicsCommandPool, std::enable_shared_from_this<CommandPool_VK>
 	{
 	public:
 		CommandPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager);

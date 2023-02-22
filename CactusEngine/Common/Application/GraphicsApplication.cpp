@@ -45,7 +45,7 @@ std::shared_ptr<ECSWorld> GraphicsApplication::GetECSWorld() const
 	return m_pECSWorld;
 }
 
-std::shared_ptr<GraphicsDevice> GraphicsApplication::GetDrawingDevice() const
+std::shared_ptr<GraphicsDevice> GraphicsApplication::GetGraphicsDevice() const
 {
 	return m_pDevice;
 }
@@ -60,7 +60,7 @@ void* GraphicsApplication::GetWindowHandle() const
 	return m_pWindow->GetWindowHandle();
 }
 
-void GraphicsApplication::SetDrawingDevice(const std::shared_ptr<GraphicsDevice> pDevice)
+void GraphicsApplication::SetGraphicsDevice(const std::shared_ptr<GraphicsDevice> pDevice)
 {
 	m_pDevice = pDevice;
 }

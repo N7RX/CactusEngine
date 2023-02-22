@@ -229,7 +229,7 @@ void GBufferRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGrap
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
 	pipelineCreateInfo.pVertexInputState = pVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -261,14 +261,14 @@ void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> 
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 		pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 
 	// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
 
 	UBTransformMatrices ubTransformMatrices = {};
 	ubTransformMatrices.projectionMatrix = projectionMat;

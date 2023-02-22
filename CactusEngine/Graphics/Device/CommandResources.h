@@ -2,24 +2,24 @@
 
 namespace Engine
 {
-	class DrawingCommandBuffer
+	class GraphicsCommandBuffer
 	{
 	public:
 		unsigned int m_debugID = 0;
 
 	protected:
-		DrawingCommandBuffer() = default;
+		GraphicsCommandBuffer() = default;
 	};
 
-	class DrawingCommandPool
+	class GraphicsCommandPool
 	{
 	protected:
-		DrawingCommandPool() = default;
+		GraphicsCommandPool() = default;
 	};
 
-	class DrawingSemaphore
+	class GraphicsSemaphore
 	{
 	protected:
-		DrawingSemaphore() = default;
+		GraphicsSemaphore() = default;
 	};
 }

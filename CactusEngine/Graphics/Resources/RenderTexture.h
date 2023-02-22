@@ -10,7 +10,7 @@ namespace Engine
 		RenderTexture(uint32_t width, uint32_t height);
 		~RenderTexture() = default;
 
-		void FlushData(const void* pData, EDataType dataType, ETextureFormat format, EGPUType deviceType = EGPUType::Main);
+		void FlushData(const void* pData, EDataType dataType, ETextureFormat format);
 
 		std::shared_ptr<Texture2D> GetTexture() const;
 

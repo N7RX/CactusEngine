@@ -14,12 +14,12 @@ namespace Engine
 
 		void BuildRenderGraph() override;
 		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
-		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<DrawingCommandBuffer>& pCommandBuffer) override;
+		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer) override;
 
 	private:
 		std::shared_ptr<RenderGraphResource> m_pGraphResources;
 
-		std::unordered_map<uint32_t, std::shared_ptr<DrawingCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
+		std::unordered_map<uint32_t, std::shared_ptr<GraphicsCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
 		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted
 
 		std::mutex m_commandRecordListWriteMutex;

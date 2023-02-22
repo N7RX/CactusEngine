@@ -224,7 +224,7 @@ void TransparentContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphReso
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic_Transparent);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::Basic_Transparent);
 	pipelineCreateInfo.pVertexInputState = pVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -237,7 +237,7 @@ void TransparentContentRenderNode::SetupFunction(std::shared_ptr<RenderGraphReso
 	std::shared_ptr<GraphicsPipelineObject> pPipeline_0 = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_0);
 
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::WaterBasic);
 
 	std::shared_ptr<GraphicsPipelineObject> pPipeline_1 = nullptr;
 	m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
@@ -263,7 +263,7 @@ void TransparentContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGrap
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 		pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	UBTransformMatrices ubTransformMatrices = {};
 	UBSystemVariables ubSystemVariables = {};
@@ -335,7 +335,7 @@ void TransparentContentRenderNode::RenderPassFunction(std::shared_ptr<RenderGrap
 			if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 			{
 				m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
-				pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
+				pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 				lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 			}
 			pShaderParamTable->Clear();

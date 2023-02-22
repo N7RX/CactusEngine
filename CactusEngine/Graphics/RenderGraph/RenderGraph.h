@@ -35,8 +35,8 @@ namespace Engine
 
 	struct CommandContext
 	{
-		std::shared_ptr<DrawingCommandPool> pCommandPool = nullptr;
-		std::shared_ptr<DrawingCommandPool> pTransferCommandPool = nullptr;
+		std::shared_ptr<GraphicsCommandPool> pCommandPool = nullptr;
+		std::shared_ptr<GraphicsCommandPool> pTransferCommandPool = nullptr;
 	};
 	
 	class RenderNode : std::enable_shared_from_this<RenderNode>
@@ -77,7 +77,7 @@ namespace Engine
 	class RenderGraph : public NoCopy
 	{
 	public:
-		RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount, EGPUType deviceType = EGPUType::Main);
+		RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount);
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode);
@@ -101,7 +101,6 @@ namespace Engine
 
 	private:
 		std::shared_ptr<GraphicsDevice> m_pDevice;
-		EGPUType m_deviceType;
 		std::unordered_map<const char*, std::shared_ptr<RenderNode>> m_nodes;
 		std::queue<std::shared_ptr<RenderNode>> m_startingNodes; // Nodes that has no previous dependencies
 		bool m_isRunning;

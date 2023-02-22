@@ -78,7 +78,6 @@ namespace Engine
 
 	struct TextureSamplerCreateInfo
 	{
-		EGPUType			deviceType;
 		ESamplerFilterMode	magMode;
 		ESamplerFilterMode	minMode;
 		ESamplerAddressMode	addressMode;
@@ -109,8 +108,6 @@ namespace Engine
 		bool		   generateMipmap;
 		std::shared_ptr<TextureSampler> pSampler;
 		EImageLayout   initialLayout;
-
-		EGPUType	   deviceType;
 	};
 
 	enum class ETexture2DSource
@@ -159,7 +156,6 @@ namespace Engine
 		uint32_t	usageFlags; // Bitmap for EDataTransferBufferUsage
 		EMemoryType memoryType;
 		bool		cpuMapped;
-		EGPUType	deviceType;
 	};
 
 	class DataTransferBuffer : public RawResource
@@ -187,8 +183,6 @@ namespace Engine
 
 	struct RenderPassCreateInfo
 	{
-		EGPUType	 deviceType;
-
 		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
 		Color4		 clearColor;
 		float		 clearDepth;
@@ -209,7 +203,6 @@ namespace Engine
 		uint32_t framebufferHeight;
 		std::vector<std::shared_ptr<Texture2D>> attachments;
 
-		EGPUType deviceType;
 		std::shared_ptr<RenderPassObject> pRenderPass;
 	};
 
@@ -241,7 +234,6 @@ namespace Engine
 	{
 		uint32_t sizeInBytes;
 
-		EGPUType deviceType;
 		uint32_t appliedStages; // Bitmask, required for push constant
 	};
 
@@ -468,7 +460,6 @@ namespace Engine
 
 	struct GraphicsPipelineCreateInfo
 	{
-		EGPUType									deviceType;
 		std::shared_ptr<ShaderProgram>				pShaderProgram;
 		std::shared_ptr<PipelineVertexInputState>	pVertexInputState;
 		std::shared_ptr<PipelineInputAssemblyState>	pInputAssemblyState;

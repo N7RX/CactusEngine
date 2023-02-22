@@ -6,17 +6,16 @@
 
 namespace Engine
 {
-	struct LogicalDevice_VK;
-	class  CommandBuffer_VK;
+	class CommandBuffer_VK;
 
 	class RawBuffer_VK : public RawResource
 	{
 	public:
-		RawBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& createInfo);
+		RawBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo);
 		virtual ~RawBuffer_VK();
 
 	protected:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
 
 		VkBuffer		m_buffer;
 		VmaAllocation	m_allocation;
@@ -32,11 +31,11 @@ namespace Engine
 	class DataTransferBuffer_VK : public DataTransferBuffer
 	{
 	public:
-		DataTransferBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& createInfo);
+		DataTransferBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo);
 		~DataTransferBuffer_VK();
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
 		std::shared_ptr<RawBuffer_VK> m_pBufferImpl;
 
 		bool m_constantlyMapped;
@@ -48,7 +47,7 @@ namespace Engine
 	class VertexBuffer_VK : public VertexBuffer
 	{
 	public:
-		VertexBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo);
+		VertexBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo);
 		~VertexBuffer_VK() = default;
 
 		std::shared_ptr<RawBuffer_VK> GetBufferImpl() const;
@@ -56,7 +55,7 @@ namespace Engine
 		VkIndexType GetIndexFormat() const;
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
 		std::shared_ptr<RawBuffer_VK> m_pVertexBufferImpl;
 		std::shared_ptr<RawBuffer_VK> m_pIndexBufferImpl;
 		VkIndexType m_indexType;
@@ -73,14 +72,14 @@ namespace Engine
 	struct UniformBufferCreateInfo_VK
 	{
 		EUniformBufferType_VK	type;
-		uint32_t					size;
-		VkShaderStageFlags			appliedStages;
+		uint32_t				size;
+		VkShaderStageFlags		appliedStages;
 	};
 
 	class UniformBuffer_VK : public UniformBuffer
 	{
 	public:
-		UniformBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const UniformBufferCreateInfo_VK& createInfo);
+		UniformBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const UniformBufferCreateInfo_VK& createInfo);
 		~UniformBuffer_VK();
 
 		void UpdateBufferData(const void* pData) override;

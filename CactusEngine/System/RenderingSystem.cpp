@@ -83,18 +83,18 @@ bool RenderingSystem::CreateDevice()
 	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
 	{
 	case EGraphicsAPIType::OpenGL:
-		m_pDevice = CreateDrawingDevice<EGraphicsAPIType::OpenGL>();
+		m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::OpenGL>();
 		break;
 	case EGraphicsAPIType::Vulkan:
-		m_pDevice = CreateDrawingDevice<EGraphicsAPIType::Vulkan>();
+		m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::Vulkan>();
 		break;
 	default:
-		throw std::runtime_error("Unsupported drawing device type.");
+		throw std::runtime_error("Unsupported graphics device type.");
 		return false;
 	}
 
 	m_pDevice->Initialize();
-	std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->SetDrawingDevice(m_pDevice);
+	std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->SetGraphicsDevice(m_pDevice);
 
 	return true;
 }

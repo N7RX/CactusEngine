@@ -92,7 +92,7 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->RegisterSystem<InputSystem>(ESystemType::Input);
 	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation);
 	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Drawing);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering);
 
 	// Read scene from file
 	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");

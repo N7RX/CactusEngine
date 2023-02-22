@@ -186,7 +186,7 @@ void ShadowMapRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGr
 	// Pipeline creation
 
 	GraphicsPipelineCreateInfo pipelineCreateInfo = {};
-	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetDrawingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
+	pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 	pipelineCreateInfo.pVertexInputState = pVertexInputState;
 	pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
 	pipelineCreateInfo.pColorBlendState = pColorBlendState;
@@ -222,13 +222,13 @@ void ShadowMapRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource
 	}
 	Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
-	std::shared_ptr<DrawingCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+	std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 	m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 	m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
-	auto pShaderProgram = (m_pRenderer->GetDrawingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
+	auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 
 	UBTransformMatrices ubTransformMatrices = {};
 	UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix = {};

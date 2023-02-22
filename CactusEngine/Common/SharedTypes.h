@@ -25,7 +25,7 @@ namespace Engine
 
 	enum class ESystemType
 	{
-		Drawing = 0,
+		Rendering = 0,
 		Animation,
 		Event,
 		Input,
@@ -79,8 +79,8 @@ namespace Engine
 
 	enum class EGPUType
 	{
-		Main = 0x1,
-		Secondary = 0x2,
+		Discrete = 0x1,
+		Integrated = 0x2,
 		COUNT = 2
 	};
 
@@ -102,7 +102,6 @@ namespace Engine
 		SampledImage = 0,
 		ColorAttachment,
 		DepthAttachment,
-		TransferColorAttachment, // For heterogeneous-GPU mode
 		COUNT
 	};
 

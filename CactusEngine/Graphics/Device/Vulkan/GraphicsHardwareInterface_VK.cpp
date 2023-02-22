@@ -46,7 +46,7 @@ void GraphicsHardwareInterface_VK::ShutDown()
 		// TODO: correctly organize the sequence of resource release
 		// ...
 
-		vkDestroyDevice(m_pDevice_0->logicalDevice, nullptr);
+		vkDestroyDevice(m_pMainDevice->logicalDevice, nullptr);
 
 		if (m_enableValidationLayers)
 		{
@@ -68,40 +68,16 @@ std::shared_ptr<ShaderProgram> GraphicsHardwareInterface_VK::CreateShaderProgram
 	std::vector<char> vertexRawCode;
 	std::vector<char> fragmentRawCode;
 
-	CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
-	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
+	CreateShaderModuleFromFile(vertexShaderFilePath, m_pMainDevice, vertexModule, vertexRawCode);
+	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pMainDevice, fragmentModule, fragmentRawCode);
 
-	auto pVertexShader = std::make_shared<VertexShader_VK>(m_pDevice_0, vertexModule, vertexRawCode);
-	auto pFragmentShader = std::make_shared<FragmentShader_VK>(m_pDevice_0, fragmentModule, fragmentRawCode);
-
-#if defined(_DEBUG)
-	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#else
-	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pDevice_0, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-#endif
-
-	return pShaderProgram;
-}
-
-std::shared_ptr<ShaderProgram> GraphicsHardwareInterface_VK::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath, EGPUType gpuType)
-{
-	VkShaderModule vertexModule = VK_NULL_HANDLE;
-	VkShaderModule fragmentModule = VK_NULL_HANDLE;
-
-	std::vector<char> vertexRawCode;
-	std::vector<char> fragmentRawCode;
-
-	// GPU type specification is be ignored in this branch
-	CreateShaderModuleFromFile(vertexShaderFilePath, m_pDevice_0, vertexModule, vertexRawCode);
-	CreateShaderModuleFromFile(fragmentShaderFilePath, m_pDevice_0, fragmentModule, fragmentRawCode);
-
-	auto pVertexShader = std::make_shared<VertexShader_VK>(m_pDevice_0, vertexModule, vertexRawCode);
-	auto pFragmentShader = std::make_shared<FragmentShader_VK>(m_pDevice_0, fragmentModule, fragmentRawCode);
+	auto pVertexShader = std::make_shared<VertexShader_VK>(m_pMainDevice, vertexModule, vertexRawCode);
+	auto pFragmentShader = std::make_shared<FragmentShader_VK>(m_pMainDevice, fragmentModule, fragmentRawCode);
 
 #if defined(_DEBUG)
-	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pDevice_0, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pMainDevice, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
 #else
-	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pDevice_0, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+	auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pMainDevice, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
 #endif
 
 	return pShaderProgram;
@@ -130,7 +106,7 @@ bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateIn
 
 	// By default vertex data will be created on discrete device, since integrated device will only handle post processing
 	// The alternative is to add a device specifier in VertexBufferCreateInfo
-	pOutput = std::make_shared<VertexBuffer_VK>(m_pDevice_0, vertexBufferCreateInfo, indexBufferCreateInfo);
+	pOutput = std::make_shared<VertexBuffer_VK>(m_pMainDevice->pUploadAllocator, vertexBufferCreateInfo, indexBufferCreateInfo);
 
 	std::vector<float> interleavedVertices = createInfo.ConvertToInterleavedData();
 	void* ppIndexData;
@@ -141,24 +117,24 @@ bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateIn
 	vertexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 	vertexStagingBufferCreateInfo.size = vertexBufferCreateInfo.size;
 
-	auto pVertexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pDevice_0, vertexStagingBufferCreateInfo);
+	auto pVertexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pMainDevice->pUploadAllocator, vertexStagingBufferCreateInfo);
 
-	m_pDevice_0->pUploadAllocator->MapMemory(pVertexStagingBuffer->m_allocation, &ppVertexData);
+	m_pMainDevice->pUploadAllocator->MapMemory(pVertexStagingBuffer->m_allocation, &ppVertexData);
 	memcpy(ppVertexData, interleavedVertices.data(), vertexBufferCreateInfo.size);
-	m_pDevice_0->pUploadAllocator->UnmapMemory(pVertexStagingBuffer->m_allocation);
+	m_pMainDevice->pUploadAllocator->UnmapMemory(pVertexStagingBuffer->m_allocation);
 
 	RawBufferCreateInfo_VK indexStagingBufferCreateInfo = {};
 	indexStagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	indexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 	indexStagingBufferCreateInfo.size = indexBufferCreateInfo.size;
 
-	auto pIndexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pDevice_0, indexStagingBufferCreateInfo);
+	auto pIndexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pMainDevice->pUploadAllocator, indexStagingBufferCreateInfo);
 
-	m_pDevice_0->pUploadAllocator->MapMemory(pIndexStagingBuffer->m_allocation, &ppIndexData);
+	m_pMainDevice->pUploadAllocator->MapMemory(pIndexStagingBuffer->m_allocation, &ppIndexData);
 	memcpy(ppIndexData, createInfo.pIndexData, indexBufferCreateInfo.size);
-	m_pDevice_0->pUploadAllocator->UnmapMemory(pIndexStagingBuffer->m_allocation);
+	m_pMainDevice->pUploadAllocator->UnmapMemory(pIndexStagingBuffer->m_allocation);
 
-	auto pCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	auto pCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
 	VkBufferCopy vertexBufferCopyRegion = {};
 	vertexBufferCopyRegion.srcOffset = 0;
@@ -174,7 +150,7 @@ bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateIn
 
 	pCmdBuffer->CopyBufferToBuffer(pIndexStagingBuffer, std::static_pointer_cast<VertexBuffer_VK>(pOutput)->GetIndexBufferImpl(), indexBufferCopyRegion);
 
-	m_pDevice_0->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
+	m_pMainDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 
 	return true;
 }
@@ -191,7 +167,7 @@ bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& cr
 	tex2dCreateInfo.aspect = createInfo.textureType == ETextureType::DepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 	tex2dCreateInfo.mipLevels = createInfo.generateMipmap ? DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight)) : 1;
 	
-	auto pDevice = m_pDevice_0;
+	auto pDevice = m_pMainDevice;
 
 	pOutput = std::make_shared<Texture2D_VK>(pDevice, tex2dCreateInfo);
 	auto pVkTexture2D = std::static_pointer_cast<Texture2D_VK>(pOutput);
@@ -206,7 +182,7 @@ bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& cr
 		bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 		bufferCreateInfo.size = (VkDeviceSize)createInfo.textureWidth * createInfo.textureHeight * VulkanFormatUnitSize(createInfo.format);
 
-		pStagingBuffer = std::make_shared<RawBuffer_VK>(pDevice, bufferCreateInfo);
+		pStagingBuffer = std::make_shared<RawBuffer_VK>(pDevice->pUploadAllocator, bufferCreateInfo);
 
 		void* ppData;
 		pDevice->pUploadAllocator->MapMemory(pStagingBuffer->m_allocation, &ppData);
@@ -258,7 +234,7 @@ bool GraphicsHardwareInterface_VK::CreateFrameBuffer(const FrameBufferCreateInfo
 {
 	assert(pOutput == nullptr);
 
-	pOutput = std::make_shared<FrameBuffer_VK>(m_pDevice_0);
+	pOutput = std::make_shared<FrameBuffer_VK>(m_pMainDevice);
 
 	auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_VK>(pOutput);
 
@@ -291,12 +267,12 @@ bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreate
 	vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
 	vkUniformBufferCreateInfo.type = EUniformBufferType_VK::Uniform;
 
-	pOutput = std::make_shared<UniformBuffer_VK>(m_pDevice_0, vkUniformBufferCreateInfo);
+	pOutput = std::make_shared<UniformBuffer_VK>(m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
 
 	return pOutput != nullptr;
 }
 
-void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	assert(pCommandBuffer != nullptr);
 	auto pVkShader = std::static_pointer_cast<ShaderProgram_VK>(pShaderProgram);
@@ -385,7 +361,7 @@ void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderP
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
 }
 
-void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	assert(pCommandBuffer != nullptr);
 	auto pBuffer = std::static_pointer_cast<VertexBuffer_VK>(pVertexBuffer);
@@ -396,13 +372,13 @@ void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexB
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
 }
 
-void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	assert(pCommandBuffer != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
 }
 
-void GraphicsHardwareInterface_VK::DrawFullScreenQuad(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
 	assert(pCommandBuffer != nullptr);
@@ -429,15 +405,15 @@ void GraphicsHardwareInterface_VK::SetupDevice()
 	CreateLogicalDevice();
 }
 
-std::shared_ptr<LogicalDevice_VK> GraphicsHardwareInterface_VK::GetLogicalDevice(EGPUType type) const
+std::shared_ptr<LogicalDevice_VK> GraphicsHardwareInterface_VK::GetLogicalDevice() const
 {
 	// GPU type specification is ignored in this branch
-	return m_pDevice_0;
+	return m_pMainDevice;
 }
 
-std::shared_ptr<DrawingCommandPool> GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType, EGPUType deviceType)
+std::shared_ptr<GraphicsCommandPool> GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
 {
-	auto pDevice = m_pDevice_0;
+	auto pDevice = m_pMainDevice;
 
 	switch (queueType)
 	{
@@ -461,7 +437,7 @@ std::shared_ptr<DrawingCommandPool> GraphicsHardwareInterface_VK::RequestExterna
 	}
 }
 
-std::shared_ptr<DrawingCommandBuffer> GraphicsHardwareInterface_VK::RequestCommandBuffer(std::shared_ptr<DrawingCommandPool> pCommandPool)
+std::shared_ptr<GraphicsCommandBuffer> GraphicsHardwareInterface_VK::RequestCommandBuffer(std::shared_ptr<GraphicsCommandPool> pCommandPool)
 {
 	auto pCmdBuffer = std::static_pointer_cast<CommandPool_VK>(pCommandPool)->RequestPrimaryCommandBuffer();
 	pCmdBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit;
@@ -469,14 +445,14 @@ std::shared_ptr<DrawingCommandBuffer> GraphicsHardwareInterface_VK::RequestComma
 	return pCmdBuffer;
 }
 
-void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer));
 }
 
-std::shared_ptr<DrawingSemaphore> GraphicsHardwareInterface_VK::RequestDrawingSemaphore(EGPUType deviceType, ESemaphoreWaitStage waitStage)
+std::shared_ptr<GraphicsSemaphore> GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
 {
-	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
+	auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
 	pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
 	return pSemaphore;
 }
@@ -488,9 +464,9 @@ bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBu
 	vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
 	vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
 
-	auto pDevice = m_pDevice_0;
+	auto pDevice = m_pMainDevice;
 
-	pOutput = std::make_shared<DataTransferBuffer_VK>(pDevice, vkBufferCreateInfo);
+	pOutput = std::make_shared<DataTransferBuffer_VK>(pDevice->pUploadAllocator, vkBufferCreateInfo);
 
 	if (createInfo.cpuMapped)
 	{
@@ -504,7 +480,7 @@ bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBu
 
 bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
 {
-	pOutput = std::make_shared<RenderPass_VK>(m_pDevice_0);
+	pOutput = std::make_shared<RenderPass_VK>(m_pMainDevice);
 
 	auto pRenderPass = std::static_pointer_cast<RenderPass_VK>(pOutput);
 
@@ -615,7 +591,7 @@ bool GraphicsHardwareInterface_VK::CreateSampler(const TextureSamplerCreateInfo&
 	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
-	pOutput = std::make_shared<Sampler_VK>(m_pDevice_0, samplerCreateInfo);
+	pOutput = std::make_shared<Sampler_VK>(m_pMainDevice, samplerCreateInfo);
 
 	return pOutput != nullptr;
 }
@@ -719,7 +695,7 @@ bool GraphicsHardwareInterface_VK::CreateGraphicsPipelineObject(const GraphicsPi
 	pipelineLayoutCreateInfo.pPushConstantRanges = pShaderProgram->GetPushConstantRanges();
 	pipelineLayoutCreateInfo.pSetLayouts = pShaderProgram->GetDescriptorSetLayout()->GetDescriptorSetLayout();
 
-	if (vkCreatePipelineLayout(m_pDevice_0->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(m_pMainDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Vulkan: failed to create graphics pipeline layout.\n");
 		return false;
@@ -747,7 +723,7 @@ bool GraphicsHardwareInterface_VK::CreateGraphicsPipelineObject(const GraphicsPi
 	pipelineCreateInfo.subpass = 0;
 	pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	pOutput = std::make_shared<GraphicsPipeline_VK>(m_pDevice_0, pShaderProgram, pipelineCreateInfo);
+	pOutput = std::make_shared<GraphicsPipeline_VK>(m_pMainDevice, pShaderProgram, pipelineCreateInfo);
 
 	return pOutput != nullptr;
 }
@@ -810,7 +786,7 @@ void GraphicsHardwareInterface_VK::ResizeSwapchain(uint32_t width, uint32_t heig
 	// TODO: recreate swapchain
 }
 
-void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	auto pVkPipeline = std::static_pointer_cast<GraphicsPipeline_VK>(pPipeline);
 
@@ -818,7 +794,7 @@ void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const std::shared_ptr<Gr
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
 }
 
-void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	assert(!std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
 	// Currently we are only rendering to full window
@@ -827,18 +803,18 @@ void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderP
 		std::static_pointer_cast<RenderPass_VK>(pRenderPass)->m_clearValues, { pFrameBuffer->GetWidth(), pFrameBuffer->GetHeight() });
 }
 
-void GraphicsHardwareInterface_VK::EndRenderPass(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::EndRenderPass(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	assert(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->EndRenderPass();
 }
 
-void GraphicsHardwareInterface_VK::EndCommandBuffer(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::EndCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->EndCommandBuffer();
 }
 
-void GraphicsHardwareInterface_VK::CommandWaitSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_VK::CommandWaitSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	if (pSemaphore == nullptr)
 	{
@@ -848,7 +824,7 @@ void GraphicsHardwareInterface_VK::CommandWaitSemaphore(std::shared_ptr<DrawingC
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->WaitSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
 }
 
-void GraphicsHardwareInterface_VK::CommandSignalSemaphore(std::shared_ptr<DrawingCommandBuffer> pCommandBuffer, std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_VK::CommandSignalSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	assert(pCommandBuffer != nullptr && pSemaphore != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->SignalSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
@@ -888,7 +864,7 @@ void GraphicsHardwareInterface_VK::Present()
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
-void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands, uint32_t deviceTypeFlags)
+void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands)
 {
 	uint32_t cmdBufferSubmitMask = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit;
 	if (flushImplicitCommands)
@@ -896,12 +872,12 @@ void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushI
 		cmdBufferSubmitMask |= (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
 	}
 
-	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
-	m_pDevice_0->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
+	auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
 
 	if (flushImplicitCommands)
 	{
-		m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 	}
 
 	if (waitExecution)
@@ -915,7 +891,7 @@ void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushI
 
 void GraphicsHardwareInterface_VK::FlushTransferCommands(bool waitExecution)
 {
-	if (m_pDevice_0->pTransferCommandManager == nullptr)
+	if (m_pMainDevice->pTransferCommandManager == nullptr)
 	{
 		std::cerr << "Vulkan: Shouldn't flush transfer commands when transfer queue is not supported.\n ";
 		return;
@@ -923,8 +899,8 @@ void GraphicsHardwareInterface_VK::FlushTransferCommands(bool waitExecution)
 
 	uint32_t cmdBufferSubmitMask = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit | (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
 
-	auto pSemaphore = m_pDevice_0->pSyncObjectManager->RequestTimelineSemaphore();
-	m_pDevice_0->pTransferCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
+	auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pMainDevice->pTransferCommandManager->SubmitCommandBuffers(pSemaphore, cmdBufferSubmitMask);
 
 	if (waitExecution)
 	{
@@ -932,16 +908,16 @@ void GraphicsHardwareInterface_VK::FlushTransferCommands(bool waitExecution)
 	}
 }
 
-void GraphicsHardwareInterface_VK::WaitSemaphore(std::shared_ptr<DrawingSemaphore> pSemaphore)
+void GraphicsHardwareInterface_VK::WaitSemaphore(std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
 	auto pVkSemaphore = std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore);
 	pVkSemaphore->Wait(FRAME_TIMEOUT);
 	pVkSemaphore->m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 }
 
-std::shared_ptr<TextureSampler> GraphicsHardwareInterface_VK::GetDefaultTextureSampler(EGPUType deviceType, bool withDefaultAF) const
+std::shared_ptr<TextureSampler> GraphicsHardwareInterface_VK::GetDefaultTextureSampler(bool withDefaultAF) const
 {
-	return withDefaultAF ? m_pDefaultSampler_1 : m_pDefaultSampler_1;
+	return withDefaultAF ? m_pDefaultSampler_0 : m_pDefaultSampler_1;
 }
 
 void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
@@ -962,7 +938,7 @@ uint32_t GraphicsHardwareInterface_VK::GetSwapchainPresentImageIndex() const
 	return m_pSwapchain->GetTargetImageIndex();
 }
 
-void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	auto pVkTexture = std::static_pointer_cast<Texture2D_VK>(pSrcTexture);
 	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
@@ -986,7 +962,7 @@ void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(std::shared
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->CopyTexture2DToBuffer(pVkTexture, pVkBuffer->m_pBufferImpl, copyRegions);
 }
 
-void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	auto pVkTexture = std::static_pointer_cast<Texture2D_VK>(pDstTexture);
 	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
@@ -1015,35 +991,7 @@ void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(std::shared
 	pVkCmdBuffer->TransitionImageLayout(pVkTexture, originalLayout, originalAppliedStages);
 }
 
-void GraphicsHardwareInterface_VK::CopyDataTransferBufferCrossDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer)
-{
-	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
-	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
-
-	assert(pDstVkBuffer->m_sizeInBytes >= pSrcVkBuffer->m_sizeInBytes);
-
-	if (!pSrcVkBuffer->m_constantlyMapped)
-	{
-		pSrcVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation, &pSrcVkBuffer->m_ppMappedData);
-	}
-	if (!pDstVkBuffer->m_constantlyMapped)
-	{
-		pDstVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation, &pDstVkBuffer->m_ppMappedData);
-	}
-
-	memcpy(pDstVkBuffer->m_ppMappedData, pSrcVkBuffer->m_ppMappedData, pSrcVkBuffer->m_sizeInBytes);
-
-	if (!pSrcVkBuffer->m_constantlyMapped)
-	{
-		pSrcVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
-	}
-	if (!pDstVkBuffer->m_constantlyMapped)
-	{
-		pDstVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation);
-	}
-}
-
-void GraphicsHardwareInterface_VK::CopyDataTransferBufferWithinDevice(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<DrawingCommandBuffer> pCommandBuffer)
+void GraphicsHardwareInterface_VK::CopyDataTransferBuffer(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
 	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
@@ -1066,14 +1014,14 @@ void GraphicsHardwareInterface_VK::CopyHostDataToDataTransferBuffer(void* pData,
 
 	if (!pDstVkBuffer->m_constantlyMapped)
 	{
-		pDstVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation, &pDstVkBuffer->m_ppMappedData);
+		pDstVkBuffer->m_pAllocator->MapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation, &pDstVkBuffer->m_ppMappedData);
 	}
 
 	memcpy(pDstVkBuffer->m_ppMappedData, pData, size);
 
 	if (!pDstVkBuffer->m_constantlyMapped)
 	{
-		pDstVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation);
+		pDstVkBuffer->m_pAllocator->UnmapMemory(pDstVkBuffer->m_pBufferImpl->m_allocation);
 	}
 }
 
@@ -1083,14 +1031,14 @@ void GraphicsHardwareInterface_VK::CopyDataTransferBufferToHostDataLocation(std:
 
 	if (!pSrcVkBuffer->m_constantlyMapped)
 	{
-		pSrcVkBuffer->m_pDevice->pUploadAllocator->MapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation, &pSrcVkBuffer->m_ppMappedData);
+		pSrcVkBuffer->m_pAllocator->MapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation, &pSrcVkBuffer->m_ppMappedData);
 	}
 
 	memcpy(pDataLoc, pSrcVkBuffer->m_ppMappedData, pSrcVkBuffer->m_sizeInBytes);
 
 	if (!pSrcVkBuffer->m_constantlyMapped)
 	{
-		pSrcVkBuffer->m_pDevice->pUploadAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
+		pSrcVkBuffer->m_pAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
 	}
 }
 
@@ -1243,7 +1191,7 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 		return;
 	}
 
-	m_pDevice_0 = std::make_shared<LogicalDevice_VK>();
+	m_pMainDevice = std::make_shared<LogicalDevice_VK>();
 
 	for (const auto& device : suitableDevices)
 	{
@@ -1252,8 +1200,8 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 
 		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 		{
-			m_pDevice_0->physicalDevice = device;
-			m_pDevice_0->deviceProperties = deviceProperties;
+			m_pMainDevice->physicalDevice = device;
+			m_pMainDevice->deviceProperties = deviceProperties;
 
 #if defined(_DEBUG)
 			PrintPhysicalDeviceInfo_VK(deviceProperties);
@@ -1267,8 +1215,7 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 
 void GraphicsHardwareInterface_VK::CreateLogicalDevice()
 {
-	CreateLogicalDevice(m_pDevice_0);
-	//... (Extend required GPU here)
+	CreateLogicalDevice(m_pMainDevice);
 }
 
 void GraphicsHardwareInterface_VK::CreateLogicalDevice(std::shared_ptr<LogicalDevice_VK> pDevice)
@@ -1380,14 +1327,14 @@ void GraphicsHardwareInterface_VK::SetupSwapchain()
 	SwapchainCreateInfo_VK createInfo = {};
 	createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
 	createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
-	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
-	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pDevice_0->physicalDevice, m_presentationSurface);
+	createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
+	createInfo.supportDetails = QuerySwapchainSupport_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
 	createInfo.surface = m_presentationSurface;
 	createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
 	createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 		gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
 
-	m_pSwapchain = std::make_shared<Swapchain_VK>(m_pDevice_0, createInfo);
+	m_pSwapchain = std::make_shared<Swapchain_VK>(m_pMainDevice, createInfo);
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
 	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
@@ -1415,7 +1362,6 @@ VkSurfaceFormatKHR GraphicsHardwareInterface_VK::ChooseSwapSurfaceFormat(const s
 void GraphicsHardwareInterface_VK::CreateDefaultSampler()
 {
 	TextureSamplerCreateInfo createInfo = {};
-	createInfo.deviceType = EGPUType::Main;
 	createInfo.magMode = ESamplerFilterMode::Linear;
 	createInfo.minMode = ESamplerFilterMode::Linear;
 	createInfo.addressMode = ESamplerAddressMode::Repeat;
@@ -1474,33 +1420,33 @@ void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shader
 void GraphicsHardwareInterface_VK::SetupCommandManager()
 {
 	// Graphics queue by default must be supported
-	m_pDevice_0->pGraphicsCommandManager = std::make_shared<CommandManager_VK>(m_pDevice_0, m_pDevice_0->graphicsQueue);
+	m_pMainDevice->pGraphicsCommandManager = std::make_shared<CommandManager_VK>(m_pMainDevice, m_pMainDevice->graphicsQueue);
 
-	if (m_pDevice_0->transferQueue.isValid)
+	if (m_pMainDevice->transferQueue.isValid)
 	{
-		m_pDevice_0->pTransferCommandManager = std::make_shared<CommandManager_VK>(m_pDevice_0, m_pDevice_0->transferQueue);
+		m_pMainDevice->pTransferCommandManager = std::make_shared<CommandManager_VK>(m_pMainDevice, m_pMainDevice->transferQueue);
 	}
 	else
 	{
-		m_pDevice_0->pTransferCommandManager = nullptr;
+		m_pMainDevice->pTransferCommandManager = nullptr;
 	}
 
-	m_pDevice_0->pImplicitCmdBuffer = m_pDevice_0->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 }
 
 void GraphicsHardwareInterface_VK::SetupSyncObjectManager()
 {
-	m_pDevice_0->pSyncObjectManager = std::make_shared<SyncObjectManager_VK>(m_pDevice_0);
+	m_pMainDevice->pSyncObjectManager = std::make_shared<SyncObjectManager_VK>(m_pMainDevice);
 }
 
 void GraphicsHardwareInterface_VK::SetupUploadAllocator()
 {
-	m_pDevice_0->pUploadAllocator = std::make_shared<UploadAllocator_VK>(m_pDevice_0, m_instance);
+	m_pMainDevice->pUploadAllocator = std::make_shared<UploadAllocator_VK>(m_pMainDevice, m_instance);
 }
 
 void GraphicsHardwareInterface_VK::SetupDescriptorAllocator()
 {
-	m_pDevice_0->pDescriptorAllocator = std::make_shared<DescriptorAllocator_VK>(m_pDevice_0);
+	m_pMainDevice->pDescriptorAllocator = std::make_shared<DescriptorAllocator_VK>(m_pMainDevice);
 }
 
 EDescriptorResourceType_VK GraphicsHardwareInterface_VK::VulkanDescriptorResourceType(EDescriptorType type) const
