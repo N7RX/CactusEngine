@@ -61,9 +61,9 @@ void RenderingSystem::FrameEnd()
 	}
 }
 
-EGraphicsAPIType RenderingSystem::GetDeviceType() const
+EGraphicsAPIType RenderingSystem::GetGraphicsAPIType() const
 {
-	return m_pDevice->GetDeviceType();
+	return m_pDevice->GetGraphicsAPIType();
 }
 
 std::shared_ptr<ShaderProgram> RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
@@ -80,7 +80,7 @@ void RenderingSystem::RemoveRenderer(ERendererType type)
 
 bool RenderingSystem::CreateDevice()
 {
-	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
+	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType())
 	{
 	case EGraphicsAPIType::OpenGL:
 		m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::OpenGL>();
@@ -108,7 +108,7 @@ bool RenderingSystem::RegisterRenderers()
 
 bool RenderingSystem::LoadShaders()
 {
-	switch (m_pDevice->GetDeviceType())
+	switch (m_pDevice->GetGraphicsAPIType())
 	{
 	case EGraphicsAPIType::OpenGL:
 	{
@@ -192,7 +192,7 @@ void RenderingSystem::ExecuteRenderTask()
 		}
 	}
 
-	if (m_pDevice->GetDeviceType() == EGraphicsAPIType::Vulkan)
+	if (m_pDevice->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 	{
 		m_pDevice->Present();
 	}

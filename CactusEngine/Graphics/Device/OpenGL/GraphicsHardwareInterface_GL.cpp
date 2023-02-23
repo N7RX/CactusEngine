@@ -277,7 +277,7 @@ void GraphicsHardwareInterface_GL::ResizeViewPort(uint32_t width, uint32_t heigh
 	glViewport(0, 0, width, height);
 }
 
-EGraphicsAPIType GraphicsHardwareInterface_GL::GetDeviceType() const
+EGraphicsAPIType GraphicsHardwareInterface_GL::GetGraphicsAPIType() const
 {
 	return EGraphicsAPIType::OpenGL;
 }

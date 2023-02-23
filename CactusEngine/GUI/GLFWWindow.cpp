@@ -29,7 +29,7 @@ void GLFWWindow::Initialize()
 {
 	glfwInit();
 
-	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType())
+	switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType())
 	{
 	case EGraphicsAPIType::OpenGL:
 	{
@@ -82,7 +82,7 @@ void GLFWWindow::Initialize()
 
 //#if defined(_DEBUG) // To ensure same performance baseline before ImGui support is implemented for Vulkan device
 	// TODO: Vulkan backend support
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::OpenGL)
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
 	{
 		InitImGui(m_pGLFWWindowHandle);
 	}
@@ -92,7 +92,7 @@ void GLFWWindow::Initialize()
 void GLFWWindow::Tick()
 {
 //#if defined(_DEBUG)
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::OpenGL)
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
 	{
 		DrawImGui();
 	}

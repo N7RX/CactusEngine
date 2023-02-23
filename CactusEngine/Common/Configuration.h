@@ -35,20 +35,31 @@ namespace Engine
 	public:
 		GraphicsConfiguration()
 		{
-			m_deviceType = EGraphicsAPIType::OpenGL;
+			m_graphicsAPIType = EGraphicsAPIType::Vulkan;
+			m_preferredGPU = EGPUType::Discrete;
 			m_windowWidth = 800;
 			m_windowHeight = 600;
 			m_enableVSync = false;
 		}
 
-		void SetDeviceType(EGraphicsAPIType type)
+		void SetGraphicsAPIType(EGraphicsAPIType type)
 		{
-			m_deviceType = type;
+			m_graphicsAPIType = type;
 		}
 
-		EGraphicsAPIType GetDeviceType() const
+		EGraphicsAPIType GetGraphicsAPIType() const
 		{
-			return m_deviceType;
+			return m_graphicsAPIType;
+		}
+
+		void SetPreferredGPUType(EGPUType type)
+		{
+			m_preferredGPU = type;
+		}
+
+		EGPUType GetPreferredGPUType() const
+		{
+			return m_preferredGPU;
 		}
 
 		void SetWindowSize(uint32_t width, uint32_t height)
@@ -83,7 +94,8 @@ namespace Engine
 		}
 
 	private:
-		EGraphicsAPIType m_deviceType;
+		EGraphicsAPIType m_graphicsAPIType;
+		EGPUType m_preferredGPU;
 		uint32_t m_windowWidth;
 		uint32_t m_windowHeight;
 		bool m_enableVSync;

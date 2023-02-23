@@ -63,7 +63,7 @@ namespace Engine
 		void DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer) override;
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
-		EGraphicsAPIType GetDeviceType() const override;
+		EGraphicsAPIType GetGraphicsAPIType() const override;
 
 		// Low-level functions exclusive to Vulkan device
 		void SetupDevice();
@@ -120,7 +120,6 @@ namespace Engine
 		void CreatePresentationSurface();
 		void SelectPhysicalDevice();
 		void CreateLogicalDevice();
-		void CreateLogicalDevice(std::shared_ptr<LogicalDevice_VK> pDevice);
 		void SetupSwapchain();
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		void CreateDefaultSampler();

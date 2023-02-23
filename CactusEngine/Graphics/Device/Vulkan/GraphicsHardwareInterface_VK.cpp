@@ -257,7 +257,7 @@ bool GraphicsHardwareInterface_VK::CreateFrameBuffer(const FrameBufferCreateInfo
 	pFrameBuffer->m_width = createInfo.framebufferWidth;
 	pFrameBuffer->m_height = createInfo.framebufferHeight;
 
-	return vkCreateFramebuffer(pFrameBuffer->m_pDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
+	return vkCreateFramebuffer(m_pMainDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
 }
 
 bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput)
@@ -390,7 +390,7 @@ void GraphicsHardwareInterface_VK::ResizeViewPort(uint32_t width, uint32_t heigh
 	std::cerr << "Vulkan: Shouldn't call ResizeViewPort on Vulkan device.\n";
 }
 
-EGraphicsAPIType GraphicsHardwareInterface_VK::GetDeviceType() const
+EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
 {
 	return EGraphicsAPIType::Vulkan;
 }
@@ -563,7 +563,7 @@ bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreate
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &subpassDependency;
 
-	if (vkCreateRenderPass(pRenderPass->m_pDevice->logicalDevice, &renderPassInfo, nullptr, &pRenderPass->m_renderPass) != VK_SUCCESS)
+	if (vkCreateRenderPass(m_pMainDevice->logicalDevice, &renderPassInfo, nullptr, &pRenderPass->m_renderPass) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Vulkan: failed to create render pass.");
 	}
@@ -750,7 +750,7 @@ void GraphicsHardwareInterface_VK::TransitionImageLayout(std::shared_ptr<Texture
 		return;
 	}
 
-	pVkImage->m_pDevice->pImplicitCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
+	m_pMainDevice->pImplicitCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
 }
 
 void GraphicsHardwareInterface_VK::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
@@ -775,10 +775,10 @@ void GraphicsHardwareInterface_VK::TransitionImageLayout_Immediate(std::shared_p
 		return;
 	}
 
-	auto pCmdBuffer = pVkImage->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	auto pCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 	pCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
 
-	pVkImage->m_pDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
+	m_pMainDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 }
 
 void GraphicsHardwareInterface_VK::ResizeSwapchain(uint32_t width, uint32_t height)
@@ -838,30 +838,30 @@ void GraphicsHardwareInterface_VK::Present()
 
 	uint32_t cmdBufferSubmitMask = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit | (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
 
-	auto pRenderFinishSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestSemaphore();
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
+	auto pRenderFinishSemaphore = m_pMainDevice->pSyncObjectManager->RequestSemaphore();
+	m_pMainDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
 
-	auto pFrameSemaphore = m_pSwapchain->m_pDevice->pSyncObjectManager->RequestTimelineSemaphore();
-	m_pSwapchain->m_pDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask);
+	auto pFrameSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
+	m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask);
 
 	if (pFrameSemaphore->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
 	}
 
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer = m_pSwapchain->m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+	m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
 	std::vector<std::shared_ptr<Semaphore_VK>> presentWaitSemaphores = { pRenderFinishSemaphore };
 	m_pSwapchain->Present(presentWaitSemaphores);
 
-	m_pSwapchain->m_pDevice->pSyncObjectManager->ReturnSemaphore(pRenderFinishSemaphore);
+	m_pMainDevice->pSyncObjectManager->ReturnSemaphore(pRenderFinishSemaphore);
 
 	// Preparation for next frame
 
 	m_currentFrame = (m_currentFrame + 1) % MAX_FRAME_IN_FLIGHT;
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
 void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -912,7 +912,7 @@ void GraphicsHardwareInterface_VK::WaitSemaphore(std::shared_ptr<GraphicsSemapho
 {
 	auto pVkSemaphore = std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore);
 	pVkSemaphore->Wait(FRAME_TIMEOUT);
-	pVkSemaphore->m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
+	m_pMainDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 }
 
 std::shared_ptr<TextureSampler> GraphicsHardwareInterface_VK::GetDefaultTextureSampler(bool withDefaultAF) const
@@ -1193,12 +1193,32 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 
 	m_pMainDevice = std::make_shared<LogicalDevice_VK>();
 
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPreferredGPUType() == EGPUType::Discrete)
+	{
+		for (const auto& device : suitableDevices)
+		{
+			VkPhysicalDeviceProperties deviceProperties{};
+			vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+			if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+			{
+				m_pMainDevice->physicalDevice = device;
+				m_pMainDevice->deviceProperties = deviceProperties;
+
+#if defined(_DEBUG)
+				PrintPhysicalDeviceInfo_VK(deviceProperties);
+#endif
+				return;
+			}
+		}
+	}
+	// Fallback to integrated or preferred integrated
 	for (const auto& device : suitableDevices)
 	{
-		VkPhysicalDeviceProperties deviceProperties;
+		VkPhysicalDeviceProperties deviceProperties{};
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 		{
 			m_pMainDevice->physicalDevice = device;
 			m_pMainDevice->deviceProperties = deviceProperties;
@@ -1210,17 +1230,12 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 		}
 	}
 
-	std::cerr << "Vulkan: Couldn't find a suitable discrete GPU.\n";
+	std::cerr << "Vulkan: Failed to find a suitable GPU.\n";
 }
 
 void GraphicsHardwareInterface_VK::CreateLogicalDevice()
 {
-	CreateLogicalDevice(m_pMainDevice);
-}
-
-void GraphicsHardwareInterface_VK::CreateLogicalDevice(std::shared_ptr<LogicalDevice_VK> pDevice)
-{
-	QueueFamilyIndices_VK queueFamilyIndices = FindQueueFamilies_VK(pDevice->physicalDevice, m_presentationSurface);
+	QueueFamilyIndices_VK queueFamilyIndices = FindQueueFamilies_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	std::set<uint32_t> uniqueQueueFamilies;
@@ -1281,9 +1296,9 @@ void GraphicsHardwareInterface_VK::CreateLogicalDevice(std::shared_ptr<LogicalDe
 		deviceCreateInfo.enabledLayerCount = 0;
 	}
 
-	VkResult result = vkCreateDevice(pDevice->physicalDevice, &deviceCreateInfo, nullptr, &pDevice->logicalDevice);
+	VkResult result = vkCreateDevice(m_pMainDevice->physicalDevice, &deviceCreateInfo, nullptr, &m_pMainDevice->logicalDevice);
 
-	if (result != VK_SUCCESS || pDevice->logicalDevice == VK_NULL_HANDLE)
+	if (result != VK_SUCCESS || m_pMainDevice->logicalDevice == VK_NULL_HANDLE)
 	{
 		throw std::runtime_error("Vulkan: Failed to create logical device.");
 		return;
@@ -1291,16 +1306,16 @@ void GraphicsHardwareInterface_VK::CreateLogicalDevice(std::shared_ptr<LogicalDe
 
 	if (queueFamilyIndices.graphicsFamily.has_value())
 	{
-		pDevice->graphicsQueue.type = EQueueType::Graphics;
-		pDevice->graphicsQueue.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->graphicsQueue.queueFamilyIndex, 0, &pDevice->graphicsQueue.queue);
+		m_pMainDevice->graphicsQueue.type = EQueueType::Graphics;
+		m_pMainDevice->graphicsQueue.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		vkGetDeviceQueue(m_pMainDevice->logicalDevice, m_pMainDevice->graphicsQueue.queueFamilyIndex, 0, &m_pMainDevice->graphicsQueue.queue);
 	}
 
 	if (queueFamilyIndices.presentFamily.has_value())
 	{
-		pDevice->presentQueue.type = EQueueType::Present;
-		pDevice->presentQueue.queueFamilyIndex = queueFamilyIndices.presentFamily.value();
-		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->presentQueue.queueFamilyIndex, 0, &pDevice->presentQueue.queue);
+		m_pMainDevice->presentQueue.type = EQueueType::Present;
+		m_pMainDevice->presentQueue.queueFamilyIndex = queueFamilyIndices.presentFamily.value();
+		vkGetDeviceQueue(m_pMainDevice->logicalDevice, m_pMainDevice->presentQueue.queueFamilyIndex, 0, &m_pMainDevice->presentQueue.queue);
 	}
 
 	// Query timeline semaphore function support
@@ -1308,17 +1323,17 @@ void GraphicsHardwareInterface_VK::CreateLogicalDevice(std::shared_ptr<LogicalDe
 
 	if (queueFamilyIndices.transferFamily.has_value())
 	{
-		pDevice->transferQueue.type = EQueueType::Transfer;
-		pDevice->transferQueue.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
-		vkGetDeviceQueue(pDevice->logicalDevice, pDevice->transferQueue.queueFamilyIndex, 0, &pDevice->transferQueue.queue);
+		m_pMainDevice->transferQueue.type = EQueueType::Transfer;
+		m_pMainDevice->transferQueue.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+		vkGetDeviceQueue(m_pMainDevice->logicalDevice, m_pMainDevice->transferQueue.queueFamilyIndex, 0, &m_pMainDevice->transferQueue.queue);
 	}
 	else
 	{
-		pDevice->transferQueue.isValid = false;
+		m_pMainDevice->transferQueue.isValid = false;
 	}
 
 #if defined(_DEBUG)
-	std::cout << "Vulkan: Logical device created on " << pDevice->deviceProperties.deviceName << "\n";
+	std::cout << "Vulkan: Logical device created on " << m_pMainDevice->deviceProperties.deviceName << "\n";
 #endif
 }
 
@@ -1337,7 +1352,7 @@ void GraphicsHardwareInterface_VK::SetupSwapchain()
 	m_pSwapchain = std::make_shared<Swapchain_VK>(m_pMainDevice, createInfo);
 
 	m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-	m_pSwapchain->m_pDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+	m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
 }
 
 VkSurfaceFormatKHR GraphicsHardwareInterface_VK::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

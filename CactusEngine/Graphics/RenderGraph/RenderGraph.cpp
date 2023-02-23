@@ -38,7 +38,7 @@ RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, Bas
 {
 	assert(m_pGraphResources != nullptr);
 	m_pDevice = m_pRenderer->GetGraphicsDevice();
-	m_eGraphicsDeviceType = m_pDevice->GetDeviceType();
+	m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
 }
 
 void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
@@ -86,7 +86,7 @@ void RenderNode::ExecuteParallel()
 RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount)
 	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
 {
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetDeviceType() == EGraphicsAPIType::Vulkan)
+	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 	{
 		for (unsigned int i = 0; i < m_executionThreadCount; i++)
 		{

@@ -30,7 +30,7 @@ namespace Engine
 		virtual void DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = nullptr) = 0;
 		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
-		virtual EGraphicsAPIType GetDeviceType() const = 0;
+		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
 
 		// For low-level devices, e.g. Vulkan
 

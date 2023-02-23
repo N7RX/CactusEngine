@@ -27,7 +27,7 @@ namespace Engine
 		void Tick();
 		void FrameEnd();
 
-		EGraphicsAPIType GetDeviceType() const;
+		EGraphicsAPIType GetGraphicsAPIType() const;
 		std::shared_ptr<ShaderProgram> GetShaderProgramByType(EBuiltInShaderProgramType type) const;
 
 		template<typename T>
