@@ -151,12 +151,6 @@
     <Filter Include="Entity">
       <UniqueIdentifier>{c8725d2a-231e-41cc-9145-abd7a07a4b00}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Entity\Header">
-      <UniqueIdentifier>{94f2850e-81ca-4b82-89dd-11d804c1d83e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Entity\Source">
-      <UniqueIdentifier>{99c4af1f-66dc-4f3e-98ed-e1e07af24c91}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics">
       <UniqueIdentifier>{7749655e-be3f-4de2-8080-3629f2e338aa}</UniqueIdentifier>
     </Filter>
@@ -180,9 +174,6 @@
     </Filter>
     <Filter Include="GUI">
       <UniqueIdentifier>{de5b50df-2fb4-46da-bb92-52764c5fe9b4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Interface">
-      <UniqueIdentifier>{3e9c8923-b033-4687-a511-1ffc6e9a1417}</UniqueIdentifier>
     </Filter>
     <Filter Include="System">
       <UniqueIdentifier>{e4090044-5a40-4837-8e79-e581b66996ca}</UniqueIdentifier>
@@ -219,6 +210,27 @@
     </Filter>
     <Filter Include="Utilities">
       <UniqueIdentifier>{fb0dbe0e-0dfd-4ca5-ae7b-1367bdcfbb93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Script\SampleScript">
+      <UniqueIdentifier>{91e71137-025d-40d2-863d-4222e3b43a2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\Vulkan\Header">
+      <UniqueIdentifier>{62b539cf-ebd2-4e6b-989e-1df4395c212d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\Vulkan\Source">
+      <UniqueIdentifier>{ffff8db1-8021-4fa6-9c6b-5ec45a914140}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\OpenGL\Header">
+      <UniqueIdentifier>{1e4804e1-0153-4a2c-9a5d-43685ba4c1d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\OpenGL\Source">
+      <UniqueIdentifier>{f0209827-4e91-4cae-9a6d-88fc1caff900}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System\Header">
+      <UniqueIdentifier>{d721bdae-73ca-470a-bcb7-074f0d7b7e97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System\Source">
+      <UniqueIdentifier>{42283503-d73d-4ccc-afbb-0313193ea81d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -264,18 +276,6 @@
     <ClInclude Include="Entity\EntityProperties.h">
       <Filter>Entity</Filter>
     </ClInclude>
-    <ClInclude Include="Entity\BaseEntity.h">
-      <Filter>Entity\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Entity\StandardEntity.h">
-      <Filter>Entity\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Device\GraphicsDevice.h">
       <Filter>Graphics\Device</Filter>
     </ClInclude>
@@ -296,27 +296,6 @@
     </ClInclude>
     <ClInclude Include="GUI\GLFWWindow.h">
       <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IApplication.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IComponent.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IEntity.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IRenderer.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\ISystem.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="System\AnimationSystem.h">
-      <Filter>System</Filter>
-    </ClInclude>
-    <ClInclude Include="System\RenderingSystem.h">
-      <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="Component\BaseComponent.h">
       <Filter>Component</Filter>
@@ -357,44 +336,14 @@
     <ClInclude Include="Graphics\Resources\ImageTexture.h">
       <Filter>Graphics\Resources\Texture</Filter>
     </ClInclude>
-    <ClInclude Include="System\EventSystem.h">
-      <Filter>System</Filter>
-    </ClInclude>
-    <ClInclude Include="System\InputSystem.h">
-      <Filter>System</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\UploadAllocator_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\CommandManager_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\RenderGraph\RenderGraph.h">
       <Filter>Graphics\RenderGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\NoCopy.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="System\ScriptSystem.h">
-      <Filter>System</Filter>
     </ClInclude>
     <ClInclude Include="Component\AllComponents.h">
       <Filter>Component</Filter>
     </ClInclude>
-    <ClInclude Include="Script\CameraScript.h">
-      <Filter>Script</Filter>
-    </ClInclude>
     <ClInclude Include="Component\ScriptComponent.h">
       <Filter>Component\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IScript.h">
-      <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="IO\ECSSceneWriter.h">
       <Filter>IO</Filter>
@@ -413,12 +362,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Resources\ExternalMesh.h">
       <Filter>Graphics\Resources\Mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="Script\BunnyScript.h">
-      <Filter>Script</Filter>
-    </ClInclude>
-    <ClInclude Include="Script\CubeScript.h">
-      <Filter>Script</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Device\CommandResources.h">
       <Filter>Graphics\Device</Filter>
@@ -459,45 +402,6 @@
     <ClInclude Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.h">
       <Filter>Graphics\RenderGraph\Nodes</Filter>
     </ClInclude>
-    <ClInclude Include="Script\LightScript.h">
-      <Filter>Script</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\ExtensionLoader_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\SyncObjectManager_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\Buffers_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\Pipelines_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\Shaders_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\Swapchain_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\Textures_VK.h">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Shaders_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Textures_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="Utilities\SafeBasicTypes.h">
       <Filter>Utilities</Filter>
     </ClInclude>
@@ -518,6 +422,102 @@
     </ClInclude>
     <ClInclude Include="Third-party\imgui\imgui_impl_opengl3_loader.h">
       <Filter>Third-party\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\BaseScript.h">
+      <Filter>Script</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\SampleScript\BunnyScript.h">
+      <Filter>Script\SampleScript</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\SampleScript\CameraScript.h">
+      <Filter>Script\SampleScript</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\SampleScript\CubeScript.h">
+      <Filter>Script\SampleScript</Filter>
+    </ClInclude>
+    <ClInclude Include="Script\SampleScript\LightScript.h">
+      <Filter>Script\SampleScript</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\Buffers_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\CommandManager_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\ExtensionLoader_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\Pipelines_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\Shaders_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\Swapchain_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\SyncObjectManager_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\Textures_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\UploadAllocator_VK.h">
+      <Filter>Graphics\Device\Vulkan\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h">
+      <Filter>Graphics\Device\OpenGL\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
+      <Filter>Graphics\Device\OpenGL\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h">
+      <Filter>Graphics\Device\OpenGL\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\Shaders_GL.h">
+      <Filter>Graphics\Device\OpenGL\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\Textures_GL.h">
+      <Filter>Graphics\Device\OpenGL\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="System\AnimationSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="System\EventSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="System\InputSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="System\RenderingSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="System\ScriptSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="System\BaseSystem.h">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\BaseEntity.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Entity\StandardEntity.h">
+      <Filter>Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\NoCopy.h">
+      <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -554,15 +554,6 @@
     <ClCompile Include="Component\TransformComponent.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
-    <ClCompile Include="Entity\BaseEntity.cpp">
-      <Filter>Entity\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Entity\StandardEntity.cpp">
-      <Filter>Entity\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Device\GraphicsDevice.cpp">
       <Filter>Graphics\Device</Filter>
     </ClCompile>
@@ -577,12 +568,6 @@
     </ClCompile>
     <ClCompile Include="GUI\GLFWWindow.cpp">
       <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="System\AnimationSystem.cpp">
-      <Filter>System</Filter>
-    </ClCompile>
-    <ClCompile Include="System\RenderingSystem.cpp">
-      <Filter>System</Filter>
     </ClCompile>
     <ClCompile Include="Component\BaseComponent.cpp">
       <Filter>Component</Filter>
@@ -617,41 +602,14 @@
     <ClCompile Include="Graphics\Resources\ImageTexture.cpp">
       <Filter>Graphics\Resources\Texture</Filter>
     </ClCompile>
-    <ClCompile Include="System\EventSystem.cpp">
-      <Filter>System</Filter>
-    </ClCompile>
-    <ClCompile Include="System\InputSystem.cpp">
-      <Filter>System</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\UploadAllocator_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\CommandManager_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\RenderGraph.cpp">
       <Filter>Graphics\RenderGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="System\ScriptSystem.cpp">
-      <Filter>System</Filter>
-    </ClCompile>
-    <ClCompile Include="Script\CameraScript.cpp">
-      <Filter>Script</Filter>
     </ClCompile>
     <ClCompile Include="Component\ScriptComponent.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Resources\ExternalMesh.cpp">
       <Filter>Graphics\Resources\Mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="Script\BunnyScript.cpp">
-      <Filter>Script</Filter>
-    </ClCompile>
-    <ClCompile Include="Script\CubeScript.cpp">
-      <Filter>Script</Filter>
     </ClCompile>
     <ClCompile Include="IO\ECSSceneReader.cpp">
       <Filter>IO</Filter>
@@ -692,45 +650,6 @@
     <ClCompile Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.cpp">
       <Filter>Graphics\RenderGraph\Nodes</Filter>
     </ClCompile>
-    <ClCompile Include="Script\LightScript.cpp">
-      <Filter>Script</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\ExtensionLoader_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\SyncObjectManager_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\Buffers_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\Pipelines_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\Shaders_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\Swapchain_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\Vulkan\Textures_VK.cpp">
-      <Filter>Graphics\Device\Vulkan</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Buffers_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Pipelines_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Shaders_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Textures_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="Utilities\SafeBasicTypes.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
@@ -745,6 +664,93 @@
     </ClCompile>
     <ClCompile Include="Third-party\imgui\imgui_impl_opengl3.cpp">
       <Filter>Third-party\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\BaseScript.cpp">
+      <Filter>Script</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\SampleScript\BunnyScript.cpp">
+      <Filter>Script\SampleScript</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\SampleScript\CameraScript.cpp">
+      <Filter>Script\SampleScript</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\SampleScript\CubeScript.cpp">
+      <Filter>Script\SampleScript</Filter>
+    </ClCompile>
+    <ClCompile Include="Script\SampleScript\LightScript.cpp">
+      <Filter>Script\SampleScript</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\Buffers_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\CommandManager_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\ExtensionLoader_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\Pipelines_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\Shaders_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\Swapchain_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\SyncObjectManager_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\Textures_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\UploadAllocator_VK.cpp">
+      <Filter>Graphics\Device\Vulkan\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\Buffers_GL.cpp">
+      <Filter>Graphics\Device\OpenGL\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\Pipelines_GL.cpp">
+      <Filter>Graphics\Device\OpenGL\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\Shaders_GL.cpp">
+      <Filter>Graphics\Device\OpenGL\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\Textures_GL.cpp">
+      <Filter>Graphics\Device\OpenGL\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.cpp">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.cpp">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="System\AnimationSystem.cpp">
+      <Filter>System\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="System\EventSystem.cpp">
+      <Filter>System\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="System\InputSystem.cpp">
+      <Filter>System\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="System\RenderingSystem.cpp">
+      <Filter>System\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="System\ScriptSystem.cpp">
+      <Filter>System\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="System\BaseSystem.cpp">
+      <Filter>System</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\StandardEntity.cpp">
+      <Filter>Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity\BaseEntity.cpp">
+      <Filter>Entity</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -10,9 +10,11 @@
 
 #include "LightComponent.h"
 #include "TransformComponent.h"
+#include "ScriptComponent.h"
 #include "ExternalMesh.h"
 #include "StandardEntity.h"
-#include "LightScript.h"
+
+#include "SampleScript/LightScript.h"
 
 // This is the entry of the program
 

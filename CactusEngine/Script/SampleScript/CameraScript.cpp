@@ -1,4 +1,5 @@
 #include "CameraScript.h"
+#include "AllComponents.h"
 #include "InputSystem.h"
 #include "Timer.h"
 #include <assert.h>
@@ -7,21 +8,14 @@
 using namespace SampleScript;
 using namespace Engine;
 
-CameraScript::CameraScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(EScriptID::Camera), m_pEntity(pEntity), m_started(false), m_pCameraTransform(nullptr)
+CameraScript::CameraScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
+	: m_pEntity(pEntity), m_pCameraTransform(nullptr)
 {
 	assert(pEntity != nullptr);
+
+	m_id = EScriptID::Camera;
+
 	m_prevCursorPosition = Vector2(0);
-}
-
-EScriptID CameraScript::GetScriptID()
-{
-	return m_id;
-}
-
-bool CameraScript::ShouldCallStart()
-{
-	return !m_started;
 }
 
 void CameraScript::Start()

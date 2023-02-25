@@ -1,16 +1,16 @@
 #pragma once
-#include "IRenderer.h"
-#include "IEntity.h"
+#include "BaseEntity.h"
 #include "GraphicsDevice.h"
 #include "RenderGraph.h"
 
 namespace Engine
 {
 	class RenderingSystem;
-	class BaseRenderer : public IRenderer
+	class BaseRenderer
 	{
 	public:
 		BaseRenderer(ERendererType type, const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem);
+		virtual ~BaseRenderer() = default;
 
 		virtual void Initialize() {}
 		virtual void ShutDown() {}
@@ -20,7 +20,7 @@ namespace Engine
 		virtual void FrameEnd() {}
 
 		virtual void BuildRenderGraph() = 0;
-		virtual void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) = 0;
+		virtual void Draw(const std::vector<std::shared_ptr<BaseEntity>>& drawList, const std::shared_ptr<BaseEntity> pCamera) = 0;
 		virtual void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer) = 0;
 
 		ERendererType GetRendererType() const;

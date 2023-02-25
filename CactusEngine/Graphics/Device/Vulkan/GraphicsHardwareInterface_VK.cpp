@@ -1192,33 +1192,14 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 	}
 
 	m_pMainDevice = std::make_shared<LogicalDevice_VK>();
+	VkPhysicalDeviceType preferredGPUType = VulkanPhysicalDeviceType(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPreferredGPUType());
 
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPreferredGPUType() == EGPUType::Discrete)
-	{
-		for (const auto& device : suitableDevices)
-		{
-			VkPhysicalDeviceProperties deviceProperties{};
-			vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-			if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-			{
-				m_pMainDevice->physicalDevice = device;
-				m_pMainDevice->deviceProperties = deviceProperties;
-
-#if defined(_DEBUG)
-				PrintPhysicalDeviceInfo_VK(deviceProperties);
-#endif
-				return;
-			}
-		}
-	}
-	// Fallback to integrated or preferred integrated
 	for (const auto& device : suitableDevices)
 	{
 		VkPhysicalDeviceProperties deviceProperties{};
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+		if (deviceProperties.deviceType == preferredGPUType)
 		{
 			m_pMainDevice->physicalDevice = device;
 			m_pMainDevice->deviceProperties = deviceProperties;
@@ -1230,7 +1211,22 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 		}
 	}
 
-	std::cerr << "Vulkan: Failed to find a suitable GPU.\n";
+	// Fallback to non-preferred GPU type
+	{
+		const VkPhysicalDevice& fallbackDevice = suitableDevices[0];
+
+		VkPhysicalDeviceProperties deviceProperties{};
+		vkGetPhysicalDeviceProperties(fallbackDevice, &deviceProperties);
+
+		m_pMainDevice->physicalDevice = fallbackDevice;
+		m_pMainDevice->deviceProperties = deviceProperties;
+
+		std::cout << "Vulkan: Preferred GPU type is not supported, falling back to " << deviceProperties.deviceName << std::endl;
+
+#if defined(_DEBUG)
+		PrintPhysicalDeviceInfo_VK(deviceProperties);
+#endif
+	}
 }
 
 void GraphicsHardwareInterface_VK::CreateLogicalDevice()

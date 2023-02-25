@@ -9,10 +9,10 @@ namespace Engine
 		AnimationComponent();
 		~AnimationComponent() = default;
 
-		void SetAnimFunction(void(*pAnimFunc)(IEntity* pEntity));
+		void SetAnimFunction(void(*pAnimFunc)(BaseEntity* pEntity));
 		void Apply();
 
 	private:
-		void (*m_pAnimFunc)(IEntity* pEntity);
+		void (*m_pAnimFunc)(BaseEntity* pEntity);
 	};
 }

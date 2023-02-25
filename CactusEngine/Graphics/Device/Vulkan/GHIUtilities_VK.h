@@ -716,4 +716,18 @@ namespace Engine
 			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		}
 	}
+
+	inline VkPhysicalDeviceType VulkanPhysicalDeviceType(EGPUType type)
+	{
+		switch (type)
+		{
+		case EGPUType::Discrete:
+			return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+		case EGPUType::Integrated:
+			return VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+		default:
+			std::cerr << "Vulkan: Unsupported GPU type: " << (unsigned int)type << std::endl;
+			return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+		}
+	}
 }

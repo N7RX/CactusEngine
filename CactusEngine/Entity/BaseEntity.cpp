@@ -1,4 +1,5 @@
 #include "BaseEntity.h"
+#include "BaseComponent.h"
 
 using namespace Engine;
 
@@ -17,7 +18,7 @@ void BaseEntity::SetEntityID(uint32_t id)
 	m_entityID = id;
 }
 
-void BaseEntity::AttachComponent(const std::shared_ptr<IComponent> pComponent)
+void BaseEntity::AttachComponent(const std::shared_ptr<BaseComponent> pComponent)
 {
 	m_componentList.emplace(pComponent->GetComponentType(), pComponent);
 	m_componentBitmap |= (uint32_t)pComponent->GetComponentType();
@@ -39,7 +40,7 @@ const ComponentList& BaseEntity::GetComponentList() const
 	return m_componentList;
 }
 
-std::shared_ptr<IComponent> BaseEntity::GetComponent(EComponentType compType) const
+std::shared_ptr<BaseComponent> BaseEntity::GetComponent(EComponentType compType) const
 {
 	if ((m_componentBitmap & (uint32_t)compType) == (uint32_t)compType)
 	{

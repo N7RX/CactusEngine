@@ -89,7 +89,7 @@ void StandardRenderer::BuildRenderGraph()
 	}
 }
 
-void StandardRenderer::Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera)
+void StandardRenderer::Draw(const std::vector<std::shared_ptr<BaseEntity>>& drawList, const std::shared_ptr<BaseEntity> pCamera)
 {
 	if (!pCamera)
 	{

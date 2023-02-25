@@ -1,4 +1,5 @@
 #include "CubeScript.h"
+#include "AllComponents.h"
 #include "Timer.h"
 #include <assert.h>
 #include <iostream>
@@ -8,25 +9,17 @@ using namespace Engine;
 
 int CubeScript::m_instanceCounter = 0;
 
-CubeScript::CubeScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(EScriptID::Cube), m_pEntity(pEntity), m_started(false), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
+CubeScript::CubeScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
+	: m_pEntity(pEntity), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
 {
 	assert(pEntity != nullptr);
+
+	m_id = EScriptID::Cube;
 
 	m_instanceIndex = m_instanceCounter;
 	m_instanceCounter++;
 
 	m_instanceCounter %= 3;
-}
-
-EScriptID CubeScript::GetScriptID()
-{
-	return m_id;
-}
-
-bool CubeScript::ShouldCallStart()
-{
-	return !m_started;
 }
 
 void CubeScript::Start()

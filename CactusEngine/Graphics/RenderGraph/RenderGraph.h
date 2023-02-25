@@ -1,6 +1,6 @@
 #pragma once
 #include "GraphicsResources.h"
-#include "IEntity.h"
+#include "BaseEntity.h"
 #include "NoCopy.h"
 #include "SafeQueue.h"
 #include "Global.h"
@@ -29,8 +29,8 @@ namespace Engine
 
 	struct RenderContext
 	{
-		const std::vector<std::shared_ptr<IEntity>>* pDrawList = nullptr;
-		std::shared_ptr<IEntity> pCamera;
+		const std::vector<std::shared_ptr<BaseEntity>>* pDrawList = nullptr;
+		std::shared_ptr<BaseEntity> pCamera;
 	};
 
 	struct CommandContext

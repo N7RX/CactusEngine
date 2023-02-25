@@ -1,28 +1,23 @@
 #pragma once
-#include "ISystem.h"
+#include "BaseSystem.h"
 #include "ECSWorld.h"
 #include "Global.h"
-#include "NoCopy.h"
 
 namespace Engine
 {
-	class EventSystem : public ISystem, public NoCopy
+	class EventSystem : public BaseSystem
 	{
 	public:
 		EventSystem(ECSWorld* pWorld) {};
 		~EventSystem() = default;
 
-		void SetSystemID(uint32_t id);
-		uint32_t GetSystemID() const;
+		void Initialize() override;
+		void ShutDown() override;
 
-		void Initialize();
-		void ShutDown();
-
-		void FrameBegin();
-		void Tick();
-		void FrameEnd();
+		void FrameBegin() override;
+		void Tick() override;
+		void FrameEnd() override;
 
 	private:
-		uint32_t m_systemID;
 	};
 }

@@ -4,19 +4,9 @@
 using namespace Engine;
 
 ScriptSystem::ScriptSystem(ECSWorld* pWorld)
-	: m_pECSWorld(pWorld), m_systemID(-1)
+	: m_pECSWorld(pWorld)
 {
 
-}
-
-void ScriptSystem::SetSystemID(uint32_t id)
-{
-	m_systemID = id;
-}
-
-uint32_t ScriptSystem::GetSystemID() const
-{
-	return m_systemID;
 }
 
 void ScriptSystem::Initialize()

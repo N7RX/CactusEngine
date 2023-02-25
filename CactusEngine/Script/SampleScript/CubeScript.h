@@ -1,27 +1,22 @@
 #pragma once
-#include "IScript.h"
-#include "IEntity.h"
+#include "BaseScript.h"
+#include "BaseEntity.h"
 #include "TransformComponent.h"
 #include "MaterialComponent.h"
 
 namespace SampleScript
 {
-	class CubeScript : public Engine::IScript
+	class CubeScript : public Engine::BaseScript
 	{
 	public:
-		CubeScript(const std::shared_ptr<Engine::IEntity> pEntity);
+		CubeScript(const std::shared_ptr<Engine::BaseEntity> pEntity);
 		~CubeScript() = default;
 
-		EScriptID GetScriptID();
-		bool ShouldCallStart();
-
-		void Start();
-		void Update();
+		void Start() override;
+		void Update() override;
 
 	private:
-		EScriptID m_id;
-		bool m_started;
-		std::shared_ptr<Engine::IEntity> m_pEntity;
+		std::shared_ptr<Engine::BaseEntity> m_pEntity;
 
 		std::shared_ptr<Engine::TransformComponent> m_pCubeTransform;
 		std::shared_ptr<Engine::MaterialComponent> m_pCubeMaterial;

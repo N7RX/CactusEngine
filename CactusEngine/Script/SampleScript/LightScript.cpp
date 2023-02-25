@@ -1,4 +1,5 @@
 #include "LightScript.h"
+#include "AllComponents.h"
 #include "Timer.h"
 #include <assert.h>
 #include <iostream>
@@ -6,20 +7,11 @@
 using namespace SampleScript;
 using namespace Engine;
 
-LightScript::LightScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(EScriptID::Light), m_pEntity(pEntity), m_started(false), m_pLightTransform(nullptr)
+LightScript::LightScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
+	: m_pEntity(pEntity), m_pLightTransform(nullptr)
 {
 	assert(pEntity != nullptr);
-}
-
-EScriptID LightScript::GetScriptID()
-{
-	return m_id;
-}
-
-bool LightScript::ShouldCallStart()
-{
-	return !m_started;
+	m_id = EScriptID::Light;
 }
 
 void LightScript::Start()

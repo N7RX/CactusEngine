@@ -1,10 +1,14 @@
 #pragma once
-#include "IComponent.h"
 #include "BasicMathTypes.h"
+#include "SharedTypes.h"
+
+#include <memory>
 
 namespace Engine
 {
-	class BaseComponent : public IComponent
+	class BaseEntity;
+
+	class BaseComponent
 	{
 	public:
 		virtual ~BaseComponent() = default;
@@ -14,8 +18,8 @@ namespace Engine
 
 		EComponentType GetComponentType() const;
 
-		IEntity* GetParentEntity() const;
-		void SetParentEntity(IEntity* pEntity);
+		BaseEntity* GetParentEntity() const;
+		void SetParentEntity(BaseEntity* pEntity);
 
 	protected:
 		BaseComponent(EComponentType type);
@@ -23,6 +27,6 @@ namespace Engine
 	protected:
 		uint32_t m_componentID;
 		EComponentType m_componentType;
-		IEntity* m_pParentEntity;
+		BaseEntity* m_pParentEntity;
 	};
 }

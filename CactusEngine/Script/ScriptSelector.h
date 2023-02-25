@@ -1,14 +1,15 @@
 #pragma once
+#include "SampleScript/CameraScript.h"
+#include "SampleScript/CubeScript.h"
+#include "SampleScript/BunnyScript.h"
+#include "SampleScript/LightScript.h"
+
 #include <iostream>
-#include "CameraScript.h"
-#include "CubeScript.h"
-#include "BunnyScript.h"
-#include "LightScript.h"
 
 namespace SampleScript
 {
 	// TODO: find a better solution
-	inline std::shared_ptr<Engine::IScript> GenerateScriptByID(EScriptID id, const std::shared_ptr<Engine::IEntity> pEntity)
+	inline std::shared_ptr<Engine::BaseScript> GenerateScriptByID(EScriptID id, const std::shared_ptr<Engine::BaseEntity> pEntity)
 	{
 		switch (id)
 		{

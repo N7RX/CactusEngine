@@ -22,12 +22,12 @@ EComponentType BaseComponent::GetComponentType() const
 	return m_componentType;
 }
 
-IEntity* BaseComponent::GetParentEntity() const
+BaseEntity* BaseComponent::GetParentEntity() const
 {
 	return m_pParentEntity;
 }
 
-void BaseComponent::SetParentEntity(IEntity* pEntity)
+void BaseComponent::SetParentEntity(BaseEntity* pEntity)
 {
 	assert(m_pParentEntity == nullptr);
 	m_pParentEntity = pEntity;

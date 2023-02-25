@@ -39,7 +39,6 @@ namespace Engine
 	enum class ERendererType
 	{
 		Standard = 0,
-		RayTracing,
 		COUNT
 	};
 

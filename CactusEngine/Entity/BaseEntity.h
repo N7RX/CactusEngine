@@ -1,10 +1,17 @@
 #pragma once
-#include "IEntity.h"
-#include "IComponent.h"
+#include "SharedTypes.h"
+#include "EntityProperties.h"
+
+#include <unordered_map>
+#include <memory>
 
 namespace Engine
 {
-	class BaseEntity : public IEntity, std::enable_shared_from_this<BaseEntity>
+	class BaseComponent;
+
+	typedef std::unordered_map<EComponentType, std::shared_ptr<BaseComponent>> ComponentList;
+
+	class BaseEntity : std::enable_shared_from_this<BaseEntity>
 	{
 	public:
 		BaseEntity();
@@ -13,11 +20,11 @@ namespace Engine
 		void SetEntityID(uint32_t id);
 		uint32_t GetEntityID() const;
 
-		void AttachComponent(const std::shared_ptr<IComponent> pComponent);
+		void AttachComponent(const std::shared_ptr<BaseComponent> pComponent);
 		void DetachComponent(EComponentType compType);
 
 		const ComponentList& GetComponentList() const;
-		std::shared_ptr<IComponent> GetComponent(EComponentType compType) const;
+		std::shared_ptr<BaseComponent> GetComponent(EComponentType compType) const;
 
 		template<typename T>
 		inline std::shared_ptr<T> GetComponent(EComponentType compType) const

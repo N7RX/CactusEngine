@@ -6,6 +6,5 @@ public:
 	NoCopy() = default;
 	virtual ~NoCopy() = default;
 
-private:
-	NoCopy(const NoCopy& copyFrom) {};
+	NoCopy(const NoCopy& copyFrom) = delete;
 };

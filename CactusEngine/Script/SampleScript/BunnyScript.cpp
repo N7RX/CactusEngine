@@ -1,6 +1,8 @@
 #include "BunnyScript.h"
+#include "AllComponents.h"
 #include "InputSystem.h"
 #include "Timer.h"
+
 #include <assert.h>
 #include <iostream>
 #include <algorithm>
@@ -10,25 +12,17 @@ using namespace Engine;
 
 int BunnyScript::m_instanceCounter = 0;
 
-BunnyScript::BunnyScript(const std::shared_ptr<Engine::IEntity> pEntity)
-	: m_id(EScriptID::Bunny), m_pEntity(pEntity), m_started(false), m_pBunnyTransform(nullptr)
+BunnyScript::BunnyScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
+	: m_pEntity(pEntity), m_pBunnyTransform(nullptr)
 {
 	assert(pEntity != nullptr);
+
+	m_id = EScriptID::Bunny;
 
 	m_instanceIndex = m_instanceCounter;
 	m_instanceCounter++;
 
 	m_instanceCounter %= 2;
-}
-
-EScriptID BunnyScript::GetScriptID()
-{
-	return m_id;
-}
-
-bool BunnyScript::ShouldCallStart()
-{
-	return !m_started;
 }
 
 void BunnyScript::Start()

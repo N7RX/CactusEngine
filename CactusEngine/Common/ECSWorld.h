@@ -1,15 +1,14 @@
 #pragma once
-#include "IEntity.h"
-#include "IComponent.h"
-#include "ISystem.h"
-#include <unordered_map>
-#include <memory>
+#include "BaseEntity.h"
+#include "BaseComponent.h"
+#include "BaseSystem.h"
+
 #include <assert.h>
 
 namespace Engine
 {
-	typedef std::unordered_map<uint32_t, std::shared_ptr<IEntity>> EntityList;
-	typedef std::unordered_map<uint32_t, std::shared_ptr<ISystem>> SystemList;
+	typedef std::unordered_map<uint32_t, std::shared_ptr<BaseEntity>> EntityList;
+	typedef std::unordered_map<uint32_t, std::shared_ptr<BaseSystem>> SystemList;
 
 	class ECSWorld : std::enable_shared_from_this<ECSWorld>
 	{
@@ -52,8 +51,8 @@ namespace Engine
 
 		const EntityList* GetEntityList() const;
 
-		std::shared_ptr<IEntity> FindEntityWithTag(EEntityTag tag) const;
-		std::vector<std::shared_ptr<IEntity>> FindEntitiesWithTag(EEntityTag tag) const;
+		std::shared_ptr<BaseEntity> FindEntityWithTag(EEntityTag tag) const;
+		std::vector<std::shared_ptr<BaseEntity>> FindEntitiesWithTag(EEntityTag tag) const;
 
 		void ClearEntities();
 

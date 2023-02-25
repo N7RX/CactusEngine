@@ -1,5 +1,6 @@
 #include "InputSystem.h"
 #include "Timer.h"
+
 #include <iostream>
 
 using namespace Engine;
@@ -7,21 +8,10 @@ using namespace Engine;
 GLFWwindow* InputSystem::m_pGLFWWindow = nullptr;
 
 InputSystem::InputSystem(ECSWorld* pWorld)
-	: m_systemID(-1)
 {
 #if defined(GLFW_IMPLEMENTATION_CE)
 	m_pGLFWWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());
 #endif
-}
-
-void InputSystem::SetSystemID(uint32_t id)
-{
-	m_systemID = id;
-}
-
-uint32_t InputSystem::GetSystemID() const
-{
-	return m_systemID;
 }
 
 void InputSystem::Initialize()

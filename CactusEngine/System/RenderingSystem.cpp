@@ -21,16 +21,6 @@ RenderingSystem::RenderingSystem(ECSWorld* pWorld)
 	m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT);
 }
 
-void RenderingSystem::SetSystemID(uint32_t id)
-{
-	m_systemID = id;
-}
-
-uint32_t RenderingSystem::GetSystemID() const
-{
-	return m_systemID;
-}
-
 void RenderingSystem::Initialize()
 {
 	LoadShaders();

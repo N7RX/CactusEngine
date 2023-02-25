@@ -4,19 +4,9 @@
 using namespace Engine;
 
 AnimationSystem::AnimationSystem(ECSWorld* pWorld)
-	: m_pECSWorld(pWorld), m_systemID(-1)
+	: m_pECSWorld(pWorld)
 {
 
-}
-
-void AnimationSystem::SetSystemID(uint32_t id)
-{
-	m_systemID = id;
-}
-
-uint32_t AnimationSystem::GetSystemID() const
-{
-	return m_systemID;
 }
 
 void AnimationSystem::Initialize()

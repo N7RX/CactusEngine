@@ -7,7 +7,7 @@ AnimationComponent::AnimationComponent()
 {
 }
 
-void AnimationComponent::SetAnimFunction(void(*pAnimFunc)(IEntity* pEntity))
+void AnimationComponent::SetAnimFunction(void(*pAnimFunc)(BaseEntity* pEntity))
 {
 	m_pAnimFunc = pAnimFunc;
 }

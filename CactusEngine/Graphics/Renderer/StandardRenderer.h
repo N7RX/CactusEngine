@@ -13,7 +13,7 @@ namespace Engine
 		~StandardRenderer() = default;
 
 		void BuildRenderGraph() override;
-		void Draw(const std::vector<std::shared_ptr<IEntity>>& drawList, const std::shared_ptr<IEntity> pCamera) override;
+		void Draw(const std::vector<std::shared_ptr<BaseEntity>>& drawList, const std::shared_ptr<BaseEntity> pCamera) override;
 		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer) override;
 
 	private:

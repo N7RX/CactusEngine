@@ -1,31 +1,27 @@
 #pragma once
-#include "IRenderer.h"
+#include "BaseRenderer.h"
 #include "ECSWorld.h"
 #include "GraphicsDevice.h"
 #include "Global.h"
 #include "BuiltInShaderType.h"
-#include "NoCopy.h"
 
 namespace Engine
 {
-	typedef std::unordered_map<ERendererType, std::shared_ptr<IRenderer>> RendererTable;
-	typedef std::unordered_map<ERendererType, std::vector<std::shared_ptr<IEntity>>> RenderTaskTable;
+	typedef std::unordered_map<ERendererType, std::shared_ptr<BaseRenderer>> RendererTable;
+	typedef std::unordered_map<ERendererType, std::vector<std::shared_ptr<BaseEntity>>> RenderTaskTable;
 
-	class RenderingSystem : public ISystem, std::enable_shared_from_this<RenderingSystem>, public NoCopy
+	class RenderingSystem : public BaseSystem, std::enable_shared_from_this<RenderingSystem>
 	{
 	public:
 		RenderingSystem(ECSWorld* pWorld);
 		~RenderingSystem() = default;
 
-		void SetSystemID(uint32_t id);
-		uint32_t GetSystemID() const;
+		void Initialize() override;
+		void ShutDown() override;
 
-		void Initialize();
-		void ShutDown();
-
-		void FrameBegin();
-		void Tick();
-		void FrameEnd();
+		void FrameBegin() override;
+		void Tick() override;
+		void FrameEnd() override;
 
 		EGraphicsAPIType GetGraphicsAPIType() const;
 		std::shared_ptr<ShaderProgram> GetShaderProgramByType(EBuiltInShaderProgramType type) const;
@@ -37,7 +33,7 @@ namespace Engine
 			pRenderer->SetRendererPriority(priority);
 			m_rendererTable.emplace(type, pRenderer);
 
-			std::vector<std::shared_ptr<IEntity>> list;
+			std::vector<std::shared_ptr<BaseEntity>> list;
 			m_renderTaskTable.emplace(type, list);
 		}
 
@@ -52,7 +48,6 @@ namespace Engine
 		void ExecuteRenderTask();
 
 	private:
-		uint32_t m_systemID;
 		ECSWorld* m_pECSWorld;
 		std::shared_ptr<GraphicsDevice> m_pDevice;
 		std::vector<std::shared_ptr<ShaderProgram>> m_shaderPrograms;

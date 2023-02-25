@@ -1,20 +1,19 @@
 #pragma once
 #include "BaseComponent.h"
-#include "IScript.h"
+#include "BaseScript.h"
 
 namespace Engine
 {
-	__interface IScript;
 	class ScriptComponent : public BaseComponent
 	{
 	public:
 		ScriptComponent();
 		~ScriptComponent() = default;
 
-		void BindScript(const std::shared_ptr<IScript> pScript);
-		std::shared_ptr<IScript> GetScript() const;
+		void BindScript(const std::shared_ptr<BaseScript> pScript);
+		std::shared_ptr<BaseScript> GetScript() const;
 
 	private:
-		std::shared_ptr<IScript> m_pScript;
+		std::shared_ptr<BaseScript> m_pScript;
 	};
 }
