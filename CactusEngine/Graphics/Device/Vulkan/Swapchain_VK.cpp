@@ -46,7 +46,7 @@ Swapchain_VK::Swapchain_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, cons
 
 	if (vkCreateSwapchainKHR(m_pDevice->logicalDevice, &createInfoKHR, nullptr, &m_swapchain) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: Failed to create swapchain.\n";
+		LOG_ERROR("Vulkan: Failed to create swapchain.");
 		return;
 	}
 
@@ -55,7 +55,7 @@ Swapchain_VK::Swapchain_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, cons
 	std::vector<VkImage> swapchainImages(imageCount, VK_NULL_HANDLE);
 	if (vkGetSwapchainImagesKHR(m_pDevice->logicalDevice, m_swapchain, &imageCount, swapchainImages.data()) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: Failed to retrieve swapchain images.\n";
+		LOG_ERROR("Vulkan: Failed to retrieve swapchain images.");
 		return;
 	}
 
@@ -79,7 +79,7 @@ Swapchain_VK::Swapchain_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, cons
 		VkImageView swapchainImageView = VK_NULL_HANDLE;
 		if (vkCreateImageView(m_pDevice->logicalDevice, &imageViewCreateInfo, nullptr, &swapchainImageView) != VK_SUCCESS)
 		{
-			std::cerr << "Vulkan: Failed to create image view for swapchain image.\n";
+			LOG_ERROR("Vulkan: Failed to create image view for swapchain image.");
 			return;
 		}
 
@@ -111,14 +111,14 @@ Swapchain_VK::~Swapchain_VK()
 
 bool Swapchain_VK::UpdateBackBuffer(unsigned int currentFrame)
 {
-	assert(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
+	DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
 	return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, ACQUIRE_IMAGE_TIMEOUT, m_imageAvailableSemaphores[currentFrame]->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
 }
 
 bool Swapchain_VK::Present(const std::vector<std::shared_ptr<Semaphore_VK>>& waitSemaphores)
 {
-	assert(m_swapchain != VK_NULL_HANDLE);
-	assert(m_presentQueue != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_swapchain != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_presentQueue != VK_NULL_HANDLE);
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -146,7 +146,7 @@ uint32_t Swapchain_VK::GetSwapchainImageCount() const
 
 std::shared_ptr<RenderTarget2D_VK> Swapchain_VK::GetTargetImage() const
 {
-	assert(m_targetImageIndex < m_renderTargets.size());
+	DEBUG_ASSERT_CE(m_targetImageIndex < m_renderTargets.size());
 	return m_renderTargets[m_targetImageIndex];
 }
 
@@ -157,7 +157,7 @@ uint32_t Swapchain_VK::GetTargetImageIndex() const
 
 std::shared_ptr<RenderTarget2D_VK> Swapchain_VK::GetSwapchainImageByIndex(unsigned int index) const
 {
-	assert(index < m_renderTargets.size());
+	DEBUG_ASSERT_CE(index < m_renderTargets.size());
 	return m_renderTargets[index];
 }
 
@@ -168,6 +168,6 @@ VkExtent2D Swapchain_VK::GetSwapExtent() const
 
 std::shared_ptr<Semaphore_VK> Swapchain_VK::GetImageAvailableSemaphore(unsigned int currentFrame) const
 {
-	assert(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
+	DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
 	return m_imageAvailableSemaphores[currentFrame];
 }

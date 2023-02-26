@@ -1,4 +1,3 @@
-#include <iostream>
 #include "GraphicsApplication.h"
 #include "Global.h"
 #include "RenderingSystem.h"
@@ -7,6 +6,7 @@
 #include "ScriptSystem.h"
 #include "ECSSceneWriter.h"
 #include "ECSSceneReader.h"
+#include "LogUtility.h"
 
 #include "LightComponent.h"
 #include "TransformComponent.h"
@@ -25,6 +25,8 @@ void TestSetup(GraphicsApplication* pApp);
 
 int main()
 {
+	LOG_SYSTEM_INITIALIZE();
+
 	if (gpGlobal == nullptr)
 	{
 		gpGlobal = new Global();
@@ -50,7 +52,7 @@ int main()
 	}
 	catch (const std::runtime_error& e)
 	{
-		std::cout << e.what() << std::endl;
+		LOG_ERROR(e.what());
 		system("pause");
 		return -1;
 	}
@@ -63,13 +65,15 @@ int main()
 		}
 		catch (const std::runtime_error& e)
 		{
-			std::cout << e.what() << std::endl;
+			LOG_ERROR(e.what());
 			system("pause");
 			return -1;
 		}
 	}
 
 	pApplication->ShutDown();
+
+	LOG_SYSTEM_SHUTDOWN();
 
 	return 0;
 }

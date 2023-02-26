@@ -167,14 +167,14 @@ bool GraphicsHardwareInterface_GL::CreateFrameBuffer(const FrameBufferCreateInfo
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, std::static_pointer_cast<Texture2D_GL>(createInfo.attachments[i])->GetGLTextureID(), 0);
 			break;
 		default:
-			std::cerr << "OpenGL: Unhandled framebuffer attachment type.\n";
+			LOG_ERROR("OpenGL: Unhandled framebuffer attachment type.");
 			break;
 		}
 	}
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 	{
-		std::cerr << "OpenGL: Failed to create framebuffer.\n";
+		LOG_ERROR("OpenGL: Failed to create framebuffer.");
 		return false;
 	}
 
@@ -284,7 +284,7 @@ EGraphicsAPIType GraphicsHardwareInterface_GL::GetGraphicsAPIType() const
 
 std::shared_ptr<GraphicsCommandPool> GraphicsHardwareInterface_GL::RequestExternalCommandPool(EQueueType queueType)
 {
-	std::cerr << "OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.");
 	return nullptr;
 }
 
@@ -295,18 +295,18 @@ std::shared_ptr<GraphicsCommandBuffer> GraphicsHardwareInterface_GL::RequestComm
 
 void GraphicsHardwareInterface_GL::ReturnExternalCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.");
 }
 
 std::shared_ptr<GraphicsSemaphore> GraphicsHardwareInterface_GL::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
 {
-	std::cerr << "OpenGL: shouldn't call RequestGraphicsSemaphore on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call RequestGraphicsSemaphore on OpenGL device.");
 	return nullptr;
 }
 
 bool GraphicsHardwareInterface_GL::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreateDataTransferBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CreateDataTransferBuffer on OpenGL device.");
 	return false;
 }
 
@@ -337,7 +337,7 @@ bool GraphicsHardwareInterface_GL::CreateRenderPassObject(const RenderPassCreate
 
 bool GraphicsHardwareInterface_GL::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)
 {
-	std::cerr << "OpenGL: shouldn't call CreateSampler on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CreateSampler on OpenGL device.");
 	return false;
 }
 
@@ -412,17 +412,17 @@ bool GraphicsHardwareInterface_GL::CreateGraphicsPipelineObject(const GraphicsPi
 
 void GraphicsHardwareInterface_GL::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
-	std::cerr << "OpenGL: shouldn't call TransitionImageLayout on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call TransitionImageLayout on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
 {
-	std::cerr << "OpenGL: shouldn't call TransitionImageLayout_Immediate on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call TransitionImageLayout_Immediate on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::ResizeSwapchain(uint32_t width, uint32_t height)
 {
-	std::cerr << "OpenGL: shouldn't call ResizeSwapchain on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call ResizeSwapchain on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
@@ -438,27 +438,27 @@ void GraphicsHardwareInterface_GL::BeginRenderPass(const std::shared_ptr<RenderP
 
 void GraphicsHardwareInterface_GL::EndRenderPass(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call EndRenderPass on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call EndRenderPass on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::EndCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call EndCommandBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call EndCommandBuffer on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CommandWaitSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
-	std::cerr << "OpenGL: shouldn't call CommandWaitSemaphore on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CommandWaitSemaphore on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CommandSignalSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
-	std::cerr << "OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::Present()
 {
-	std::cerr << "OpenGL: shouldn't call Present on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call Present on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -473,13 +473,13 @@ void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushI
 
 void GraphicsHardwareInterface_GL::FlushTransferCommands(bool waitExecution)
 {
-	std::cerr << "OpenGL: shouldn't call FlushTransferCommands on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call FlushTransferCommands on OpenGL device.");
 	glFlush();
 }
 
 void GraphicsHardwareInterface_GL::WaitSemaphore(std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
-	std::cerr << "OpenGL: shouldn't call WaitSemaphore on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call WaitSemaphore on OpenGL device.");
 	glFinish();
 }
 
@@ -490,38 +490,38 @@ std::shared_ptr<TextureSampler> GraphicsHardwareInterface_GL::GetDefaultTextureS
 
 void GraphicsHardwareInterface_GL::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
 {
-	std::cerr << "OpenGL: shouldn't call GetSwapchainImages on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call GetSwapchainImages on OpenGL device.");
 }
 
 uint32_t GraphicsHardwareInterface_GL::GetSwapchainPresentImageIndex() const
 {
-	std::cerr << "OpenGL: shouldn't call GetSwapchainPresentImageIndex on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call GetSwapchainPresentImageIndex on OpenGL device.");
 	return -1;
 }
 
 void GraphicsHardwareInterface_GL::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call CopyTexture2DToDataTransferBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CopyTexture2DToDataTransferBuffer on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToTexture2D on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBufferToTexture2D on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CopyDataTransferBuffer(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	std::cerr << "OpenGL: shouldn't call CopyDataTransferBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBuffer on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size)
 {
-	std::cerr << "OpenGL: shouldn't call CopyHostDataToDataTransferBuffer on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CopyHostDataToDataTransferBuffer on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc)
 {
-	std::cerr << "OpenGL: shouldn't call CopyDataTransferBufferToHostDataLocation on OpenGL device.\n";
+	LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBufferToHostDataLocation on OpenGL device.");
 }
 
 void GraphicsHardwareInterface_GL::SetPrimitiveTopology(GLenum mode)

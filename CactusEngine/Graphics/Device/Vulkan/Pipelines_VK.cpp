@@ -12,7 +12,7 @@ RenderPass_VK::RenderPass_VK(const std::shared_ptr<LogicalDevice_VK> pDevice)
 
 RenderPass_VK::~RenderPass_VK()
 {
-	assert(m_renderPass != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_renderPass != VK_NULL_HANDLE);
 	vkDestroyRenderPass(m_pDevice->logicalDevice, m_renderPass, nullptr);
 }
 
@@ -25,13 +25,13 @@ GraphicsPipeline_VK::GraphicsPipeline_VK(const std::shared_ptr<LogicalDevice_VK>
 
 	if (vkCreateGraphicsPipelines(pDevice->logicalDevice, VK_NULL_HANDLE, 1, &createInfo, nullptr, &m_pipeline) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to create graphics pipeline.\n";
+		LOG_ERROR("Vulkan: failed to create graphics pipeline.");
 	}
 }
 
 GraphicsPipeline_VK::~GraphicsPipeline_VK()
 {
-	assert(m_pipeline != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_pipeline != VK_NULL_HANDLE);
 
 	vkDestroyPipelineLayout(m_pDevice->logicalDevice, m_pipelineLayout, nullptr);
 	vkDestroyPipeline(m_pDevice->logicalDevice, m_pipeline, nullptr);

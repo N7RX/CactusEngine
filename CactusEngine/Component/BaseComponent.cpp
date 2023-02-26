@@ -1,4 +1,5 @@
 #include "BaseComponent.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -29,6 +30,6 @@ BaseEntity* BaseComponent::GetParentEntity() const
 
 void BaseComponent::SetParentEntity(BaseEntity* pEntity)
 {
-	assert(m_pParentEntity == nullptr);
+	DEBUG_ASSERT_CE(m_pParentEntity == nullptr);
 	m_pParentEntity = pEntity;
 }

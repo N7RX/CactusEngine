@@ -1,7 +1,8 @@
 #include "RenderGraph.h"
 #include "GraphicsDevice.h"
 #include "BaseRenderer.h"
-#include <assert.h>
+#include "LogUtility.h"
+
 #include <iostream>
 
 using namespace Engine;
@@ -17,7 +18,7 @@ std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
 	{
 		return m_renderResources.at(name);
 	}
-	std::cerr << "Couldn't find resource: " << name << std::endl;
+	LOG_ERROR((std::string)"Couldn't find resource: " + name);
 	return nullptr;
 }
 
@@ -29,14 +30,14 @@ void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pR
 	}
 	else
 	{
-		std::cerr << "Couldn't find the resource to be swapped: " << name << std::endl;
+		LOG_ERROR((std::string)"Couldn't find the resource to be swapped: " + name);
 	}
 }
 
 RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
 	: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
 {
-	assert(m_pGraphResources != nullptr);
+	DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
 	m_pDevice = m_pRenderer->GetGraphicsDevice();
 	m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
 }
@@ -49,7 +50,7 @@ void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
 
 void RenderNode::SetInputResource(const char* slot, const char* pResourceName)
 {
-	assert(m_inputResourceNames.find(slot) != m_inputResourceNames.end());
+	DEBUG_ASSERT_CE(m_inputResourceNames.find(slot) != m_inputResourceNames.end());
 	m_inputResourceNames.at(slot) = pResourceName;
 }
 
@@ -229,7 +230,7 @@ std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
 	{
 		return m_nodes.at(name);
 	}
-	std::cerr << "Coundn't find node: " << name << std::endl;
+	LOG_ERROR((std::string)"Coundn't find node: " + name);
 	return nullptr;
 }
 

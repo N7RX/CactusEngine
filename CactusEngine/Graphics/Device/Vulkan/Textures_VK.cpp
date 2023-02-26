@@ -11,21 +11,22 @@ Sampler_VK::Sampler_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const Vk
 
 	if (vkCreateSampler(m_pDevice->logicalDevice, &createInfo, nullptr, &m_sampler) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to create image sampler.\n";
+		LOG_ERROR("Vulkan: Failed to create image sampler.");
 	}
 }
 
 Sampler_VK::~Sampler_VK()
 {
-	assert(m_sampler != VK_NULL_HANDLE);
+	// TODO: add explicit sampler destroy function in GHI instead
+	DEBUG_ASSERT_CE(m_sampler != VK_NULL_HANDLE);
 	//vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
-	std::cout << "Sampler destroyed\n";
+	LOG_MESSAGE("Vulkan: Sampler destructor called");
 }
 
 Texture2D_VK::Texture2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const Texture2DCreateInfo_VK& createInfo)
 	: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_VK::VMA), m_appliedStages(0)
 {
-	assert(pDevice);
+	DEBUG_ASSERT_CE(pDevice);
 
 	m_pDevice->pUploadAllocator->CreateTexture2D(createInfo, *this);
 
@@ -51,7 +52,7 @@ Texture2D_VK::Texture2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, cons
 
 	if (vkCreateImageView(m_pDevice->logicalDevice, &viewCreateInfo, nullptr, &m_imageView) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to create image view for texture 2D.\n";
+		LOG_ERROR("Vulkan: failed to create image view for texture 2D.");
 	}
 }
 

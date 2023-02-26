@@ -1,9 +1,10 @@
 #pragma once
 #include "SharedTypes.h"
+#include "LogUtility.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <fstream>
-#include <iostream>
 
 namespace Engine
 {
@@ -31,7 +32,7 @@ namespace Engine
 		glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logSize);
 		char* logMsg = new char[logSize];
 		glGetShaderInfoLog(shaderID, logSize, NULL, logMsg);
-		std::cerr << logMsg << std::endl;
+		LOG_ERROR(logMsg);
 		delete[] logMsg;
 	}
 
@@ -41,7 +42,7 @@ namespace Engine
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
 		char* logMsg = new char[logSize];
 		glGetProgramInfoLog(programID, logSize, NULL, logMsg);
-		std::cerr << logMsg << std::endl;
+		LOG_ERROR(logMsg);
 		delete[] logMsg;
 	}
 
@@ -56,7 +57,7 @@ namespace Engine
 		case ETextureFormat::RGBA8_SRGB:
 			return GL_SRGB8_ALPHA8;
 		default:
-			std::cerr << "Unhandled OpenGL format." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled format.");
 			break;
 		}
 		return 0;
@@ -74,7 +75,7 @@ namespace Engine
 		case GL_DEPTH_COMPONENT32F:
 			return GL_DEPTH_COMPONENT;
 		default:
-			std::cerr << "Unhandled OpenGL pixel format." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled pixel format.");
 			break;
 		}
 		return 0;
@@ -89,7 +90,7 @@ namespace Engine
 		case EDataType::UByte:
 			return GL_UNSIGNED_BYTE;
 		default:
-			std::cerr << "Unhandled OpenGL data type." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled data type.");
 			break;
 		}
 		return -1;
@@ -104,7 +105,7 @@ namespace Engine
 		case EDataType::UByte:
 			return 4;
 		default:
-			std::cerr << "Unhandled OpenGL data type." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled data type.");
 			break;
 		}
 		return 0;
@@ -121,7 +122,7 @@ namespace Engine
 		case EBlendFactor::One:
 			return GL_ONE;
 		default:
-			std::cerr << "Unhandled OpenGL blend factor type." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled blend factor type.");
 			break;
 		}
 		return -1;
@@ -138,7 +139,7 @@ namespace Engine
 		case ECullMode::FrontAndBack:
 			return GL_FRONT_AND_BACK;
 		default:
-			std::cerr << "Unhandled OpenGL cull mode." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled cull mode.");
 			break;
 		}
 		return -1;
@@ -161,7 +162,7 @@ namespace Engine
 		case EAssemblyTopology::PointList:
 			return GL_POINTS;
 		default:
-			std::cerr << "Unhandled OpenGL assembly topology mode." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled assembly topology mode.");
 			break;
 		}
 		return -1;
@@ -178,7 +179,7 @@ namespace Engine
 		case EPolygonMode::Point:
 			return GL_POINT;
 		default:
-			std::cerr << "Unhandled OpenGL polygon mode." << std::endl;
+			LOG_ERROR("OpenGL: Unhandled polygon mode.");
 			break;
 		}
 		return -1;

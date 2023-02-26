@@ -1,7 +1,7 @@
 #include "CubeScript.h"
 #include "AllComponents.h"
 #include "Timer.h"
-#include <assert.h>
+
 #include <iostream>
 
 using namespace SampleScript;
@@ -12,7 +12,7 @@ int CubeScript::m_instanceCounter = 0;
 CubeScript::CubeScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 	: m_pEntity(pEntity), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
 {
-	assert(pEntity != nullptr);
+	DEBUG_ASSERT_CE(pEntity != nullptr);
 
 	m_id = EScriptID::Cube;
 
@@ -25,12 +25,12 @@ CubeScript::CubeScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 void CubeScript::Start()
 {
 	m_pCubeTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
-	assert(m_pCubeTransform != nullptr);
+	DEBUG_ASSERT_CE(m_pCubeTransform != nullptr);
 
 	if (m_instanceIndex == 2)
 	{
 		m_pCubeMaterial = std::static_pointer_cast<MaterialComponent>(m_pEntity->GetComponent(EComponentType::Material));
-		assert(m_pCubeMaterial != nullptr);
+		DEBUG_ASSERT_CE(m_pCubeMaterial != nullptr);
 	}
 
 	m_started = true;

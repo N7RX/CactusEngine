@@ -1,4 +1,5 @@
 #include "ECSWorld.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -88,6 +89,6 @@ void ECSWorld::ClearEntities()
 
 uint32_t ECSWorld::GetNewECSID(EECSType type)
 {
-	assert((uint32_t)type < m_IDAssignments.size());
+	DEBUG_ASSERT_CE((uint32_t)type < m_IDAssignments.size());
 	return m_IDAssignments[(uint32_t)type]++; // Alert: the ID may run out in rare cases
 }

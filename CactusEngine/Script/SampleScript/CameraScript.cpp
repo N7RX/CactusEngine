@@ -2,7 +2,8 @@
 #include "AllComponents.h"
 #include "InputSystem.h"
 #include "Timer.h"
-#include <assert.h>
+#include "LogUtility.h"
+
 #include <iostream>
 
 using namespace SampleScript;
@@ -11,7 +12,7 @@ using namespace Engine;
 CameraScript::CameraScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 	: m_pEntity(pEntity), m_pCameraTransform(nullptr)
 {
-	assert(pEntity != nullptr);
+	DEBUG_ASSERT_CE(pEntity != nullptr);
 
 	m_id = EScriptID::Camera;
 
@@ -21,7 +22,7 @@ CameraScript::CameraScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 void CameraScript::Start()
 {
 	m_pCameraTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
-	assert(m_pCameraTransform != nullptr);
+	DEBUG_ASSERT_CE(m_pCameraTransform != nullptr);
 
 	m_started = true;
 }

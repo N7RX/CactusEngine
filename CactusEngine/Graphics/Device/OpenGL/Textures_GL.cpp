@@ -1,5 +1,6 @@
 #include "Textures_GL.h"
 #include "GHIUtilities_GL.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -32,7 +33,7 @@ void Texture2D_GL::MarkTextureSize(uint32_t width, uint32_t height)
 
 bool Texture2D_GL::HasSampler() const
 {
-	std::cerr << "OpenGL: shouldn't call HasSampler on OpenGL texture 2D.\n";
+	LOG_ERROR("OpenGL: shouldn't call HasSampler on texture 2D.");
 	return false;
 }
 
@@ -43,7 +44,7 @@ void Texture2D_GL::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
 
 std::shared_ptr<TextureSampler> Texture2D_GL::GetSampler() const
 {
-	std::cerr << "OpenGL: shouldn't call GetSampler on OpenGL texture 2D.\n";
+	LOG_ERROR("OpenGL: shouldn't call GetSampler on texture 2D.");
 	return nullptr;
 }
 
@@ -85,8 +86,7 @@ size_t FrameBuffer_GL::GetColorAttachmentCount() const
 
 GLenum FrameBuffer_GL::GetColorAttachment(uint32_t index) const
 {
-	assert(index < m_bufferAttachments.size());
-
+	DEBUG_ASSERT_CE(index < m_bufferAttachments.size());
 	return m_bufferAttachments[index];
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "SharedTypes.h"
+
 #include <cstdint>
 
 namespace Engine

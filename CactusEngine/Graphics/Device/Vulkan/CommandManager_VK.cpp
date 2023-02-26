@@ -3,11 +3,11 @@
 #include "Buffers_VK.h"
 #include "Textures_VK.h"
 #include "GHIUtilities_VK.h"
+#include "LogUtility.h"
 
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <assert.h>
 
 using namespace Engine;
 
@@ -22,7 +22,7 @@ CommandBuffer_VK::~CommandBuffer_VK()
 {
 	if (!m_inExecution)
 	{
-		assert(m_pSyncObjectManager != nullptr);
+		DEBUG_ASSERT_CE(m_pSyncObjectManager != nullptr);
 
 		// Alert: freeing the semaphores here may result in conflicts
 		for (auto& pSemaphore : m_waitPresentationSemaphores)
@@ -70,7 +70,7 @@ void CommandBuffer_VK::BeginCommandBuffer(VkCommandBufferUsageFlags usage)
 	beginInfo.flags = usage;
 
 	VkResult result = vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
-	assert(result == VK_SUCCESS);
+	DEBUG_ASSERT_CE(result == VK_SUCCESS);
 
 	m_isRecording = true;
 	m_inRenderPass = false;
@@ -79,19 +79,19 @@ void CommandBuffer_VK::BeginCommandBuffer(VkCommandBufferUsageFlags usage)
 
 void CommandBuffer_VK::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pVertexBuffers, const VkDeviceSize* pOffsets)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdBindVertexBuffers(m_commandBuffer, firstBinding, bindingCount, pVertexBuffers, pOffsets);
 }
 
 void CommandBuffer_VK::BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdBindIndexBuffer(m_commandBuffer, indexBuffer, offset, type);
 }
 
 void CommandBuffer_VK::BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 
 	VkRenderPassBeginInfo passBeginInfo = {};
 	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -108,7 +108,7 @@ void CommandBuffer_VK::BeginRenderPass(const VkRenderPass renderPass, const VkFr
 
 void CommandBuffer_VK::BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdBindPipeline(m_commandBuffer, bindPoint, pipeline);
 }
 
@@ -119,13 +119,13 @@ void CommandBuffer_VK::BindPipelineLayout(const VkPipelineLayout pipelineLayout)
 
 void CommandBuffer_VK::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
 }
 
 void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DescriptorSet_VK>>& descriptorSets, uint32_t firstSet)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 
 	std::vector<VkDescriptorSet> setHandles;
 	for (auto& pSet : descriptorSets)
@@ -140,7 +140,7 @@ void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, c
 
 void CommandBuffer_VK::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 {
-	assert(m_inRenderPass);
+	DEBUG_ASSERT_CE(m_inRenderPass);
 	if (indexCount > 0 && instanceCount > 0)
 	{
 		vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
@@ -149,7 +149,7 @@ void CommandBuffer_VK::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instan
 
 void CommandBuffer_VK::DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
-	assert(m_inRenderPass);
+	DEBUG_ASSERT_CE(m_inRenderPass);
 	if (vertexCount > 0 && instanceCount > 0)
 	{
 		vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
@@ -158,7 +158,7 @@ void CommandBuffer_VK::DrawPrimitive(uint32_t vertexCount, uint32_t instanceCoun
 
 void CommandBuffer_VK::EndRenderPass()
 {
-	assert(m_inRenderPass);
+	DEBUG_ASSERT_CE(m_inRenderPass);
 	vkCmdEndRenderPass(m_commandBuffer);
 	m_inRenderPass = false;
 }
@@ -180,14 +180,14 @@ void CommandBuffer_VK::EndCommandBuffer()
 
 void CommandBuffer_VK::TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 
 	if (pImage->m_layout == newLayout)
 	{
 		return;
 	}
 
-	assert(newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED);
+	DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED);
 
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -231,7 +231,7 @@ void CommandBuffer_VK::TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImag
 		break;
 	}
 	default:
-		std::cerr << "Vulkan: Unhandled image layout: " << newLayout << std::endl;
+		LOG_ERROR("Vulkan: Unhandled image layout: " + std::to_string((uint32_t)newLayout));
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
 
@@ -257,10 +257,10 @@ void CommandBuffer_VK::GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, cons
 	// Check whether linear blitting on given image's format is supported
 	VkFormatProperties formatProperties;
 	vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
-	assert(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
+	DEBUG_ASSERT_CE(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
 #endif
 
-	assert(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
+	DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -342,19 +342,19 @@ void CommandBuffer_VK::GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, cons
 
 void CommandBuffer_VK::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const VkBufferCopy& region)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdCopyBuffer(m_commandBuffer, pSrcBuffer->m_buffer, pDstBuffer->m_buffer, 1, &region); // TODO: offer a batch version
 }
 
 void CommandBuffer_VK::CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, std::shared_ptr<Texture2D_VK> pDstImage, const std::vector<VkBufferImageCopy>& regions)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdCopyBufferToImage(m_commandBuffer, pSrcBuffer->m_buffer, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
 }
 
 void CommandBuffer_VK::CopyTexture2DToBuffer(std::shared_ptr<Texture2D_VK> pSrcImage, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
 {
-	assert(m_isRecording);
+	DEBUG_ASSERT_CE(m_isRecording);
 	vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
 }
 
@@ -407,7 +407,7 @@ std::shared_ptr<CommandBuffer_VK> CommandPool_VK::RequestPrimaryCommandBuffer()
 
 bool CommandPool_VK::AllocatePrimaryCommandBuffer(uint32_t count)
 {
-	assert(m_allocatedCommandBufferCount + count <= MAX_COMMAND_BUFFER_COUNT);
+	DEBUG_ASSERT_CE(m_allocatedCommandBufferCount + count <= MAX_COMMAND_BUFFER_COUNT);
 
 	std::vector<VkCommandBuffer> cmdBufferHandles(count);
 
@@ -478,7 +478,7 @@ std::shared_ptr<CommandBuffer_VK> CommandManager_VK::RequestPrimaryCommandBuffer
 
 void CommandManager_VK::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_VK> pSubmitSemaphore, uint32_t usageMask)
 {
-	assert(pSubmitSemaphore != nullptr);
+	DEBUG_ASSERT_CE(pSubmitSemaphore != nullptr);
 
 	std::queue<std::shared_ptr<CommandBuffer_VK>> inUseBuffers;
 	m_inUseCommandBuffers.TryPopAll(inUseBuffers);
@@ -580,7 +580,7 @@ void CommandManager_VK::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_
 
 void CommandManager_VK::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
 {
-	assert(pCmdBuffer->m_isRecording);
+	DEBUG_ASSERT_CE(pCmdBuffer->m_isRecording);
 
 	pCmdBuffer->m_isRecording = false;
 
@@ -703,7 +703,7 @@ void CommandManager_VK::RecycleCommandBufferAsync()
 		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by timeline semaphore
 		{
 			std::shared_ptr<CommandBuffer_VK> ptrCopy = inExecutionCmdBufferQueue.front();
-			assert(ptrCopy->m_pAssociatedSubmitSemaphore);
+			DEBUG_ASSERT_CE(ptrCopy->m_pAssociatedSubmitSemaphore);
 			timelineGroups[ptrCopy->m_pAssociatedSubmitSemaphore].emplace_back(ptrCopy);
 			inExecutionCmdBufferQueue.pop();
 		}
@@ -749,8 +749,8 @@ void CommandManager_VK::RecycleCommandBufferAsync()
 				{
 					for (auto& pCmdBuffer : timelineGroup.second)
 					{
-						std::cerr << "Vulkan: Command buffer " << pCmdBuffer->m_commandBuffer << " exection timeout. Usage flag is " 
-							<< pCmdBuffer->m_usageFlags << ". DebugID is " << pCmdBuffer->m_debugID  << "." << std::endl;
+						LOG_ERROR("Vulkan: Command buffer " + std::to_string((uint32_t)pCmdBuffer->m_commandBuffer) + " exection timeout. Usage flag is "
+							+ std::to_string(pCmdBuffer->m_usageFlags) + ". DebugID is " + std::to_string(pCmdBuffer->m_debugID) + ".");
 					}
 					throw std::runtime_error("Vulkan: command execution timeout.");
 

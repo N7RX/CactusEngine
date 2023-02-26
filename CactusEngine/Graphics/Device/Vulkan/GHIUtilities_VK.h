@@ -1,15 +1,15 @@
 #pragma once
 #include "SharedTypes.h"
+#include "LogUtility.h"
+
 #include <fstream>
-#include <iostream>
-#include <string>
 
 namespace Engine
 {
 	inline void PrintPhysicalDeviceInfo_VK(const VkPhysicalDeviceProperties& properties)
 	{
-		std::cout << "Device: " << properties.deviceName << std::endl;
-		std::cout << "Device ID: " << properties.deviceID << std::endl;
+		LOG_MESSAGE((std::string)"Device: " + properties.deviceName);
+		LOG_MESSAGE("Device ID: " + std::to_string(properties.deviceID));
 
 		std::string deviceType = "";
 		switch (properties.deviceType)
@@ -31,11 +31,11 @@ namespace Engine
 			break;
 		}
 
-		std::cout << "Device Type: " << deviceType << std::endl;
-		std::cout << "API Version: " << properties.apiVersion << std::endl;
-		std::cout << "Driver Version: " << properties.driverVersion << std::endl;
+		LOG_MESSAGE("Device Type: " + deviceType);
+		LOG_MESSAGE("API Version: " + std::to_string(properties.apiVersion));
+		LOG_MESSAGE("Driver Version: " + std::to_string(properties.driverVersion));
 
-		std::cout << "Max PushConstants Size: " << properties.limits.maxPushConstantsSize << std::endl;
+		LOG_MESSAGE("Max PushConstants Size: " + std::to_string(properties.limits.maxPushConstantsSize));
 		// Print extra limits and sparse properties here
 		// ...
 	}
@@ -68,14 +68,14 @@ namespace Engine
 			return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled shader stage: " << (unsigned int)shaderStage << std::endl;
+			LOG_ERROR("Vulkan: Unhandled shader stage: " + std::to_string((uint32_t)shaderStage));
 			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 		}
 	}
 
 	inline VkShaderStageFlags VulkanShaderStageFlags(uint32_t flags)
 	{
-		assert(flags != 0);
+		DEBUG_ASSERT_CE(flags != 0);
 
 		VkShaderStageFlags res = 0;
 
@@ -104,13 +104,13 @@ namespace Engine
 			res |= VK_SHADER_STAGE_COMPUTE_BIT;
 		}
 
-		assert(res != 0);
+		DEBUG_ASSERT_CE(res != 0);
 		return res;
 	}
 
 	inline VkPipelineStageFlags VulkanPipelineStageFlags(uint32_t flags)
 	{
-		assert(flags != 0);
+		DEBUG_ASSERT_CE(flags != 0);
 
 		VkShaderStageFlags res = 0;
 
@@ -139,7 +139,7 @@ namespace Engine
 			res |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		}
 
-		assert(res != 0);
+		DEBUG_ASSERT_CE(res != 0);
 		return res;
 	}
 
@@ -180,7 +180,7 @@ namespace Engine
 			// and the writing in the VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT.
 
 		default:
-			std::cerr << "Vulkan: Unhandled image layout type: " << (unsigned int)layout << std::endl;
+			LOG_ERROR("Vulkan: Unhandled image layout type: " + std::to_string((uint32_t)layout));
 			return;
 		}
 	}
@@ -232,7 +232,7 @@ namespace Engine
 			return 4U;
 
 		default:
-			std::cerr << "Vulkan: Unhandled texture format: " << (unsigned int)format << std::endl;
+			LOG_ERROR("Vulkan: Unhandled texture format: " + std::to_string((uint32_t)format));
 			return 4U;
 		}
 	}
@@ -252,7 +252,7 @@ namespace Engine
 			return 4U;
 
 		default:
-			std::cerr << "Vulkan: Unhandled format: " << (unsigned int)format << std::endl;
+			LOG_ERROR("Vulkan: Unhandled format: " + std::to_string((uint32_t)format));
 			return 4U;
 		}
 	}
@@ -301,7 +301,7 @@ namespace Engine
 			return VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
 
 		default:
-			std::cerr << "Vulkan: Unhandled image layout: " << (unsigned int)layout << std::endl;
+			LOG_ERROR("Vulkan: Unhandled image layout: " + std::to_string((uint32_t)layout));
 			return VK_IMAGE_LAYOUT_UNDEFINED;
 		}
 	}
@@ -320,7 +320,7 @@ namespace Engine
 			return VK_ATTACHMENT_LOAD_OP_LOAD;
 
 		default:
-			std::cerr << "Vulkan: Unhandled load operation: " << (unsigned int)op << std::endl;
+			LOG_ERROR("Vulkan: Unhandled load operation: " + std::to_string((uint32_t)op));
 			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		}
 	}
@@ -336,7 +336,7 @@ namespace Engine
 			return VK_ATTACHMENT_STORE_OP_STORE;
 
 		default:
-			std::cerr << "Vulkan: Unhandled store operation: " << (unsigned int)op << std::endl;
+			LOG_ERROR("Vulkan: Unhandled store operation: " + std::to_string((uint32_t)op));
 			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		}
 	}
@@ -367,7 +367,7 @@ namespace Engine
 			return VK_SAMPLE_COUNT_64_BIT;
 
 		default:
-			std::cerr << "Vulkan: Sample count out of range: " << sampleCount << std::endl;
+			LOG_ERROR("Vulkan: Sample count out of range: " + std::to_string(sampleCount));
 			return VK_SAMPLE_COUNT_1_BIT;
 		}
 	}
@@ -395,7 +395,7 @@ namespace Engine
 			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 
 		default:
-			std::cerr << "Vulkan: Unhandled assembly topology: " << (unsigned int)topology << std::endl;
+			LOG_ERROR("Vulkan: Unhandled assembly topology: " + std::to_string((uint32_t)topology));
 			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 		}
 	}
@@ -414,7 +414,7 @@ namespace Engine
 			return VK_POLYGON_MODE_POINT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled polygon mode: " << (unsigned int)mode << std::endl;
+			LOG_ERROR("Vulkan: Unhandled polygon mode: " + std::to_string((uint32_t)mode));
 			return VK_POLYGON_MODE_FILL;
 		}
 	}
@@ -436,7 +436,7 @@ namespace Engine
 			return VK_CULL_MODE_FRONT_AND_BACK;
 
 		default:
-			std::cerr << "Vulkan: Unhandled cull mode: " << (unsigned int)mode << std::endl;
+			LOG_ERROR("Vulkan: Unhandled cull mode: " + std::to_string((uint32_t)mode));
 			return VK_CULL_MODE_NONE;
 		}
 	}
@@ -470,7 +470,7 @@ namespace Engine
 			return VK_COMPARE_OP_ALWAYS;
 
 		default:
-			std::cerr << "Vulkan: Unhandled compare operation: " << (unsigned int)op << std::endl;
+			LOG_ERROR("Vulkan: Unhandled compare operation: " + std::to_string((uint32_t)op));
 			return VK_COMPARE_OP_ALWAYS;
 		}
 	}
@@ -489,7 +489,7 @@ namespace Engine
 			return VK_BLEND_FACTOR_ONE;
 
 		default:
-			std::cerr << "Vulkan: Unhandled blend factor: " << (unsigned int)factor << std::endl;
+			LOG_ERROR("Vulkan: Unhandled blend factor: " + std::to_string((uint32_t)factor));
 			return VK_BLEND_FACTOR_ONE;
 		}
 	}
@@ -520,7 +520,7 @@ namespace Engine
 			return VK_BLEND_OP_DST_EXT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled blend operation: " << (unsigned int)op << std::endl;
+			LOG_ERROR("Vulkan: Unhandled blend operation: " + std::to_string((uint32_t)op));
 			return VK_BLEND_OP_ADD;
 		}
 	}
@@ -536,7 +536,7 @@ namespace Engine
 			return VK_VERTEX_INPUT_RATE_INSTANCE;
 
 		default:
-			std::cerr << "Vulkan: Unhandled vertex input rate: " << (unsigned int)rate << std::endl;
+			LOG_ERROR("Vulkan: Unhandled vertex input rate: " + std::to_string((uint32_t)rate));
 			return VK_VERTEX_INPUT_RATE_VERTEX;
 		}
 	}
@@ -571,7 +571,7 @@ namespace Engine
 			return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
 
 		default:
-			std::cerr << "Vulkan: Unhandled descriptor type: " << (unsigned int)type << std::endl;
+			LOG_ERROR("Vulkan: Unhandled descriptor type: " + std::to_string((uint32_t)type));
 			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		}
 	}
@@ -590,7 +590,7 @@ namespace Engine
 			return VK_FILTER_CUBIC_IMG;
 
 		default:
-			std::cerr << "Vulkan: Unhandled filter mode: " << (unsigned int)mode << std::endl;
+			LOG_ERROR("Vulkan: Unhandled filter mode: " + std::to_string((uint32_t)mode));
 			return VK_FILTER_LINEAR;
 		}
 	}
@@ -606,7 +606,7 @@ namespace Engine
 			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 		default:
-			std::cerr << "Vulkan: Unhandled sampler mipmap mode: " << (unsigned int)mode << std::endl;
+			LOG_ERROR("Vulkan: Unhandled sampler mipmap mode: " + std::to_string((uint32_t)mode));
 			return VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		}
 	}
@@ -631,7 +631,7 @@ namespace Engine
 			return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 
 		default:
-			std::cerr << "Vulkan: Unhandled sampler address mode: " << (unsigned int)mode << std::endl;
+			LOG_ERROR("Vulkan: Unhandled sampler address mode: " + std::to_string((uint32_t)mode));
 			return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		}
 	}
@@ -650,14 +650,14 @@ namespace Engine
 			return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled texture type: " << (unsigned int)type << std::endl;
+			LOG_ERROR("Vulkan: Unhandled texture type: " + std::to_string((uint32_t)type));
 			return VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		}
 	}
 
 	inline VkBufferUsageFlags VulkanDataTransferBufferUsage(uint32_t usageFlags)
 	{
-		assert(usageFlags != 0);
+		DEBUG_ASSERT_CE(usageFlags != 0);
 		VkBufferUsageFlags res = 0;
 
 		if ((usageFlags & (uint32_t)EDataTransferBufferUsage::TransferSrc) != 0)
@@ -669,7 +669,7 @@ namespace Engine
 			res |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		}
 
-		assert(res != 0);
+		DEBUG_ASSERT_CE(res != 0);
 		return res;
 	}
 
@@ -690,7 +690,7 @@ namespace Engine
 			return VMA_MEMORY_USAGE_GPU_TO_CPU;
 
 		default:
-			std::cerr << "Vulkan: Unhandled memory usage type: " << (unsigned int)type << std::endl;
+			LOG_ERROR("Vulkan: Unhandled memory usage type: " + std::to_string((uint32_t)type));
 			return VMA_MEMORY_USAGE_CPU_TO_GPU;
 		}
 	}
@@ -712,7 +712,7 @@ namespace Engine
 			return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 
 		default:
-			std::cerr << "Vulkan: Unhandled semaphore wait stage: " << (unsigned int)stage << std::endl;
+			LOG_ERROR("Vulkan: Unhandled semaphore wait stage: " + std::to_string((uint32_t)stage));
 			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		}
 	}
@@ -726,7 +726,7 @@ namespace Engine
 		case EGPUType::Integrated:
 			return VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
 		default:
-			std::cerr << "Vulkan: Unsupported GPU type: " << (unsigned int)type << std::endl;
+			LOG_ERROR("Vulkan: Unsupported GPU type: " + std::to_string((uint32_t)type));
 			return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 		}
 	}

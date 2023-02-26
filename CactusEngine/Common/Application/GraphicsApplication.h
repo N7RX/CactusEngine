@@ -1,13 +1,14 @@
 #pragma once
 #include "BaseApplication.h"
 #include "ECSWorld.h"
-#include "GraphicsDevice.h"
 #if defined(GLFW_IMPLEMENTATION_CE)
 #include "GLFWWindow.h"
 #endif
 
 namespace Engine
 {
+	class GraphicsDevice;
+
 	class GraphicsApplication : public BaseApplication
 	{
 	public:

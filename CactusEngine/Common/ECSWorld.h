@@ -3,8 +3,6 @@
 #include "BaseComponent.h"
 #include "BaseSystem.h"
 
-#include <assert.h>
-
 namespace Engine
 {
 	typedef std::unordered_map<uint32_t, std::shared_ptr<BaseEntity>> EntityList;

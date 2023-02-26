@@ -1,5 +1,6 @@
 #include "Global.h"
 #include "BaseApplication.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -26,13 +27,13 @@ std::shared_ptr<BaseApplication> Global::GetCurrentApplication() const
 
 bool Global::QueryGlobalState(EGlobalStateQueryType type) const
 {
-	assert((uint32_t)type < m_globalStates.size());
+	DEBUG_ASSERT_CE((uint32_t)type < m_globalStates.size());
 	return m_globalStates[(uint32_t)type];
 }
 
 void Global::MarkGlobalState(EGlobalStateQueryType type, bool val)
 {
-	assert((uint32_t)type < m_globalStates.size());
+	DEBUG_ASSERT_CE((uint32_t)type < m_globalStates.size());
 	m_globalStates[(uint32_t)type] = val;
 }
 

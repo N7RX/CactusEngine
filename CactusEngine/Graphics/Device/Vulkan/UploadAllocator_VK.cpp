@@ -4,7 +4,6 @@
 #include "CommandManager_VK.h"
 #include "Buffers_VK.h"
 #include "Textures_VK.h"
-#include <assert.h>
 
 using namespace Engine;
 
@@ -29,7 +28,7 @@ UploadAllocator_VK::~UploadAllocator_VK()
 
 bool UploadAllocator_VK::CreateBuffer(const RawBufferCreateInfo_VK& createInfo, RawBuffer_VK& rawBuffer)
 {
-	assert(m_allocator != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE);
 
 	VkBufferCreateInfo bufferCreateInfo = {};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -51,7 +50,7 @@ bool UploadAllocator_VK::CreateBuffer(const RawBufferCreateInfo_VK& createInfo, 
 
 bool UploadAllocator_VK::CreateTexture2D(const Texture2DCreateInfo_VK& createInfo, Texture2D_VK& texture2d)
 {
-	assert(m_allocator != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE);
 
 	VkImageCreateInfo imageCreateInfo = {};
 	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -101,12 +100,12 @@ void UploadAllocator_VK::UnmapMemory(VmaAllocation& allocation)
 
 void UploadAllocator_VK::FreeBuffer(VkBuffer& buffer, VmaAllocation& allocation)
 {
-	assert(m_allocator != VK_NULL_HANDLE && buffer != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE && buffer != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE);
 	vmaDestroyBuffer(m_allocator, buffer, allocation);
 }
 
 void UploadAllocator_VK::FreeImage(VkImage& image, VmaAllocation& allocation)
 {
-	assert(m_allocator != VK_NULL_HANDLE && image != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE && image != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE);
 	vmaDestroyImage(m_allocator, image, allocation);
 }

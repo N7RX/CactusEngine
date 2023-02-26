@@ -210,7 +210,7 @@ bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& cr
 
 	if (createInfo.generateMipmap)
 	{
-		assert(createInfo.pTextureData != nullptr);
+		DEBUG_ASSERT_CE(createInfo.pTextureData != nullptr);
 
 		// Layout transition for all levels are included
 		pCmdBuffer->GenerateMipmap(pVkTexture2D, VulkanImageLayout(createInfo.initialLayout), (uint32_t)EShaderType::Fragment);
@@ -232,7 +232,7 @@ bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& cr
 
 bool GraphicsHardwareInterface_VK::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
 {
-	assert(pOutput == nullptr);
+	DEBUG_ASSERT_CE(pOutput == nullptr);
 
 	pOutput = std::make_shared<FrameBuffer_VK>(m_pMainDevice);
 
@@ -274,7 +274,7 @@ bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreate
 
 void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	assert(pCommandBuffer != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 	auto pVkShader = std::static_pointer_cast<ShaderProgram_VK>(pShaderProgram);
 
 	std::vector<DesciptorUpdateInfo_VK> updateInfos;
@@ -341,13 +341,13 @@ void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderP
 		}
 		case EDescriptorResourceType_VK::TexelBuffer:
 		{
-			std::cerr << "Vulkan: TexelBuffer is unhandled.\n";
+			LOG_ERROR("Vulkan: TexelBuffer is unhandled.");
 			updateInfo.hasContent = false;
 
 			break;
 		}
 		default:
-			std::cerr << "Vulkan: Unhandled descriptor resource type: " << (unsigned int)updateInfo.infoType << std::endl;
+			LOG_ERROR("Vulkan: Unhandled descriptor resource type: " + std::to_string((unsigned int)updateInfo.infoType));
 			updateInfo.hasContent = false;
 			break;
 		}
@@ -363,7 +363,7 @@ void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderP
 
 void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	assert(pCommandBuffer != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 	auto pBuffer = std::static_pointer_cast<VertexBuffer_VK>(pVertexBuffer);
 
 	static VkDeviceSize defaultOffset = 0;
@@ -374,20 +374,20 @@ void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexB
 
 void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	assert(pCommandBuffer != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
 }
 
 void GraphicsHardwareInterface_VK::DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
 	// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
-	assert(pCommandBuffer != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->DrawPrimitive(4, 1);
 }
 
 void GraphicsHardwareInterface_VK::ResizeViewPort(uint32_t width, uint32_t height)
 {
-	std::cerr << "Vulkan: Shouldn't call ResizeViewPort on Vulkan device.\n";
+	LOG_ERROR("Vulkan: Shouldn't call ResizeViewPort on Vulkan device.");
 }
 
 EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
@@ -427,12 +427,12 @@ std::shared_ptr<GraphicsCommandPool> GraphicsHardwareInterface_VK::RequestExtern
 		}
 		else
 		{
-			std::cerr << "Vulkan: Transfer command pool requested but transfer queue is not supported.\n";
+			LOG_ERROR("Vulkan: Transfer command pool requested but transfer queue is not supported.");
 			return nullptr;
 		}
 
 	default:
-		std::cerr << "Vulkan: Unhandled queue type: " << (unsigned int)queueType << std::endl;
+		LOG_ERROR("Vulkan: Unhandled queue type: " + std::to_string((unsigned int)queueType));
 		return nullptr;
 	}
 }
@@ -521,7 +521,7 @@ bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreate
 		}
 		else if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Depth)
 		{
-			assert(!foundDepthAttachment);
+			DEBUG_ASSERT_CE(!foundDepthAttachment);
 			foundDepthAttachment = true;
 
 			depthAttachmentRef.attachment = createInfo.attachmentDescriptions[i].index;
@@ -796,7 +796,7 @@ void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const std::shared_ptr<Gr
 
 void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	assert(!std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
+	DEBUG_ASSERT_CE(!std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
 	// Currently we are only rendering to full window
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BeginRenderPass(std::static_pointer_cast<RenderPass_VK>(pRenderPass)->m_renderPass,
 		std::static_pointer_cast<FrameBuffer_VK>(pFrameBuffer)->m_frameBuffer,
@@ -805,7 +805,7 @@ void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderP
 
 void GraphicsHardwareInterface_VK::EndRenderPass(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
 {
-	assert(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
+	DEBUG_ASSERT_CE(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->EndRenderPass();
 }
 
@@ -820,19 +820,19 @@ void GraphicsHardwareInterface_VK::CommandWaitSemaphore(std::shared_ptr<Graphics
 	{
 		return;
 	}
-	assert(pCommandBuffer != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->WaitSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
 }
 
 void GraphicsHardwareInterface_VK::CommandSignalSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
 {
-	assert(pCommandBuffer != nullptr && pSemaphore != nullptr);
+	DEBUG_ASSERT_CE(pCommandBuffer != nullptr && pSemaphore != nullptr);
 	std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->SignalSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
 }
 
 void GraphicsHardwareInterface_VK::Present()
 {
-	assert(m_pSwapchain != nullptr);
+	DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 
 	// Present current frame
 
@@ -893,7 +893,7 @@ void GraphicsHardwareInterface_VK::FlushTransferCommands(bool waitExecution)
 {
 	if (m_pMainDevice->pTransferCommandManager == nullptr)
 	{
-		std::cerr << "Vulkan: Shouldn't flush transfer commands when transfer queue is not supported.\n ";
+		LOG_ERROR("Vulkan: Shouldn't flush transfer commands when transfer queue is not supported.");
 		return;
 	}
 
@@ -922,7 +922,7 @@ std::shared_ptr<TextureSampler> GraphicsHardwareInterface_VK::GetDefaultTextureS
 
 void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
 {
-	assert(m_pSwapchain != nullptr);
+	DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 
 	uint32_t count = m_pSwapchain->GetSwapchainImageCount();
 
@@ -934,7 +934,7 @@ void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<std::shared_pt
 
 uint32_t GraphicsHardwareInterface_VK::GetSwapchainPresentImageIndex() const
 {
-	assert(m_pSwapchain != nullptr);
+	DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 	return m_pSwapchain->GetTargetImageIndex();
 }
 
@@ -943,8 +943,8 @@ void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(std::shared
 	auto pVkTexture = std::static_pointer_cast<Texture2D_VK>(pSrcTexture);
 	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
 
-	assert(pVkTexture->m_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL); // Or manual transition can be performed here
-	assert(pVkBuffer->m_sizeInBytes >= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
+	DEBUG_ASSERT_CE(pVkTexture->m_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL); // Or manual transition can be performed here
+	DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes >= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
 
 	std::vector<VkBufferImageCopy> copyRegions;
 	VkBufferImageCopy region = {};
@@ -968,7 +968,7 @@ void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(std::shared
 	auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
 	auto pVkCmdBuffer = std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer);
 
-	assert(pVkBuffer->m_sizeInBytes <= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
+	DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes <= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
 
 	std::vector<VkBufferImageCopy> copyRegions;
 	VkBufferImageCopy region = {};
@@ -996,7 +996,7 @@ void GraphicsHardwareInterface_VK::CopyDataTransferBuffer(std::shared_ptr<DataTr
 	auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
 	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
 
-	assert(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
+	DEBUG_ASSERT_CE(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
 
 	VkBufferCopy region = {};
 	region.srcOffset = 0;
@@ -1010,7 +1010,7 @@ void GraphicsHardwareInterface_VK::CopyHostDataToDataTransferBuffer(void* pData,
 {
 	auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
 
-	assert(pDstVkBuffer->m_sizeInBytes >= size);
+	DEBUG_ASSERT_CE(pDstVkBuffer->m_sizeInBytes >= size);
 
 	if (!pDstVkBuffer->m_constantlyMapped)
 	{
@@ -1064,7 +1064,7 @@ void GraphicsHardwareInterface_VK::CreateInstance()
 	{
 		if (!IsExtensionSupported_VK(m_availableExtensions, extension))
 		{
-			std::cout << "Vulkan: Extension '" << extension << "' is not supported." << std::endl;
+			LOG_MESSAGE((std::string)"Vulkan: Extension '" + extension + "' is not supported.");
 			return;
 		}
 	}
@@ -1221,7 +1221,7 @@ void GraphicsHardwareInterface_VK::SelectPhysicalDevice()
 		m_pMainDevice->physicalDevice = fallbackDevice;
 		m_pMainDevice->deviceProperties = deviceProperties;
 
-		std::cout << "Vulkan: Preferred GPU type is not supported, falling back to " << deviceProperties.deviceName << std::endl;
+		LOG_MESSAGE((std::string)"Vulkan: Preferred GPU type is not supported, falling back to " + deviceProperties.deviceName);
 
 #if defined(_DEBUG)
 		PrintPhysicalDeviceInfo_VK(deviceProperties);
@@ -1328,9 +1328,7 @@ void GraphicsHardwareInterface_VK::CreateLogicalDevice()
 		m_pMainDevice->transferQueue.isValid = false;
 	}
 
-#if defined(_DEBUG)
-	std::cout << "Vulkan: Logical device created on " << m_pMainDevice->deviceProperties.deviceName << "\n";
-#endif
+	DEBUG_LOG_MESSAGE((std::string)"Vulkan: Logical device created on " + m_pMainDevice->deviceProperties.deviceName);
 }
 
 void GraphicsHardwareInterface_VK::SetupSwapchain()
@@ -1410,14 +1408,14 @@ void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shader
 	}
 
 	size_t fileSize = (size_t)file.tellg();
-	assert(fileSize > 0);
+	DEBUG_ASSERT_CE(fileSize > 0);
 	outRawCode.resize(fileSize);
 
 	file.seekg(0, std::ios::beg);
 	file.read(outRawCode.data(), fileSize);
 
 	file.close();
-	assert(outRawCode.size() > 0);
+	DEBUG_ASSERT_CE(outRawCode.size() > 0);
 
 	VkShaderModuleCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1425,7 +1423,7 @@ void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shader
 	createInfo.pCode = reinterpret_cast<uint32_t*>(outRawCode.data());
 
 	VkResult result = vkCreateShaderModule(pLogicalDevice->logicalDevice, &createInfo, nullptr, &outModule);
-	assert(outModule != VK_NULL_HANDLE && result == VK_SUCCESS);
+	DEBUG_ASSERT_CE(outModule != VK_NULL_HANDLE && result == VK_SUCCESS);
 }
 
 void GraphicsHardwareInterface_VK::SetupCommandManager()
@@ -1480,7 +1478,7 @@ EDescriptorResourceType_VK GraphicsHardwareInterface_VK::VulkanDescriptorResourc
 		return EDescriptorResourceType_VK::TexelBuffer;
 
 	default:
-		std::cerr << "Vulkan: Unhandled descriptor type: " << (unsigned int)type << std::endl;
+		LOG_ERROR("Vulkan: Unhandled descriptor type: " + std::to_string((unsigned int)type));
 		return EDescriptorResourceType_VK::Buffer;
 	}
 }

@@ -1,9 +1,10 @@
 #pragma once
 #include "Configuration.h"
+#include "LogUtility.h"
+
 #include <memory>
 #include <stdexcept>
 #include <vector>
-#include <assert.h>
 
 #define GLFW_IMPLEMENTATION_CE
 
@@ -22,14 +23,14 @@ namespace Engine
 		template<typename T>
 		inline void CreateConfiguration(EConfigurationType configType)
 		{
-			assert((uint32_t)configType < m_configurations.size());
+			DEBUG_ASSERT_CE((uint32_t)configType < m_configurations.size());
 			m_configurations[(uint32_t)configType] = std::make_shared<T>();
 		}
 
 		template<typename T>
 		inline std::shared_ptr<T> GetConfiguration(EConfigurationType configType) const
 		{
-			assert((uint32_t)configType < m_configurations.size());
+			DEBUG_ASSERT_CE((uint32_t)configType < m_configurations.size());
 			return std::dynamic_pointer_cast<T>(m_configurations[(uint32_t)configType]);
 		}
 

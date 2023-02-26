@@ -1,10 +1,4 @@
 #pragma once
-#include <json/json.h>
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
 #include "ECSSceneReader.h"
 #include "ResourceManager.h"
 #include "ECSWorld.h"
@@ -13,6 +7,11 @@
 #include "ScriptSelector.h"
 #include "ExternalMesh.h"
 #include "Plane.h"
+
+#include <json/json.h>
+#include <stdio.h>
+#include <fstream>
+#include <sstream>
 
 namespace Engine
 {
@@ -30,7 +29,7 @@ namespace Engine
 
 		if (fileReader.fail())
 		{
-			std::cout << "ECSSceneReader: Cannot open " << fileAddress << std::endl;
+			LOG_ERROR((std::string)"ECSSceneReader: Cannot open " + fileAddress);
 			return false;
 		}
 
@@ -40,7 +39,7 @@ namespace Engine
 		JSONCPP_STRING errs;
 		if (!parseFromStream(builder, fileReader, &root, &errs))
 		{
-			std::cerr << errs << std::endl;
+			LOG_ERROR(errs);
 			return false;
 		}
 
@@ -119,7 +118,7 @@ namespace Engine
 					pMesh = std::make_shared<Plane>(component["planeDimension"]["x"].asUInt(), component["planeDimension"]["y"].asUInt());
 					break;
 				default:
-					std::cout << "ECSSceneReader: Unhandled mesh type: " << component["type"].asInt() << std::endl;
+					LOG_WARNING("ECSSceneReader: Unhandled mesh type: " + std::to_string(component["type"].asInt()));
 					attachMesh = false;
 					break;
 				}

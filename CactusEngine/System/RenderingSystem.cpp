@@ -7,8 +7,7 @@
 #include "LightComponent.h"
 #include "GraphicsApplication.h"
 #include "BuiltInResourcesPath.h"
-
-#include <assert.h>
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -58,7 +57,7 @@ EGraphicsAPIType RenderingSystem::GetGraphicsAPIType() const
 
 std::shared_ptr<ShaderProgram> RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
 {
-	assert((uint32_t)type < m_shaderPrograms.size());
+	DEBUG_ASSERT_CE((uint32_t)type < m_shaderPrograms.size());
 	return m_shaderPrograms[(uint32_t)type];
 }
 

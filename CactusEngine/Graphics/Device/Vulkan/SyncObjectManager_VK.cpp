@@ -1,6 +1,5 @@
 #include "SyncObjectManager_VK.h"
 #include "GraphicsHardwareInterface_VK.h"
-#include <assert.h>
 
 using namespace Engine;
 
@@ -42,13 +41,13 @@ SyncObjectManager_VK::~SyncObjectManager_VK()
 {
 	for (auto& pSemaphore : m_semaphorePool)
 	{
-		assert(pSemaphore->semaphore != VK_NULL_HANDLE);
+		DEBUG_ASSERT_CE(pSemaphore->semaphore != VK_NULL_HANDLE);
 		vkDestroySemaphore(m_pDevice->logicalDevice, pSemaphore->semaphore, nullptr);
 	}
 
 	for (auto& pSemaphore : m_timelineSemaphorePool)
 	{
-		assert(pSemaphore->semaphore != VK_NULL_HANDLE);
+		DEBUG_ASSERT_CE(pSemaphore->semaphore != VK_NULL_HANDLE);
 		vkDestroySemaphore(m_pDevice->logicalDevice, pSemaphore->semaphore, nullptr);
 	}
 }
@@ -104,7 +103,7 @@ void SyncObjectManager_VK::ReturnTimelineSemaphore(std::shared_ptr<TimelineSemap
 
 bool SyncObjectManager_VK::CreateNewSemaphore(uint32_t count)
 {
-	assert(m_semaphorePool.size() + count <= MAX_SEMAPHORE_COUNT);
+	DEBUG_ASSERT_CE(m_semaphorePool.size() + count <= MAX_SEMAPHORE_COUNT);
 
 	VkSemaphoreCreateInfo semaphoreInfo = {};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -130,7 +129,7 @@ bool SyncObjectManager_VK::CreateNewSemaphore(uint32_t count)
 
 bool SyncObjectManager_VK::CreateNewTimelineSemaphore(uint32_t count, uint64_t initialValue)
 {
-	assert(m_timelineSemaphorePool.size() + count <= MAX_TIMELINE_SEMAPHORE_COUNT);
+	DEBUG_ASSERT_CE(m_timelineSemaphorePool.size() + count <= MAX_TIMELINE_SEMAPHORE_COUNT);
 
 	VkSemaphoreTypeCreateInfo timelineCreateInfo = {};
 	timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;

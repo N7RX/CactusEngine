@@ -1,8 +1,6 @@
 #pragma once
 #include "BasicMathTypes.h"
-
-#include <iostream>
-#include <string>
+#include "LogUtility.h"
 
 namespace Engine
 {
@@ -217,7 +215,7 @@ namespace Engine
 			return ShaderParamNames::MASK_TEXTURE_2;
 		}
 
-		std::cerr << "Unhandled shader parameter name: " << cstr << std::endl;
+		LOG_ERROR((std::string)"Unhandled shader parameter name: " + cstr);
 		return nullptr;
 	}
 }

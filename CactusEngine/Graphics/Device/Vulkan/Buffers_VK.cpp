@@ -1,13 +1,14 @@
 #include "Buffers_VK.h"
 #include "GraphicsHardwareInterface_VK.h"
 #include "GHIUtilities_VK.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
 RawBuffer_VK::RawBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo)
 	: m_pAllocator(pAllocator), m_deviceSize(createInfo.size)
 {
-	assert(pAllocator);
+	DEBUG_ASSERT_CE(pAllocator);
 
 	m_buffer = VK_NULL_HANDLE;
 	m_allocation = VK_NULL_HANDLE;
@@ -83,7 +84,7 @@ UniformBuffer_VK::UniformBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAl
 	{
 		if (!m_pBufferImpl->m_pAllocator->MapMemory(m_pBufferImpl->m_allocation, &m_pHostData))
 		{
-			std::cerr << "Vulkan: Failed to map uniform buffer memory.\n";
+			LOG_ERROR("Vulkan: Failed to map uniform buffer memory.");
 		}
 	}
 }
@@ -122,7 +123,7 @@ void UniformBuffer_VK::UpdateBufferSubData(const void* pData, uint32_t offset, u
 std::shared_ptr<SubUniformBuffer> UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
 {
 	std::lock_guard<std::mutex> lock(m_subAllocateMutex);
-	assert(m_subAllocatedSize + size <= m_sizeInBytes);
+	DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
 	auto pSubBuffer = std::make_shared<SubUniformBuffer_VK>(this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
 	m_subAllocatedSize += size;
@@ -137,8 +138,8 @@ void UniformBuffer_VK::ResetSubBufferAllocation()
 
 void UniformBuffer_VK::UpdateToDevice(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
 {
-	assert(m_pBufferImpl->m_pAllocator);
-	assert(m_pRawData != nullptr);
+	DEBUG_ASSERT_CE(m_pBufferImpl->m_pAllocator);
+	DEBUG_ASSERT_CE(m_pRawData != nullptr);
 
 	switch (m_eType)
 	{
@@ -175,6 +176,6 @@ SubUniformBuffer_VK::SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, VkBuff
 
 void SubUniformBuffer_VK::UpdateSubBufferData(const void* pData)
 {
-	assert(m_pParentBuffer != nullptr);
+	DEBUG_ASSERT_CE(m_pParentBuffer != nullptr);
 	m_pParentBuffer->UpdateBufferSubData(pData, m_offset, m_size);
 }

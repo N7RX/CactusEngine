@@ -271,6 +271,7 @@
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Utilities\LogUtility.h" />
     <ClInclude Include="Utilities\NoCopy.h" />
     <ClInclude Include="Utilities\SafeBasicTypes.h" />
     <ClInclude Include="Utilities\SafeQueue.h" />
@@ -353,6 +354,7 @@
     <ClCompile Include="Third-party\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="Third-party\imgui\imgui_tables.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="Utilities\LogUtility.cpp" />
     <ClCompile Include="Utilities\SafeBasicTypes.cpp" />
     <ClCompile Include="Utilities\Timer.cpp" />
   </ItemGroup>

@@ -1,5 +1,6 @@
 #include "Buffers_GL.h"
 #include "GHIUtilities_GL.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -32,8 +33,8 @@ GLuint UniformBuffer_GL::GetGLBufferID() const
 
 void UniformBuffer_GL::UpdateBufferData(const void* pData)
 {
-	assert(m_sizeInBytes != 0);
-	assert(m_glBufferID != -1);
+	DEBUG_ASSERT_CE(m_sizeInBytes != 0);
+	DEBUG_ASSERT_CE(m_glBufferID != -1);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
 	glBufferData(GL_UNIFORM_BUFFER, m_sizeInBytes, pData, GL_DYNAMIC_DRAW);
@@ -42,8 +43,8 @@ void UniformBuffer_GL::UpdateBufferData(const void* pData)
 
 void UniformBuffer_GL::UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size)
 {
-	assert(m_sizeInBytes != 0 && size != 0 && offset + size <= m_sizeInBytes);
-	assert(m_glBufferID != -1);
+	DEBUG_ASSERT_CE(m_sizeInBytes != 0 && size != 0 && offset + size <= m_sizeInBytes);
+	DEBUG_ASSERT_CE(m_glBufferID != -1);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
 	glBufferSubData(GL_UNIFORM_BUFFER, offset, size, pData);
@@ -52,7 +53,7 @@ void UniformBuffer_GL::UpdateBufferSubData(const void* pData, uint32_t offset, u
 
 std::shared_ptr<SubUniformBuffer> UniformBuffer_GL::AllocateSubBuffer(uint32_t size)
 {
-	std::cerr << "OpenGL: shouldn't call AllocateSubBuffer on OpenGL uniform buffer.\n";
+	LOG_ERROR("OpenGL: shouldn't call AllocateSubBuffer on uniform buffer.");
 	return nullptr;
 }
 

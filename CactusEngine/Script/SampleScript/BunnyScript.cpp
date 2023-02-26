@@ -2,8 +2,8 @@
 #include "AllComponents.h"
 #include "InputSystem.h"
 #include "Timer.h"
+#include "LogUtility.h"
 
-#include <assert.h>
 #include <iostream>
 #include <algorithm>
 
@@ -15,7 +15,7 @@ int BunnyScript::m_instanceCounter = 0;
 BunnyScript::BunnyScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 	: m_pEntity(pEntity), m_pBunnyTransform(nullptr)
 {
-	assert(pEntity != nullptr);
+	DEBUG_ASSERT_CE(pEntity != nullptr);
 
 	m_id = EScriptID::Bunny;
 
@@ -28,7 +28,7 @@ BunnyScript::BunnyScript(const std::shared_ptr<Engine::BaseEntity> pEntity)
 void BunnyScript::Start()
 {
 	m_pBunnyTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
-	assert(m_pBunnyTransform != nullptr);
+	DEBUG_ASSERT_CE(m_pBunnyTransform != nullptr);
 
 	m_started = true;
 }

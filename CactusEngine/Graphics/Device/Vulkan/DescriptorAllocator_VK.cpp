@@ -1,6 +1,7 @@
 #include "DescriptorAllocator_VK.h"
 #include "GraphicsHardwareInterface_VK.h"
 #include "GHIUtilities_VK.h"
+#include "LogUtility.h"
 
 using namespace Engine;
 
@@ -22,7 +23,7 @@ DescriptorSetLayout_VK::DescriptorSetLayout_VK(const std::shared_ptr<LogicalDevi
 
 	if (vkCreateDescriptorSetLayout(m_pDevice->logicalDevice, &createInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS)
 	{
-		std::cerr << "Vulkan: failed to create descriptor set layout.\n";
+		LOG_ERROR("Vulkan: failed to create descriptor set layout.");
 	}
 }
 
@@ -52,8 +53,8 @@ DescriptorPool_VK::~DescriptorPool_VK()
 
 bool DescriptorPool_VK::AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<std::shared_ptr<DescriptorSet_VK>>& outSets, bool clearPrev)
 {
-	assert(m_descriptorPool != VK_NULL_HANDLE);
-	assert(m_allocatedSetsCount + (uint32_t)layouts.size() <= MAX_SETS);
+	DEBUG_ASSERT_CE(m_descriptorPool != VK_NULL_HANDLE);
+	DEBUG_ASSERT_CE(m_allocatedSetsCount + (uint32_t)layouts.size() <= MAX_SETS);
 
 	if (clearPrev)
 	{

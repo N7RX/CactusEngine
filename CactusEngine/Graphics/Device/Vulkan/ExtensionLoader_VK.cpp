@@ -1,5 +1,6 @@
 #include "ExtensionLoader_VK.h"
-#include <iostream>
+#include "LogUtility.h"
+
 #include <set>
 
 using namespace Engine;
@@ -40,7 +41,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	std::cerr << "Vulkan validation layer: " << pCallbackData->pMessage << std::endl;
+	// TODO: filter validation layer message by type
+	LOG_MESSAGE((std::string)"Vulkan validation layer: " + pCallbackData->pMessage);
 	return VK_FALSE;
 }
 
@@ -87,7 +89,7 @@ bool Engine::CheckAvailableInstanceExtensions_VK(std::vector<VkExtensionProperti
 
 	if ((result != VK_SUCCESS) || extensionsCount == 0)
 	{
-		throw std::runtime_error("Vulkan: Could not get the number of instance extensions.");
+		LOG_ERROR("Vulkan: Could not get the number of instance extensions.");
 		return false;
 	}
 
@@ -95,7 +97,7 @@ bool Engine::CheckAvailableInstanceExtensions_VK(std::vector<VkExtensionProperti
 	result = vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, availableExtensions.data());
 	if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("Vulkan: Could not enumerate instance extensions.");
+		LOG_ERROR("Vulkan: Could not enumerate instance extensions.");
 		return false;
 	}
 
@@ -230,7 +232,7 @@ QueueFamilyIndices_VK Engine::FindQueueFamilies_VK(const VkPhysicalDevice& devic
 
 	if (!indices.isComplete())
 	{
-		std::cerr << "Vulkan: Some queue family is not supported by a physical device.\n";
+		LOG_ERROR("Vulkan: Some queue family is not supported by a physical device.");
 	}
 
 	return indices;

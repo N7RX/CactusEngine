@@ -27,7 +27,7 @@ namespace Engine
 
 		if (fileWriter.fail())
 		{
-			std::cout << "ECSSceneWriter: Cannot access " << fileAddress << std::endl;
+			LOG_ERROR((std::string)"ECSSceneWriter: Cannot access " + fileAddress);
 			return false;
 		}
 
@@ -102,7 +102,7 @@ namespace Engine
 						component["planeDimension"]["y"] = planeDimension.y;
 						break;
 					default:
-						std::cout << "ECSSceneWriter: Unhandled mesh type: " << (uint32_t)pMesh->GetMeshType() << std::endl;
+						LOG_WARNING("ECSSceneWriter: Unhandled mesh type: " + std::to_string((uint32_t)pMesh->GetMeshType()));
 						break;
 					}
 
@@ -147,7 +147,7 @@ namespace Engine
 								subComponent["toneTexturePath"] = textureEntry.second->GetFilePath();
 								break;
 							default:
-								std::cout << "ECSSceneWriter: Unhandled texture type: " << (uint32_t)textureEntry.first << std::endl;
+								LOG_WARNING("ECSSceneWriter: Unhandled texture type: " + std::to_string((uint32_t)textureEntry.first));
 								break;
 							}
 						}
@@ -209,7 +209,7 @@ namespace Engine
 					break;
 				}
 				default:
-					std::cout << "ECSSceneWriter: Unhandled component type: " << (uint32_t)componentEntry.first << std::endl;
+					LOG_WARNING("ECSSceneWriter: Unhandled component type: " + std::to_string((uint32_t)componentEntry.first));
 					break;
 				}
 			}

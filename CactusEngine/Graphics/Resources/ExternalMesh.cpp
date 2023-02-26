@@ -1,7 +1,7 @@
 #include "ExternalMesh.h"
 #include "Global.h"
 #include "GraphicsApplication.h"
-#include <iostream>
+
 // Integration with Assimp
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
@@ -26,7 +26,7 @@ void ExternalMesh::LoadMeshFromFile(const char* filePath)
 
 	if (!scene)
 	{
-		std::cerr << "Could not read file: " << filePath << std::endl;
+		LOG_ERROR((std::string)"Could not read file: " + filePath);
 		return;
 	}
 

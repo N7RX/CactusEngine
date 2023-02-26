@@ -3,8 +3,7 @@
 #include "SampleScript/CubeScript.h"
 #include "SampleScript/BunnyScript.h"
 #include "SampleScript/LightScript.h"
-
-#include <iostream>
+#include "LogUtility.h"
 
 namespace SampleScript
 {
@@ -22,7 +21,7 @@ namespace SampleScript
 		case EScriptID::Light:
 			return std::make_shared<LightScript>(pEntity);
 		default:
-			std::cout << "ScriptSelector: Unhandled script type: " << (uint32_t)id << std::endl;
+			Engine::LOG_WARNING("ScriptSelector: Unhandled script type: " + std::to_string((uint32_t)id));
 			break;
 		}
 

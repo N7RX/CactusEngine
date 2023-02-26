@@ -1,7 +1,8 @@
 #pragma once
+#include "LogUtility.h"
+
 #include <vector>
 #include <mutex>
-#include <assert.h>
 
 template<typename T>
 class SafeVector
@@ -42,7 +43,7 @@ template<typename T>
 T SafeVector<T>::TryGet(uint32_t index)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	assert(index < m_vectorImpl.size());
+	DEBUG_ASSERT_CE(index < m_vectorImpl.size());
 	return m_vectorImpl[index];
 }
 

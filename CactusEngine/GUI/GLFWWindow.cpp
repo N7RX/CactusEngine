@@ -22,7 +22,7 @@ void Engine::GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int width, int 
 
 void Engine::GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int width, int height)
 {
-	std::cout << "Vulkan window resized but not handled\n";
+	LOG_ERROR("Vulkan window resized but not handled.");
 }
 
 void GLFWWindow::Initialize()

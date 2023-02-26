@@ -130,13 +130,13 @@ unsigned int ShaderProgram_VK::GetParamBinding(const char* paramName) const
 	{
 		return m_resourceTable.at(paramName).binding;
 	}
-	std::cerr << "Vulkan: Parameter name not found: " << paramName << std::endl;
+	LOG_ERROR(std::string("Vulkan: Parameter name not found: ") + paramName);
 	return -1;
 }
 
 void ShaderProgram_VK::Reset()
 {
-	std::cerr << "Vulkan: shouldn't call Reset on Vulkan shader program.\n";
+	LOG_ERROR("Vulkan: shouldn't call Reset on Vulkan shader program.");
 }
 
 uint32_t ShaderProgram_VK::GetStageCount() const
@@ -197,7 +197,7 @@ const DescriptorSetLayout_VK* ShaderProgram_VK::GetDescriptorSetLayout() const
 void ShaderProgram_VK::ReflectResources(const std::shared_ptr<RawShader_VK> pShader, DescriptorSetCreateInfo& descSetCreateInfo)
 {
 	size_t wordCount = pShader->m_rawCode.size() * sizeof(char) / sizeof(uint32_t);
-	assert(wordCount > 0);
+	DEBUG_ASSERT_CE(wordCount > 0);
 	std::vector<uint32_t> rawCode(wordCount);
 	memcpy(rawCode.data(), pShader->m_rawCode.data(), pShader->m_rawCode.size() * sizeof(char));
 
@@ -236,7 +236,7 @@ void ShaderProgram_VK::LoadResourceBinding(const spirv_cross::Compiler& spvCompi
 
 		m_resourceTable.emplace(desc.name, desc);
 	}
-	assert(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
+	DEBUG_ASSERT_CE(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
 
 	for (auto& separateImage : shaderRes.separate_images)
 	{
@@ -487,8 +487,8 @@ void ShaderProgram_VK::CreateDescriptorPool(const DescriptorSetCreateInfo& descS
 
 void ShaderProgram_VK::AllocateDescriptorSet(uint32_t count)
 {
-	assert(m_pDescriptorPool);
-	assert(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
+	DEBUG_ASSERT_CE(m_pDescriptorPool);
+	DEBUG_ASSERT_CE(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
 
 	std::vector<VkDescriptorSetLayout> layouts(count, *m_pDescriptorSetLayout->GetDescriptorSetLayout());
 
