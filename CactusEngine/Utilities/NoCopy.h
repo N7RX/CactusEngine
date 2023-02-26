@@ -1,10 +1,13 @@
 #pragma once
 
-class NoCopy
+namespace Engine
 {
-public:
-	NoCopy() = default;
-	virtual ~NoCopy() = default;
+	class NoCopy
+	{
+	public:
+		NoCopy() = default;
+		virtual ~NoCopy() = default;
 
-	NoCopy(const NoCopy& copyFrom) = delete;
-};
+		NoCopy(const NoCopy& copyFrom) = delete;
+	};
+}

@@ -3,302 +3,301 @@
 #include "BaseRenderer.h"
 #include "LogUtility.h"
 
-#include <iostream>
-
-using namespace Engine;
-
-void RenderGraphResource::Add(const char* name, std::shared_ptr<RawResource> pResource)
+namespace Engine
 {
-	m_renderResources.emplace(name, pResource);
-}
-
-std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
-{
-	if (m_renderResources.find(name) != m_renderResources.end())
+	void RenderGraphResource::Add(const char* name, std::shared_ptr<RawResource> pResource)
 	{
-		return m_renderResources.at(name);
+		m_renderResources.emplace(name, pResource);
 	}
-	LOG_ERROR((std::string)"Couldn't find resource: " + name);
-	return nullptr;
-}
 
-void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pResource)
-{
-	if (m_renderResources.find(name) != m_renderResources.end())
+	std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
 	{
-		m_renderResources.at(name) = pResource;
-	}
-	else
-	{
-		LOG_ERROR((std::string)"Couldn't find the resource to be swapped: " + name);
-	}
-}
-
-RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
-	: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
-{
-	DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
-	m_pDevice = m_pRenderer->GetGraphicsDevice();
-	m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
-}
-
-void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
-{
-	m_nextNodes.emplace_back(pNode);
-	pNode->m_prevNodes.emplace_back(this);
-}
-
-void RenderNode::SetInputResource(const char* slot, const char* pResourceName)
-{
-	DEBUG_ASSERT_CE(m_inputResourceNames.find(slot) != m_inputResourceNames.end());
-	m_inputResourceNames.at(slot) = pResourceName;
-}
-
-void RenderNode::Setup()
-{
-	SetupFunction(m_pGraphResources);
-}
-
-void RenderNode::ExecuteSequential()
-{
-	for (auto& pNode : m_prevNodes)
-	{
-		if (!pNode->m_finishedExecution)
+		if (m_renderResources.find(name) != m_renderResources.end())
 		{
-			return;
+			return m_renderResources.at(name);
+		}
+		LOG_ERROR((std::string)"Couldn't find resource: " + name);
+		return nullptr;
+	}
+
+	void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pResource)
+	{
+		if (m_renderResources.find(name) != m_renderResources.end())
+		{
+			m_renderResources.at(name) = pResource;
+		}
+		else
+		{
+			LOG_ERROR((std::string)"Couldn't find the resource to be swapped: " + name);
 		}
 	}
 
-	RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
-	m_finishedExecution = true;
-
-	for (auto& pNode : m_nextNodes)
+	RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
+		: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
 	{
-		pNode->ExecuteSequential();
+		DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
+		m_pDevice = m_pRenderer->GetGraphicsDevice();
+		m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
 	}
-}
 
-void RenderNode::ExecuteParallel()
-{
-	RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
-	m_finishedExecution = true;
-}
-
-RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount)
-	: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
-{
-	if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
+	void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
 	{
+		m_nextNodes.emplace_back(pNode);
+		pNode->m_prevNodes.emplace_back(this);
+	}
+
+	void RenderNode::SetInputResource(const char* slot, const char* pResourceName)
+	{
+		DEBUG_ASSERT_CE(m_inputResourceNames.find(slot) != m_inputResourceNames.end());
+		m_inputResourceNames.at(slot) = pResourceName;
+	}
+
+	void RenderNode::Setup()
+	{
+		SetupFunction(m_pGraphResources);
+	}
+
+	void RenderNode::ExecuteSequential()
+	{
+		for (auto& pNode : m_prevNodes)
+		{
+			if (!pNode->m_finishedExecution)
+			{
+				return;
+			}
+		}
+
+		RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
+		m_finishedExecution = true;
+
+		for (auto& pNode : m_nextNodes)
+		{
+			pNode->ExecuteSequential();
+		}
+	}
+
+	void RenderNode::ExecuteParallel()
+	{
+		RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
+		m_finishedExecution = true;
+	}
+
+	RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount)
+		: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
+	{
+		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
+		{
+			for (unsigned int i = 0; i < m_executionThreadCount; i++)
+			{
+				m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodeParallel, this);
+			}
+		}
+	}
+
+	RenderGraph::~RenderGraph()
+	{
+		m_isRunning = false;
+
 		for (unsigned int i = 0; i < m_executionThreadCount; i++)
 		{
-			m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodeParallel, this);
+			m_executionThreads[i].join();
 		}
 	}
-}
 
-RenderGraph::~RenderGraph()
-{
-	m_isRunning = false;
-
-	for (unsigned int i = 0; i < m_executionThreadCount; i++)
+	void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
 	{
-		m_executionThreads[i].join();
+		m_nodes.emplace(name, pNode);
+		m_nodes[name]->m_pName = name;
 	}
-}
 
-void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
-{
-	m_nodes.emplace(name, pNode);
-	m_nodes[name]->m_pName = name;
-}
-
-void RenderGraph::SetupRenderNodes()
-{
-	for (auto& node : m_nodes)
+	void RenderGraph::SetupRenderNodes()
 	{
-		node.second->Setup();
-	}
-}
-
-void RenderGraph::BuildRenderNodePriorities()
-{
-	m_renderNodePriorities.clear();
-	m_nodePriorityDependencies.clear();
-
-	// Find all starting nodes
-	std::queue<std::shared_ptr<RenderNode>> startingNodes;
-	for (auto& pNode : m_nodes)
-	{
-		pNode.second->m_finishedExecution = false;
-
-		if (pNode.second->m_prevNodes.empty())
+		for (auto& node : m_nodes)
 		{
-			startingNodes.push(pNode.second);
+			node.second->Setup();
 		}
 	}
 
-	// Traverse graph
-	std::vector<std::shared_ptr<RenderNode>> traverseResult;
-	while (!startingNodes.empty())
+	void RenderGraph::BuildRenderNodePriorities()
 	{
-		TraverseRenderNode(startingNodes.front(), traverseResult);
-		startingNodes.pop();
-	}
+		m_renderNodePriorities.clear();
+		m_nodePriorityDependencies.clear();
 
-	// Reset flag
-	for (auto& pNode : m_nodes)
-	{
-		pNode.second->m_finishedExecution = false;
-	}
-
-	// Assign priority by traverse sequence
-	uint32_t assignedPriority = 0;
-	for (unsigned int i = 0; i < traverseResult.size(); i++)
-	{
-		m_renderNodePriorities[traverseResult[i]->m_pName] = assignedPriority;
-		assignedPriority++;
-	}
-
-	// Record priority dependencies
-	for (unsigned int i = 0; i < traverseResult.size(); i++)
-	{
-		m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]] = std::vector<uint32_t>();
-		for (auto pNode : traverseResult[i]->m_prevNodes)
+		// Find all starting nodes
+		std::queue<std::shared_ptr<RenderNode>> startingNodes;
+		for (auto& pNode : m_nodes)
 		{
-			m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]].emplace_back(m_renderNodePriorities[pNode->m_pName]);
+			pNode.second->m_finishedExecution = false;
+
+			if (pNode.second->m_prevNodes.empty())
+			{
+				startingNodes.push(pNode.second);
+			}
 		}
-	}
-}
 
-void RenderGraph::BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext)
-{
-	static std::shared_ptr<CommandContext> pEmptyCmdContext = std::make_shared<CommandContext>();
-
-	for (auto& pNode : m_nodes)
-	{
-		pNode.second->m_pRenderContext = pContext;
-		pNode.second->m_pCmdContext = pEmptyCmdContext;
-		pNode.second->m_finishedExecution = false;
-
-		if (pNode.second->m_prevNodes.empty())
+		// Traverse graph
+		std::vector<std::shared_ptr<RenderNode>> traverseResult;
+		while (!startingNodes.empty())
 		{
-			m_startingNodes.push(pNode.second);
-		}
-	}
-
-	while (!m_startingNodes.empty())
-	{
-		m_startingNodes.front()->ExecuteSequential();
-		m_startingNodes.pop();
-	}
-}
-
-void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext> pContext)
-{
-	for (auto& pNode : m_nodes)
-	{
-		pNode.second->m_pRenderContext = pContext;
-		pNode.second->m_finishedExecution = false;
-
-		if (pNode.second->m_prevNodes.empty())
-		{
-			m_startingNodes.push(pNode.second);
-		}
-	}
-
-	{
-		std::lock_guard<std::mutex> guard(m_nodeExecutionMutex);
-
-		while (!m_startingNodes.empty())
-		{
-			EnqueueRenderNode(m_startingNodes.front());
-			m_startingNodes.pop();
+			TraverseRenderNode(startingNodes.front(), traverseResult);
+			startingNodes.pop();
 		}
 
+		// Reset flag
 		for (auto& pNode : m_nodes)
 		{
 			pNode.second->m_finishedExecution = false;
 		}
-	}
 
-	m_nodeExecutionCv.notify_all();
-}
-
-std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
-{
-	if (m_nodes.find(name) != m_nodes.end())
-	{
-		return m_nodes.at(name);
-	}
-	LOG_ERROR((std::string)"Coundn't find node: " + name);
-	return nullptr;
-}
-
-uint32_t RenderGraph::GetRenderNodeCount() const
-{
-	return m_nodes.size();
-}
-
-void RenderGraph::ExecuteRenderNodeParallel()
-{
-	auto pCmdContext = std::make_shared<CommandContext>();
-	pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
-	pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
-
-	std::shared_ptr<RenderNode> pNode = nullptr;
-	while (m_isRunning)
-	{
+		// Assign priority by traverse sequence
+		uint32_t assignedPriority = 0;
+		for (unsigned int i = 0; i < traverseResult.size(); i++)
 		{
-			std::unique_lock<std::mutex> lock(m_nodeExecutionMutex);
-			m_nodeExecutionCv.wait(lock, [this]() { return !m_executionNodeQueue.Empty(); });
+			m_renderNodePriorities[traverseResult[i]->m_pName] = assignedPriority;
+			assignedPriority++;
 		}
 
-		while (m_executionNodeQueue.TryPop(pNode))
+		// Record priority dependencies
+		for (unsigned int i = 0; i < traverseResult.size(); i++)
 		{
-			pNode->m_pCmdContext = pCmdContext;
-			pNode->ExecuteParallel();
-
-			std::this_thread::yield();
-		}
-	}
-}
-
-void RenderGraph::EnqueueRenderNode(const std::shared_ptr<RenderNode> pNode)
-{
-	// Enqueue render nodes by dependency sequence
-	for (auto& pPrevNode : pNode->m_prevNodes)
-	{
-		if (!pPrevNode->m_finishedExecution) // m_finishedExecution is being used as traversal flag here
-		{
-			return;
+			m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]] = std::vector<uint32_t>();
+			for (auto pNode : traverseResult[i]->m_prevNodes)
+			{
+				m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]].emplace_back(m_renderNodePriorities[pNode->m_pName]);
+			}
 		}
 	}
 
-	m_executionNodeQueue.Push(pNode);
-	pNode->m_finishedExecution = true;
-
-	for (auto& pNextNode : pNode->m_nextNodes)
+	void RenderGraph::BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext)
 	{
-		EnqueueRenderNode(pNextNode);
-	}
-}
+		static std::shared_ptr<CommandContext> pEmptyCmdContext = std::make_shared<CommandContext>();
 
-void RenderGraph::TraverseRenderNode(const std::shared_ptr<RenderNode> pNode, std::vector<std::shared_ptr<RenderNode>>& output)
-{
-	// Record render nodes by dependency sequence
-	for (auto& pPrevNode : pNode->m_prevNodes)
-	{
-		if (!pPrevNode->m_finishedExecution) // m_finishedExecution is being used as traversal flag here
+		for (auto& pNode : m_nodes)
 		{
-			return;
+			pNode.second->m_pRenderContext = pContext;
+			pNode.second->m_pCmdContext = pEmptyCmdContext;
+			pNode.second->m_finishedExecution = false;
+
+			if (pNode.second->m_prevNodes.empty())
+			{
+				m_startingNodes.push(pNode.second);
+			}
+		}
+
+		while (!m_startingNodes.empty())
+		{
+			m_startingNodes.front()->ExecuteSequential();
+			m_startingNodes.pop();
 		}
 	}
 
-	output.emplace_back(pNode);
-	pNode->m_finishedExecution = true;
-
-	for (auto& pNextNode : pNode->m_nextNodes)
+	void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext> pContext)
 	{
-		TraverseRenderNode(pNextNode, output);
+		for (auto& pNode : m_nodes)
+		{
+			pNode.second->m_pRenderContext = pContext;
+			pNode.second->m_finishedExecution = false;
+
+			if (pNode.second->m_prevNodes.empty())
+			{
+				m_startingNodes.push(pNode.second);
+			}
+		}
+
+		{
+			std::lock_guard<std::mutex> guard(m_nodeExecutionMutex);
+
+			while (!m_startingNodes.empty())
+			{
+				EnqueueRenderNode(m_startingNodes.front());
+				m_startingNodes.pop();
+			}
+
+			for (auto& pNode : m_nodes)
+			{
+				pNode.second->m_finishedExecution = false;
+			}
+		}
+
+		m_nodeExecutionCv.notify_all();
+	}
+
+	std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
+	{
+		if (m_nodes.find(name) != m_nodes.end())
+		{
+			return m_nodes.at(name);
+		}
+		LOG_ERROR((std::string)"Coundn't find node: " + name);
+		return nullptr;
+	}
+
+	uint32_t RenderGraph::GetRenderNodeCount() const
+	{
+		return m_nodes.size();
+	}
+
+	void RenderGraph::ExecuteRenderNodeParallel()
+	{
+		auto pCmdContext = std::make_shared<CommandContext>();
+		pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
+		pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
+
+		std::shared_ptr<RenderNode> pNode = nullptr;
+		while (m_isRunning)
+		{
+			{
+				std::unique_lock<std::mutex> lock(m_nodeExecutionMutex);
+				m_nodeExecutionCv.wait(lock, [this]() { return !m_executionNodeQueue.Empty(); });
+			}
+
+			while (m_executionNodeQueue.TryPop(pNode))
+			{
+				pNode->m_pCmdContext = pCmdContext;
+				pNode->ExecuteParallel();
+
+				std::this_thread::yield();
+			}
+		}
+	}
+
+	void RenderGraph::EnqueueRenderNode(const std::shared_ptr<RenderNode> pNode)
+	{
+		// Enqueue render nodes by dependency sequence
+		for (auto& pPrevNode : pNode->m_prevNodes)
+		{
+			if (!pPrevNode->m_finishedExecution) // m_finishedExecution is being used as traversal flag here
+			{
+				return;
+			}
+		}
+
+		m_executionNodeQueue.Push(pNode);
+		pNode->m_finishedExecution = true;
+
+		for (auto& pNextNode : pNode->m_nextNodes)
+		{
+			EnqueueRenderNode(pNextNode);
+		}
+	}
+
+	void RenderGraph::TraverseRenderNode(const std::shared_ptr<RenderNode> pNode, std::vector<std::shared_ptr<RenderNode>>& output)
+	{
+		// Record render nodes by dependency sequence
+		for (auto& pPrevNode : pNode->m_prevNodes)
+		{
+			if (!pPrevNode->m_finishedExecution) // m_finishedExecution is being used as traversal flag here
+			{
+				return;
+			}
+		}
+
+		output.emplace_back(pNode);
+		pNode->m_finishedExecution = true;
+
+		for (auto& pNextNode : pNode->m_nextNodes)
+		{
+			TraverseRenderNode(pNextNode, output);
+		}
 	}
 }

@@ -1,8 +1,8 @@
 #pragma once
 #include <vulkan.h>
+#include <vk_mem_alloc.h>
 #include <memory>
 #include <vector>
-#include <vk_mem_alloc.h>
 
 namespace Engine
 {
@@ -29,8 +29,8 @@ namespace Engine
 	};
 
 	struct LogicalDevice_VK;
-	class Texture2D_VK;	
-	class RawBuffer_VK;	
+	class Texture2D_VK;
+	class RawBuffer_VK;
 	class CommandManager_VK;
 	class UploadAllocator_VK
 	{

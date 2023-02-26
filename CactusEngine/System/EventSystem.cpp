@@ -1,28 +1,29 @@
 #include "EventSystem.h"
 
-using namespace Engine;
-
-void EventSystem::Initialize()
+namespace Engine
 {
+	void EventSystem::Initialize()
+	{
 
-}
+	}
 
-void EventSystem::ShutDown()
-{
+	void EventSystem::ShutDown()
+	{
 
-}
+	}
 
-void EventSystem::FrameBegin()
-{
+	void EventSystem::FrameBegin()
+	{
 
-}
+	}
 
-void EventSystem::Tick()
-{
+	void EventSystem::Tick()
+	{
 
-}
+	}
 
-void EventSystem::FrameEnd()
-{
+	void EventSystem::FrameEnd()
+	{
 
+	}
 }

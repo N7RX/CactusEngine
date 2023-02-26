@@ -1,18 +1,19 @@
 #include "StandardEntity.h"
 
-using namespace Engine;
-
-StandardEntity::StandardEntity()
+namespace Engine
 {
-	m_entityName = "Entity";
-}
+	StandardEntity::StandardEntity()
+	{
+		m_entityName = "Entity";
+	}
 
-void StandardEntity::SetEntityName(const char* name)
-{
-	m_entityName = name;
-}
+	void StandardEntity::SetEntityName(const char* name)
+	{
+		m_entityName = name;
+	}
 
-const char* StandardEntity::GetEntityName() const
-{
-	return m_entityName;
+	const char* StandardEntity::GetEntityName() const
+	{
+		return m_entityName;
+	}
 }

@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include <vector>
 
-#define GLFW_IMPLEMENTATION_CE
-
 namespace Engine
 {
 	class BaseApplication;

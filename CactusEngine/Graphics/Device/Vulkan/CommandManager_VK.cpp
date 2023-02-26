@@ -9,759 +9,760 @@
 #include <mutex>
 #include <condition_variable>
 
-using namespace Engine;
-
-CommandBuffer_VK::CommandBuffer_VK(const VkCommandBuffer& cmdBuffer)
-	: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedSubmitSemaphore(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE), 
-	m_pSyncObjectManager(nullptr), m_isExternal(false), m_usageFlags(0)
+namespace Engine
 {
-
-}
-
-CommandBuffer_VK::~CommandBuffer_VK()
-{
-	if (!m_inExecution)
+	CommandBuffer_VK::CommandBuffer_VK(const VkCommandBuffer& cmdBuffer)
+		: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedSubmitSemaphore(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE),
+		m_pSyncObjectManager(nullptr), m_isExternal(false), m_pAllocatedPool(nullptr), m_usageFlags(0)
 	{
-		DEBUG_ASSERT_CE(m_pSyncObjectManager != nullptr);
 
-		// Alert: freeing the semaphores here may result in conflicts
-		for (auto& pSemaphore : m_waitPresentationSemaphores)
+	}
+
+	CommandBuffer_VK::~CommandBuffer_VK()
+	{
+		if (!m_inExecution)
 		{
-			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
+			DEBUG_ASSERT_CE(m_pSyncObjectManager != nullptr);
+
+			// Alert: freeing the semaphores here may result in conflicts
+			for (auto& pSemaphore : m_waitPresentationSemaphores)
+			{
+				m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
+			}
+			for (auto& pSemaphore : m_signalPresentationSemaphores)
+			{
+				m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
+			}
+			for (auto& pSemaphore : m_waitSemaphores)
+			{
+				m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+			}
+			for (auto& pSemaphore : m_signalSemaphores)
+			{
+				m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+			}
 		}
-		for (auto& pSemaphore : m_signalPresentationSemaphores)
+		else
 		{
-			m_pSyncObjectManager->ReturnSemaphore(pSemaphore);
-		}
-		for (auto& pSemaphore : m_waitSemaphores)
-		{
-			m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
-		}
-		for (auto& pSemaphore : m_signalSemaphores)
-		{
-			m_pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+			throw std::runtime_error("Vulkan: shouldn't destroy command buffer that is in execution.");
 		}
 	}
-	else
+
+	bool CommandBuffer_VK::IsRecording() const
 	{
-		throw std::runtime_error("Vulkan: shouldn't destroy command buffer that is in execution.");
-	}
-}
-
-bool CommandBuffer_VK::IsRecording() const
-{
-	return m_isRecording;
-}
-
-bool CommandBuffer_VK::InRenderPass() const
-{
-	return m_inRenderPass;
-}
-
-bool CommandBuffer_VK::InExecution() const
-{
-	return m_inExecution;
-}
-
-void CommandBuffer_VK::BeginCommandBuffer(VkCommandBufferUsageFlags usage)
-{
-	VkCommandBufferBeginInfo beginInfo = {};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = usage;
-
-	VkResult result = vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
-	DEBUG_ASSERT_CE(result == VK_SUCCESS);
-
-	m_isRecording = true;
-	m_inRenderPass = false;
-	m_inExecution = false;
-}
-
-void CommandBuffer_VK::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pVertexBuffers, const VkDeviceSize* pOffsets)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdBindVertexBuffers(m_commandBuffer, firstBinding, bindingCount, pVertexBuffers, pOffsets);
-}
-
-void CommandBuffer_VK::BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdBindIndexBuffer(m_commandBuffer, indexBuffer, offset, type);
-}
-
-void CommandBuffer_VK::BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-
-	VkRenderPassBeginInfo passBeginInfo = {};
-	passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	passBeginInfo.renderPass = renderPass;
-	passBeginInfo.renderArea.offset = areaOffset;
-	passBeginInfo.renderArea.extent = areaExtent;
-	passBeginInfo.framebuffer = frameBuffer;
-	passBeginInfo.clearValueCount = (uint32_t)clearValues.size();
-	passBeginInfo.pClearValues = clearValues.data();
-
-	vkCmdBeginRenderPass(m_commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-	m_inRenderPass = true;
-}
-
-void CommandBuffer_VK::BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdBindPipeline(m_commandBuffer, bindPoint, pipeline);
-}
-
-void CommandBuffer_VK::BindPipelineLayout(const VkPipelineLayout pipelineLayout)
-{
-	m_pipelineLayout = pipelineLayout;
-}
-
-void CommandBuffer_VK::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
-}
-
-void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DescriptorSet_VK>>& descriptorSets, uint32_t firstSet)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-
-	std::vector<VkDescriptorSet> setHandles;
-	for (auto& pSet : descriptorSets)
-	{
-		m_boundDescriptorSets.push(pSet);
-		setHandles.emplace_back(pSet->m_descriptorSet);
+		return m_isRecording;
 	}
 
-	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, m_pipelineLayout, firstSet, (uint32_t)setHandles.size(), setHandles.data(), 0, nullptr);
-	// Alert: dynamic offset is not handled
-}
-
-void CommandBuffer_VK::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
-{
-	DEBUG_ASSERT_CE(m_inRenderPass);
-	if (indexCount > 0 && instanceCount > 0)
+	bool CommandBuffer_VK::InRenderPass() const
 	{
-		vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+		return m_inRenderPass;
 	}
-}
 
-void CommandBuffer_VK::DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
-{
-	DEBUG_ASSERT_CE(m_inRenderPass);
-	if (vertexCount > 0 && instanceCount > 0)
+	bool CommandBuffer_VK::InExecution() const
 	{
-		vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+		return m_inExecution;
 	}
-}
 
-void CommandBuffer_VK::EndRenderPass()
-{
-	DEBUG_ASSERT_CE(m_inRenderPass);
-	vkCmdEndRenderPass(m_commandBuffer);
-	m_inRenderPass = false;
-}
-
-void CommandBuffer_VK::EndCommandBuffer()
-{
-	if (m_inRenderPass)
+	void CommandBuffer_VK::BeginCommandBuffer(VkCommandBufferUsageFlags usage)
 	{
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = usage;
+
+		VkResult result = vkBeginCommandBuffer(m_commandBuffer, &beginInfo);
+		DEBUG_ASSERT_CE(result == VK_SUCCESS);
+
+		m_isRecording = true;
 		m_inRenderPass = false;
-		vkCmdEndRenderPass(m_commandBuffer);
+		m_inExecution = false;
 	}
 
-	if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
+	void CommandBuffer_VK::BindVertexBuffer(uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pVertexBuffers, const VkDeviceSize* pOffsets)
 	{
-		throw std::runtime_error("Vulkan: couldn't end one or more command buffers.");
-		return;
-	}
-}
-
-void CommandBuffer_VK::TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-
-	if (pImage->m_layout == newLayout)
-	{
-		return;
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdBindVertexBuffers(m_commandBuffer, firstBinding, bindingCount, pVertexBuffers, pOffsets);
 	}
 
-	DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED);
-
-	VkImageMemoryBarrier barrier = {};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout = pImage->m_layout;
-	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Queue ownership transfer is not performed
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image = pImage->m_image;
-
-	// Determine new aspect mask
-	switch (newLayout)
+	void CommandBuffer_VK::BindIndexBuffer(const VkBuffer indexBuffer, const VkDeviceSize offset, VkIndexType type)
 	{
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-	case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-	case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-	case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdBindIndexBuffer(m_commandBuffer, indexBuffer, offset, type);
+	}
+
+	void CommandBuffer_VK::BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset)
 	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		if (HasStencilComponent_VK(pImage->m_format))
+		DEBUG_ASSERT_CE(m_isRecording);
+
+		VkRenderPassBeginInfo passBeginInfo = {};
+		passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		passBeginInfo.renderPass = renderPass;
+		passBeginInfo.renderArea.offset = areaOffset;
+		passBeginInfo.renderArea.extent = areaExtent;
+		passBeginInfo.framebuffer = frameBuffer;
+		passBeginInfo.clearValueCount = (uint32_t)clearValues.size();
+		passBeginInfo.pClearValues = clearValues.data();
+
+		vkCmdBeginRenderPass(m_commandBuffer, &passBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		m_inRenderPass = true;
+	}
+
+	void CommandBuffer_VK::BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdBindPipeline(m_commandBuffer, bindPoint, pipeline);
+	}
+
+	void CommandBuffer_VK::BindPipelineLayout(const VkPipelineLayout pipelineLayout)
+	{
+		m_pipelineLayout = pipelineLayout;
+	}
+
+	void CommandBuffer_VK::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
+	}
+
+	void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DescriptorSet_VK>>& descriptorSets, uint32_t firstSet)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+
+		std::vector<VkDescriptorSet> setHandles;
+		for (auto& pSet : descriptorSets)
 		{
-			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			m_boundDescriptorSets.push(pSet);
+			setHandles.emplace_back(pSet->m_descriptorSet);
 		}
-		break;
+
+		vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, m_pipelineLayout, firstSet, (uint32_t)setHandles.size(), setHandles.data(), 0, nullptr);
+		// Alert: dynamic offset is not handled
 	}
-	case VK_IMAGE_LAYOUT_GENERAL:
+
+	void CommandBuffer_VK::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		break;
+		DEBUG_ASSERT_CE(m_inRenderPass);
+		if (indexCount > 0 && instanceCount > 0)
+		{
+			vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+		}
 	}
-	case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+
+	void CommandBuffer_VK::DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 	{
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		break;
+		DEBUG_ASSERT_CE(m_inRenderPass);
+		if (vertexCount > 0 && instanceCount > 0)
+		{
+			vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+		}
 	}
-	case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-	case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-	case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-	case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+
+	void CommandBuffer_VK::EndRenderPass()
 	{
-		barrier.subresourceRange.aspectMask = pImage->m_aspect;
-		break;
-	}
-	default:
-		LOG_ERROR("Vulkan: Unhandled image layout: " + std::to_string((uint32_t)newLayout));
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		DEBUG_ASSERT_CE(m_inRenderPass);
+		vkCmdEndRenderPass(m_commandBuffer);
+		m_inRenderPass = false;
 	}
 
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = pImage->m_mipLevels;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-
-	VkPipelineStageFlags srcStage, dstStage;
-
-	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
-	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
-
-	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
-
-	pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
-	pImage->m_appliedStages = appliedStages;
-}
-
-void CommandBuffer_VK::GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
-{
-#if defined(_DEBUG)
-	// Check whether linear blitting on given image's format is supported
-	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
-	DEBUG_ASSERT_CE(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
-#endif
-
-	DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
-
-	VkImageMemoryBarrier barrier = {};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.image = pImage->m_image;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.subresourceRange.aspectMask = pImage->m_aspect;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-	barrier.subresourceRange.levelCount = 1;
-
-	uint32_t mipWidth = pImage->m_width;
-	uint32_t mipHeight = pImage->m_height;
-
-	for (uint32_t i = 1; i < pImage->m_mipLevels; i++)
+	void CommandBuffer_VK::EndCommandBuffer()
 	{
-		barrier.subresourceRange.baseMipLevel = i - 1;
+		if (m_inRenderPass)
+		{
+			m_inRenderPass = false;
+			vkCmdEndRenderPass(m_commandBuffer);
+		}
+
+		if (vkEndCommandBuffer(m_commandBuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Vulkan: couldn't end one or more command buffers.");
+			return;
+		}
+	}
+
+	void CommandBuffer_VK::TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+
+		if (pImage->m_layout == newLayout)
+		{
+			return;
+		}
+
+		DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED);
+
+		VkImageMemoryBarrier barrier = {};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = pImage->m_layout;
-		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // Queue ownership transfer is not performed
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = pImage->m_image;
+
+		// Determine new aspect mask
+		switch (newLayout)
+		{
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		{
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			if (HasStencilComponent_VK(pImage->m_format))
+			{
+				barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+			break;
+		}
+		case VK_IMAGE_LAYOUT_GENERAL:
+		{
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+			break;
+		}
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+		{
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			break;
+		}
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+		{
+			barrier.subresourceRange.aspectMask = pImage->m_aspect;
+			break;
+		}
+		default:
+			LOG_ERROR("Vulkan: Unhandled image layout: " + std::to_string((uint32_t)newLayout));
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = pImage->m_mipLevels;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
 
 		VkPipelineStageFlags srcStage, dstStage;
 
 		GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
-		GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.dstAccessMask, dstStage, 0);
+		GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
 
-		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
 
-		VkImageBlit blitRegion = {};
-		blitRegion.srcOffsets[0] = { 0, 0, 0 };
-		blitRegion.srcOffsets[1] = { (int32_t)mipWidth, (int32_t)mipHeight, 1 };
-		blitRegion.srcSubresource.aspectMask = pImage->m_aspect;
-		blitRegion.srcSubresource.mipLevel = i - 1;
-		blitRegion.srcSubresource.baseArrayLayer = 0;
-		blitRegion.srcSubresource.layerCount = 1;
-		blitRegion.dstOffsets[0] = { 0, 0, 0 };
-		blitRegion.dstOffsets[1] = { mipWidth > 1 ? (int32_t)mipWidth / 2 : 1, mipHeight > 1 ? (int32_t)mipHeight / 2 : 1, 1 };
-		blitRegion.dstSubresource.aspectMask = pImage->m_aspect;
-		blitRegion.dstSubresource.mipLevel = i;
-		blitRegion.dstSubresource.baseArrayLayer = 0;
-		blitRegion.dstSubresource.layerCount = 1;
+		pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
+		pImage->m_appliedStages = appliedStages;
+	}
 
-		vkCmdBlitImage(m_commandBuffer, 
-			pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
-			pImage->m_image, pImage->m_layout, 
-			1, &blitRegion, VK_FILTER_LINEAR);
+	void CommandBuffer_VK::GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
+	{
+#if defined(DEBUG_MODE_CE)
+		// Check whether linear blitting on given image's format is supported
+		VkFormatProperties formatProperties;
+		vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
+		DEBUG_ASSERT_CE(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
+#endif
 
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
+
+		VkImageMemoryBarrier barrier = {};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.image = pImage->m_image;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange.aspectMask = pImage->m_aspect;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+		barrier.subresourceRange.levelCount = 1;
+
+		uint32_t mipWidth = pImage->m_width;
+		uint32_t mipHeight = pImage->m_height;
+
+		for (uint32_t i = 1; i < pImage->m_mipLevels; i++)
+		{
+			barrier.subresourceRange.baseMipLevel = i - 1;
+			barrier.oldLayout = pImage->m_layout;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+			VkPipelineStageFlags srcStage, dstStage;
+
+			GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
+			GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.dstAccessMask, dstStage, 0);
+
+			vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+			VkImageBlit blitRegion = {};
+			blitRegion.srcOffsets[0] = { 0, 0, 0 };
+			blitRegion.srcOffsets[1] = { (int32_t)mipWidth, (int32_t)mipHeight, 1 };
+			blitRegion.srcSubresource.aspectMask = pImage->m_aspect;
+			blitRegion.srcSubresource.mipLevel = i - 1;
+			blitRegion.srcSubresource.baseArrayLayer = 0;
+			blitRegion.srcSubresource.layerCount = 1;
+			blitRegion.dstOffsets[0] = { 0, 0, 0 };
+			blitRegion.dstOffsets[1] = { mipWidth > 1 ? (int32_t)mipWidth / 2 : 1, mipHeight > 1 ? (int32_t)mipHeight / 2 : 1, 1 };
+			blitRegion.dstSubresource.aspectMask = pImage->m_aspect;
+			blitRegion.dstSubresource.mipLevel = i;
+			blitRegion.dstSubresource.baseArrayLayer = 0;
+			blitRegion.dstSubresource.layerCount = 1;
+
+			vkCmdBlitImage(m_commandBuffer,
+				pImage->m_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				pImage->m_image, pImage->m_layout,
+				1, &blitRegion, VK_FILTER_LINEAR);
+
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.newLayout = newLayout;
+
+			GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.srcAccessMask, srcStage, 0);
+			GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
+
+			vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+			if (mipWidth > 1)
+			{
+				mipWidth /= 2;
+			}
+			if (mipHeight > 1)
+			{
+				mipHeight /= 2;
+			}
+		}
+
+		barrier.subresourceRange.baseMipLevel = pImage->m_mipLevels - 1;
+		barrier.oldLayout = pImage->m_layout;
 		barrier.newLayout = newLayout;
 
-		GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.srcAccessMask, srcStage, 0);
+		VkPipelineStageFlags srcStage, dstStage;
+
+		GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
 		GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
 
 		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-		if (mipWidth > 1)
+		pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
+		pImage->m_appliedStages = appliedStages;
+	}
+
+	void CommandBuffer_VK::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const VkBufferCopy& region)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdCopyBuffer(m_commandBuffer, pSrcBuffer->m_buffer, pDstBuffer->m_buffer, 1, &region); // TODO: offer a batch version
+	}
+
+	void CommandBuffer_VK::CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, std::shared_ptr<Texture2D_VK> pDstImage, const std::vector<VkBufferImageCopy>& regions)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdCopyBufferToImage(m_commandBuffer, pSrcBuffer->m_buffer, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
+	}
+
+	void CommandBuffer_VK::CopyTexture2DToBuffer(std::shared_ptr<Texture2D_VK> pSrcImage, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
+	}
+
+	void CommandBuffer_VK::WaitPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
+	{
+		m_waitPresentationSemaphores.emplace_back(pSemaphore);
+	}
+
+	void CommandBuffer_VK::SignalPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
+	{
+		m_signalPresentationSemaphores.emplace_back(pSemaphore);
+	}
+
+	void CommandBuffer_VK::WaitSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
+	{
+		m_waitSemaphores.emplace_back(pSemaphore);
+	}
+
+	void CommandBuffer_VK::SignalSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
+	{
+		m_signalSemaphores.emplace_back(pSemaphore);
+	}
+
+	CommandPool_VK::CommandPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager)
+		: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0), m_pManager(pManager)
+	{
+
+	}
+
+	CommandPool_VK::~CommandPool_VK()
+	{
+		vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
+	}
+
+	std::shared_ptr<CommandBuffer_VK> CommandPool_VK::RequestPrimaryCommandBuffer()
+	{
+		std::shared_ptr<CommandBuffer_VK> pCommandBuffer = nullptr;
+
+		if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
 		{
-			mipWidth /= 2;
+			AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
+			m_freeCommandBuffers.TryPop(pCommandBuffer);
 		}
-		if (mipHeight > 1)
+
+		pCommandBuffer->m_pAllocatedPool = this;
+		pCommandBuffer->BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+		return pCommandBuffer;
+	}
+
+	bool CommandPool_VK::AllocatePrimaryCommandBuffer(uint32_t count)
+	{
+		DEBUG_ASSERT_CE(m_allocatedCommandBufferCount + count <= MAX_COMMAND_BUFFER_COUNT);
+
+		std::vector<VkCommandBuffer> cmdBufferHandles(count);
+
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = m_commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = count;
+
+		if (vkAllocateCommandBuffers(m_pDevice->logicalDevice, &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
 		{
-			mipHeight /= 2;
+			m_allocatedCommandBufferCount += count;
+
+			for (auto& cmdBuffer : cmdBufferHandles)
+			{
+				auto pNewCmdBuffer = std::make_shared<CommandBuffer_VK>(cmdBuffer);
+				pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
+
+				m_freeCommandBuffers.Push(pNewCmdBuffer);
+			}
+			return true;
+		}
+
+		throw std::runtime_error("Vulkan: Failed to allocate command buffer.");
+		return false;
+	}
+
+	CommandManager_VK::CommandManager_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const CommandQueue_VK& queue)
+		: m_pDevice(pDevice), m_workingQueue(queue)
+	{
+		m_pDefaultCommandPool = std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
+
+		m_isRunning = true;
+
+		m_commandBufferSubmissionThread = std::thread(&CommandManager_VK::SubmitCommandBufferAsync, this);
+		m_commandBufferRecycleThread = std::thread(&CommandManager_VK::RecycleCommandBufferAsync, this);
+	}
+
+	CommandManager_VK::~CommandManager_VK()
+	{
+		if (m_isRunning)
+		{
+			Destroy();
 		}
 	}
 
-	barrier.subresourceRange.baseMipLevel = pImage->m_mipLevels - 1;
-	barrier.oldLayout = pImage->m_layout;
-	barrier.newLayout = newLayout;
-
-	VkPipelineStageFlags srcStage, dstStage;
-
-	GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
-	GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
-
-	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-	pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
-	pImage->m_appliedStages = appliedStages;
-}
-
-void CommandBuffer_VK::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const VkBufferCopy& region)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdCopyBuffer(m_commandBuffer, pSrcBuffer->m_buffer, pDstBuffer->m_buffer, 1, &region); // TODO: offer a batch version
-}
-
-void CommandBuffer_VK::CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, std::shared_ptr<Texture2D_VK> pDstImage, const std::vector<VkBufferImageCopy>& regions)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdCopyBufferToImage(m_commandBuffer, pSrcBuffer->m_buffer, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
-}
-
-void CommandBuffer_VK::CopyTexture2DToBuffer(std::shared_ptr<Texture2D_VK> pSrcImage, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
-{
-	DEBUG_ASSERT_CE(m_isRecording);
-	vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
-}
-
-void CommandBuffer_VK::WaitPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
-{
-	m_waitPresentationSemaphores.emplace_back(pSemaphore);
-}
-
-void CommandBuffer_VK::SignalPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
-{
-	m_signalPresentationSemaphores.emplace_back(pSemaphore);
-}
-
-void CommandBuffer_VK::WaitSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
-{
-	m_waitSemaphores.emplace_back(pSemaphore);
-}
-
-void CommandBuffer_VK::SignalSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
-{
-	m_signalSemaphores.emplace_back(pSemaphore);
-}
-
-CommandPool_VK::CommandPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager)
-	: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0), m_pManager(pManager)
-{
-
-}
-
-CommandPool_VK::~CommandPool_VK()
-{
-	vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
-}
-
-std::shared_ptr<CommandBuffer_VK> CommandPool_VK::RequestPrimaryCommandBuffer()
-{
-	std::shared_ptr<CommandBuffer_VK> pCommandBuffer = nullptr;
-
-	if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
+	void CommandManager_VK::Destroy()
 	{
-		AllocatePrimaryCommandBuffer(1); // We can allocate more at once if more will be needed
-		m_freeCommandBuffers.TryPop(pCommandBuffer);
+		m_isRunning = false;
+
+		m_commandBufferSubmissionThread.join();
+		m_commandBufferRecycleThread.join();
 	}
 
-	pCommandBuffer->m_pAllocatedPool = this;
-	pCommandBuffer->BeginCommandBuffer(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-	return pCommandBuffer;
-}
-
-bool CommandPool_VK::AllocatePrimaryCommandBuffer(uint32_t count)
-{
-	DEBUG_ASSERT_CE(m_allocatedCommandBufferCount + count <= MAX_COMMAND_BUFFER_COUNT);
-
-	std::vector<VkCommandBuffer> cmdBufferHandles(count);
-
-	VkCommandBufferAllocateInfo allocInfo = {};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = m_commandPool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = count;
-
-	if (vkAllocateCommandBuffers(m_pDevice->logicalDevice, &allocInfo, cmdBufferHandles.data()) == VK_SUCCESS)
+	EQueueType CommandManager_VK::GetWorkingQueueType() const
 	{
-		m_allocatedCommandBufferCount += count;
+		return m_workingQueue.type;
+	}
 
-		for (auto& cmdBuffer : cmdBufferHandles)
+	std::shared_ptr<CommandBuffer_VK> CommandManager_VK::RequestPrimaryCommandBuffer()
+	{
+		std::shared_ptr<CommandBuffer_VK> pCommandBuffer = m_pDefaultCommandPool->RequestPrimaryCommandBuffer();
+		pCommandBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
+		m_inUseCommandBuffers.Push(pCommandBuffer);
+
+		return pCommandBuffer;
+	}
+
+	void CommandManager_VK::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_VK> pSubmitSemaphore, uint32_t usageMask)
+	{
+		DEBUG_ASSERT_CE(pSubmitSemaphore != nullptr);
+
+		std::queue<std::shared_ptr<CommandBuffer_VK>> inUseBuffers;
+		m_inUseCommandBuffers.TryPopAll(inUseBuffers);
+
+		auto pSubmitInfo = std::make_shared<CommandSubmitInfo_VK>();
+
+		while (!inUseBuffers.empty())
 		{
-			auto pNewCmdBuffer = std::make_shared<CommandBuffer_VK>(cmdBuffer);
-			pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
+			std::shared_ptr<CommandBuffer_VK> ptrCopy = inUseBuffers.front();
 
-			m_freeCommandBuffers.Push(pNewCmdBuffer);
-		}
-		return true;
-	}
+			if ((ptrCopy->m_usageFlags & usageMask) == 0)
+			{
+				m_inUseCommandBuffers.Push(ptrCopy);
+				inUseBuffers.pop();
+				continue;
+			}
 
-	throw std::runtime_error("Vulkan: Failed to allocate command buffer.");
-	return false;
-}
+			if (ptrCopy->m_inExecution || !ptrCopy->m_isRecording) // Already submitted through SubmitSingleCommandBuffer_Immediate
+			{
+				inUseBuffers.pop();
+				continue;
+			}
 
-CommandManager_VK::CommandManager_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const CommandQueue_VK& queue)
-	: m_pDevice(pDevice), m_workingQueue(queue)
-{
-	m_pDefaultCommandPool = std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
+			ptrCopy->m_isRecording = false;
+			ptrCopy->m_inExecution = true;
 
-	m_isRunning = true;
+			if (!ptrCopy->m_isExternal) // External command buffers should only be ended by their host thread
+			{
+				ptrCopy->EndCommandBuffer(); // TODO: check for command buffer threading error here
+			}
 
-	m_commandBufferSubmissionThread = std::thread(&CommandManager_VK::SubmitCommandBufferAsync, this);
-	m_commandBufferRecycleThread = std::thread(&CommandManager_VK::RecycleCommandBufferAsync, this);
-}
+			pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
+			pSubmitInfo->queuedCmdBuffers.push(ptrCopy);
 
-CommandManager_VK::~CommandManager_VK()
-{
-	if (m_isRunning)
-	{
-		Destroy();
-	}
-}
+			for (auto& pSemaphore : ptrCopy->m_signalSemaphores)
+			{
+				pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
+				pSubmitInfo->signalSemaphoreValues.emplace_back(pSemaphore->m_signalValue);
+			}
+			for (auto& pSemaphore : ptrCopy->m_waitSemaphores)
+			{
+				pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
+				pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
+				pSubmitInfo->waitSemaphoreValues.emplace_back(pSemaphore->m_waitValue);
+			}
 
-void CommandManager_VK::Destroy()
-{
-	m_isRunning = false;
+			for (auto& pSemaphore : ptrCopy->m_signalPresentationSemaphores)
+			{
+				pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
+				pSubmitInfo->signalSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+			}
+			for (auto& pSemaphore : ptrCopy->m_waitPresentationSemaphores)
+			{
+				pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
+				pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
+				pSubmitInfo->waitSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+			}
 
-	m_commandBufferSubmissionThread.join();
-	m_commandBufferRecycleThread.join();
-}
+			ptrCopy->m_pAssociatedSubmitSemaphore = pSubmitSemaphore;
 
-EQueueType CommandManager_VK::GetWorkingQueueType() const
-{
-	return m_workingQueue.type;
-}
-
-std::shared_ptr<CommandBuffer_VK> CommandManager_VK::RequestPrimaryCommandBuffer()
-{
-	std::shared_ptr<CommandBuffer_VK> pCommandBuffer = m_pDefaultCommandPool->RequestPrimaryCommandBuffer();
-	pCommandBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
-	m_inUseCommandBuffers.Push(pCommandBuffer);
-
-	return pCommandBuffer;
-}
-
-void CommandManager_VK::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_VK> pSubmitSemaphore, uint32_t usageMask)
-{
-	DEBUG_ASSERT_CE(pSubmitSemaphore != nullptr);
-
-	std::queue<std::shared_ptr<CommandBuffer_VK>> inUseBuffers;
-	m_inUseCommandBuffers.TryPopAll(inUseBuffers);
-
-	auto pSubmitInfo = std::make_shared<CommandSubmitInfo_VK>();
-
-	while (!inUseBuffers.empty())
-	{
-		std::shared_ptr<CommandBuffer_VK> ptrCopy = inUseBuffers.front();
-
-		if ((ptrCopy->m_usageFlags & usageMask) == 0)
-		{
-			m_inUseCommandBuffers.Push(ptrCopy);
 			inUseBuffers.pop();
-			continue;
 		}
 
-		if (ptrCopy->m_inExecution || !ptrCopy->m_isRecording) // Already submitted through SubmitSingleCommandBuffer_Immediate
+		if (pSubmitInfo->buffersAwaitSubmit.size() == 0)
 		{
-			inUseBuffers.pop();
-			continue;
+			m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSubmitSemaphore);
+			return;
 		}
 
-		ptrCopy->m_isRecording = false;
-		ptrCopy->m_inExecution = true;
+		pSubmitInfo->semaphoresToSignal.emplace_back(pSubmitSemaphore->semaphore);
+		pSubmitInfo->signalSemaphoreValues.emplace_back(pSubmitSemaphore->m_signalValue);
 
-		if (!ptrCopy->m_isExternal) // External command buffers should only be ended by their host thread
+		pSubmitInfo->timelineSemaphoreSubmitInfo = {};
+		pSubmitInfo->timelineSemaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+		pSubmitInfo->timelineSemaphoreSubmitInfo.signalSemaphoreValueCount = (uint32_t)pSubmitInfo->signalSemaphoreValues.size();
+		pSubmitInfo->timelineSemaphoreSubmitInfo.pSignalSemaphoreValues = pSubmitInfo->signalSemaphoreValues.data();
+		pSubmitInfo->timelineSemaphoreSubmitInfo.waitSemaphoreValueCount = (uint32_t)pSubmitInfo->waitSemaphoreValues.size();
+		pSubmitInfo->timelineSemaphoreSubmitInfo.pWaitSemaphoreValues = pSubmitInfo->waitSemaphoreValues.data();
+
+		pSubmitInfo->submitInfo = {};
+		pSubmitInfo->submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		pSubmitInfo->submitInfo.pNext = &pSubmitInfo->timelineSemaphoreSubmitInfo;
+		pSubmitInfo->submitInfo.commandBufferCount = (uint32_t)pSubmitInfo->buffersAwaitSubmit.size();
+		pSubmitInfo->submitInfo.pCommandBuffers = pSubmitInfo->buffersAwaitSubmit.data();
+		pSubmitInfo->submitInfo.signalSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToSignal.size();
+		pSubmitInfo->submitInfo.pSignalSemaphores = pSubmitInfo->semaphoresToSignal.data();
+		pSubmitInfo->submitInfo.waitSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToWait.size();
+		pSubmitInfo->submitInfo.pWaitSemaphores = pSubmitInfo->semaphoresToWait.data();
+		pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
+
+		m_commandSubmissionQueue.Push(pSubmitInfo);
+
 		{
-			ptrCopy->EndCommandBuffer(); // TODO: check for command buffer threading error here
+			std::lock_guard<std::mutex> guard(m_commandBufferSubmissionMutex);
+			m_commandBufferSubmissionFlag = true;
+		}
+		m_commandBufferSubmissionCv.notify_one();
+	}
+
+	void CommandManager_VK::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
+	{
+		DEBUG_ASSERT_CE(pCmdBuffer->m_isRecording);
+
+		pCmdBuffer->m_isRecording = false;
+
+		if (pCmdBuffer->m_inRenderPass)
+		{
+			pCmdBuffer->m_inRenderPass = false;
+			vkCmdEndRenderPass(pCmdBuffer->m_commandBuffer);
 		}
 
-		pSubmitInfo->buffersAwaitSubmit.emplace_back(ptrCopy->m_commandBuffer);
-		pSubmitInfo->queuedCmdBuffers.push(ptrCopy);
-
-		for (auto& pSemaphore : ptrCopy->m_signalSemaphores)
+		if (vkEndCommandBuffer(pCmdBuffer->m_commandBuffer) == VK_SUCCESS)
 		{
-			pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
-			pSubmitInfo->signalSemaphoreValues.emplace_back(pSemaphore->m_signalValue);
+			pCmdBuffer->m_inExecution = true;
+
+			VkSubmitInfo submitInfo = {};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &pCmdBuffer->m_commandBuffer;
+			submitInfo.pWaitDstStageMask = 0;
+			// TODO: handle possible semaphore submission
+
+			vkQueueSubmit(m_workingQueue.queue, 1, &submitInfo, VK_NULL_HANDLE);
+			vkQueueWaitIdle(m_workingQueue.queue);
+
+			pCmdBuffer->m_inExecution = false;
+			m_pDefaultCommandPool->m_freeCommandBuffers.Push(pCmdBuffer);
 		}
-		for (auto& pSemaphore : ptrCopy->m_waitSemaphores)
+		else
 		{
-			pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
-			pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
-			pSubmitInfo->waitSemaphoreValues.emplace_back(pSemaphore->m_waitValue);
+			throw std::runtime_error("Vulkan: couldn't end a command buffer.");
 		}
+	}
 
-		for (auto& pSemaphore : ptrCopy->m_signalPresentationSemaphores)
+	std::shared_ptr<CommandPool_VK> CommandManager_VK::RequestExternalCommandPool()
+	{
+		std::lock_guard<std::mutex> lock(m_externalCommandPoolCreationMutex);
+		return std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
+	}
+
+	void CommandManager_VK::ReturnExternalCommandBuffer(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
+	{
+		m_inUseCommandBuffers.Push(pCmdBuffer);
+	}
+
+	VkCommandPool CommandManager_VK::CreateCommandPool()
+	{
+		VkCommandPool newPool = VK_NULL_HANDLE;
+
+		VkCommandPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.queueFamilyIndex = m_workingQueue.queueFamilyIndex;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+		if (vkCreateCommandPool(m_pDevice->logicalDevice, &poolInfo, nullptr, &newPool) == VK_SUCCESS)
 		{
-			pSubmitInfo->semaphoresToSignal.emplace_back(pSemaphore->semaphore);
-			pSubmitInfo->signalSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+			return newPool;
 		}
-		for (auto & pSemaphore : ptrCopy->m_waitPresentationSemaphores)
+		else
 		{
-			pSubmitInfo->semaphoresToWait.emplace_back(pSemaphore->semaphore);
-			pSubmitInfo->waitStages.emplace_back(pSemaphore->waitStage);
-			pSubmitInfo->waitSemaphoreValues.emplace_back(0); // This value should be ignored by driver implementation
+			throw std::runtime_error("Vulkan: Failed to create command pool.");
+			return VK_NULL_HANDLE;
 		}
-
-		ptrCopy->m_pAssociatedSubmitSemaphore = pSubmitSemaphore;
-
-		inUseBuffers.pop();
-	}
-	
-	if (pSubmitInfo->buffersAwaitSubmit.size() == 0)
-	{
-		m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSubmitSemaphore);
-		return;
 	}
 
-	pSubmitInfo->semaphoresToSignal.emplace_back(pSubmitSemaphore->semaphore);
-	pSubmitInfo->signalSemaphoreValues.emplace_back(pSubmitSemaphore->m_signalValue);
-
-	pSubmitInfo->timelineSemaphoreSubmitInfo = {};
-	pSubmitInfo->timelineSemaphoreSubmitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
-	pSubmitInfo->timelineSemaphoreSubmitInfo.signalSemaphoreValueCount = (uint32_t)pSubmitInfo->signalSemaphoreValues.size();
-	pSubmitInfo->timelineSemaphoreSubmitInfo.pSignalSemaphoreValues = pSubmitInfo->signalSemaphoreValues.data();
-	pSubmitInfo->timelineSemaphoreSubmitInfo.waitSemaphoreValueCount = (uint32_t)pSubmitInfo->waitSemaphoreValues.size();
-	pSubmitInfo->timelineSemaphoreSubmitInfo.pWaitSemaphoreValues = pSubmitInfo->waitSemaphoreValues.data();
-
-	pSubmitInfo->submitInfo = {};
-	pSubmitInfo->submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	pSubmitInfo->submitInfo.pNext = &pSubmitInfo->timelineSemaphoreSubmitInfo;
-	pSubmitInfo->submitInfo.commandBufferCount = (uint32_t)pSubmitInfo->buffersAwaitSubmit.size();
-	pSubmitInfo->submitInfo.pCommandBuffers = pSubmitInfo->buffersAwaitSubmit.data();
-	pSubmitInfo->submitInfo.signalSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToSignal.size();
-	pSubmitInfo->submitInfo.pSignalSemaphores = pSubmitInfo->semaphoresToSignal.data();
-	pSubmitInfo->submitInfo.waitSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToWait.size();
-	pSubmitInfo->submitInfo.pWaitSemaphores = pSubmitInfo->semaphoresToWait.data();
-	pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
-
-	m_commandSubmissionQueue.Push(pSubmitInfo);
-
+	void CommandManager_VK::SubmitCommandBufferAsync()
 	{
-		std::lock_guard<std::mutex> guard(m_commandBufferSubmissionMutex);
-		m_commandBufferSubmissionFlag = true;
-	}
-	m_commandBufferSubmissionCv.notify_one();
-}
+		std::shared_ptr<CommandSubmitInfo_VK> pCommandSubmitInfo;
 
-void CommandManager_VK::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
-{
-	DEBUG_ASSERT_CE(pCmdBuffer->m_isRecording);
-
-	pCmdBuffer->m_isRecording = false;
-
-	if (pCmdBuffer->m_inRenderPass)
-	{
-		pCmdBuffer->m_inRenderPass = false;
-		vkCmdEndRenderPass(pCmdBuffer->m_commandBuffer);
-	}
-
-	if (vkEndCommandBuffer(pCmdBuffer->m_commandBuffer) == VK_SUCCESS)
-	{
-		pCmdBuffer->m_inExecution = true;
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &pCmdBuffer->m_commandBuffer;
-		submitInfo.pWaitDstStageMask = 0;
-		// TODO: handle possible semaphore submission
-
-		vkQueueSubmit(m_workingQueue.queue, 1, &submitInfo, VK_NULL_HANDLE);
-		vkQueueWaitIdle(m_workingQueue.queue);
-
-		pCmdBuffer->m_inExecution = false;
-		m_pDefaultCommandPool->m_freeCommandBuffers.Push(pCmdBuffer);
-	}
-	else
-	{
-		throw std::runtime_error("Vulkan: couldn't end a command buffer.");
-	}
-}
-
-std::shared_ptr<CommandPool_VK> CommandManager_VK::RequestExternalCommandPool()
-{
-	std::lock_guard<std::mutex> lock(m_externalCommandPoolCreationMutex);
-	return std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
-}
-
-void CommandManager_VK::ReturnExternalCommandBuffer(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
-{
-	m_inUseCommandBuffers.Push(pCmdBuffer);
-}
-
-VkCommandPool CommandManager_VK::CreateCommandPool()
-{
-	VkCommandPool newPool = VK_NULL_HANDLE;
-
-	VkCommandPoolCreateInfo poolInfo = {};
-	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.queueFamilyIndex = m_workingQueue.queueFamilyIndex;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-	if (vkCreateCommandPool(m_pDevice->logicalDevice, &poolInfo, nullptr, &newPool) == VK_SUCCESS)
-	{
-		return newPool;
-	}
-	else
-	{
-		throw std::runtime_error("Vulkan: Failed to create command pool.");
-		return VK_NULL_HANDLE;
-	}
-}
-
-void CommandManager_VK::SubmitCommandBufferAsync()
-{
-	std::shared_ptr<CommandSubmitInfo_VK> pCommandSubmitInfo;
-
-	while (m_isRunning)
-	{
+		while (m_isRunning)
 		{
-			std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex);
-			m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag == true; });
-			m_commandBufferSubmissionFlag = false;
+			{
+				std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex);
+				m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag == true; });
+				m_commandBufferSubmissionFlag = false;
+			}
+
+			while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
+			{
+				vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, VK_NULL_HANDLE);
+
+				{
+					std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
+
+					while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
+					{
+						std::shared_ptr<CommandBuffer_VK> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
+						m_inExecutionCommandBuffers.Push(ptrCopy);
+						pCommandSubmitInfo->queuedCmdBuffers.pop();
+					}
+				}
+
+				{
+					std::lock_guard<std::mutex> guard(m_commandBufferRecycleMutex);
+					m_commandBufferRecycleFlag = true;
+				}
+				m_commandBufferRecycleCv.notify_one();
+
+				std::this_thread::yield();
+			}
 		}
+	}
 
-		while (m_commandSubmissionQueue.TryPop(pCommandSubmitInfo))
+	void CommandManager_VK::RecycleCommandBufferAsync()
+	{
+		std::unordered_map<std::shared_ptr<TimelineSemaphore_VK>, std::vector<std::shared_ptr<CommandBuffer_VK>>> timelineGroups;
+
+		while (m_isRunning)
 		{
-			vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, VK_NULL_HANDLE);			
+			{
+				std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex);
+				m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag == true; });
+				m_commandBufferRecycleFlag = false;
+			}
+
+			std::queue<std::shared_ptr<CommandBuffer_VK>> inExecutionCmdBufferQueue;
 
 			{
 				std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
+				m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
+			}
+			while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by timeline semaphore
+			{
+				std::shared_ptr<CommandBuffer_VK> ptrCopy = inExecutionCmdBufferQueue.front();
+				DEBUG_ASSERT_CE(ptrCopy->m_pAssociatedSubmitSemaphore);
+				timelineGroups[ptrCopy->m_pAssociatedSubmitSemaphore].emplace_back(ptrCopy);
+				inExecutionCmdBufferQueue.pop();
+			}
 
-				while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
+			for (auto& timelineGroup : timelineGroups)
+			{
+				if (timelineGroup.second.size() > 0)
 				{
-					std::shared_ptr<CommandBuffer_VK> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
-					m_inExecutionCommandBuffers.Push(ptrCopy);
-					pCommandSubmitInfo->queuedCmdBuffers.pop();
+					auto pSemaphoreToWait = timelineGroup.first;
+
+					if (pSemaphoreToWait->Wait(RECYCLE_TIMEOUT) == VK_SUCCESS)
+					{
+						for (auto& pCmdBuffer : timelineGroup.second)
+						{
+							for (auto& pSemaphore : pCmdBuffer->m_waitPresentationSemaphores)
+							{
+								m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
+							}
+							for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
+							{
+								m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
+							}
+							pCmdBuffer->m_waitPresentationSemaphores.clear();
+							pCmdBuffer->m_signalPresentationSemaphores.clear();
+							pCmdBuffer->m_waitSemaphores.clear();
+							pCmdBuffer->m_signalSemaphores.clear();
+
+							while (!pCmdBuffer->m_boundDescriptorSets.empty())
+							{
+								pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse = false;
+								pCmdBuffer->m_boundDescriptorSets.pop();
+							}
+
+							pCmdBuffer->m_pAssociatedSubmitSemaphore = nullptr;
+							pCmdBuffer->m_inExecution = false;
+
+							pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
+						}
+
+						m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
+					}
+					else
+					{
+						for (auto& pCmdBuffer : timelineGroup.second)
+						{
+							LOG_ERROR("Vulkan: Command buffer " + std::to_string((uint32_t)pCmdBuffer->m_commandBuffer) + " exection timeout. Usage flag is "
+								+ std::to_string(pCmdBuffer->m_usageFlags) + ". DebugID is " + std::to_string(pCmdBuffer->m_debugID) + ".");
+						}
+						throw std::runtime_error("Vulkan: command execution timeout.");
+
+						m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
+					}
+					timelineGroup.second.clear();
 				}
 			}
-
-			{
-				std::lock_guard<std::mutex> guard(m_commandBufferRecycleMutex);
-				m_commandBufferRecycleFlag = true;
-			}
-			m_commandBufferRecycleCv.notify_one();
 
 			std::this_thread::yield();
 		}
+
+		timelineGroups.clear();
 	}
-}
-
-void CommandManager_VK::RecycleCommandBufferAsync()
-{
-	std::unordered_map<std::shared_ptr<TimelineSemaphore_VK>, std::vector<std::shared_ptr<CommandBuffer_VK>>> timelineGroups;
-
-	while (m_isRunning)
-	{
-		{
-			std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex);
-			m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag == true; });
-			m_commandBufferRecycleFlag = false;
-		}
-
-		std::queue<std::shared_ptr<CommandBuffer_VK>> inExecutionCmdBufferQueue;
-
-		{
-			std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
-			m_inExecutionCommandBuffers.TryPopAll(inExecutionCmdBufferQueue);
-		}
-		while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by timeline semaphore
-		{
-			std::shared_ptr<CommandBuffer_VK> ptrCopy = inExecutionCmdBufferQueue.front();
-			DEBUG_ASSERT_CE(ptrCopy->m_pAssociatedSubmitSemaphore);
-			timelineGroups[ptrCopy->m_pAssociatedSubmitSemaphore].emplace_back(ptrCopy);
-			inExecutionCmdBufferQueue.pop();
-		}
-
-		for (auto& timelineGroup : timelineGroups)
-		{
-			if (timelineGroup.second.size() > 0)
-			{
-				auto pSemaphoreToWait = timelineGroup.first;
-
-				if (pSemaphoreToWait->Wait(RECYCLE_TIMEOUT) == VK_SUCCESS)
-				{
-					for (auto& pCmdBuffer : timelineGroup.second)
-					{
-						for (auto& pSemaphore : pCmdBuffer->m_waitPresentationSemaphores)
-						{
-							m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
-						}
-						for (auto& pSemaphore : pCmdBuffer->m_waitSemaphores)
-						{
-							m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphore);
-						}
-						pCmdBuffer->m_waitPresentationSemaphores.clear();
-						pCmdBuffer->m_signalPresentationSemaphores.clear();
-						pCmdBuffer->m_waitSemaphores.clear();
-						pCmdBuffer->m_signalSemaphores.clear();
-
-						while (!pCmdBuffer->m_boundDescriptorSets.empty())
-						{
-							pCmdBuffer->m_boundDescriptorSets.front()->m_isInUse = false;
-							pCmdBuffer->m_boundDescriptorSets.pop();
-						}
-
-						pCmdBuffer->m_pAssociatedSubmitSemaphore = nullptr;
-						pCmdBuffer->m_inExecution = false;
-
-						pCmdBuffer->m_pAllocatedPool->m_freeCommandBuffers.Push(pCmdBuffer); // Alert: if the pool was destroyed when recycling, this would cause violation
-					}
-
-					m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
-				}
-				else
-				{
-					for (auto& pCmdBuffer : timelineGroup.second)
-					{
-						LOG_ERROR("Vulkan: Command buffer " + std::to_string((uint32_t)pCmdBuffer->m_commandBuffer) + " exection timeout. Usage flag is "
-							+ std::to_string(pCmdBuffer->m_usageFlags) + ". DebugID is " + std::to_string(pCmdBuffer->m_debugID) + ".");
-					}
-					throw std::runtime_error("Vulkan: command execution timeout.");
-
-					m_pDevice->pSyncObjectManager->ReturnTimelineSemaphore(pSemaphoreToWait);
-				}
-				timelineGroup.second.clear();
-			}
-		}
-
-		std::this_thread::yield();
-	}
-
-	timelineGroups.clear();
 }

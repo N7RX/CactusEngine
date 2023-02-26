@@ -142,7 +142,7 @@ namespace Engine
 		const static unsigned int MAX_FRAME_IN_FLIGHT = 2;
 
 	private:
-#if defined(_DEBUG)
+#if defined(DEBUG_MODE_CE)
 		const bool m_enableValidationLayers = true;
 #else
 		const bool m_enableValidationLayers = false;

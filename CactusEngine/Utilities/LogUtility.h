@@ -1,4 +1,6 @@
 #pragma once
+#include "Configuration.h"
+
 #include <assert.h>
 #include <string>
 // Log system has non-negligible performance cost, use logging sparingly
@@ -30,7 +32,7 @@ namespace Engine
 #define LOG_SYSTEM_INITIALIZE() gLogUtilityInstance.Initialize();
 #define LOG_SYSTEM_SHUTDOWN() gLogUtilityInstance.ShutDown();
 
-#if defined(_DEBUG)
+#if defined(DEBUG_MODE_CE)
 #define DEBUG_LOG_MESSAGE(message) gLogUtilityInstance.LogMessage(message);
 #define DEBUG_LOG_WARNING(warning) gLogUtilityInstance.LogWarning(warning);
 #define DEBUG_LOG_ERROR(error) gLogUtilityInstance.LogError(error);

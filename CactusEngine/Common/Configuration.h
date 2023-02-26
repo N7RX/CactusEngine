@@ -3,6 +3,16 @@
 
 #include <cstdint>
 
+// Macro configurations
+
+#define GLFW_IMPLEMENTATION_CE
+
+#if defined(_DEBUG)
+#define DEBUG_MODE_CE
+#endif
+
+// Runtime configurations
+
 namespace Engine
 {
 	class BaseConfiguration

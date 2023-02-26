@@ -2,62 +2,63 @@
 #include "Global.h"
 #include "GraphicsApplication.h"
 
-using namespace Engine;
-
-Plane::Plane(uint64_t dimLength, uint64_t dimWidth)
-	: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice())
+namespace Engine
 {
-	std::vector<float> positions((dimLength + 1) * (dimWidth + 1) * 3, 0);
-	std::vector<float> normals((dimLength + 1) * (dimWidth + 1) * 3, 0);
-	std::vector<float> texcoords((dimLength + 1) * (dimWidth + 1) * 2, 0);
-	std::vector<float> tangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
-	std::vector<float> bitangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
-	std::vector<int>   vertexIndices(dimLength * dimWidth * 6, 0);
-
-	float gridLength = 1.0f / dimLength;
-	float gridWidth = 1.0f / dimWidth;
-
-	for (uint32_t i = 0; i < dimWidth + 1; ++i)
+	Plane::Plane(uint64_t dimLength, uint64_t dimWidth)
+		: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice())
 	{
-		for (uint32_t j = 0; j < dimLength + 1; ++j)
+		std::vector<float> positions((dimLength + 1) * (dimWidth + 1) * 3, 0);
+		std::vector<float> normals((dimLength + 1) * (dimWidth + 1) * 3, 0);
+		std::vector<float> texcoords((dimLength + 1) * (dimWidth + 1) * 2, 0);
+		std::vector<float> tangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
+		std::vector<float> bitangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
+		std::vector<int>   vertexIndices(dimLength * dimWidth * 6, 0);
+
+		float gridLength = 1.0f / dimLength;
+		float gridWidth = 1.0f / dimWidth;
+
+		for (uint32_t i = 0; i < dimWidth + 1; ++i)
 		{
-			positions[(i * (dimLength + 1) + j) * 3] = j * gridLength;
-			positions[(i * (dimLength + 1) + j) * 3 + 1] = i * gridWidth;
-			// z is 0
+			for (uint32_t j = 0; j < dimLength + 1; ++j)
+			{
+				positions[(i * (dimLength + 1) + j) * 3] = j * gridLength;
+				positions[(i * (dimLength + 1) + j) * 3 + 1] = i * gridWidth;
+				// z is 0
 
-			normals[(i * (dimLength + 1) + j) * 3 + 2] = 1.0f;  // Facing towards positive z
-			tangents[(i * (dimLength + 1) + j) * 3 + 1] = 1.0f; // Facing towards positive y
-			bitangents[(i * (dimLength + 1) + j) * 3] = 1.0f;	// Facing towards positive x
+				normals[(i * (dimLength + 1) + j) * 3 + 2] = 1.0f;  // Facing towards positive z
+				tangents[(i * (dimLength + 1) + j) * 3 + 1] = 1.0f; // Facing towards positive y
+				bitangents[(i * (dimLength + 1) + j) * 3] = 1.0f;	// Facing towards positive x
 
-			texcoords[(i * (dimLength + 1) + j) * 2] = j * gridLength; // This works when plane size is exactly [1.0, 1.0]
-			texcoords[(i * (dimLength + 1) + j) * 2 + 1] = i * gridWidth;
+				texcoords[(i * (dimLength + 1) + j) * 2] = j * gridLength; // This works when plane size is exactly [1.0, 1.0]
+				texcoords[(i * (dimLength + 1) + j) * 2 + 1] = i * gridWidth;
+			}
 		}
-	}
 
-	size_t index = 0;
-	for (uint32_t i = 0; i < dimWidth; ++i)
-	{
-		for (uint32_t j = 0; j < dimLength; ++j)
+		size_t index = 0;
+		for (uint32_t i = 0; i < dimWidth; ++i)
 		{
-			// For each quad
-			// Triangle 1
-			vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
-			vertexIndices[index++] = (int)(i * (dimLength + 1) + j + 1);
-			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
+			for (uint32_t j = 0; j < dimLength; ++j)
+			{
+				// For each quad
+				// Triangle 1
+				vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
+				vertexIndices[index++] = (int)(i * (dimLength + 1) + j + 1);
+				vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
 
-			// Triangle 2
-			vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
-			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
-			vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j);
+				// Triangle 2
+				vertexIndices[index++] = (int)(i * (dimLength + 1) + j);
+				vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j + 1);
+				vertexIndices[index++] = (int)((i + 1) * (dimLength + 1) + j);
+			}
 		}
+
+		m_subMeshes.resize(1);
+		m_subMeshes[0].m_baseIndex = 0;
+		m_subMeshes[0].m_baseVertex = 0;
+		m_subMeshes[0].m_numIndices = (unsigned int)vertexIndices.size();
+
+		m_type = EBuiltInMeshType::Plane;
+		m_planeDimension = Vector2(dimLength, dimWidth);
+		CreateVertexBufferFromVertices(positions, normals, texcoords, tangents, bitangents, vertexIndices);
 	}
-
-	m_subMeshes.resize(1);
-	m_subMeshes[0].m_baseIndex = 0;
-	m_subMeshes[0].m_baseVertex = 0;
-	m_subMeshes[0].m_numIndices = (unsigned int)vertexIndices.size();
-
-	m_type = EBuiltInMeshType::Plane;
-	m_planeDimension = Vector2(dimLength, dimWidth);
-	CreateVertexBufferFromVertices(positions, normals, texcoords, tangents, bitangents, vertexIndices);
 }

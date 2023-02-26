@@ -6,184 +6,185 @@
 #include "ImageTexture.h"
 #include "RenderTexture.h";
 
-using namespace Engine;
-
-VertexShader_GL::VertexShader_GL(const char* filePath)
+namespace Engine
 {
-	GLchar* source = ReadSourceFileAsChar(filePath);
-	if (source == NULL)
+	VertexShader_GL::VertexShader_GL(const char* filePath)
 	{
-		throw std::runtime_error("OpenGL: Failed to read shader source file.");
-	}
-
-	m_glShaderID = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(m_glShaderID, 1, &source, NULL);
-	glCompileShader(m_glShaderID);
-
-	GLint compiled;
-	glGetShaderiv(m_glShaderID, GL_COMPILE_STATUS, &compiled);
-	if (!compiled)
-	{
-		PrintShaderCompileError_GL(m_glShaderID);
-		throw std::runtime_error("OpenGL: Failed to compile shader.");
-	}
-}
-
-GLuint VertexShader_GL::GetGLShaderID() const
-{
-	return m_glShaderID;
-}
-
-FragmentShader_GL::FragmentShader_GL(const char* filePath)
-{
-	GLchar* source = ReadSourceFileAsChar(filePath);
-	if (source == NULL)
-	{
-		throw std::runtime_error("OpenGL: Failed to read shader source file.");
-	}
-
-	m_glShaderID = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(m_glShaderID, 1, &source, NULL);
-	glCompileShader(m_glShaderID);
-
-	GLint compiled;
-	glGetShaderiv(m_glShaderID, GL_COMPILE_STATUS, &compiled);
-	if (!compiled)
-	{
-		PrintShaderCompileError_GL(m_glShaderID);
-		throw std::runtime_error("OpenGL: Failed to compile shader.");
-	}
-}
-
-GLuint FragmentShader_GL::GetGLShaderID() const
-{
-	return m_glShaderID;
-}
-
-ShaderProgram_GL::ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<VertexShader_GL> pVertexShader, const std::shared_ptr<FragmentShader_GL> pFragmentShader)
-	: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment)
-{
-	m_pDevice = pDevice;
-	m_glProgramID = glCreateProgram();
-
-	glAttachShader(m_glProgramID, pVertexShader->GetGLShaderID());
-	glAttachShader(m_glProgramID, pFragmentShader->GetGLShaderID());
-
-	glLinkProgram(m_glProgramID);
-
-	GLint linked;
-	glGetProgramiv(m_glProgramID, GL_LINK_STATUS, &linked);
-	if (!linked)
-	{
-		PrintProgramLinkError_GL(m_glProgramID);
-		throw std::runtime_error("OpenGL: Shader program failed to link.");
-	}
-
-	ReflectParamLocations();
-}
-
-GLuint ShaderProgram_GL::GetGLProgramID() const
-{
-	return m_glProgramID;
-}
-
-unsigned int ShaderProgram_GL::GetParamBinding(const char* paramName) const
-{
-	if (m_paramBindings.find(paramName) != m_paramBindings.end())
-	{
-		return m_paramBindings.at(paramName);
-	}
-	return -1;
-}
-
-void ShaderProgram_GL::Reset()
-{
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void ShaderProgram_GL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes)
-{
-	switch (type)
-	{
-	case EDescriptorType::UniformBuffer:
-	{
-		auto pBuffer = std::static_pointer_cast<UniformBuffer_GL>(pRes);
-		glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
-		break;
-	}
-	case EDescriptorType::CombinedImageSampler:
-	{
-		std::shared_ptr<Texture2D_GL> pTexture = nullptr;
-		switch (std::static_pointer_cast<Texture2D>(pRes)->QuerySource())
+		GLchar* source = ReadSourceFileAsChar(filePath);
+		if (source == NULL)
 		{
-		case ETexture2DSource::ImageTexture:
-			pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<ImageTexture>(pRes)->GetTexture());
-			break;
-
-		case ETexture2DSource::RenderTexture:
-			pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<RenderTexture>(pRes)->GetTexture());
-			break;
-
-		case ETexture2DSource::RawDeviceTexture:
-			pTexture = std::static_pointer_cast<Texture2D_GL>(pRes);
-			break;
-
-		default:
-			throw std::runtime_error("OpenGL: Unhandled texture 2D source type.");
-			return;
+			throw std::runtime_error("OpenGL: Failed to read shader source file.");
 		}
 
-		glActiveTexture(GL_TEXTURE0 + binding);
-		glBindTexture(GL_TEXTURE_2D, pTexture->GetGLTextureID());
-		break;
+		m_glShaderID = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(m_glShaderID, 1, &source, NULL);
+		glCompileShader(m_glShaderID);
+
+		GLint compiled;
+		glGetShaderiv(m_glShaderID, GL_COMPILE_STATUS, &compiled);
+		if (!compiled)
+		{
+			PrintShaderCompileError_GL(m_glShaderID);
+			throw std::runtime_error("OpenGL: Failed to compile shader.");
+		}
 	}
-	default:
-		throw std::runtime_error("OpenGL: Unhandled shader parameter type.");
-		break;
+
+	GLuint VertexShader_GL::GetGLShaderID() const
+	{
+		return m_glShaderID;
 	}
-}
 
-void ShaderProgram_GL::ReflectParamLocations()
-{
-	// Binding info cannot be retrieved at runtime, it will be manually assigned for compatibility with Vulkan
+	FragmentShader_GL::FragmentShader_GL(const char* filePath)
+	{
+		GLchar* source = ReadSourceFileAsChar(filePath);
+		if (source == NULL)
+		{
+			throw std::runtime_error("OpenGL: Failed to read shader source file.");
+		}
 
-	// Combined image samplers
+		m_glShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(m_glShaderID, 1, &source, NULL);
+		glCompileShader(m_glShaderID);
 
-	m_paramBindings.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, 0);
+		GLint compiled;
+		glGetShaderiv(m_glShaderID, GL_COMPILE_STATUS, &compiled);
+		if (!compiled)
+		{
+			PrintShaderCompileError_GL(m_glShaderID);
+			throw std::runtime_error("OpenGL: Failed to compile shader.");
+		}
+	}
 
-	m_paramBindings.emplace(ShaderParamNames::ALBEDO_TEXTURE, 1);
+	GLuint FragmentShader_GL::GetGLShaderID() const
+	{
+		return m_glShaderID;
+	}
 
-	m_paramBindings.emplace(ShaderParamNames::GCOLOR_TEXTURE, 20);
-	m_paramBindings.emplace(ShaderParamNames::GNORMAL_TEXTURE, 2);
-	m_paramBindings.emplace(ShaderParamNames::GPOSITION_TEXTURE, 3);
+	ShaderProgram_GL::ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<VertexShader_GL> pVertexShader, const std::shared_ptr<FragmentShader_GL> pFragmentShader)
+		: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment)
+	{
+		m_pDevice = pDevice;
+		m_glProgramID = glCreateProgram();
 
-	m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_1, 4);
-	m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_2, 5);
+		glAttachShader(m_glProgramID, pVertexShader->GetGLShaderID());
+		glAttachShader(m_glProgramID, pFragmentShader->GetGLShaderID());
 
-	m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_1, 6);
-	m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_2, 7);
+		glLinkProgram(m_glProgramID);
 
-	m_paramBindings.emplace(ShaderParamNames::TONE_TEXTURE, 8);
+		GLint linked;
+		glGetProgramiv(m_glProgramID, GL_LINK_STATUS, &linked);
+		if (!linked)
+		{
+			PrintProgramLinkError_GL(m_glProgramID);
+			throw std::runtime_error("OpenGL: Shader program failed to link.");
+		}
 
-	m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_1, 9);
-	m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_2, 10);
+		ReflectParamLocations();
+	}
 
-	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_1, 11);
-	m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_2, 12);
+	GLuint ShaderProgram_GL::GetGLProgramID() const
+	{
+		return m_glProgramID;
+	}
 
-	// Uniform blocks
+	unsigned int ShaderProgram_GL::GetParamBinding(const char* paramName) const
+	{
+		if (m_paramBindings.find(paramName) != m_paramBindings.end())
+		{
+			return m_paramBindings.at(paramName);
+		}
+		return -1;
+	}
 
-	m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 14);
-	m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 15);
+	void ShaderProgram_GL::Reset()
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
 
-	m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 16);
+	void ShaderProgram_GL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes)
+	{
+		switch (type)
+		{
+		case EDescriptorType::UniformBuffer:
+		{
+			auto pBuffer = std::static_pointer_cast<UniformBuffer_GL>(pRes);
+			glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
+			break;
+		}
+		case EDescriptorType::CombinedImageSampler:
+		{
+			std::shared_ptr<Texture2D_GL> pTexture = nullptr;
+			switch (std::static_pointer_cast<Texture2D>(pRes)->QuerySource())
+			{
+			case ETexture2DSource::ImageTexture:
+				pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<ImageTexture>(pRes)->GetTexture());
+				break;
 
-	m_paramBindings.emplace(ShaderParamNames::CAMERA_PROPERTIES, 17);
+			case ETexture2DSource::RenderTexture:
+				pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<RenderTexture>(pRes)->GetTexture());
+				break;
 
-	m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 18);
-	m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 19);
+			case ETexture2DSource::RawDeviceTexture:
+				pTexture = std::static_pointer_cast<Texture2D_GL>(pRes);
+				break;
 
-	m_paramBindings.emplace(ShaderParamNames::LIGHTSOURCE_PROPERTIES, 21);
+			default:
+				throw std::runtime_error("OpenGL: Unhandled texture 2D source type.");
+				return;
+			}
 
-	// Next to be: 22
+			glActiveTexture(GL_TEXTURE0 + binding);
+			glBindTexture(GL_TEXTURE_2D, pTexture->GetGLTextureID());
+			break;
+		}
+		default:
+			throw std::runtime_error("OpenGL: Unhandled shader parameter type.");
+			break;
+		}
+	}
+
+	void ShaderProgram_GL::ReflectParamLocations()
+	{
+		// Binding info cannot be retrieved at runtime, it will be manually assigned for compatibility with Vulkan
+
+		// Combined image samplers
+
+		m_paramBindings.emplace(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE, 0);
+
+		m_paramBindings.emplace(ShaderParamNames::ALBEDO_TEXTURE, 1);
+
+		m_paramBindings.emplace(ShaderParamNames::GCOLOR_TEXTURE, 20);
+		m_paramBindings.emplace(ShaderParamNames::GNORMAL_TEXTURE, 2);
+		m_paramBindings.emplace(ShaderParamNames::GPOSITION_TEXTURE, 3);
+
+		m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_1, 4);
+		m_paramBindings.emplace(ShaderParamNames::DEPTH_TEXTURE_2, 5);
+
+		m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_1, 6);
+		m_paramBindings.emplace(ShaderParamNames::COLOR_TEXTURE_2, 7);
+
+		m_paramBindings.emplace(ShaderParamNames::TONE_TEXTURE, 8);
+
+		m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_1, 9);
+		m_paramBindings.emplace(ShaderParamNames::NOISE_TEXTURE_2, 10);
+
+		m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_1, 11);
+		m_paramBindings.emplace(ShaderParamNames::MASK_TEXTURE_2, 12);
+
+		// Uniform blocks
+
+		m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 14);
+		m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 15);
+
+		m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 16);
+
+		m_paramBindings.emplace(ShaderParamNames::CAMERA_PROPERTIES, 17);
+
+		m_paramBindings.emplace(ShaderParamNames::SYSTEM_VARIABLES, 18);
+		m_paramBindings.emplace(ShaderParamNames::CONTROL_VARIABLES, 19);
+
+		m_paramBindings.emplace(ShaderParamNames::LIGHTSOURCE_PROPERTIES, 21);
+
+		// Next to be: 22
+	}
 }
