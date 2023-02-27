@@ -2,7 +2,7 @@
 #include "StandardRenderer.h"
 #include "GraphicsHardwareInterface_GL.h"
 #include "GraphicsHardwareInterface_VK.h"
-#include "MeshRendererComponent.h"
+#include "MeshFilterComponent.h"
 #include "CameraComponent.h"
 #include "LightComponent.h"
 #include "GraphicsApplication.h"
@@ -153,14 +153,14 @@ namespace Engine
 		auto pEntityList = m_pECSWorld->GetEntityList();
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
-			auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(itr->second->GetComponent(EComponentType::MeshRenderer));
+			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(itr->second->GetComponent(EComponentType::MeshFilter));
 			auto pLightComp = std::static_pointer_cast<LightComponent>(itr->second->GetComponent(EComponentType::Light));
 
-			if (pMeshRendererComp)
+			if (pMeshFilterComp)
 			{
 				m_renderTaskTable.at(ERendererType::Standard).emplace_back(itr->second);
 			}
-			if (pLightComp && !pMeshRendererComp)
+			if (pLightComp && !pMeshFilterComp)
 			{
 				m_renderTaskTable.at(ERendererType::Standard).emplace_back(itr->second);
 			}

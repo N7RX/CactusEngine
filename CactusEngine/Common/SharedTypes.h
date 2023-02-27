@@ -14,12 +14,11 @@ namespace Engine
 	{
 		Transform = 0x1,
 		MeshFilter = 0x2,
-		MeshRenderer = 0x4,
-		Material = 0x8,
-		Animation = 0x10,
-		Camera = 0x20,
-		Script = 0x40,
-		Light = 0x80,
+		Material = 0x4,
+		Animation = 0x8,
+		Camera = 0x10,
+		Script = 0x20,
+		Light = 0x40,
 		COUNT = 7
 	};
 
@@ -29,7 +28,6 @@ namespace Engine
 		Animation,
 		Event,
 		Input,
-		Log,
 		Audio,
 		Physics,
 		Script,

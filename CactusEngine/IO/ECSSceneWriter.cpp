@@ -72,16 +72,6 @@ namespace Engine
 					entity["transform"] = component;
 					break;
 				}
-				case EComponentType::MeshRenderer:
-				{
-					auto pMeshRendererComp = std::static_pointer_cast<MeshRendererComponent>(componentEntry.second);
-					Json::Value component;
-
-					component["rendererType"] = (uint32_t)pMeshRendererComp->GetRendererType();
-
-					entity["meshRenderer"] = component;
-					break;
-				}
 				case EComponentType::MeshFilter:
 				{
 					auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(componentEntry.second);

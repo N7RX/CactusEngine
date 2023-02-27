@@ -72,10 +72,6 @@
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"script" : 
 		{
 			"scriptID" : 1
@@ -151,7 +147,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/unitychan/hair_01.tga",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -167,7 +163,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/unitychan/hair_01.tga",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -183,7 +179,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/unitychan/hair_01.tga",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -439,7 +435,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/unitychan/hair_01.tga",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -455,7 +451,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/unitychan/hair_01.tga",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -465,10 +461,6 @@
 		{
 			"filePath" : "Assets/Models/unitychan_v2.3ds",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -605,7 +597,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -621,7 +613,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_blue_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -637,7 +629,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_fabric_green_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -653,7 +645,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_green_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -669,7 +661,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_blue_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -685,7 +677,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/sponza/sponza_curtain_diff_blur.png",
 				"anisotropy" : 0.5,
-				"roughness" : 0.3,
+				"roughness" : 0.30000001192092896,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -904,10 +896,6 @@
 			"filePath" : "Assets/Models/sponza.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -957,10 +945,6 @@
 		{
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -1012,10 +996,6 @@
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1065,10 +1045,6 @@
 		{
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -1120,10 +1096,6 @@
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1173,10 +1145,6 @@
 		{
 			"filePath" : "Assets/Models/Bunny.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"script" : 
 		{
@@ -1232,10 +1200,6 @@
 			"filePath" : "Assets/Models/Bunny.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"script" : 
 		{
 			"scriptID" : 2
@@ -1279,7 +1243,7 @@
 				},
 				"albedoTexturePath" : "Assets/Textures/Default.png",
 				"anisotropy" : -0.5,
-				"roughness" : 0.2,
+				"roughness" : 0.20000000298023224,
 				"shaderType" : 4,
 				"toneTexturePath" : "Assets/Textures/XToon_BW.png",
 				"transparent" : false
@@ -1289,10 +1253,6 @@
 		{
 			"filePath" : "Assets/Models/sphere.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -1344,10 +1304,6 @@
 			"filePath" : "Assets/Models/sphere.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1397,10 +1353,6 @@
 		{
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"script" : 
 		{
@@ -1455,10 +1407,6 @@
 		{
 			"filePath" : "Assets/Models/Cube.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"script" : 
 		{
@@ -1518,10 +1466,6 @@
 			},
 			"type" : 1
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1571,10 +1515,6 @@
 		{
 			"filePath" : "Assets/Models/Rock_1.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -1626,10 +1566,6 @@
 			"filePath" : "Assets/Models/Rock_1.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1679,10 +1615,6 @@
 		{
 			"filePath" : "Assets/Models/Amago_0.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
@@ -1734,10 +1666,6 @@
 			"filePath" : "Assets/Models/Amago_0.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -1787,10 +1715,6 @@
 		{
 			"filePath" : "Assets/Models/Amago_0.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 

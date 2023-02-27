@@ -86,15 +86,6 @@ namespace Engine
 
 				components.push(pTransformComp);
 			}
-			if (entity["meshRenderer"])
-			{
-				Json::Value component = entity["meshRenderer"];
-
-				auto pMeshRendererComp = std::make_shared<MeshRendererComponent>();
-				pMeshRendererComp->SetRenderer((ERendererType)(component["rendererType"].asInt()));
-
-				components.push(pMeshRendererComp);
-			}
 			if (entity["meshFilter"])
 			{
 				Json::Value component = entity["meshFilter"];

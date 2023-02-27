@@ -273,9 +273,6 @@
     <ClInclude Include="Component\MeshFilterComponent.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Component\MeshRendererComponent.h">
-      <Filter>Component\Header</Filter>
-    </ClInclude>
     <ClInclude Include="Component\TransformComponent.h">
       <Filter>Component\Header</Filter>
     </ClInclude>
@@ -555,9 +552,6 @@
       <Filter>Component\Source</Filter>
     </ClCompile>
     <ClCompile Include="Component\MeshFilterComponent.cpp">
-      <Filter>Component\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Component\MeshRendererComponent.cpp">
       <Filter>Component\Source</Filter>
     </ClCompile>
     <ClCompile Include="Component\TransformComponent.cpp">

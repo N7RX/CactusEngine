@@ -195,7 +195,6 @@
     <ClInclude Include="Component\LightComponent.h" />
     <ClInclude Include="Component\MaterialComponent.h" />
     <ClInclude Include="Component\MeshFilterComponent.h" />
-    <ClInclude Include="Component\MeshRendererComponent.h" />
     <ClInclude Include="Component\ScriptComponent.h" />
     <ClInclude Include="Component\TransformComponent.h" />
     <ClInclude Include="Entity\BaseEntity.h" />
@@ -290,7 +289,6 @@
     <ClCompile Include="Component\LightComponent.cpp" />
     <ClCompile Include="Component\MaterialComponent.cpp" />
     <ClCompile Include="Component\MeshFilterComponent.cpp" />
-    <ClCompile Include="Component\MeshRendererComponent.cpp" />
     <ClCompile Include="Component\ScriptComponent.cpp" />
     <ClCompile Include="Component\TransformComponent.cpp" />
     <ClCompile Include="Entity\BaseEntity.cpp" />

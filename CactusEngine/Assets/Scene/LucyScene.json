@@ -72,10 +72,6 @@
 			"filePath" : "Assets/Models/Lucy.obj",
 			"type" : 0
 		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
-		},
 		"tag" : 0,
 		"transform" : 
 		{
@@ -509,10 +505,6 @@
 		{
 			"filePath" : "Assets/Models/sponza.obj",
 			"type" : 0
-		},
-		"meshRenderer" : 
-		{
-			"rendererType" : 0
 		},
 		"tag" : 0,
 		"transform" : 
