@@ -1072,9 +1072,9 @@ namespace Engine
 		// Generate application info
 		m_appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		m_appInfo.pApplicationName = gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName();
-		m_appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+		m_appInfo.applicationVersion = 1;
 		m_appInfo.pEngineName = "Cactus Engine";
-		m_appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		m_appInfo.engineVersion = 1;
 		m_appInfo.apiVersion = VK_API_VERSION_1_2;
 
 		// Generate creation info

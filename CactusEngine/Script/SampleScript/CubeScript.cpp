@@ -1,5 +1,6 @@
 #include "CubeScript.h"
 #include "AllComponents.h"
+#include "BaseEntity.h"
 #include "Timer.h"
 
 using namespace Engine;

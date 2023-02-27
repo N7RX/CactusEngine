@@ -1,6 +1,5 @@
 #include "ImageTexture.h"
 #include "GraphicsDevice.h"
-#include "Global.h"
 #include "GraphicsApplication.h"
 
 #define STB_IMAGE_IMPLEMENTATION

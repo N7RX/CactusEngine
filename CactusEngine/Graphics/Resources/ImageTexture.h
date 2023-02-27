@@ -3,7 +3,6 @@
 
 namespace Engine
 {
-	class GraphicsDevice;
 	class ImageTexture : public Texture2D
 	{
 	public:

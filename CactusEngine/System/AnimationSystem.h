@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseSystem.h"
-#include "Global.h"
 #include "ECSWorld.h"
 
 #include <chrono>

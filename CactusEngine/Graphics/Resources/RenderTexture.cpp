@@ -1,6 +1,5 @@
 #include "RenderTexture.h"
 #include "GraphicsDevice.h"
-#include "Global.h"
 #include "GraphicsApplication.h"
 
 namespace Engine

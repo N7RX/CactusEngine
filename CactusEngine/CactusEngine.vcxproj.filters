@@ -366,9 +366,6 @@
     <ClInclude Include="Graphics\Resources\ExternalMesh.h">
       <Filter>Graphics\Resources\Mesh</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Device\CommandResources.h">
-      <Filter>Graphics\Device</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Renderer\StandardRenderer.h">
       <Filter>Graphics\Renderer</Filter>
     </ClInclude>
@@ -524,6 +521,9 @@
     </ClInclude>
     <ClInclude Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.h">
       <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Resources\CommandResources.h">
+      <Filter>Graphics\Resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

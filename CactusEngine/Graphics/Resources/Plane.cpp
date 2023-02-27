@@ -1,5 +1,4 @@
 #include "Plane.h"
-#include "Global.h"
 #include "GraphicsApplication.h"
 
 namespace Engine

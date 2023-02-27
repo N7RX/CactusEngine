@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "GraphicsDevice.h"
 
 namespace Engine
 {

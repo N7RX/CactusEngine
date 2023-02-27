@@ -1,5 +1,4 @@
 #include "ExternalMesh.h"
-#include "Global.h"
 #include "GraphicsApplication.h"
 
 // Integration with Assimp

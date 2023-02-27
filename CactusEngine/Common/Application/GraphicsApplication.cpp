@@ -1,4 +1,5 @@
 #include "GraphicsApplication.h"
+#include "ECSWorld.h"
 #include "Timer.h"
 
 namespace Engine

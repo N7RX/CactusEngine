@@ -6,6 +6,7 @@
 namespace Engine
 {
 	void InitImGui(GLFWwindow* window);
-	void DrawImGui();
 	void DestroyImGui();
+
+	void DrawImGui();
 }

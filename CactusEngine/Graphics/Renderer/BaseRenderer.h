@@ -1,11 +1,17 @@
 #pragma once
-#include "BaseEntity.h"
-#include "GraphicsDevice.h"
-#include "RenderGraph.h"
+#include "SharedTypes.h"
+
+#include <memory>
+#include <vector>
 
 namespace Engine
 {
+	class BaseEntity;
 	class RenderingSystem;
+	class RenderGraph;
+	class GraphicsDevice;
+	class GraphicsCommandBuffer;
+
 	class BaseRenderer
 	{
 	public:

@@ -1,6 +1,5 @@
 #include "Global.h"
 #include "BaseApplication.h"
-#include "LogUtility.h"
 
 namespace Engine
 {

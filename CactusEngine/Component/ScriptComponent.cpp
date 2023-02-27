@@ -1,4 +1,5 @@
 #include "ScriptComponent.h"
+#include "BaseScript.h"
 
 namespace Engine
 {

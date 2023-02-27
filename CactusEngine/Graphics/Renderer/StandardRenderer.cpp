@@ -1,8 +1,8 @@
 #include "StandardRenderer.h"
 #include "RenderingSystem.h"
 #include "AllComponents.h"
-#include "Timer.h"
 #include "AllRenderNodes.h"
+#include "Timer.h"
 
 namespace Engine
 {

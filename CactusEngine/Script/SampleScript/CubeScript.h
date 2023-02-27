@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseScript.h"
-#include "BaseEntity.h"
 #include "TransformComponent.h"
 #include "MaterialComponent.h"
 

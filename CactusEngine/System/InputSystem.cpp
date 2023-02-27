@@ -1,4 +1,5 @@
 #include "InputSystem.h"
+#include "Global.h"
 #include "Timer.h"
 #include "LogUtility.h"
 

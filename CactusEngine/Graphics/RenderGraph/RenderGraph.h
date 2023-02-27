@@ -1,18 +1,16 @@
 #pragma once
-#include "GraphicsResources.h"
-#include "BaseEntity.h"
-#include "NoCopy.h"
-#include "SafeQueue.h"
 #include "Global.h"
-#include "CommandResources.h"
 #include "GraphicsDevice.h"
 #include "BuiltInShaderType.h"
+#include "NoCopy.h"
+#include "SafeQueue.h"
 
 #include <queue>
 #include <mutex>
 
 namespace Engine
 {
+	class BaseEntity;
 	class BaseRenderer;
 	class RenderGraph;
 

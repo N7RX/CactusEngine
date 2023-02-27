@@ -1,7 +1,7 @@
 #pragma once
 #include "BaseSystem.h"
+#include "Configuration.h"
 #include "ECSWorld.h"
-#include "Global.h"
 #include "GLFWWindow.h"
 #include "BasicMathTypes.h"
 

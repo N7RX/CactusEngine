@@ -1,7 +1,6 @@
 #pragma once
 #include "BaseSystem.h"
 #include "ECSWorld.h"
-#include "Global.h"
 
 namespace Engine
 {

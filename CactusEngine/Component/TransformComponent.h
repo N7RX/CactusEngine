@@ -1,7 +1,6 @@
 #pragma once
 #include "BaseComponent.h"
 #include "BasicMathTypes.h"
-#include "Global.h"
 
 namespace Engine
 {

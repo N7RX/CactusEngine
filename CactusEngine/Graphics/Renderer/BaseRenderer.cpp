@@ -1,4 +1,5 @@
 #include "BaseRenderer.h"
+#include "GraphicsDevice.h"
 
 namespace Engine
 {

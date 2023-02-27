@@ -1,12 +1,12 @@
 #pragma once
 #include "BaseRenderer.h"
 #include "ECSWorld.h"
-#include "GraphicsDevice.h"
-#include "Global.h"
 #include "BuiltInShaderType.h"
 
 namespace Engine
 {
+	class ShaderProgram;
+
 	typedef std::unordered_map<ERendererType, std::shared_ptr<BaseRenderer>> RendererTable;
 	typedef std::unordered_map<ERendererType, std::vector<std::shared_ptr<BaseEntity>>> RenderTaskTable;
 

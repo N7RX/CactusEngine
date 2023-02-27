@@ -1,9 +1,10 @@
 #pragma once
-#include "GraphicsResources.h"
 #include "Global.h"
 #include "BasicMathTypes.h"
 #include "NoCopy.h"
+#include "GraphicsResources.h"
 #include "CommandResources.h"
+
 #include <memory>
 
 namespace Engine

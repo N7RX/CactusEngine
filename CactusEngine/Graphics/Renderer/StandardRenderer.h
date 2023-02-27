@@ -1,11 +1,16 @@
 #pragma once
 #include "BaseRenderer.h"
 #include "BuiltInShaderType.h"
-#include "CommandResources.h"
 #include "SafeBasicTypes.h"
+
+#include <unordered_map>
+#include <queue>
 
 namespace Engine
 {
+	class RenderGraphResource;
+	class GraphicsCommandBuffer;
+
 	class StandardRenderer : public BaseRenderer, std::enable_shared_from_this<StandardRenderer>
 	{
 	public:

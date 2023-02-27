@@ -25,7 +25,12 @@ namespace Engine
 	class AppConfiguration : public BaseConfiguration
 	{
 	public:
-		AppConfiguration() { m_appName = "CEApplication"; }
+		AppConfiguration()
+			: m_appName("CEApplication"),
+			m_appVersion("0.1.1")
+		{
+
+		}
 
 		void SetAppName(const char* appName)
 		{
@@ -39,18 +44,20 @@ namespace Engine
 
 	private:
 		const char* m_appName;
+		const char* m_appVersion;
 	};
 
 	class GraphicsConfiguration : public BaseConfiguration
 	{
 	public:
 		GraphicsConfiguration()
+			: m_graphicsAPIType(EGraphicsAPIType::Vulkan),
+			m_preferredGPU(EGPUType::Discrete),
+			m_windowWidth(1280),
+			m_windowHeight(720),
+			m_enableVSync(false)
 		{
-			m_graphicsAPIType = EGraphicsAPIType::Vulkan;
-			m_preferredGPU = EGPUType::Discrete;
-			m_windowWidth = 800;
-			m_windowHeight = 600;
-			m_enableVSync = false;
+
 		}
 
 		void SetGraphicsAPIType(EGraphicsAPIType type)

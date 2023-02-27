@@ -1,7 +1,6 @@
 #include "ImGuiOverlay.h"
 #include "Timer.h"
 #include "GraphicsApplication.h"
-#include "Global.h"
 #include "ECSSceneReader.h"
 
 namespace Engine

@@ -1,5 +1,6 @@
 #include "BunnyScript.h"
 #include "AllComponents.h"
+#include "BaseEntity.h"
 #include "InputSystem.h"
 #include "Timer.h"
 #include "LogUtility.h"
