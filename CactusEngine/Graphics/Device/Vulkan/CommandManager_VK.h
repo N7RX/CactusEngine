@@ -23,7 +23,7 @@ namespace Engine
 		bool		isValid = true;
 	};
 
-	enum ECommandBufferUsageFlagBits_VK
+	enum class ECommandBufferUsageFlagBits_VK
 	{
 		Explicit = 0x1,
 		Implicit = 0x2,

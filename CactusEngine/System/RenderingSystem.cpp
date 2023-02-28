@@ -12,7 +12,7 @@
 namespace Engine
 {
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
-		: m_pECSWorld(pWorld)
+		: m_pECSWorld(pWorld), m_activeRenderer(ERendererType::Standard)
 	{
 		CreateDevice();
 		RegisterRenderers();
@@ -44,10 +44,8 @@ namespace Engine
 
 	void RenderingSystem::FrameEnd()
 	{
-		for (auto& renderList : m_renderTaskTable)
-		{
-			renderList.second.clear();
-		}
+		// TODO: implement clear only on scene content chage
+		m_renderTaskTable.clear();
 	}
 
 	EGraphicsAPIType RenderingSystem::GetGraphicsAPIType() const
@@ -63,8 +61,19 @@ namespace Engine
 
 	void RenderingSystem::RemoveRenderer(ERendererType type)
 	{
-		m_rendererTable.erase(type);
-		m_renderTaskTable.erase(type);
+		DEBUG_ASSERT_MESSAGE_CE(m_rendererTable[(uint32_t)type], "Trying to remove a renderer that is not loaded.");
+
+		//... Unload renderer
+
+		m_rendererTable[(uint32_t)type] = nullptr;
+	}
+
+	void RenderingSystem::SetActiveRenderer(ERendererType type)
+	{
+		if ((uint32_t)type < (uint32_t)ERendererType::COUNT && m_rendererTable[(uint32_t)type])
+			m_activeRenderer = type;
+		else
+			LOG_ERROR("RenderingSystem: Trying to set a renderer that is not registered");
 	}
 
 	bool RenderingSystem::CreateDevice()
@@ -144,7 +153,7 @@ namespace Engine
 	{
 		for (auto& pRenderer : m_rendererTable)
 		{
-			pRenderer.second->BuildRenderGraph();
+			pRenderer->BuildRenderGraph();
 		}
 	}
 
@@ -158,11 +167,11 @@ namespace Engine
 
 			if (pMeshFilterComp)
 			{
-				m_renderTaskTable.at(ERendererType::Standard).emplace_back(itr->second);
+				m_renderTaskTable.emplace_back(itr->second);
 			}
 			if (pLightComp && !pMeshFilterComp)
 			{
-				m_renderTaskTable.at(ERendererType::Standard).emplace_back(itr->second);
+				m_renderTaskTable.emplace_back(itr->second);
 			}
 		}
 	}
@@ -172,15 +181,13 @@ namespace Engine
 		auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
 		auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(EComponentType::Camera)) : nullptr;
 
-		// Alert: we are ignoring renderer priority at this moment
-		for (auto& renderList : m_renderTaskTable)
+		if (!m_renderTaskTable.empty())
 		{
-			if (renderList.second.size() > 0)
-			{
-				m_rendererTable.at(renderList.first)->Draw(renderList.second, pCamera);
-			}
+			DEBUG_ASSERT_CE(m_rendererTable[(uint32_t)m_activeRenderer]);
+			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(m_renderTaskTable, pCamera);
 		}
 
+		// TODO: remove this condition
 		if (m_pDevice->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 		{
 			m_pDevice->Present();

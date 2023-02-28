@@ -7,9 +7,6 @@ namespace Engine
 {
 	class ShaderProgram;
 
-	typedef std::unordered_map<ERendererType, std::shared_ptr<BaseRenderer>> RendererTable;
-	typedef std::unordered_map<ERendererType, std::vector<std::shared_ptr<BaseEntity>>> RenderTaskTable;
-
 	class RenderingSystem : public BaseSystem, std::enable_shared_from_this<RenderingSystem>
 	{
 	public:
@@ -31,13 +28,11 @@ namespace Engine
 		{
 			auto pRenderer = std::make_shared<T>(m_pDevice, this); // TODO: replace this temp solution to reference current System
 			pRenderer->SetRendererPriority(priority);
-			m_rendererTable.emplace(type, pRenderer);
-
-			std::vector<std::shared_ptr<BaseEntity>> list;
-			m_renderTaskTable.emplace(type, list);
+			m_rendererTable[(uint32_t)type] = pRenderer;
 		}
 
 		void RemoveRenderer(ERendererType type);
+		void SetActiveRenderer(ERendererType type);
 
 	private:
 		bool CreateDevice();
@@ -52,7 +47,8 @@ namespace Engine
 		std::shared_ptr<GraphicsDevice> m_pDevice;
 		std::vector<std::shared_ptr<ShaderProgram>> m_shaderPrograms;
 
-		RendererTable	m_rendererTable;
-		RenderTaskTable m_renderTaskTable;
+		ERendererType m_activeRenderer;
+		std::shared_ptr<BaseRenderer> m_rendererTable[(uint32_t)ERendererType::COUNT];
+		std::vector<std::shared_ptr<BaseEntity>> m_renderTaskTable;
 	};
 }
