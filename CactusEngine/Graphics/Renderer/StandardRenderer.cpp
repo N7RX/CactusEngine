@@ -6,27 +6,36 @@
 
 namespace Engine
 {
-	StandardRenderer::StandardRenderer(const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem)
+	StandardRenderer::StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem)
 		: BaseRenderer(ERendererType::Standard, pDevice, pSystem), m_newCommandRecorded(false)
 	{
-		m_pGraphResources = std::make_shared<RenderGraphResource>();
+		CE_NEW(m_pGraphResources, RenderGraphResource);
 	}
 
 	void StandardRenderer::BuildRenderGraph()
 	{
-		m_pRenderGraph = std::make_shared<RenderGraph>(m_pDevice, 4);
+		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice, 4);
 
 		// Create required nodes
 
-		auto pShadowMapNode = std::make_shared<ShadowMapRenderNode>(m_pGraphResources, this);
-		auto pGBufferNode = std::make_shared<GBufferRenderNode>(m_pGraphResources, this);
-		auto pOpaqueNode = std::make_shared<OpaqueContentRenderNode>(m_pGraphResources, this);
-		auto pDeferredLightingNode = std::make_shared<DeferredLightingRenderNode>(m_pGraphResources, this);
-		auto pBlurNode = std::make_shared<BlurRenderNode>(m_pGraphResources, this);
-		auto pLineDrawingNode = std::make_shared<LineDrawingRenderNode>(m_pGraphResources, this);
-		auto pTransparencyNode = std::make_shared<TransparentContentRenderNode>(m_pGraphResources, this);
-		auto pBlendNode = std::make_shared<TransparencyBlendRenderNode>(m_pGraphResources, this);
-		auto pDOFNode = std::make_shared<DepthOfFieldRenderNode>(m_pGraphResources, this);
+		ShadowMapRenderNode* pShadowMapNode;
+		CE_NEW(pShadowMapNode, ShadowMapRenderNode, m_pGraphResources, this);
+		GBufferRenderNode* pGBufferNode;
+		CE_NEW(pGBufferNode, GBufferRenderNode, m_pGraphResources, this);
+		OpaqueContentRenderNode* pOpaqueNode;
+		CE_NEW(pOpaqueNode, OpaqueContentRenderNode, m_pGraphResources, this);
+		DeferredLightingRenderNode* pDeferredLightingNode;
+		CE_NEW(pDeferredLightingNode, DeferredLightingRenderNode, m_pGraphResources, this);
+		BlurRenderNode* pBlurNode;
+		CE_NEW(pBlurNode, BlurRenderNode, m_pGraphResources, this);
+		LineDrawingRenderNode* pLineDrawingNode;
+		CE_NEW(pLineDrawingNode, LineDrawingRenderNode, m_pGraphResources, this);
+		TransparentContentRenderNode* pTransparencyNode;
+		CE_NEW(pTransparencyNode, TransparentContentRenderNode, m_pGraphResources, this);
+		TransparencyBlendRenderNode* pBlendNode;
+		CE_NEW(pBlendNode, TransparencyBlendRenderNode, m_pGraphResources, this);
+		DepthOfFieldRenderNode* pDOFNode;
+		CE_NEW(pDOFNode, DepthOfFieldRenderNode, m_pGraphResources, this);
 
 		m_pRenderGraph->AddRenderNode("ShadowMapNode", pShadowMapNode);
 		m_pRenderGraph->AddRenderNode("GBufferNode", pGBufferNode);
@@ -87,14 +96,15 @@ namespace Engine
 		}
 	}
 
-	void StandardRenderer::Draw(const std::vector<std::shared_ptr<BaseEntity>>& drawList, const std::shared_ptr<BaseEntity> pCamera)
+	void StandardRenderer::Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera)
 	{
 		if (!pCamera)
 		{
 			return;
 		}
 
-		auto pContext = std::make_shared<RenderContext>();
+		RenderContext* pContext;
+		CE_NEW(pContext, RenderContext);
 		pContext->pCamera = pCamera;
 		pContext->pDrawList = &drawList;
 
@@ -114,7 +124,7 @@ namespace Engine
 
 			while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
 			{
-				std::vector<std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>> buffersToReturn;
+				std::vector<std::pair<uint32_t, GraphicsCommandBuffer*>> buffersToReturn;
 
 				{
 					std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
@@ -163,7 +173,7 @@ namespace Engine
 				if (buffersToReturn.size() > 0)
 				{
 					std::sort(buffersToReturn.begin(), buffersToReturn.end(),
-						[](const std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>& lhs, std::pair<uint32_t, std::shared_ptr<GraphicsCommandBuffer>>& rhs)
+						[](const std::pair<uint32_t, GraphicsCommandBuffer*>& lhs, std::pair<uint32_t, GraphicsCommandBuffer*>& rhs)
 						{
 							return lhs.first < rhs.first;
 						});
@@ -184,7 +194,7 @@ namespace Engine
 		}
 	}
 
-	void StandardRenderer::WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer)
+	void StandardRenderer::WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer)
 	{
 		{
 			std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);

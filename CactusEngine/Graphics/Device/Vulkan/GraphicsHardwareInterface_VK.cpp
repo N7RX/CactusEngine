@@ -9,6 +9,7 @@
 #include "ImageTexture.h"
 #include "RenderTexture.h"
 #include "Timer.h"
+#include "MemoryAllocator.h"
 
 #include <set>
 #if defined(GLFW_IMPLEMENTATION_CE)
@@ -60,7 +61,7 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<ShaderProgram> GraphicsHardwareInterface_VK::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
+	ShaderProgram* GraphicsHardwareInterface_VK::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
 	{
 		VkShaderModule vertexModule = VK_NULL_HANDLE;
 		VkShaderModule fragmentModule = VK_NULL_HANDLE;
@@ -71,19 +72,23 @@ namespace Engine
 		CreateShaderModuleFromFile(vertexShaderFilePath, m_pMainDevice, vertexModule, vertexRawCode);
 		CreateShaderModuleFromFile(fragmentShaderFilePath, m_pMainDevice, fragmentModule, fragmentRawCode);
 
-		auto pVertexShader = std::make_shared<VertexShader_VK>(m_pMainDevice, vertexModule, vertexRawCode);
-		auto pFragmentShader = std::make_shared<FragmentShader_VK>(m_pMainDevice, fragmentModule, fragmentRawCode);
+		VertexShader_VK* pVertexShader;
+		CE_NEW(pVertexShader, VertexShader_VK, m_pMainDevice, vertexModule, vertexRawCode);
+		FragmentShader_VK* pFragmentShader;
+		CE_NEW(pFragmentShader, FragmentShader_VK, m_pMainDevice, fragmentModule, fragmentRawCode);
 
 	#if defined(DEBUG_MODE_CE)
-		auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pMainDevice, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+		ShaderProgram_VK* pShaderProgram;
+		CE_NEW(pShaderProgram, ShaderProgram_VK, this, m_pMainDevice, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
 	#else
-		auto pShaderProgram = std::make_shared<ShaderProgram_VK>(this, m_pMainDevice, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
+		ShaderProgram_VK* pShaderProgram;
+		CE_NEW(pShaderProgram, ShaderProgram_VK, this, m_pMainDevice, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
 	#endif
 
 		return pShaderProgram;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, std::shared_ptr<VertexBuffer>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, VertexBuffer*& pOutput)
 	{
 		// Alert: we are using directly mapped buffer instead of staging buffer
 		// TODO: use staging pool for discrete device and CPU_TO_GPU for integrated device
@@ -106,7 +111,7 @@ namespace Engine
 
 		// By default vertex data will be created on discrete device, since integrated device will only handle post processing
 		// The alternative is to add a device specifier in VertexBufferCreateInfo
-		pOutput = std::make_shared<VertexBuffer_VK>(m_pMainDevice->pUploadAllocator, vertexBufferCreateInfo, indexBufferCreateInfo);
+		CE_NEW(pOutput, VertexBuffer_VK, m_pMainDevice->pUploadAllocator, vertexBufferCreateInfo, indexBufferCreateInfo);
 
 		std::vector<float> interleavedVertices = createInfo.ConvertToInterleavedData();
 		void* ppIndexData;
@@ -117,7 +122,8 @@ namespace Engine
 		vertexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 		vertexStagingBufferCreateInfo.size = vertexBufferCreateInfo.size;
 
-		auto pVertexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pMainDevice->pUploadAllocator, vertexStagingBufferCreateInfo);
+		RawBuffer_VK* pVertexStagingBuffer;
+		CE_NEW(pVertexStagingBuffer, RawBuffer_VK, m_pMainDevice->pUploadAllocator, vertexStagingBufferCreateInfo);
 
 		m_pMainDevice->pUploadAllocator->MapMemory(pVertexStagingBuffer->m_allocation, &ppVertexData);
 		memcpy(ppVertexData, interleavedVertices.data(), vertexBufferCreateInfo.size);
@@ -128,7 +134,8 @@ namespace Engine
 		indexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 		indexStagingBufferCreateInfo.size = indexBufferCreateInfo.size;
 
-		auto pIndexStagingBuffer = std::make_shared<RawBuffer_VK>(m_pMainDevice->pUploadAllocator, indexStagingBufferCreateInfo);
+		RawBuffer_VK* pIndexStagingBuffer;
+		CE_NEW(pIndexStagingBuffer, RawBuffer_VK, m_pMainDevice->pUploadAllocator, indexStagingBufferCreateInfo);
 
 		m_pMainDevice->pUploadAllocator->MapMemory(pIndexStagingBuffer->m_allocation, &ppIndexData);
 		memcpy(ppIndexData, createInfo.pIndexData, indexBufferCreateInfo.size);
@@ -141,21 +148,21 @@ namespace Engine
 		vertexBufferCopyRegion.dstOffset = 0;
 		vertexBufferCopyRegion.size = vertexBufferCreateInfo.size;
 
-		pCmdBuffer->CopyBufferToBuffer(pVertexStagingBuffer, std::static_pointer_cast<VertexBuffer_VK>(pOutput)->GetBufferImpl(), vertexBufferCopyRegion);
+		pCmdBuffer->CopyBufferToBuffer(pVertexStagingBuffer, ((VertexBuffer_VK*)pOutput)->GetBufferImpl(), vertexBufferCopyRegion);
 
 		VkBufferCopy indexBufferCopyRegion = {};
 		indexBufferCopyRegion.srcOffset = 0;
 		indexBufferCopyRegion.dstOffset = 0;
 		indexBufferCopyRegion.size = indexBufferCreateInfo.size;
 
-		pCmdBuffer->CopyBufferToBuffer(pIndexStagingBuffer, std::static_pointer_cast<VertexBuffer_VK>(pOutput)->GetIndexBufferImpl(), indexBufferCopyRegion);
+		pCmdBuffer->CopyBufferToBuffer(pIndexStagingBuffer, ((VertexBuffer_VK*)pOutput)->GetIndexBufferImpl(), indexBufferCopyRegion);
 
 		m_pMainDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 
 		return true;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& createInfo, std::shared_ptr<Texture2D>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& createInfo, Texture2D*& pOutput)
 	{
 		Texture2DCreateInfo_VK tex2dCreateInfo = {};
 		tex2dCreateInfo.extent = { createInfo.textureWidth, createInfo.textureHeight };
@@ -169,11 +176,11 @@ namespace Engine
 	
 		auto pDevice = m_pMainDevice;
 
-		pOutput = std::make_shared<Texture2D_VK>(pDevice, tex2dCreateInfo);
-		auto pVkTexture2D = std::static_pointer_cast<Texture2D_VK>(pOutput);
+		CE_NEW(pOutput, Texture2D_VK, pDevice, tex2dCreateInfo);
+		auto pVkTexture2D = (Texture2D_VK*)pOutput;
 
 		auto pCmdBuffer = pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-		std::shared_ptr<RawBuffer_VK> pStagingBuffer = nullptr;
+		RawBuffer_VK* pStagingBuffer = nullptr;
 
 		if (createInfo.pTextureData != nullptr)
 		{
@@ -182,7 +189,7 @@ namespace Engine
 			bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 			bufferCreateInfo.size = (VkDeviceSize)createInfo.textureWidth * createInfo.textureHeight * VulkanFormatUnitSize(createInfo.format);
 
-			pStagingBuffer = std::make_shared<RawBuffer_VK>(pDevice->pUploadAllocator, bufferCreateInfo);
+			CE_NEW(pStagingBuffer, RawBuffer_VK, pDevice->pUploadAllocator, bufferCreateInfo);
 
 			void* ppData;
 			pDevice->pUploadAllocator->MapMemory(pStagingBuffer->m_allocation, &ppData);
@@ -230,24 +237,24 @@ namespace Engine
 		return true;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, std::shared_ptr<FrameBuffer>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, FrameBuffer*& pOutput)
 	{
 		DEBUG_ASSERT_CE(pOutput == nullptr);
 
-		pOutput = std::make_shared<FrameBuffer_VK>(m_pMainDevice);
+		CE_NEW(pOutput, FrameBuffer_VK, m_pMainDevice);
 
-		auto pFrameBuffer = std::static_pointer_cast<FrameBuffer_VK>(pOutput);
+		auto pFrameBuffer = (FrameBuffer_VK*)pOutput;
 
 		std::vector<VkImageView> viewAttachments;
 		for (const auto& pAttachment : createInfo.attachments)
 		{
-			viewAttachments.emplace_back(std::static_pointer_cast<Texture2D_VK>(pAttachment)->m_imageView);
-			pFrameBuffer->m_bufferAttachments.emplace_back(std::static_pointer_cast<Texture2D_VK>(pAttachment));
+			viewAttachments.emplace_back(((Texture2D_VK*)pAttachment)->m_imageView);
+			pFrameBuffer->m_bufferAttachments.emplace_back(((Texture2D_VK*)pAttachment));
 		}
 
 		VkFramebufferCreateInfo frameBufferInfo = {};
 		frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		frameBufferInfo.renderPass = std::static_pointer_cast<RenderPass_VK>(createInfo.pRenderPass)->m_renderPass;
+		frameBufferInfo.renderPass = ((RenderPass_VK*)createInfo.pRenderPass)->m_renderPass;
 		frameBufferInfo.attachmentCount = (uint32_t)viewAttachments.size();
 		frameBufferInfo.pAttachments = viewAttachments.data();
 		frameBufferInfo.width = createInfo.framebufferWidth;
@@ -260,25 +267,25 @@ namespace Engine
 		return vkCreateFramebuffer(m_pMainDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, std::shared_ptr<UniformBuffer>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput)
 	{
 		UniformBufferCreateInfo_VK vkUniformBufferCreateInfo = {};
 		vkUniformBufferCreateInfo.size = createInfo.sizeInBytes;
 		vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
 		vkUniformBufferCreateInfo.type = EUniformBufferType_VK::Uniform;
 
-		pOutput = std::make_shared<UniformBuffer_VK>(m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
+		CE_NEW(pOutput, UniformBuffer_VK, m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
 
 		return pOutput != nullptr;
 	}
 
-	void GraphicsHardwareInterface_VK::UpdateShaderParameter(std::shared_ptr<ShaderProgram> pShaderProgram, const std::shared_ptr<ShaderParameterTable> pTable, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer)
 	{
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		auto pVkShader = std::static_pointer_cast<ShaderProgram_VK>(pShaderProgram);
+		auto pVkShader = (ShaderProgram_VK*)pShaderProgram;
 
 		std::vector<DesciptorUpdateInfo_VK> updateInfos;
-		std::shared_ptr<DescriptorSet_VK> pTargetDescriptorSet = pVkShader->GetDescriptorSet();
+		DescriptorSet_VK* pTargetDescriptorSet = pVkShader->GetDescriptorSet();
 
 		for (auto& item : pTable->m_table)
 		{
@@ -303,19 +310,19 @@ namespace Engine
 			}
 			case EDescriptorResourceType_VK::Image:
 			{
-				std::shared_ptr<Texture2D_VK> pImage = nullptr;
-				switch (std::static_pointer_cast<Texture2D>(item.pResource)->QuerySource())
+				Texture2D_VK* pImage = nullptr;
+				switch (((Texture2D*)item.pResource)->QuerySource())
 				{
 				case ETexture2DSource::ImageTexture:
-					pImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<ImageTexture>(item.pResource)->GetTexture());
+					pImage = (Texture2D_VK*)(((ImageTexture*)item.pResource)->GetTexture());
 					break;
 
 				case ETexture2DSource::RenderTexture:
-					pImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<RenderTexture>(item.pResource)->GetTexture());
+					pImage = (Texture2D_VK*)(((RenderTexture*)item.pResource)->GetTexture());
 					break;
 
 				case ETexture2DSource::RawDeviceTexture:
-					pImage = std::static_pointer_cast<Texture2D_VK>(item.pResource);
+					pImage = (Texture2D_VK*)item.pResource;
 					break;
 
 				default:
@@ -328,7 +335,7 @@ namespace Engine
 				imageInfo.imageLayout = pImage->m_layout;
 				if (pImage->HasSampler())
 				{
-					imageInfo.sampler = std::static_pointer_cast<Sampler_VK>(pImage->GetSampler())->m_sampler;
+					imageInfo.sampler = ((Sampler_VK*)pImage->GetSampler())->m_sampler;
 				}
 				else
 				{
@@ -357,32 +364,32 @@ namespace Engine
 
 		pVkShader->UpdateDescriptorSets(updateInfos);
 
-		std::vector<std::shared_ptr<DescriptorSet_VK>> descSets = { pTargetDescriptorSet };
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
+		std::vector<DescriptorSet_VK*> descSets = { pTargetDescriptorSet };
+		((CommandBuffer_VK*)pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
 	}
 
-	void GraphicsHardwareInterface_VK::SetVertexBuffer(const std::shared_ptr<VertexBuffer> pVertexBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer)
 	{
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		auto pBuffer = std::static_pointer_cast<VertexBuffer_VK>(pVertexBuffer);
+		auto pBuffer = (VertexBuffer_VK*)pVertexBuffer;
 
 		static VkDeviceSize defaultOffset = 0;
 
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
+		((CommandBuffer_VK*)pCommandBuffer)->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
+		((CommandBuffer_VK*)pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
 	}
 
-	void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer)
 	{
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
+		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
 	}
 
-	void GraphicsHardwareInterface_VK::DrawFullScreenQuad(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer)
 	{
 		// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->DrawPrimitive(4, 1);
+		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitive(4, 1);
 	}
 
 	void GraphicsHardwareInterface_VK::ResizeViewPort(uint32_t width, uint32_t height)
@@ -405,13 +412,13 @@ namespace Engine
 		CreateLogicalDevice();
 	}
 
-	std::shared_ptr<LogicalDevice_VK> GraphicsHardwareInterface_VK::GetLogicalDevice() const
+	LogicalDevice_VK* GraphicsHardwareInterface_VK::GetLogicalDevice() const
 	{
 		// GPU type specification is ignored in this branch
 		return m_pMainDevice;
 	}
 
-	std::shared_ptr<GraphicsCommandPool> GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
+	GraphicsCommandPool* GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
 	{
 		auto pDevice = m_pMainDevice;
 
@@ -437,27 +444,27 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<GraphicsCommandBuffer> GraphicsHardwareInterface_VK::RequestCommandBuffer(std::shared_ptr<GraphicsCommandPool> pCommandPool)
+	GraphicsCommandBuffer* GraphicsHardwareInterface_VK::RequestCommandBuffer(GraphicsCommandPool* pCommandPool)
 	{
-		auto pCmdBuffer = std::static_pointer_cast<CommandPool_VK>(pCommandPool)->RequestPrimaryCommandBuffer();
+		auto pCmdBuffer = ((CommandPool_VK*)pCommandPool)->RequestPrimaryCommandBuffer();
 		pCmdBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit;
 		pCmdBuffer->m_isExternal = true;
 		return pCmdBuffer;
 	}
 
-	void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
 	{
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer));
+		((CommandBuffer_VK*)pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer((CommandBuffer_VK*)pCommandBuffer);
 	}
 
-	std::shared_ptr<GraphicsSemaphore> GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
+	GraphicsSemaphore* GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
 	{
 		auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
 		pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
 		return pSemaphore;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, std::shared_ptr<DataTransferBuffer>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput)
 	{
 		RawBufferCreateInfo_VK vkBufferCreateInfo = {};
 		vkBufferCreateInfo.size = createInfo.size;
@@ -466,11 +473,11 @@ namespace Engine
 
 		auto pDevice = m_pMainDevice;
 
-		pOutput = std::make_shared<DataTransferBuffer_VK>(pDevice->pUploadAllocator, vkBufferCreateInfo);
+		CE_NEW(pOutput, DataTransferBuffer_VK, pDevice->pUploadAllocator, vkBufferCreateInfo);
 
 		if (createInfo.cpuMapped)
 		{
-			auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pOutput);
+			auto pVkBuffer = (DataTransferBuffer_VK*)pOutput;
 			pDevice->pUploadAllocator->MapMemory(pVkBuffer->m_pBufferImpl->m_allocation, &pVkBuffer->m_ppMappedData);
 			pVkBuffer->m_constantlyMapped = true;
 		}
@@ -478,11 +485,11 @@ namespace Engine
 		return true;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, std::shared_ptr<RenderPassObject>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput)
 	{
-		pOutput = std::make_shared<RenderPass_VK>(m_pMainDevice);
+		CE_NEW(pOutput, RenderPass_VK, m_pMainDevice);
 
-		auto pRenderPass = std::static_pointer_cast<RenderPass_VK>(pOutput);
+		auto pRenderPass = (RenderPass_VK*)pOutput;
 
 		std::vector<VkAttachmentDescription> attachmentDescs;
 		std::vector<VkAttachmentReference> colorAttachmentRefs;
@@ -571,7 +578,7 @@ namespace Engine
 		return true;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateSampler(const TextureSamplerCreateInfo& createInfo, std::shared_ptr<TextureSampler>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput)
 	{
 		VkSamplerCreateInfo samplerCreateInfo = {};
 		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -591,12 +598,12 @@ namespace Engine
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
-		pOutput = std::make_shared<Sampler_VK>(m_pMainDevice, samplerCreateInfo);
+		CE_NEW(pOutput, Sampler_VK, m_pMainDevice, samplerCreateInfo);
 
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, std::shared_ptr<PipelineVertexInputState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, PipelineVertexInputState*& pOutput)
 	{
 		std::vector<VkVertexInputBindingDescription> bindingDescs;
 		std::vector<VkVertexInputAttributeDescription> attributeDescs;
@@ -622,17 +629,17 @@ namespace Engine
 			attributeDescs.emplace_back(attribDesc);
 		}
 
-		pOutput = std::make_shared<PipelineVertexInputState_VK>(bindingDescs, attributeDescs);
+		CE_NEW(pOutput, PipelineVertexInputState_VK, bindingDescs, attributeDescs);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, std::shared_ptr<PipelineInputAssemblyState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, PipelineInputAssemblyState*& pOutput)
 	{
-		pOutput = std::make_shared<PipelineInputAssemblyState_VK>(createInfo);
+		CE_NEW(pOutput, PipelineInputAssemblyState_VK, createInfo);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, std::shared_ptr<PipelineColorBlendState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, PipelineColorBlendState*& pOutput)
 	{
 		std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentStates;
 
@@ -654,37 +661,37 @@ namespace Engine
 			blendAttachmentStates.emplace_back(colorBlendAttachmentState);
 		}
 
-		pOutput = std::make_shared<PipelineColorBlendState_VK>(blendAttachmentStates);
+		CE_NEW(pOutput, PipelineColorBlendState_VK, blendAttachmentStates);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, std::shared_ptr<PipelineRasterizationState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineRasterizationState(const PipelineRasterizationStateCreateInfo& createInfo, PipelineRasterizationState*& pOutput)
 	{
-		pOutput = std::make_shared<PipelineRasterizationState_VK>(createInfo);
+		CE_NEW(pOutput, PipelineRasterizationState_VK, createInfo);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, std::shared_ptr<PipelineDepthStencilState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineDepthStencilState(const PipelineDepthStencilStateCreateInfo& createInfo, PipelineDepthStencilState*& pOutput)
 	{
-		pOutput = std::make_shared<PipelineDepthStencilState_VK>(createInfo);
+		CE_NEW(pOutput, PipelineDepthStencilState_VK, createInfo);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, std::shared_ptr<PipelineMultisampleState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineMultisampleState(const PipelineMultisampleStateCreateInfo& createInfo, PipelineMultisampleState*& pOutput)
 	{
-		pOutput = std::make_shared<PipelineMultisampleState_VK>(createInfo);
+		CE_NEW(pOutput, PipelineMultisampleState_VK, createInfo);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, std::shared_ptr<PipelineViewportState>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreatePipelineViewportState(const PipelineViewportStateCreateInfo& createInfo, PipelineViewportState*& pOutput)
 	{
-		pOutput = std::make_shared<PipelineViewportState_VK>(createInfo);
+		CE_NEW(pOutput, PipelineViewportState_VK, createInfo);
 		return pOutput != nullptr;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, std::shared_ptr<GraphicsPipelineObject>& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, GraphicsPipelineObject*& pOutput)
 	{
-		auto pShaderProgram = std::static_pointer_cast<ShaderProgram_VK>(createInfo.pShaderProgram);
+		auto pShaderProgram = (ShaderProgram_VK*)createInfo.pShaderProgram;
 
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
@@ -707,42 +714,42 @@ namespace Engine
 		pipelineCreateInfo.stageCount = pShaderProgram->GetStageCount();
 		pipelineCreateInfo.pStages = pShaderProgram->GetShaderStageCreateInfos();
 
-		pipelineCreateInfo.pVertexInputState = std::static_pointer_cast<PipelineVertexInputState_VK>(createInfo.pVertexInputState)->GetVertexInputStateCreateInfo();
-		pipelineCreateInfo.pInputAssemblyState = std::static_pointer_cast<PipelineInputAssemblyState_VK>(createInfo.pInputAssemblyState)->GetInputAssemblyStateCreateInfo();
+		pipelineCreateInfo.pVertexInputState = ((PipelineVertexInputState_VK*)createInfo.pVertexInputState)->GetVertexInputStateCreateInfo();
+		pipelineCreateInfo.pInputAssemblyState = ((PipelineInputAssemblyState_VK*)createInfo.pInputAssemblyState)->GetInputAssemblyStateCreateInfo();
 		// ...(Tessellation State)
-		pipelineCreateInfo.pViewportState = std::static_pointer_cast<PipelineViewportState_VK>(createInfo.pViewportState)->GetViewportStateCreateInfo();
-		pipelineCreateInfo.pRasterizationState = std::static_pointer_cast<PipelineRasterizationState_VK>(createInfo.pRasterizationState)->GetRasterizationStateCreateInfo();
-		pipelineCreateInfo.pMultisampleState = std::static_pointer_cast<PipelineMultisampleState_VK>(createInfo.pMultisampleState)->GetMultisampleStateCreateInfo();
-		pipelineCreateInfo.pColorBlendState = std::static_pointer_cast<PipelineColorBlendState_VK>(createInfo.pColorBlendState)->GetColorBlendStateCreateInfo();
-		pipelineCreateInfo.pDepthStencilState = std::static_pointer_cast<PipelineDepthStencilState_VK>(createInfo.pDepthStencilState)->GetDepthStencilStateCreateInfo();
+		pipelineCreateInfo.pViewportState = ((PipelineViewportState_VK*)createInfo.pViewportState)->GetViewportStateCreateInfo();
+		pipelineCreateInfo.pRasterizationState = ((PipelineRasterizationState_VK*)createInfo.pRasterizationState)->GetRasterizationStateCreateInfo();
+		pipelineCreateInfo.pMultisampleState = ((PipelineMultisampleState_VK*)createInfo.pMultisampleState)->GetMultisampleStateCreateInfo();
+		pipelineCreateInfo.pColorBlendState = ((PipelineColorBlendState_VK*)createInfo.pColorBlendState)->GetColorBlendStateCreateInfo();
+		pipelineCreateInfo.pDepthStencilState = ((PipelineDepthStencilState_VK*)createInfo.pDepthStencilState)->GetDepthStencilStateCreateInfo();
 		// ...(Dynamics State)
 
 		pipelineCreateInfo.layout = pipelineLayout;
-		pipelineCreateInfo.renderPass = std::static_pointer_cast<RenderPass_VK>(createInfo.pRenderPass)->m_renderPass;	
+		pipelineCreateInfo.renderPass = ((RenderPass_VK*)createInfo.pRenderPass)->m_renderPass;	
 		//pipelineCreateInfo.subpass = createInfo.subpassIndex;
 		pipelineCreateInfo.subpass = 0;
 		pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-		pOutput = std::make_shared<GraphicsPipeline_VK>(m_pMainDevice, pShaderProgram, pipelineCreateInfo);
+		CE_NEW(pOutput, GraphicsPipeline_VK, m_pMainDevice, pShaderProgram, pipelineCreateInfo);
 
 		return pOutput != nullptr;
 	}
 
-	void GraphicsHardwareInterface_VK::TransitionImageLayout(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
+	void GraphicsHardwareInterface_VK::TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
 	{
-		std::shared_ptr<Texture2D_VK> pVkImage = nullptr;
-		switch (std::static_pointer_cast<Texture2D>(pImage)->QuerySource())
+		Texture2D_VK* pVkImage = nullptr;
+		switch (((Texture2D*)pImage)->QuerySource())
 		{
 		case ETexture2DSource::ImageTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<ImageTexture>(pImage)->GetTexture());
+			pVkImage = (Texture2D_VK*)(((ImageTexture*)pImage)->GetTexture());
 			break;
 
 		case ETexture2DSource::RenderTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<RenderTexture>(pImage)->GetTexture());
+			pVkImage = (Texture2D_VK*)(((RenderTexture*)pImage)->GetTexture());
 			break;
 
 		case ETexture2DSource::RawDeviceTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(pImage);
+			pVkImage = (Texture2D_VK*)pImage;
 			break;
 
 		default:
@@ -753,21 +760,21 @@ namespace Engine
 		m_pMainDevice->pImplicitCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
 	}
 
-	void GraphicsHardwareInterface_VK::TransitionImageLayout_Immediate(std::shared_ptr<Texture2D> pImage, EImageLayout newLayout, uint32_t appliedStages)
+	void GraphicsHardwareInterface_VK::TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
 	{
-		std::shared_ptr<Texture2D_VK> pVkImage = nullptr;
-		switch (std::static_pointer_cast<Texture2D>(pImage)->QuerySource())
+		Texture2D_VK* pVkImage = nullptr;
+		switch (((Texture2D*)pImage)->QuerySource())
 		{
 		case ETexture2DSource::ImageTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<ImageTexture>(pImage)->GetTexture());
+			pVkImage = (Texture2D_VK*)(((ImageTexture*)pImage)->GetTexture());
 			break;
 
 		case ETexture2DSource::RenderTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(std::static_pointer_cast<RenderTexture>(pImage)->GetTexture());
+			pVkImage = (Texture2D_VK*)(((RenderTexture*)pImage)->GetTexture());
 			break;
 
 		case ETexture2DSource::RawDeviceTexture:
-			pVkImage = std::static_pointer_cast<Texture2D_VK>(pImage);
+			pVkImage = (Texture2D_VK*)pImage;
 			break;
 
 		default:
@@ -786,48 +793,50 @@ namespace Engine
 		// TODO: recreate swapchain
 	}
 
-	void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const std::shared_ptr<GraphicsPipelineObject> pPipeline, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		auto pVkPipeline = std::static_pointer_cast<GraphicsPipeline_VK>(pPipeline);
+		auto pVkPipeline = (GraphicsPipeline_VK*)pPipeline;
 
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
+		((CommandBuffer_VK*)pCommandBuffer)->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
+		((CommandBuffer_VK*)pCommandBuffer)->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
 	}
 
-	void GraphicsHardwareInterface_VK::BeginRenderPass(const std::shared_ptr<RenderPassObject> pRenderPass, const std::shared_ptr<FrameBuffer> pFrameBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::BeginRenderPass(const RenderPassObject* pRenderPass, const FrameBuffer* pFrameBuffer, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		DEBUG_ASSERT_CE(!std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
+		DEBUG_ASSERT_CE(!((CommandBuffer_VK*)pCommandBuffer)->InRenderPass());
 		// Currently we are only rendering to full window
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->BeginRenderPass(std::static_pointer_cast<RenderPass_VK>(pRenderPass)->m_renderPass,
-			std::static_pointer_cast<FrameBuffer_VK>(pFrameBuffer)->m_frameBuffer,
-			std::static_pointer_cast<RenderPass_VK>(pRenderPass)->m_clearValues, { pFrameBuffer->GetWidth(), pFrameBuffer->GetHeight() });
+		((CommandBuffer_VK*)pCommandBuffer)->BeginRenderPass(
+			((RenderPass_VK*)pRenderPass)->m_renderPass,
+			((FrameBuffer_VK*)pFrameBuffer)->m_frameBuffer,
+			((RenderPass_VK*)pRenderPass)->m_clearValues, { pFrameBuffer->GetWidth(), pFrameBuffer->GetHeight() }
+		);
 	}
 
-	void GraphicsHardwareInterface_VK::EndRenderPass(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::EndRenderPass(GraphicsCommandBuffer* pCommandBuffer)
 	{
-		DEBUG_ASSERT_CE(std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->InRenderPass());
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->EndRenderPass();
+		DEBUG_ASSERT_CE(((CommandBuffer_VK*)pCommandBuffer)->InRenderPass());
+		((CommandBuffer_VK*)pCommandBuffer)->EndRenderPass();
 	}
 
-	void GraphicsHardwareInterface_VK::EndCommandBuffer(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::EndCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
 	{
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->EndCommandBuffer();
+		((CommandBuffer_VK*)pCommandBuffer)->EndCommandBuffer();
 	}
 
-	void GraphicsHardwareInterface_VK::CommandWaitSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
+	void GraphicsHardwareInterface_VK::CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore)
 	{
 		if (pSemaphore == nullptr)
 		{
 			return;
 		}
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->WaitSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
+		((CommandBuffer_VK*)pCommandBuffer)->WaitSemaphore((TimelineSemaphore_VK*)pSemaphore);
 	}
 
-	void GraphicsHardwareInterface_VK::CommandSignalSemaphore(std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer, std::shared_ptr<GraphicsSemaphore> pSemaphore)
+	void GraphicsHardwareInterface_VK::CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore)
 	{
 		DEBUG_ASSERT_CE(pCommandBuffer != nullptr && pSemaphore != nullptr);
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->SignalSemaphore(std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore));
+		((CommandBuffer_VK*)pCommandBuffer)->SignalSemaphore((TimelineSemaphore_VK*)pSemaphore);
 	}
 
 	void GraphicsHardwareInterface_VK::Present()
@@ -851,7 +860,7 @@ namespace Engine
 
 		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
-		std::vector<std::shared_ptr<Semaphore_VK>> presentWaitSemaphores = { pRenderFinishSemaphore };
+		std::vector<Semaphore_VK*> presentWaitSemaphores = { pRenderFinishSemaphore };
 		m_pSwapchain->Present(presentWaitSemaphores);
 
 		m_pMainDevice->pSyncObjectManager->ReturnSemaphore(pRenderFinishSemaphore);
@@ -908,19 +917,19 @@ namespace Engine
 		}
 	}
 
-	void GraphicsHardwareInterface_VK::WaitSemaphore(std::shared_ptr<GraphicsSemaphore> pSemaphore)
+	void GraphicsHardwareInterface_VK::WaitSemaphore(GraphicsSemaphore* pSemaphore)
 	{
-		auto pVkSemaphore = std::static_pointer_cast<TimelineSemaphore_VK>(pSemaphore);
+		auto pVkSemaphore = (TimelineSemaphore_VK*)pSemaphore;
 		pVkSemaphore->Wait(FRAME_TIMEOUT);
 		m_pMainDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 	}
 
-	std::shared_ptr<TextureSampler> GraphicsHardwareInterface_VK::GetDefaultTextureSampler(bool withDefaultAF) const
+	TextureSampler* GraphicsHardwareInterface_VK::GetDefaultTextureSampler(bool withDefaultAF) const
 	{
 		return withDefaultAF ? m_pDefaultSampler_0 : m_pDefaultSampler_1;
 	}
 
-	void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<std::shared_ptr<Texture2D>>& outImages) const
+	void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<Texture2D*>& outImages) const
 	{
 		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 
@@ -938,10 +947,10 @@ namespace Engine
 		return m_pSwapchain->GetTargetImageIndex();
 	}
 
-	void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(std::shared_ptr<Texture2D> pSrcTexture, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		auto pVkTexture = std::static_pointer_cast<Texture2D_VK>(pSrcTexture);
-		auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
+		auto pVkTexture = (Texture2D_VK*)pSrcTexture;
+		auto pVkBuffer = (DataTransferBuffer_VK*)pDstBuffer;
 
 		DEBUG_ASSERT_CE(pVkTexture->m_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL); // Or manual transition can be performed here
 		DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes >= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
@@ -959,14 +968,14 @@ namespace Engine
 		region.imageExtent = { pVkTexture->m_width, pVkTexture->m_height, 1 };
 		copyRegions.emplace_back(region);
 
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->CopyTexture2DToBuffer(pVkTexture, pVkBuffer->m_pBufferImpl, copyRegions);
+		((CommandBuffer_VK*)pCommandBuffer)->CopyTexture2DToBuffer(pVkTexture, pVkBuffer->m_pBufferImpl, copyRegions);
 	}
 
-	void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<Texture2D> pDstTexture, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		auto pVkTexture = std::static_pointer_cast<Texture2D_VK>(pDstTexture);
-		auto pVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
-		auto pVkCmdBuffer = std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer);
+		auto pVkTexture = (Texture2D_VK*)pDstTexture;
+		auto pVkBuffer = (DataTransferBuffer_VK*)pSrcBuffer;
+		auto pVkCmdBuffer = (CommandBuffer_VK*)pCommandBuffer;
 
 		DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes <= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
 
@@ -991,10 +1000,10 @@ namespace Engine
 		pVkCmdBuffer->TransitionImageLayout(pVkTexture, originalLayout, originalAppliedStages);
 	}
 
-	void GraphicsHardwareInterface_VK::CopyDataTransferBuffer(std::shared_ptr<DataTransferBuffer> pSrcBuffer, std::shared_ptr<DataTransferBuffer> pDstBuffer, std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer)
+	void GraphicsHardwareInterface_VK::CopyDataTransferBuffer(DataTransferBuffer* pSrcBuffer, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
-		auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
+		auto pSrcVkBuffer = (DataTransferBuffer_VK*)pSrcBuffer;
+		auto pDstVkBuffer = (DataTransferBuffer_VK*)pDstBuffer;
 
 		DEBUG_ASSERT_CE(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
 
@@ -1003,12 +1012,12 @@ namespace Engine
 		region.dstOffset = 0;
 		region.size = pSrcVkBuffer->m_sizeInBytes;
 
-		std::static_pointer_cast<CommandBuffer_VK>(pCommandBuffer)->CopyBufferToBuffer(pSrcVkBuffer->m_pBufferImpl, pDstVkBuffer->m_pBufferImpl, region);
+		((CommandBuffer_VK*)pCommandBuffer)->CopyBufferToBuffer(pSrcVkBuffer->m_pBufferImpl, pDstVkBuffer->m_pBufferImpl, region);
 	}
 
-	void GraphicsHardwareInterface_VK::CopyHostDataToDataTransferBuffer(void* pData, std::shared_ptr<DataTransferBuffer> pDstBuffer, size_t size)
+	void GraphicsHardwareInterface_VK::CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size)
 	{
-		auto pDstVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pDstBuffer);
+		auto pDstVkBuffer = (DataTransferBuffer_VK*)pDstBuffer;
 
 		DEBUG_ASSERT_CE(pDstVkBuffer->m_sizeInBytes >= size);
 
@@ -1025,9 +1034,9 @@ namespace Engine
 		}
 	}
 
-	void GraphicsHardwareInterface_VK::CopyDataTransferBufferToHostDataLocation(std::shared_ptr<DataTransferBuffer> pSrcBuffer, void* pDataLoc)
+	void GraphicsHardwareInterface_VK::CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc)
 	{
-		auto pSrcVkBuffer = std::static_pointer_cast<DataTransferBuffer_VK>(pSrcBuffer);
+		auto pSrcVkBuffer = (DataTransferBuffer_VK*)pSrcBuffer;
 
 		if (!pSrcVkBuffer->m_constantlyMapped)
 		{
@@ -1191,7 +1200,7 @@ namespace Engine
 			return;
 		}
 
-		m_pMainDevice = std::make_shared<LogicalDevice_VK>();
+		CE_NEW(m_pMainDevice, LogicalDevice_VK);
 		VkPhysicalDeviceType preferredGPUType = VulkanPhysicalDeviceType(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPreferredGPUType());
 
 		for (const auto& device : suitableDevices)
@@ -1343,7 +1352,7 @@ namespace Engine
 		createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
 
-		m_pSwapchain = std::make_shared<Swapchain_VK>(m_pMainDevice, createInfo);
+		CE_NEW(m_pSwapchain, Swapchain_VK, m_pMainDevice, createInfo);
 
 		m_pSwapchain->UpdateBackBuffer(m_currentFrame);
 		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
@@ -1383,21 +1392,21 @@ namespace Engine
 		createInfo.maxLod = 12.0f; // Support up to 4096
 		createInfo.minLodBias = 0;
 
-		std::shared_ptr<TextureSampler> pSampler_0;
+		TextureSampler* pSampler_0 = nullptr;
 		CreateSampler(createInfo, pSampler_0);
-		m_pDefaultSampler_0 = std::static_pointer_cast<Sampler_VK>(pSampler_0);
+		m_pDefaultSampler_0 = (Sampler_VK*)pSampler_0;
 
 		createInfo.enableAnisotropy = true;
 		createInfo.maxAnisotropy = 4.0f;
 
-		std::shared_ptr<TextureSampler> pSampler_1;
+		TextureSampler* pSampler_1 = nullptr;
 		CreateSampler(createInfo, pSampler_1);
-		m_pDefaultSampler_1 = std::static_pointer_cast<Sampler_VK>(pSampler_1);
+		m_pDefaultSampler_1 = (Sampler_VK*)pSampler_1;
 
 		// TODO: create another default sampler that does not include mipmap sampling
 	}
 
-	void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shaderFilePath, std::shared_ptr<LogicalDevice_VK> pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode)
+	void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shaderFilePath, LogicalDevice_VK* pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode)
 	{
 		std::ifstream file(shaderFilePath, std::ios::ate | std::ios::binary | std::ios::in);
 
@@ -1429,11 +1438,11 @@ namespace Engine
 	void GraphicsHardwareInterface_VK::SetupCommandManager()
 	{
 		// Graphics queue by default must be supported
-		m_pMainDevice->pGraphicsCommandManager = std::make_shared<CommandManager_VK>(m_pMainDevice, m_pMainDevice->graphicsQueue);
+		CE_NEW(m_pMainDevice->pGraphicsCommandManager, CommandManager_VK, m_pMainDevice, m_pMainDevice->graphicsQueue);
 
 		if (m_pMainDevice->transferQueue.isValid)
 		{
-			m_pMainDevice->pTransferCommandManager = std::make_shared<CommandManager_VK>(m_pMainDevice, m_pMainDevice->transferQueue);
+		CE_NEW(m_pMainDevice->pTransferCommandManager, CommandManager_VK, m_pMainDevice, m_pMainDevice->transferQueue);
 		}
 		else
 		{
@@ -1445,17 +1454,17 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::SetupSyncObjectManager()
 	{
-		m_pMainDevice->pSyncObjectManager = std::make_shared<SyncObjectManager_VK>(m_pMainDevice);
+		CE_NEW(m_pMainDevice->pSyncObjectManager, SyncObjectManager_VK, m_pMainDevice);
 	}
 
 	void GraphicsHardwareInterface_VK::SetupUploadAllocator()
 	{
-		m_pMainDevice->pUploadAllocator = std::make_shared<UploadAllocator_VK>(m_pMainDevice, m_instance);
+		CE_NEW(m_pMainDevice->pUploadAllocator, UploadAllocator_VK, m_pMainDevice, m_instance);
 	}
 
 	void GraphicsHardwareInterface_VK::SetupDescriptorAllocator()
 	{
-		m_pMainDevice->pDescriptorAllocator = std::make_shared<DescriptorAllocator_VK>(m_pMainDevice);
+		CE_NEW(m_pMainDevice->pDescriptorAllocator, DescriptorAllocator_VK, m_pMainDevice);
 	}
 
 	EDescriptorResourceType_VK GraphicsHardwareInterface_VK::VulkanDescriptorResourceType(EDescriptorType type) const
@@ -1483,13 +1492,13 @@ namespace Engine
 		}
 	}
 
-	void GraphicsHardwareInterface_VK::GetBufferInfoByDescriptorType(EDescriptorType type, const std::shared_ptr<RawResource> pRes, VkDescriptorBufferInfo& outInfo)
+	void GraphicsHardwareInterface_VK::GetBufferInfoByDescriptorType(EDescriptorType type, const RawResource* pRes, VkDescriptorBufferInfo& outInfo)
 	{
 		switch (type)
 		{
 		case EDescriptorType::UniformBuffer:
 		{
-			auto pBuffer = std::static_pointer_cast<UniformBuffer_VK>(pRes);
+			auto pBuffer = (UniformBuffer_VK*)pRes;
 			outInfo.buffer = pBuffer->GetBufferImpl()->m_buffer;
 			outInfo.offset = 0;
 			outInfo.range = VK_WHOLE_SIZE;
@@ -1497,7 +1506,7 @@ namespace Engine
 		}
 		case EDescriptorType::SubUniformBuffer:
 		{
-			auto pBuffer = std::static_pointer_cast<SubUniformBuffer_VK>(pRes);
+			auto pBuffer = (SubUniformBuffer_VK*)pRes;
 			outInfo.buffer = pBuffer->m_buffer;
 			outInfo.offset = pBuffer->m_offset;
 			outInfo.range = pBuffer->m_size;

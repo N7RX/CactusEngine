@@ -2,6 +2,7 @@
 #include "GraphicsHardwareInterface_VK.h"
 #include "GHIUtilities_VK.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
@@ -11,7 +12,7 @@ namespace Engine
 		m_isInUse = false;
 	}
 
-	DescriptorSetLayout_VK::DescriptorSetLayout_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+	DescriptorSetLayout_VK::DescriptorSetLayout_VK(LogicalDevice_VK* pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings)
 		: m_pDevice(pDevice)
 	{
 		m_descriptorSetLayout = VK_NULL_HANDLE;
@@ -37,7 +38,7 @@ namespace Engine
 		return &m_descriptorSetLayout;
 	}
 
-	DescriptorPool_VK::DescriptorPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, uint32_t maxSets)
+	DescriptorPool_VK::DescriptorPool_VK(LogicalDevice_VK* pDevice, uint32_t maxSets)
 		: m_pDevice(pDevice), m_descriptorPool(VK_NULL_HANDLE), MAX_SETS(maxSets), m_allocatedSetsCount(0)
 	{
 
@@ -51,7 +52,7 @@ namespace Engine
 		}
 	}
 
-	bool DescriptorPool_VK::AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<std::shared_ptr<DescriptorSet_VK>>& outSets, bool clearPrev)
+	bool DescriptorPool_VK::AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<DescriptorSet_VK*>& outSets, bool clearPrev)
 	{
 		DEBUG_ASSERT_CE(m_descriptorPool != VK_NULL_HANDLE);
 		DEBUG_ASSERT_CE(m_allocatedSetsCount + (uint32_t)layouts.size() <= MAX_SETS);
@@ -79,7 +80,9 @@ namespace Engine
 
 		for (auto& set : newSets)
 		{
-			outSets.emplace_back(std::make_shared<DescriptorSet_VK>(set));
+			DescriptorSet_VK* pSet;
+			CE_NEW(pSet, DescriptorSet_VK, set);
+			outSets.emplace_back(pSet);
 		}
 
 		return true;
@@ -135,13 +138,13 @@ namespace Engine
 		}
 	}
 
-	DescriptorAllocator_VK::DescriptorAllocator_VK(const std::shared_ptr<LogicalDevice_VK> pDevice)
+	DescriptorAllocator_VK::DescriptorAllocator_VK(LogicalDevice_VK* pDevice)
 		: m_pDevice(pDevice)
 	{
 
 	}
 
-	std::shared_ptr<DescriptorPool_VK> DescriptorAllocator_VK::CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes)
+	DescriptorPool_VK* DescriptorAllocator_VK::CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes)
 	{
 		VkDescriptorPoolCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -150,7 +153,9 @@ namespace Engine
 		createInfo.maxSets = maxSets;
 		createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // Descriptor sets can return their individual allocations to the pool
 
-		m_descriptorPools.emplace_back(std::make_shared<DescriptorPool_VK>(m_pDevice, maxSets));
+		DescriptorPool_VK* pPool;
+		CE_NEW(pPool, DescriptorPool_VK, m_pDevice, maxSets);
+		m_descriptorPools.emplace_back(pPool);
 
 		if (vkCreateDescriptorPool(m_pDevice->logicalDevice, &createInfo, nullptr, &m_descriptorPools[m_descriptorPools.size() - 1]->m_descriptorPool) == VK_SUCCESS)
 		{

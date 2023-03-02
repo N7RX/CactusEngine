@@ -4,7 +4,7 @@
 
 namespace Engine
 {
-	Sampler_VK::Sampler_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkSamplerCreateInfo& createInfo)
+	Sampler_VK::Sampler_VK(LogicalDevice_VK* pDevice, const VkSamplerCreateInfo& createInfo)
 		: m_pDevice(pDevice)
 	{
 		m_sampler = VK_NULL_HANDLE;
@@ -23,7 +23,7 @@ namespace Engine
 		LOG_MESSAGE("Vulkan: Sampler destructor called");
 	}
 
-	Texture2D_VK::Texture2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const Texture2DCreateInfo_VK& createInfo)
+	Texture2D_VK::Texture2D_VK(LogicalDevice_VK* pDevice, const Texture2DCreateInfo_VK& createInfo)
 		: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_VK::VMA), m_appliedStages(0)
 	{
 		DEBUG_ASSERT_CE(pDevice);
@@ -80,17 +80,17 @@ namespace Engine
 		return m_pSampler != nullptr;
 	}
 
-	void Texture2D_VK::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+	void Texture2D_VK::SetSampler(const TextureSampler* pSampler)
 	{
-		m_pSampler = std::static_pointer_cast<Sampler_VK>(pSampler);
+		m_pSampler = (Sampler_VK*)pSampler;
 	}
 
-	std::shared_ptr<TextureSampler> Texture2D_VK::GetSampler() const
+	TextureSampler* Texture2D_VK::GetSampler() const
 	{
 		return m_pSampler;
 	}
 
-	RenderTarget2D_VK::RenderTarget2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
+	RenderTarget2D_VK::RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
 	{
 		m_pDevice = pDevice;
 
@@ -115,7 +115,7 @@ namespace Engine
 		}
 	}
 
-	FrameBuffer_VK::FrameBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice)
+	FrameBuffer_VK::FrameBuffer_VK(LogicalDevice_VK* pDevice)
 		: m_pDevice(pDevice)
 	{
 

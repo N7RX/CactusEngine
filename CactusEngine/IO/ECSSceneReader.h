@@ -3,5 +3,5 @@
 
 namespace Engine
 {
-	extern bool ReadECSWorldFromJson(std::shared_ptr<ECSWorld> pWorld, const char* fileAddress);
+	extern bool ReadECSWorldFromJson(ECSWorld* pWorld, const char* fileAddress);
 }

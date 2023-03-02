@@ -7,12 +7,12 @@ namespace Engine
 	{
 	}
 
-	void MeshFilterComponent::SetMesh(const std::shared_ptr<Mesh> pMesh)
+	void MeshFilterComponent::SetMesh(Mesh* pMesh)
 	{
 		m_pMesh = pMesh;
 	}
 
-	std::shared_ptr<Mesh> MeshFilterComponent::GetMesh() const
+	Mesh* MeshFilterComponent::GetMesh() const
 	{
 		return m_pMesh;
 	}

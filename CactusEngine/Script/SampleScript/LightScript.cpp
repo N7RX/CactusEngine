@@ -7,7 +7,7 @@ using namespace Engine;
 
 namespace SampleScript
 {
-	LightScript::LightScript(const std::shared_ptr<BaseEntity> pEntity)
+	LightScript::LightScript(BaseEntity* pEntity)
 		: m_pEntity(pEntity), m_pLightTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
@@ -16,7 +16,7 @@ namespace SampleScript
 
 	void LightScript::Start()
 	{
-		m_pLightTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
+		m_pLightTransform = (TransformComponent*)m_pEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(m_pLightTransform != nullptr);
 
 		m_center = m_pLightTransform->GetPosition();

@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan.h>
 #include <vk_mem_alloc.h>
-#include <memory>
 #include <vector>
 
 namespace Engine
@@ -35,7 +34,7 @@ namespace Engine
 	class UploadAllocator_VK
 	{
 	public:
-		UploadAllocator_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkInstance instance);
+		UploadAllocator_VK(LogicalDevice_VK* pDevice, VkInstance instance);
 		~UploadAllocator_VK();
 
 		bool CreateBuffer(const RawBufferCreateInfo_VK& createInfo, RawBuffer_VK& rawBuffer);
@@ -48,7 +47,7 @@ namespace Engine
 		void FreeImage(VkImage& image, VmaAllocation& allocation);
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VmaAllocator m_allocator;
 	};
 }

@@ -187,6 +187,7 @@
     <ClInclude Include="Common\ECSWorld.h" />
     <ClInclude Include="Common\Global.h" />
     <ClInclude Include="Common\Math\BasicMathTypes.h" />
+    <ClInclude Include="Common\MemoryAllocator.h" />
     <ClInclude Include="Common\SharedTypes.h" />
     <ClInclude Include="Component\AllComponents.h" />
     <ClInclude Include="Component\AnimationComponent.h" />
@@ -283,6 +284,7 @@
     <ClCompile Include="Common\ECSWorld.cpp" />
     <ClCompile Include="Common\Global.cpp" />
     <ClCompile Include="Common\Main.cpp" />
+    <ClCompile Include="Common\MemoryAllocator.cpp" />
     <ClCompile Include="Component\AnimationComponent.cpp" />
     <ClCompile Include="Component\BaseComponent.cpp" />
     <ClCompile Include="Component\CameraComponent.cpp" />

@@ -57,7 +57,7 @@ namespace Engine
 		return &m_entityList;
 	}
 
-	std::shared_ptr<BaseEntity> ECSWorld::FindEntityWithTag(EEntityTag tag) const
+	BaseEntity* ECSWorld::FindEntityWithTag(EEntityTag tag) const
 	{
 		for (auto entity : m_entityList)
 		{
@@ -69,9 +69,9 @@ namespace Engine
 		return nullptr;
 	}
 
-	std::vector<std::shared_ptr<BaseEntity>> ECSWorld::FindEntitiesWithTag(EEntityTag tag) const
+	std::vector<BaseEntity*> ECSWorld::FindEntitiesWithTag(EEntityTag tag) const
 	{
-		std::vector<std::shared_ptr<BaseEntity>> result;
+		std::vector<BaseEntity*> result;
 		for (auto entity : m_entityList)
 		{
 			if (entity.second->GetEntityTag() == tag)

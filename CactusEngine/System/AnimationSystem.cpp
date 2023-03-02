@@ -29,7 +29,7 @@ namespace Engine
 		auto pEntityList = m_pECSWorld->GetEntityList();
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
-			auto pAnimationComp = std::static_pointer_cast<AnimationComponent>(itr->second->GetComponent(EComponentType::Animation));
+			auto pAnimationComp = (AnimationComponent*)itr->second->GetComponent(EComponentType::Animation);
 			if (pAnimationComp)
 			{
 				pAnimationComp->Apply();

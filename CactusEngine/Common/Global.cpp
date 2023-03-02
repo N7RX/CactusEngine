@@ -11,12 +11,12 @@ namespace Engine
 		m_globalStates.resize((uint32_t)EGlobalStateQueryType::COUNT, false);
 	}
 
-	void Global::SetApplication(const std::shared_ptr<BaseApplication> pApp)
+	void Global::SetApplication(BaseApplication* pApp)
 	{
 		m_pCurrentApp = pApp;
 	}
 
-	std::shared_ptr<BaseApplication> Global::GetCurrentApplication() const
+	BaseApplication* Global::GetCurrentApplication() const
 	{
 		return m_pCurrentApp;
 	}

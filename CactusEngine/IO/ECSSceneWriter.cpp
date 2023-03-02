@@ -10,7 +10,7 @@
 
 namespace Engine
 {
-	bool WriteECSWorldToJson(const std::shared_ptr<ECSWorld> pWorld, const char* fileAddress)
+	bool WriteECSWorldToJson(const ECSWorld* pWorld, const char* fileAddress)
 	{
 		if (!pWorld)
 		{
@@ -51,7 +51,7 @@ namespace Engine
 				{
 				case EComponentType::Transform:
 				{
-					auto pTransformComp = std::static_pointer_cast<TransformComponent>(componentEntry.second);
+					auto pTransformComp = (TransformComponent*)componentEntry.second;
 					Json::Value component;
 
 					Vector3 position = pTransformComp->GetPosition();
@@ -74,7 +74,7 @@ namespace Engine
 				}
 				case EComponentType::MeshFilter:
 				{
-					auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(componentEntry.second);
+					auto pMeshFilterComp = (MeshFilterComponent*)componentEntry.second;
 					Json::Value component;
 
 					auto pMesh = pMeshFilterComp->GetMesh();
@@ -101,7 +101,7 @@ namespace Engine
 				}
 				case EComponentType::Material:
 				{
-					auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(componentEntry.second);
+					auto pMaterialComp = (MaterialComponent*)componentEntry.second;
 					Json::Value component;
 
 					auto materialList = pMaterialComp->GetMaterialList();
@@ -163,7 +163,7 @@ namespace Engine
 				}
 				case EComponentType::Camera:
 				{
-					auto pCameraComp = std::static_pointer_cast<CameraComponent>(componentEntry.second);
+					auto pCameraComp = (CameraComponent*)componentEntry.second;
 					Json::Value component;
 
 					component["fov"] = pCameraComp->GetFOV();
@@ -190,7 +190,7 @@ namespace Engine
 				}
 				case EComponentType::Script:
 				{
-					auto pScriptComp = std::static_pointer_cast<ScriptComponent>(componentEntry.second);
+					auto pScriptComp = (ScriptComponent*)componentEntry.second;
 					Json::Value component;
 
 					component["scriptID"] = (uint32_t)pScriptComp->GetScript()->GetScriptID();

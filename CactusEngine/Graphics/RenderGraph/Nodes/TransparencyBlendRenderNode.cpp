@@ -13,7 +13,7 @@ namespace Engine
 	const char* TransparencyBlendRenderNode::INPUT_TRANSPARENCY_COLOR_TEXTURE = "TransparencyTransparentColorTexture";
 	const char* TransparencyBlendRenderNode::INPUT_TRANSPARENCY_DEPTH_TEXTURE = "TransparencyTransparentDepthTexture";
 
-	TransparencyBlendRenderNode::TransparencyBlendRenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
+	TransparencyBlendRenderNode::TransparencyBlendRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
 		: RenderNode(pGraphResources, pRenderer)
 	{
 		m_inputResourceNames[INPUT_OPQAUE_COLOR_TEXTURE] = nullptr;
@@ -22,7 +22,7 @@ namespace Engine
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void TransparencyBlendRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphResources)
+	void TransparencyBlendRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
@@ -84,7 +84,7 @@ namespace Engine
 		emptyVertexInputStateCreateInfo.bindingDescs = {};
 		emptyVertexInputStateCreateInfo.attributeDescs = {};
 
-		std::shared_ptr<PipelineVertexInputState> pEmptyVertexInputState = nullptr;
+		PipelineVertexInputState* pEmptyVertexInputState = nullptr;
 		m_pDevice->CreatePipelineVertexInputState(emptyVertexInputStateCreateInfo, pEmptyVertexInputState);
 
 		// Input assembly state
@@ -93,7 +93,7 @@ namespace Engine
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
-		std::shared_ptr<PipelineInputAssemblyState> pInputAssemblyState_Strip = nullptr;
+		PipelineInputAssemblyState* pInputAssemblyState_Strip = nullptr;
 		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState_Strip);
 
 		// Rasterization state
@@ -105,7 +105,7 @@ namespace Engine
 		rasterizationStateCreateInfo.cullMode = ECullMode::Back;
 		rasterizationStateCreateInfo.frontFaceCounterClockwise = true;
 
-		std::shared_ptr<PipelineRasterizationState> pRasterizationState = nullptr;
+		PipelineRasterizationState* pRasterizationState = nullptr;
 		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pRasterizationState);
 
 		// Depth stencil state
@@ -116,7 +116,7 @@ namespace Engine
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
 		depthStencilStateCreateInfo.enableStencilTest = false;
 
-		std::shared_ptr<PipelineDepthStencilState> pDepthStencilState = nullptr;
+		PipelineDepthStencilState* pDepthStencilState = nullptr;
 		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, pDepthStencilState);
 
 		// Multisample state
@@ -125,7 +125,7 @@ namespace Engine
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
-		std::shared_ptr<PipelineMultisampleState> pMultisampleState = nullptr;
+		PipelineMultisampleState* pMultisampleState = nullptr;
 		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, pMultisampleState);
 
 		// Color blend state
@@ -136,7 +136,7 @@ namespace Engine
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
-		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		PipelineColorBlendState* pColorBlendState = nullptr;
 		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
 		// Viewport state
@@ -145,7 +145,7 @@ namespace Engine
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
-		std::shared_ptr<PipelineViewportState> pViewportState;
+		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
 
 		// Pipeline creation
@@ -161,22 +161,23 @@ namespace Engine
 		pipelineCreateInfo.pViewportState = pViewportState;
 		pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+		GraphicsPipelineObject* pPipeline = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
 		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, pPipeline);
 	}
 
-	void TransparencyBlendRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
+	void TransparencyBlendRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
-		auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
+		ShaderParameterTable* pShaderParamTable;
+		CE_NEW(pShaderParamTable, ShaderParameterTable);
 
 		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_OPQAUE_DEPTH_TEXTURE)));

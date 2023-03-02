@@ -9,7 +9,7 @@ using namespace Engine;
 
 namespace SampleScript
 {
-	CameraScript::CameraScript(const std::shared_ptr<BaseEntity> pEntity)
+	CameraScript::CameraScript(BaseEntity* pEntity)
 		: m_pEntity(pEntity), m_pCameraTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
@@ -21,7 +21,7 @@ namespace SampleScript
 
 	void CameraScript::Start()
 	{
-		m_pCameraTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
+		m_pCameraTransform = (TransformComponent*)m_pEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(m_pCameraTransform != nullptr);
 
 		m_started = true;

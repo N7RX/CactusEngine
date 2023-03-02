@@ -1,8 +1,8 @@
 #pragma once
 #include "Configuration.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
-#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -15,21 +15,21 @@ namespace Engine
 		Global();
 		~Global() = default;
 
-		void SetApplication(const std::shared_ptr<BaseApplication> pApp);
-		std::shared_ptr<BaseApplication> GetCurrentApplication() const;
+		void SetApplication(BaseApplication* pApp);
+		BaseApplication* GetCurrentApplication() const;
 
 		template<typename T>
 		inline void CreateConfiguration(EConfigurationType configType)
 		{
 			DEBUG_ASSERT_CE((uint32_t)configType < m_configurations.size());
-			m_configurations[(uint32_t)configType] = std::make_shared<T>();
+			CE_NEW(m_configurations[(uint32_t)configType], T);
 		}
 
 		template<typename T>
-		inline std::shared_ptr<T> GetConfiguration(EConfigurationType configType) const
+		inline T* GetConfiguration(EConfigurationType configType) const
 		{
 			DEBUG_ASSERT_CE((uint32_t)configType < m_configurations.size());
-			return std::dynamic_pointer_cast<T>(m_configurations[(uint32_t)configType]);
+			return (T*)(m_configurations[(uint32_t)configType]);
 		}
 
 		bool QueryGlobalState(EGlobalStateQueryType type) const;
@@ -38,8 +38,8 @@ namespace Engine
 		void* GetWindowHandle() const;
 
 	private:
-		std::shared_ptr<BaseApplication> m_pCurrentApp;
-		std::vector<std::shared_ptr<BaseConfiguration>> m_configurations;
+		BaseApplication* m_pCurrentApp;
+		std::vector<BaseConfiguration*> m_configurations;
 
 		std::vector<bool> m_globalStates;
 	};

@@ -1,12 +1,13 @@
 #include "GraphicsApplication.h"
 #include "ECSWorld.h"
 #include "Timer.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
 	void GraphicsApplication::Initialize()
 	{
-		m_pECSWorld = std::make_shared<ECSWorld>();
+		CE_NEW(m_pECSWorld, ECSWorld);
 
 		InitWindow(); // Alert: since we are binding the init of GLAD with GLFW, this has to be done before InitECS()
 
@@ -41,17 +42,17 @@ namespace Engine
 		return (m_shouldQuit || m_pWindow->ShouldQuit());
 	}
 
-	std::shared_ptr<ECSWorld> GraphicsApplication::GetECSWorld() const
+	ECSWorld* GraphicsApplication::GetECSWorld() const
 	{
 		return m_pECSWorld;
 	}
 
-	std::shared_ptr<GraphicsDevice> GraphicsApplication::GetGraphicsDevice() const
+	GraphicsDevice* GraphicsApplication::GetGraphicsDevice() const
 	{
 		return m_pDevice;
 	}
 
-	std::shared_ptr<BaseWindow> GraphicsApplication::GetWindow() const
+	BaseWindow* GraphicsApplication::GetWindow() const
 	{
 		return m_pWindow;
 	}
@@ -61,7 +62,7 @@ namespace Engine
 		return m_pWindow->GetWindowHandle();
 	}
 
-	void GraphicsApplication::SetGraphicsDevice(const std::shared_ptr<GraphicsDevice> pDevice)
+	void GraphicsApplication::SetGraphicsDevice(GraphicsDevice* pDevice)
 	{
 		m_pDevice = pDevice;
 	}
@@ -73,7 +74,7 @@ namespace Engine
 
 	void GraphicsApplication::InitWindow()
 	{
-		m_pWindow = std::make_shared<GLFWWindow>(
+		CE_NEW(m_pWindow, GLFWWindow,
 			gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight()

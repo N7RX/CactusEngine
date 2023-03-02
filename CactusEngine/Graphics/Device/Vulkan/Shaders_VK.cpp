@@ -1,12 +1,13 @@
 #include "Shaders_VK.h"
 #include "GraphicsHardwareInterface_VK.h"
 #include "BuiltInShaderType.h"
+#include "MemoryAllocator.h"
 
 #include <cstdarg>
 
 namespace Engine
 {
-	RawShader_VK::RawShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry)
+	RawShader_VK::RawShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry)
 		: m_pDevice(pDevice), m_shaderModule(shaderModule), m_shaderStage(shaderStage), m_entryName(entry)
 	{
 
@@ -17,36 +18,36 @@ namespace Engine
 		m_rawCode.clear();
 	}
 
-	VertexShader_VK::VertexShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry)
-		: m_pShaderImpl(std::make_shared<RawShader_VK>(pDevice, shaderModule, VK_SHADER_STAGE_VERTEX_BIT, entry))
+	VertexShader_VK::VertexShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry)
 	{
+		CE_NEW(m_pShaderImpl, RawShader_VK, pDevice, shaderModule, VK_SHADER_STAGE_VERTEX_BIT, entry);
 		m_pShaderImpl->m_rawCode = rawCode;
 	}
 
-	std::shared_ptr<RawShader_VK> VertexShader_VK::GetShaderImpl() const
+	RawShader_VK* VertexShader_VK::GetShaderImpl() const
 	{
 		return m_pShaderImpl;
 	}
 
-	FragmentShader_VK::FragmentShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry)
-		: m_pShaderImpl(std::make_shared<RawShader_VK>(pDevice, shaderModule, VK_SHADER_STAGE_FRAGMENT_BIT, entry))
+	FragmentShader_VK::FragmentShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry)
 	{
+		CE_NEW(m_pShaderImpl, RawShader_VK, pDevice, shaderModule, VK_SHADER_STAGE_FRAGMENT_BIT, entry);
 		m_pShaderImpl->m_rawCode = rawCode;
 	}
 
-	std::shared_ptr<RawShader_VK> FragmentShader_VK::GetShaderImpl() const
+	RawShader_VK* FragmentShader_VK::GetShaderImpl() const
 	{
 		return m_pShaderImpl;
 	}
 
-	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, const std::shared_ptr<LogicalDevice_VK> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_VK> pShader...)
+	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, const RawShader_VK* pShader...)
 		: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
 	{
 		m_pDevice = pDevice;
 
 		va_list vaShaders;
 		va_start(vaShaders, shaderCount); // shaderCount is the parameter preceding the first variable parameter 
-		std::shared_ptr<RawShader_VK> shaderPtr = nullptr;
+		RawShader_VK* shaderPtr = nullptr;
 
 		DescriptorSetCreateInfo descSetCreateInfo = {};
 		descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
@@ -54,7 +55,7 @@ namespace Engine
 		m_shaderStages = 0;
 		while (shaderCount > 0)
 		{
-			shaderPtr = va_arg(vaShaders, std::shared_ptr<RawShader_VK>);
+			shaderPtr = va_arg(vaShaders, RawShader_VK*);
 
 			m_shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
 
@@ -78,7 +79,7 @@ namespace Engine
 		AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT / 2); // TODO: figure out the optimal allocation count in here
 	}
 
-	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, const std::shared_ptr<LogicalDevice_VK> pLogicalDevice, const std::shared_ptr<RawShader_VK> pVertexShader, const std::shared_ptr<RawShader_VK> pFragmentShader)
+	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader)
 		: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
 	{
 		m_pDevice = pDevice;
@@ -159,7 +160,7 @@ namespace Engine
 		return m_pushConstantRanges.data();
 	}
 
-	std::shared_ptr<DescriptorSet_VK> ShaderProgram_VK::GetDescriptorSet()
+	DescriptorSet_VK* ShaderProgram_VK::GetDescriptorSet()
 	{
 		std::lock_guard<std::mutex> lock(m_descriptorSetGetMutex);
 
@@ -191,10 +192,10 @@ namespace Engine
 
 	const DescriptorSetLayout_VK* ShaderProgram_VK::GetDescriptorSetLayout() const
 	{
-		return m_pDescriptorSetLayout.get();
+		return m_pDescriptorSetLayout;
 	}
 
-	void ShaderProgram_VK::ReflectResources(const std::shared_ptr<RawShader_VK> pShader, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::ReflectResources(const RawShader_VK* pShader, DescriptorSetCreateInfo& descSetCreateInfo)
 	{
 		size_t wordCount = pShader->m_rawCode.size() * sizeof(char) / sizeof(uint32_t);
 		DEBUG_ASSERT_CE(wordCount > 0);
@@ -477,7 +478,7 @@ namespace Engine
 
 	void ShaderProgram_VK::CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo)
 	{
-		m_pDescriptorSetLayout = std::make_shared<DescriptorSetLayout_VK>(m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
+CE_NEW(	m_pDescriptorSetLayout, DescriptorSetLayout_VK, m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
 	}
 
 	void ShaderProgram_VK::CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo)

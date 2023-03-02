@@ -2,7 +2,6 @@
 #include "SafeBasicTypes.h"
 #include <vulkan.h>
 #include <vector>
-#include <memory>
 
 namespace Engine
 {
@@ -61,28 +60,28 @@ namespace Engine
 	class DescriptorSetLayout_VK
 	{
 	public:
-		DescriptorSetLayout_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+		DescriptorSetLayout_VK(LogicalDevice_VK* pDevice, const std::vector<VkDescriptorSetLayoutBinding>& bindings);
 		~DescriptorSetLayout_VK();
 
 		const VkDescriptorSetLayout* GetDescriptorSetLayout() const;
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkDescriptorSetLayout m_descriptorSetLayout;
 	};
 
 	class DescriptorPool_VK
 	{
 	public:
-		DescriptorPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, uint32_t maxSets);
+		DescriptorPool_VK(LogicalDevice_VK* pDevice, uint32_t maxSets);
 		~DescriptorPool_VK();
 
-		bool AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<std::shared_ptr<DescriptorSet_VK>>& outSets, bool clearPrev = false);
+		bool AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<DescriptorSet_VK*>& outSets, bool clearPrev = false);
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_VK>& updateInfos);
 		// TODO: add set copy support
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkDescriptorPool m_descriptorPool;
 
 		const uint32_t MAX_SETS;
@@ -94,14 +93,14 @@ namespace Engine
 	class DescriptorAllocator_VK
 	{
 	public:
-		DescriptorAllocator_VK(const std::shared_ptr<LogicalDevice_VK> pDevice);
+		DescriptorAllocator_VK(LogicalDevice_VK* pDevice);
 		~DescriptorAllocator_VK() = default;
 
-		std::shared_ptr<DescriptorPool_VK> CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes);
+		DescriptorPool_VK* CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes);
 		// TODO: add pool deletion support
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
-		std::vector<std::shared_ptr<DescriptorPool_VK>> m_descriptorPools;
+		LogicalDevice_VK* m_pDevice;
+		std::vector<DescriptorPool_VK*> m_descriptorPools;
 	};
 }

@@ -14,11 +14,11 @@ namespace Engine
 	class RawShader_VK
 	{
 	public:
-		RawShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry);
+		RawShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry);
 		~RawShader_VK();
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkShaderModule			m_shaderModule;
 		VkShaderStageFlagBits	m_shaderStage;
 		const char* m_entryName;
@@ -32,25 +32,25 @@ namespace Engine
 	class VertexShader_VK : public VertexShader
 	{
 	public:
-		VertexShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
+		VertexShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
 		~VertexShader_VK() = default;
 
-		std::shared_ptr<RawShader_VK> GetShaderImpl() const;
+		RawShader_VK* GetShaderImpl() const;
 
 	private:
-		std::shared_ptr<RawShader_VK> m_pShaderImpl;
+		RawShader_VK* m_pShaderImpl;
 	};
 
 	class FragmentShader_VK : public FragmentShader
 	{
 	public:
-		FragmentShader_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
+		FragmentShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, std::vector<char>& rawCode, const char* entry = "main");
 		~FragmentShader_VK() = default;
 
-		std::shared_ptr<RawShader_VK> GetShaderImpl() const;
+		RawShader_VK* GetShaderImpl() const;
 
 	private:
-		std::shared_ptr<RawShader_VK> m_pShaderImpl;
+		RawShader_VK* m_pShaderImpl;
 	};
 
 	enum class EShaderResourceType_VK
@@ -70,8 +70,8 @@ namespace Engine
 	class ShaderProgram_VK : public ShaderProgram
 	{
 	public:
-		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, const std::shared_ptr<LogicalDevice_VK> pLogicalDevice, uint32_t shaderCount, const std::shared_ptr<RawShader_VK> pShader...); // Could also use a pointer array instead of variadic arguments
-		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, const std::shared_ptr<LogicalDevice_VK> pLogicalDevice, const std::shared_ptr<RawShader_VK> pVertexShader, const std::shared_ptr<RawShader_VK> pFragmentShader);
+		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, const RawShader_VK* pShader...); // Could also use a pointer array instead of variadic arguments
+		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader);
 		~ShaderProgram_VK();
 
 		unsigned int GetParamBinding(const char* paramName) const override;
@@ -83,7 +83,7 @@ namespace Engine
 		uint32_t GetPushConstantRangeCount() const;
 		const VkPushConstantRange* GetPushConstantRanges() const;
 
-		std::shared_ptr<DescriptorSet_VK> GetDescriptorSet();
+		DescriptorSet_VK* GetDescriptorSet();
 		const DescriptorSetLayout_VK* GetDescriptorSetLayout() const;
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_VK>& updateInfos);
 
@@ -111,7 +111,7 @@ namespace Engine
 
 	private:
 		// Shader reflection functions
-		void ReflectResources(const std::shared_ptr<RawShader_VK> pShader, DescriptorSetCreateInfo& descSetCreateInfo);
+		void ReflectResources(const RawShader_VK* pShader, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
 		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
@@ -136,15 +136,15 @@ namespace Engine
 		VkShaderStageFlagBits ShaderTypeConvertToStageBits(EShaderType shaderType);
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pLogicalDevice;
+		LogicalDevice_VK* m_pLogicalDevice;
 
 		// Using char pointer as key would benefit runtime performance, but would reduce initialization speed as we need to match pointer by string contents
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
 		std::vector<VkPushConstantRange> m_pushConstantRanges;
 
-		std::shared_ptr<DescriptorSetLayout_VK> m_pDescriptorSetLayout;
-		std::shared_ptr<DescriptorPool_VK> m_pDescriptorPool;
-		std::vector<std::shared_ptr<DescriptorSet_VK>> m_descriptorSets;
+		DescriptorSetLayout_VK* m_pDescriptorSetLayout;
+		DescriptorPool_VK* m_pDescriptorPool;
+		std::vector<DescriptorSet_VK*> m_descriptorSets;
 		unsigned int m_descriptorSetAccessIndex;
 		mutable std::mutex m_descriptorSetGetMutex;
 

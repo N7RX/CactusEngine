@@ -27,21 +27,21 @@ namespace Engine
 		ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 		if (ImGui::Button("Unity Chan"))
 		{
-			auto pWorld = std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetECSWorld();
+			auto pWorld = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetECSWorld();
 			pWorld->ClearEntities();
 			ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Lucy"))
 		{
-			auto pWorld = std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetECSWorld();
+			auto pWorld = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetECSWorld();
 			pWorld->ClearEntities();
 			ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Serapis"))
 		{
-			auto pWorld = std::static_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetECSWorld();
+			auto pWorld = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetECSWorld();
 			pWorld->ClearEntities();
 			ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
 		}

@@ -17,12 +17,12 @@ namespace Engine
 		m_useShaderType = shaderProgramType;
 	}
 
-	void Material::SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture)
+	void Material::SetTexture(EMaterialTextureType type, Texture2D* pTexture)
 	{
 		m_Textures[type] = pTexture;
 	}
 
-	std::shared_ptr<Texture2D> Material::GetTexture(EMaterialTextureType type) const
+	Texture2D* Material::GetTexture(EMaterialTextureType type) const
 	{
 		if (m_Textures.find(type) != m_Textures.end())
 		{
@@ -81,7 +81,7 @@ namespace Engine
 	{
 	}
 
-	void MaterialComponent::AddMaterial(unsigned int submeshIndex, const std::shared_ptr<Material> pMaterialComp)
+	void MaterialComponent::AddMaterial(unsigned int submeshIndex, Material* pMaterialComp)
 	{
 		m_materialList[submeshIndex] = pMaterialComp;
 	}
@@ -91,7 +91,7 @@ namespace Engine
 		return m_materialList;
 	}
 
-	const std::shared_ptr<Material> MaterialComponent::GetMaterialBySubmeshIndex(unsigned int submeshIndex) const
+	Material* MaterialComponent::GetMaterialBySubmeshIndex(unsigned int submeshIndex) const
 	{
 		if (m_materialList.find(submeshIndex) != m_materialList.end())
 		{

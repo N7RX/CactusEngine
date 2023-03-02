@@ -37,12 +37,12 @@ namespace Engine
 		return false;
 	}
 
-	void Texture2D_GL::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+	void Texture2D_GL::SetSampler(const TextureSampler* pSampler)
 	{
 		// "OpenGL: shouldn't call SetSampler on OpenGL texture 2D."
 	}
 
-	std::shared_ptr<TextureSampler> Texture2D_GL::GetSampler() const
+	TextureSampler* Texture2D_GL::GetSampler() const
 	{
 		LOG_ERROR("OpenGL: shouldn't call GetSampler on texture 2D.");
 		return nullptr;

@@ -21,12 +21,12 @@ namespace Engine
 
 		bool ShouldQuit() const override;
 
-		std::shared_ptr<ECSWorld> GetECSWorld() const;
-		std::shared_ptr<GraphicsDevice> GetGraphicsDevice() const;
-		std::shared_ptr<BaseWindow> GetWindow() const;
+		ECSWorld* GetECSWorld() const;
+		GraphicsDevice* GetGraphicsDevice() const;
+		BaseWindow* GetWindow() const;
 		void* GetWindowHandle() const override;
 
-		void SetGraphicsDevice(const std::shared_ptr<GraphicsDevice> pDevice);
+		void SetGraphicsDevice(GraphicsDevice* pDevice);
 		void AddSetupFunction(void(*pSetupFunc)(GraphicsApplication* pApp));
 
 	private:
@@ -34,10 +34,10 @@ namespace Engine
 		void InitECS();
 
 	private:
-		std::shared_ptr<ECSWorld> m_pECSWorld;
-		std::shared_ptr<GraphicsDevice> m_pDevice;
+		ECSWorld* m_pECSWorld;
+		GraphicsDevice* m_pDevice;
 #if defined(GLFW_IMPLEMENTATION_CE)
-		std::shared_ptr<GLFWWindow> m_pWindow;
+		GLFWWindow* m_pWindow;
 #endif
 		void(*m_pSetupFunc)(GraphicsApplication* pApp);
 	};

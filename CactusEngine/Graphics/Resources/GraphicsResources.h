@@ -3,7 +3,6 @@
 #include "BasicMathTypes.h"
 
 #include <cstdint>
-#include <memory>
 #include <vector>
 #include <unordered_map>
 
@@ -105,7 +104,7 @@ namespace Engine
 		ETextureFormat format;
 		ETextureType   textureType;
 		bool		   generateMipmap;
-		std::shared_ptr<TextureSampler> pSampler;
+		TextureSampler* pSampler;
 		EImageLayout   initialLayout;
 	};
 
@@ -132,8 +131,8 @@ namespace Engine
 		const char* GetFilePath() const;
 
 		virtual bool HasSampler() const = 0;
-		virtual void SetSampler(const std::shared_ptr<TextureSampler> pSampler) = 0;
-		virtual std::shared_ptr<TextureSampler> GetSampler() const = 0;
+		virtual void SetSampler(const TextureSampler* pSampler) = 0;
+		virtual TextureSampler* GetSampler() const = 0;
 
 		ETexture2DSource QuerySource() const;
 
@@ -200,9 +199,9 @@ namespace Engine
 	{
 		uint32_t framebufferWidth;
 		uint32_t framebufferHeight;
-		std::vector<std::shared_ptr<Texture2D>> attachments;
+		std::vector<Texture2D*> attachments;
 
-		std::shared_ptr<RenderPassObject> pRenderPass;
+		RenderPassObject* pRenderPass;
 	};
 
 	class FrameBuffer : public RawResource
@@ -226,7 +225,7 @@ namespace Engine
 	// For low-level APIs like Vulkan
 	struct SwapchainFrameBuffers : public RawResource
 	{
-		std::vector<std::shared_ptr<FrameBuffer>> frameBuffers;
+		std::vector<FrameBuffer*> frameBuffers;
 	};
 
 	struct UniformBufferCreateInfo
@@ -250,7 +249,7 @@ namespace Engine
 	public:
 		virtual void UpdateBufferData(const void* pData) = 0;
 		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
-		virtual std::shared_ptr<SubUniformBuffer> AllocateSubBuffer(uint32_t size) = 0;
+		virtual SubUniformBuffer* AllocateSubBuffer(uint32_t size) = 0;
 		virtual void ResetSubBufferAllocation() = 0;
 
 	protected:
@@ -315,19 +314,19 @@ namespace Engine
 		// For high-level APIs like OpenGL
 		struct ShaderParameterTableEntry
 		{
-			ShaderParameterTableEntry(unsigned int binding, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+			ShaderParameterTableEntry(unsigned int binding, EDescriptorType descType, RawResource* pRes)
 				: binding(binding), type(descType), pResource(pRes)
 			{
 			}
 
-			unsigned int					binding;
-			EDescriptorType					type;
-			std::shared_ptr<RawResource>	pResource;
+			unsigned int	binding;
+			EDescriptorType	type;
+			RawResource*	pResource;
 		};
 
 		std::vector<ShaderParameterTableEntry> m_table;
 
-		void AddEntry(unsigned int binding, EDescriptorType descType, const std::shared_ptr<RawResource> pRes)
+		void AddEntry(unsigned int binding, EDescriptorType descType, RawResource* pRes)
 		{
 			m_table.emplace_back(binding, descType, pRes);
 		}
@@ -459,15 +458,15 @@ namespace Engine
 
 	struct GraphicsPipelineCreateInfo
 	{
-		std::shared_ptr<ShaderProgram>				pShaderProgram;
-		std::shared_ptr<PipelineVertexInputState>	pVertexInputState;
-		std::shared_ptr<PipelineInputAssemblyState>	pInputAssemblyState;
-		std::shared_ptr<PipelineColorBlendState>	pColorBlendState;
-		std::shared_ptr<PipelineRasterizationState>	pRasterizationState;
-		std::shared_ptr<PipelineDepthStencilState>	pDepthStencilState;
-		std::shared_ptr<PipelineMultisampleState>	pMultisampleState;
-		std::shared_ptr<PipelineViewportState>		pViewportState;
-		std::shared_ptr<RenderPassObject>			pRenderPass;
+		ShaderProgram*				pShaderProgram;
+		PipelineVertexInputState*	pVertexInputState;
+		PipelineInputAssemblyState*	pInputAssemblyState;
+		PipelineColorBlendState*	pColorBlendState;
+		PipelineRasterizationState*	pRasterizationState;
+		PipelineDepthStencilState*	pDepthStencilState;
+		PipelineMultisampleState*	pMultisampleState;
+		PipelineViewportState*		pViewportState;
+		RenderPassObject*			pRenderPass;
 		//uint32_t									subpassIndex; // TODO: add subpass support
 	};
 

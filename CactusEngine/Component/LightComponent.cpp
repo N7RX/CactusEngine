@@ -14,7 +14,7 @@ namespace Engine
 	LightComponent::LightComponent(const Profile& profile)
 		: BaseComponent(EComponentType::Light), m_profile(profile)
 	{
-		auto pTransformComp = std::static_pointer_cast<TransformComponent>(m_pParentEntity->GetComponent(EComponentType::Transform));
+		auto pTransformComp = (TransformComponent*)m_pParentEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(pTransformComp != nullptr);
 		pTransformComp->SetScale(Vector3(m_profile.radius));
 	}
@@ -23,7 +23,7 @@ namespace Engine
 	{
 		m_profile = profile;
 
-		auto pTransformComp = std::static_pointer_cast<TransformComponent>(m_pParentEntity->GetComponent(EComponentType::Transform));
+		auto pTransformComp = (TransformComponent*)m_pParentEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(pTransformComp != nullptr);
 		pTransformComp->SetScale(Vector3(m_profile.radius / 19.5f));
 	}

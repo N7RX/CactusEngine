@@ -8,12 +8,12 @@ namespace Engine
 	{
 	}
 
-	void ScriptComponent::BindScript(const std::shared_ptr<BaseScript> pScript)
+	void ScriptComponent::BindScript(BaseScript* pScript)
 	{
 		m_pScript = pScript;
 	}
 
-	std::shared_ptr<BaseScript> ScriptComponent::GetScript() const
+	BaseScript* ScriptComponent::GetScript() const
 	{
 		return m_pScript;
 	}

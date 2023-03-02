@@ -9,7 +9,6 @@
 #include "CommandResources.h"
 
 #include <vulkan.h>
-#include <memory>
 #include <vector>
 
 namespace Engine
@@ -54,25 +53,25 @@ namespace Engine
 		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
 		void BindPipelineLayout(const VkPipelineLayout pipelineLayout); // TODO: integrate this function with BindPipeline
 		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
-		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DescriptorSet_VK>>& descriptorSets, uint32_t firstSet = 0);
+		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<DescriptorSet_VK*>& descriptorSets, uint32_t firstSet = 0);
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);
 		void DrawPrimitive(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex = 0, uint32_t firstInstance = 0);
 		void EndRenderPass();
 		void EndCommandBuffer();
 
-		void TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
-		void GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages);
-		void CopyBufferToBuffer(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const VkBufferCopy& region);
-		void CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, std::shared_ptr<Texture2D_VK> pDstImage, const std::vector<VkBufferImageCopy>& regions);
-		void CopyTexture2DToBuffer(std::shared_ptr<Texture2D_VK> pSrcImage, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const std::vector<VkBufferImageCopy>& regions);
+		void TransitionImageLayout(Texture2D_VK* pImage, const VkImageLayout newLayout, uint32_t appliedStages);
+		void GenerateMipmap(Texture2D_VK* pImage, const VkImageLayout newLayout, uint32_t appliedStages);
+		void CopyBufferToBuffer(const RawBuffer_VK* pSrcBuffer, const RawBuffer_VK* pDstBuffer, const VkBufferCopy& region);
+		void CopyBufferToTexture2D(const RawBuffer_VK* pSrcBuffer, Texture2D_VK* pDstImage, const std::vector<VkBufferImageCopy>& regions);
+		void CopyTexture2DToBuffer(Texture2D_VK* pSrcImage, const RawBuffer_VK* pDstBuffer, const std::vector<VkBufferImageCopy>& regions);
 
 		// For presentation only
-		void WaitPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore);
-		void SignalPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore);
+		void WaitPresentationSemaphore(Semaphore_VK* pSemaphore);
+		void SignalPresentationSemaphore(Semaphore_VK* pSemaphore);
 
 		// For general purpose
-		void WaitSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore);
-		void SignalSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore);
+		void WaitSemaphore(TimelineSemaphore_VK* pSemaphore);
+		void SignalSemaphore(TimelineSemaphore_VK* pSemaphore);
 
 	private:
 		VkCommandBuffer m_commandBuffer;
@@ -81,14 +80,14 @@ namespace Engine
 
 		VkPipelineLayout m_pipelineLayout;
 
-		std::shared_ptr<TimelineSemaphore_VK> m_pAssociatedSubmitSemaphore;
-		std::vector<std::shared_ptr<Semaphore_VK>> m_waitPresentationSemaphores;
-		std::vector<std::shared_ptr<Semaphore_VK>> m_signalPresentationSemaphores;
-		std::vector<std::shared_ptr<TimelineSemaphore_VK>> m_waitSemaphores;
-		std::vector<std::shared_ptr<TimelineSemaphore_VK>> m_signalSemaphores;
-		std::shared_ptr<SyncObjectManager_VK> m_pSyncObjectManager;
+		TimelineSemaphore_VK* m_pAssociatedSubmitSemaphore;
+		std::vector<Semaphore_VK*> m_waitPresentationSemaphores;
+		std::vector<Semaphore_VK*> m_signalPresentationSemaphores;
+		std::vector<TimelineSemaphore_VK*> m_waitSemaphores;
+		std::vector<TimelineSemaphore_VK*> m_signalSemaphores;
+		SyncObjectManager_VK* m_pSyncObjectManager;
 
-		std::queue<std::shared_ptr<DescriptorSet_VK>> m_boundDescriptorSets;
+		std::queue<DescriptorSet_VK*> m_boundDescriptorSets;
 
 		bool m_isRecording;
 		bool m_inRenderPass;
@@ -100,13 +99,13 @@ namespace Engine
 		friend class GraphicsHardwareInterface_VK;
 	};
 
-	class CommandPool_VK : public NoCopy, public GraphicsCommandPool, std::enable_shared_from_this<CommandPool_VK>
+	class CommandPool_VK : public NoCopy, public GraphicsCommandPool
 	{
 	public:
-		CommandPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager);
+		CommandPool_VK(LogicalDevice_VK* pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager);
 		~CommandPool_VK();
 
-		std::shared_ptr<CommandBuffer_VK> RequestPrimaryCommandBuffer();
+		CommandBuffer_VK* RequestPrimaryCommandBuffer();
 
 	private:
 		bool AllocatePrimaryCommandBuffer(uint32_t count);
@@ -115,11 +114,11 @@ namespace Engine
 		const uint32_t MAX_COMMAND_BUFFER_COUNT = 64;
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkCommandPool m_commandPool;
 		CommandManager_VK* m_pManager;
 		uint32_t m_allocatedCommandBufferCount;
-		SafeQueue<std::shared_ptr<CommandBuffer_VK>> m_freeCommandBuffers;
+		SafeQueue<CommandBuffer_VK*> m_freeCommandBuffers;
 
 		friend class CommandManager_VK;
 		friend class GraphicsHardwareInterface_VK;
@@ -129,8 +128,8 @@ namespace Engine
 	{
 		VkSubmitInfo submitInfo;
 
-		//std::shared_ptr<QueueSubmitConditionLock_Vulkan> submitConditionLock;
-		std::queue<std::shared_ptr<CommandBuffer_VK>> queuedCmdBuffers;
+		//QueueSubmitConditionLock_Vulkan* submitConditionLock;
+		std::queue<CommandBuffer_VK*> queuedCmdBuffers;
 
 		// Retained resources
 		std::vector<VkCommandBuffer>	  buffersAwaitSubmit;	
@@ -145,20 +144,20 @@ namespace Engine
 	class CommandManager_VK : public NoCopy
 	{
 	public:
-		CommandManager_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const CommandQueue_VK& queue);
+		CommandManager_VK(LogicalDevice_VK* pDevice, const CommandQueue_VK& queue);
 		~CommandManager_VK();
 
 		void Destroy();
 
 		EQueueType GetWorkingQueueType() const;
 
-		std::shared_ptr<CommandBuffer_VK> RequestPrimaryCommandBuffer();
-		void SubmitCommandBuffers(std::shared_ptr<TimelineSemaphore_VK> pSubmitSemaphore, uint32_t usageMask);
-		void SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<CommandBuffer_VK> pCmdBuffer); // This function would stall the queue, use with caution
-																												 // Also, it ONLY accepts command buffers allocated from default pool
-		// For multithreading																					 // Also, DO NOT use this function for frequently called operations (e.g. per frame)
-		std::shared_ptr<CommandPool_VK> RequestExternalCommandPool();
-		void ReturnExternalCommandBuffer(std::shared_ptr<CommandBuffer_VK> pCmdBuffer);
+		CommandBuffer_VK* RequestPrimaryCommandBuffer();
+		void SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask);
+		void SubmitSingleCommandBuffer_Immediate(CommandBuffer_VK* pCmdBuffer); // This function would stall the queue, use with caution
+																					  // Additionally, it ONLY accepts command buffers allocated from default pool
+		// For multithreading														  // Additionally, DO NOT use this function for frequently called operations (e.g. per frame)
+		CommandPool_VK* RequestExternalCommandPool();
+		void ReturnExternalCommandBuffer(CommandBuffer_VK* pCmdBuffer);
 
 	private:
 		VkCommandPool CreateCommandPool();
@@ -170,16 +169,16 @@ namespace Engine
 		const uint64_t RECYCLE_TIMEOUT = 3e9; // 3 seconds
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		CommandQueue_VK m_workingQueue;
 		bool m_isRunning;
 
-		std::shared_ptr<CommandPool_VK> m_pDefaultCommandPool;
+		CommandPool_VK* m_pDefaultCommandPool;
 
-		SafeQueue<std::shared_ptr<CommandBuffer_VK>> m_inUseCommandBuffers;
-		SafeQueue<std::shared_ptr<CommandBuffer_VK>> m_inExecutionCommandBuffers;
+		SafeQueue<CommandBuffer_VK*> m_inUseCommandBuffers;
+		SafeQueue<CommandBuffer_VK*> m_inExecutionCommandBuffers;
 
-		SafeQueue<std::shared_ptr<CommandSubmitInfo_VK>> m_commandSubmissionQueue;
+		SafeQueue<CommandSubmitInfo_VK*> m_commandSubmissionQueue;
 
 		std::mutex m_externalCommandPoolCreationMutex;
 		std::mutex m_inExecutionQueueRWMutex;

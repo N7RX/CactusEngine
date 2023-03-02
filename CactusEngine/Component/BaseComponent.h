@@ -2,8 +2,6 @@
 #include "BasicMathTypes.h"
 #include "SharedTypes.h"
 
-#include <memory>
-
 namespace Engine
 {
 	class BaseEntity;

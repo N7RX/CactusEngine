@@ -525,6 +525,9 @@
     <ClInclude Include="Graphics\Resources\CommandResources.h">
       <Filter>Graphics\Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Common\MemoryAllocator.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -757,6 +760,9 @@
     </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\Nodes\TransparentContentRenderNode.cpp">
       <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\MemoryAllocator.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

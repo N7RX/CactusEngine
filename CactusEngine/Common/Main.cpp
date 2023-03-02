@@ -1,5 +1,6 @@
 #include "GraphicsApplication.h"
 #include "Global.h"
+#include "MemoryAllocator.h"
 #include "RenderingSystem.h"
 #include "InputSystem.h"
 #include "AnimationSystem.h"
@@ -29,10 +30,11 @@ int main()
 
 	if (gpGlobal == nullptr)
 	{
-		gpGlobal = new Global();
+		CE_NEW(gpGlobal, Global);
 	}
 
-	auto pApplication = std::make_shared<GraphicsApplication>();
+	GraphicsApplication* pApplication;
+	CE_NEW(pApplication, GraphicsApplication);
 
 	if (!pApplication)
 	{
@@ -73,6 +75,9 @@ int main()
 
 	pApplication->ShutDown();
 
+	CE_DELETE(pApplication);
+
+	CE_DELETE(gpGlobal);
 	LOG_SYSTEM_SHUTDOWN();
 
 	return 0;
@@ -116,7 +121,7 @@ void TestSetup(GraphicsApplication* pApp)
 	lightProfile.lightColor = Color3(1.0f);
 	lightProfile.lightIntensity = 10.0f;
 	lightProfile.radius = 1.0f;
-	lightProfile.pVolumeMesh = std::make_shared<ExternalMesh>("Assets/Models/light_sphere.obj");
+	CE_NEW(lightProfile.pVolumeMesh, ExternalMesh, "Assets/Models/light_sphere.obj");
 
 	Color3 colors[7] = {
 		Color3(1.0f),
@@ -145,7 +150,10 @@ void TestSetup(GraphicsApplication* pApp)
 			pTransformComp->SetPosition(Vector3(4.0f * (i / 5.0f), 0.1f, 8.0f * (j / 5.0f)));
 			lightProfile.lightColor = colors[(colorIndex++) % 7];
 			pLightComp->UpdateProfile(lightProfile);
-			pScriptComp->BindScript(std::make_shared<SampleScript::LightScript>(pLight));
+
+			SampleScript::LightScript* pSript;
+			CE_NEW(pSript, SampleScript::LightScript, pLight);
+			pScriptComp->BindScript(pSript);
 		}
 	}
 

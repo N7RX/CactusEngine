@@ -5,7 +5,7 @@
 
 namespace Engine
 {
-	typedef std::unordered_map<EMaterialTextureType, std::shared_ptr<Texture2D>> MaterialTextureList;
+	typedef std::unordered_map<EMaterialTextureType, Texture2D*> MaterialTextureList;
 
 	class Material
 	{
@@ -16,8 +16,8 @@ namespace Engine
 		EBuiltInShaderProgramType GetShaderProgramType() const;
 		void SetShaderProgram(EBuiltInShaderProgramType shaderProgramType);
 
-		void SetTexture(EMaterialTextureType type, const std::shared_ptr<Texture2D> pTexture);
-		std::shared_ptr<Texture2D> GetTexture(EMaterialTextureType type) const;
+		void SetTexture(EMaterialTextureType type, Texture2D* pTexture);
+		Texture2D* GetTexture(EMaterialTextureType type) const;
 		const MaterialTextureList& GetTextureList() const;
 
 		void SetAlbedoColor(Color4 albedo);
@@ -43,7 +43,7 @@ namespace Engine
 		float m_roughness;
 	};
 
-	typedef std::unordered_map<unsigned int, std::shared_ptr<Material>> MaterialList;
+	typedef std::unordered_map<unsigned int, Material*> MaterialList;
 
 	class MaterialComponent : public BaseComponent
 	{
@@ -51,9 +51,9 @@ namespace Engine
 		MaterialComponent();
 		~MaterialComponent() = default;
 
-		void AddMaterial(unsigned int submeshIndex, const std::shared_ptr<Material> pMaterialComp);
+		void AddMaterial(unsigned int submeshIndex, Material* pMaterialComp);
 		const MaterialList& GetMaterialList() const;
-		const std::shared_ptr<Material> GetMaterialBySubmeshIndex(unsigned int submeshIndex) const;
+		Material* GetMaterialBySubmeshIndex(unsigned int submeshIndex) const;
 		unsigned int GetMaterialCount() const;
 
 	private:

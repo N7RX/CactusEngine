@@ -3,5 +3,5 @@
 
 namespace Engine
 {
-	extern bool WriteECSWorldToJson(const std::shared_ptr<ECSWorld> pWorld, const char* fileAddress);
+	extern bool WriteECSWorldToJson(const ECSWorld* pWorld, const char* fileAddress);
 }

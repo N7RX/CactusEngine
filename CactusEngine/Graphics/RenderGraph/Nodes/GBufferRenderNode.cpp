@@ -9,13 +9,13 @@ namespace Engine
 	const char* GBufferRenderNode::OUTPUT_NORMAL_GBUFFER = "NormalGBufferTexture";
 	const char* GBufferRenderNode::OUTPUT_POSITION_GBUFFER = "PositionGBufferTexture";
 
-	GBufferRenderNode::GBufferRenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
+	GBufferRenderNode::GBufferRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
 		: RenderNode(pGraphResources, pRenderer)
 	{
 
 	}
 
-	void GBufferRenderNode::SetupFunction(std::shared_ptr<RenderGraphResource> pGraphResources)
+	void GBufferRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
@@ -161,7 +161,7 @@ namespace Engine
 		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
 		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
 
-		std::shared_ptr<PipelineVertexInputState> pVertexInputState = nullptr;
+		PipelineVertexInputState* pVertexInputState = nullptr;
 		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, pVertexInputState);
 
 		// Input assembly state
@@ -170,7 +170,7 @@ namespace Engine
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleList;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
-		std::shared_ptr<PipelineInputAssemblyState> pInputAssemblyState = nullptr;
+		PipelineInputAssemblyState* pInputAssemblyState = nullptr;
 		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState);
 
 		// Rasterization state
@@ -182,7 +182,7 @@ namespace Engine
 		rasterizationStateCreateInfo.cullMode = ECullMode::Back;
 		rasterizationStateCreateInfo.frontFaceCounterClockwise = true;
 
-		std::shared_ptr<PipelineRasterizationState> pRasterizationState = nullptr;
+		PipelineRasterizationState* pRasterizationState = nullptr;
 		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pRasterizationState);
 
 		// Depth stencil state
@@ -193,7 +193,7 @@ namespace Engine
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
 		depthStencilStateCreateInfo.enableStencilTest = false;
 
-		std::shared_ptr<PipelineDepthStencilState> pDepthStencilState = nullptr;
+		PipelineDepthStencilState* pDepthStencilState = nullptr;
 		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, pDepthStencilState);
 
 		// Multisample state
@@ -202,7 +202,7 @@ namespace Engine
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
-		std::shared_ptr<PipelineMultisampleState> pMultisampleState = nullptr;
+		PipelineMultisampleState* pMultisampleState = nullptr;
 		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, pMultisampleState);
 
 		// Color blend state
@@ -214,7 +214,7 @@ namespace Engine
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 
-		std::shared_ptr<PipelineColorBlendState> pColorBlendState = nullptr;
+		PipelineColorBlendState* pColorBlendState = nullptr;
 		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
 
 		// Viewport state
@@ -223,7 +223,7 @@ namespace Engine
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
-		std::shared_ptr<PipelineViewportState> pViewportState;
+		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
 
 		// Pipeline creation
@@ -239,18 +239,18 @@ namespace Engine
 		pipelineCreateInfo.pViewportState = pViewportState;
 		pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		std::shared_ptr<GraphicsPipelineObject> pPipeline = nullptr;
+		GraphicsPipelineObject* pPipeline = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
 		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::GBuffer, pPipeline);
 	}
 
-	void GBufferRenderNode::RenderPassFunction(std::shared_ptr<RenderGraphResource> pGraphResources, const std::shared_ptr<RenderContext> pRenderContext, const std::shared_ptr<CommandContext> pCmdContext)
+	void GBufferRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
 		m_pTransformMatrices_UB->ResetSubBufferAllocation();
 
-		auto pCameraTransform = std::static_pointer_cast<TransformComponent>(pRenderContext->pCamera->GetComponent(EComponentType::Transform));
-		auto pCameraComp = std::static_pointer_cast<CameraComponent>(pRenderContext->pCamera->GetComponent(EComponentType::Camera));
+		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
+		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
@@ -261,7 +261,7 @@ namespace Engine
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
 			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-		std::shared_ptr<GraphicsCommandBuffer> pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
 
@@ -276,9 +276,9 @@ namespace Engine
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{
-			auto pMaterialComp = std::static_pointer_cast<MaterialComponent>(entity->GetComponent(EComponentType::Material));
-			auto pTransformComp = std::static_pointer_cast<TransformComponent>(entity->GetComponent(EComponentType::Transform));
-			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(entity->GetComponent(EComponentType::MeshFilter));
+			auto pMaterialComp = (MaterialComponent*)entity->GetComponent(EComponentType::Material);
+			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
+			auto pMeshFilterComp = (MeshFilterComponent*)entity->GetComponent(EComponentType::MeshFilter);
 
 			if (!pTransformComp || !pMeshFilterComp)
 			{
@@ -292,7 +292,8 @@ namespace Engine
 				continue;
 			}
 
-			auto pShaderParamTable = std::make_shared<ShaderParameterTable>();
+			ShaderParameterTable* pShaderParamTable;
+			CE_NEW(pShaderParamTable, ShaderParameterTable);
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();

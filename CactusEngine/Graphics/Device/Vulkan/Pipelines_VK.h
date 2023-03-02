@@ -10,11 +10,11 @@ namespace Engine
 	class RenderPass_VK : public RenderPassObject
 	{
 	public:
-		RenderPass_VK(const std::shared_ptr<LogicalDevice_VK> pDevice);
+		RenderPass_VK(LogicalDevice_VK* pDevice);
 		~RenderPass_VK();
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkRenderPass m_renderPass;
 		std::vector<VkClearValue> m_clearValues;
 
@@ -24,7 +24,7 @@ namespace Engine
 	class GraphicsPipeline_VK : public GraphicsPipelineObject
 	{
 	public:
-		GraphicsPipeline_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const std::shared_ptr<ShaderProgram_VK> pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo);
+		GraphicsPipeline_VK(LogicalDevice_VK* pDevice, ShaderProgram_VK* pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo);
 		~GraphicsPipeline_VK();
 
 		VkPipeline GetPipeline() const;
@@ -32,8 +32,8 @@ namespace Engine
 		VkPipelineBindPoint GetBindPoint() const;
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
-		std::shared_ptr<ShaderProgram_VK> m_pShaderProgram;
+		LogicalDevice_VK* m_pDevice;
+		ShaderProgram_VK* m_pShaderProgram;
 
 		VkPipeline m_pipeline;
 		VkPipelineLayout m_pipelineLayout;

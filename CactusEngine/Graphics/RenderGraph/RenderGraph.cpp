@@ -7,12 +7,12 @@
 
 namespace Engine
 {
-	void RenderGraphResource::Add(const char* name, std::shared_ptr<RawResource> pResource)
+	void RenderGraphResource::Add(const char* name, RawResource* pResource)
 	{
 		m_renderResources.emplace(name, pResource);
 	}
 
-	std::shared_ptr<RawResource> RenderGraphResource::Get(const char* name) const
+	RawResource* RenderGraphResource::Get(const char* name) const
 	{
 		if (m_renderResources.find(name) != m_renderResources.end())
 		{
@@ -22,7 +22,7 @@ namespace Engine
 		return nullptr;
 	}
 
-	void RenderGraphResource::Swap(const char* name, std::shared_ptr<RawResource> pResource)
+	void RenderGraphResource::Swap(const char* name, RawResource* pResource)
 	{
 		if (m_renderResources.find(name) != m_renderResources.end())
 		{
@@ -34,7 +34,7 @@ namespace Engine
 		}
 	}
 
-	RenderNode::RenderNode(std::shared_ptr<RenderGraphResource> pGraphResources, BaseRenderer* pRenderer)
+	RenderNode::RenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
 		: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
 	{
 		DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
@@ -42,7 +42,7 @@ namespace Engine
 		m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
 	}
 
-	void RenderNode::ConnectNext(std::shared_ptr<RenderNode> pNode)
+	void RenderNode::ConnectNext(RenderNode* pNode)
 	{
 		m_nextNodes.emplace_back(pNode);
 		pNode->m_prevNodes.emplace_back(this);
@@ -84,7 +84,7 @@ namespace Engine
 		m_finishedExecution = true;
 	}
 
-	RenderGraph::RenderGraph(const std::shared_ptr<GraphicsDevice> pDevice, uint32_t executionThreadCount)
+	RenderGraph::RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount)
 		: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
@@ -106,7 +106,7 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::AddRenderNode(const char* name, std::shared_ptr<RenderNode> pNode)
+	void RenderGraph::AddRenderNode(const char* name, RenderNode* pNode)
 	{
 		m_nodes.emplace(name, pNode);
 		m_nodes[name]->m_pName = name;
@@ -126,7 +126,7 @@ namespace Engine
 		m_nodePriorityDependencies.clear();
 
 		// Find all starting nodes
-		std::queue<std::shared_ptr<RenderNode>> startingNodes;
+		std::queue<RenderNode*> startingNodes;
 		for (auto& pNode : m_nodes)
 		{
 			pNode.second->m_finishedExecution = false;
@@ -138,7 +138,7 @@ namespace Engine
 		}
 
 		// Traverse graph
-		std::vector<std::shared_ptr<RenderNode>> traverseResult;
+		std::vector<RenderNode*> traverseResult;
 		while (!startingNodes.empty())
 		{
 			TraverseRenderNode(startingNodes.front(), traverseResult);
@@ -170,9 +170,13 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesSequential(const std::shared_ptr<RenderContext> pContext)
+	void RenderGraph::BeginRenderPassesSequential(RenderContext* pContext)
 	{
-		static std::shared_ptr<CommandContext> pEmptyCmdContext = std::make_shared<CommandContext>();
+		static CommandContext* pEmptyCmdContext;
+		if (!pEmptyCmdContext)
+		{
+			CE_NEW(pEmptyCmdContext, CommandContext);
+		}
 
 		for (auto& pNode : m_nodes)
 		{
@@ -193,7 +197,7 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesParallel(const std::shared_ptr<RenderContext> pContext)
+	void RenderGraph::BeginRenderPassesParallel(RenderContext* pContext)
 	{
 		for (auto& pNode : m_nodes)
 		{
@@ -224,7 +228,7 @@ namespace Engine
 		m_nodeExecutionCv.notify_all();
 	}
 
-	std::shared_ptr<RenderNode> RenderGraph::GetNodeByName(const char* name) const
+	RenderNode* RenderGraph::GetNodeByName(const char* name) const
 	{
 		if (m_nodes.find(name) != m_nodes.end())
 		{
@@ -241,11 +245,12 @@ namespace Engine
 
 	void RenderGraph::ExecuteRenderNodeParallel()
 	{
-		auto pCmdContext = std::make_shared<CommandContext>();
+		CommandContext* pCmdContext;
+		CE_NEW(pCmdContext, CommandContext);
 		pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
 		pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
 
-		std::shared_ptr<RenderNode> pNode = nullptr;
+		RenderNode* pNode = nullptr;
 		while (m_isRunning)
 		{
 			{
@@ -263,7 +268,7 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::EnqueueRenderNode(const std::shared_ptr<RenderNode> pNode)
+	void RenderGraph::EnqueueRenderNode(RenderNode* pNode)
 	{
 		// Enqueue render nodes by dependency sequence
 		for (auto& pPrevNode : pNode->m_prevNodes)
@@ -283,7 +288,7 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::TraverseRenderNode(const std::shared_ptr<RenderNode> pNode, std::vector<std::shared_ptr<RenderNode>>& output)
+	void RenderGraph::TraverseRenderNode(RenderNode* pNode, std::vector<RenderNode*>& output)
 	{
 		// Record render nodes by dependency sequence
 		for (auto& pPrevNode : pNode->m_prevNodes)

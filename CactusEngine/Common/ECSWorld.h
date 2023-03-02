@@ -2,13 +2,14 @@
 #include "BaseEntity.h"
 #include "BaseComponent.h"
 #include "BaseSystem.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
-	typedef std::unordered_map<uint32_t, std::shared_ptr<BaseEntity>> EntityList;
-	typedef std::unordered_map<uint32_t, std::shared_ptr<BaseSystem>> SystemList;
+	typedef std::unordered_map<uint32_t, BaseEntity*> EntityList;
+	typedef std::unordered_map<uint32_t, BaseSystem*> SystemList;
 
-	class ECSWorld : std::enable_shared_from_this<ECSWorld>
+	class ECSWorld
 	{
 	public:
 		ECSWorld();
@@ -20,18 +21,20 @@ namespace Engine
 		void Tick();
 
 		template<typename T>
-		inline std::shared_ptr<T> CreateEntity()
+		inline T* CreateEntity()
 		{
-			auto pEntity = std::make_shared<T>();
+			T* pEntity;
+			CE_NEW(pEntity, T);
 			pEntity->SetEntityID(GetNewECSID(EECSType::Entity));
 			m_entityList.emplace(pEntity->GetEntityID(), pEntity);
 			return pEntity;
 		}
 
 		template<typename T>
-		inline std::shared_ptr<T> CreateComponent()
+		inline T* CreateComponent()
 		{
-			auto pComponent = std::make_shared<T>();
+			T* pComponent;
+			CE_NEW(pComponent, T);
 			pComponent->SetComponentID(GetNewECSID(EECSType::Component));
 			return pComponent;
 		}
@@ -39,7 +42,8 @@ namespace Engine
 		template<typename T>
 		inline void RegisterSystem(ESystemType type)
 		{
-			auto pSystem = std::make_shared<T>(this);
+			T* pSystem;
+			CE_NEW(pSystem, T, this);
 			pSystem->SetSystemID((uint32_t)type);
 			m_systemList.emplace((uint32_t)type, pSystem);
 		}
@@ -49,8 +53,8 @@ namespace Engine
 
 		const EntityList* GetEntityList() const;
 
-		std::shared_ptr<BaseEntity> FindEntityWithTag(EEntityTag tag) const;
-		std::vector<std::shared_ptr<BaseEntity>> FindEntitiesWithTag(EEntityTag tag) const;
+		BaseEntity* FindEntityWithTag(EEntityTag tag) const;
+		std::vector<BaseEntity*> FindEntitiesWithTag(EEntityTag tag) const;
 
 		void ClearEntities();
 

@@ -13,7 +13,7 @@ namespace SampleScript
 {
 	int BunnyScript::m_instanceCounter = 0;
 
-	BunnyScript::BunnyScript(const std::shared_ptr<BaseEntity> pEntity)
+	BunnyScript::BunnyScript(BaseEntity* pEntity)
 		: m_pEntity(pEntity), m_pBunnyTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
@@ -28,7 +28,7 @@ namespace SampleScript
 
 	void BunnyScript::Start()
 	{
-		m_pBunnyTransform = std::static_pointer_cast<TransformComponent>(m_pEntity->GetComponent(EComponentType::Transform));
+		m_pBunnyTransform = (TransformComponent*)m_pEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(m_pBunnyTransform != nullptr);
 
 		m_started = true;

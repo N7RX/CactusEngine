@@ -7,7 +7,7 @@ namespace SampleScript
 	class CameraScript : public Engine::BaseScript
 	{
 	public:
-		CameraScript(const std::shared_ptr<Engine::BaseEntity> pEntity);
+		CameraScript(Engine::BaseEntity* pEntity);
 		~CameraScript() = default;
 
 		void Start() override;
@@ -17,9 +17,9 @@ namespace SampleScript
 		float m_cameraMoveSpeed = 3.0f;
 
 	private:
-		std::shared_ptr<Engine::BaseEntity> m_pEntity;
+		Engine::BaseEntity* m_pEntity;
 
-		std::shared_ptr<Engine::TransformComponent> m_pCameraTransform;
+		Engine::TransformComponent* m_pCameraTransform;
 		Engine::Vector2 m_prevCursorPosition;
 	};
 }

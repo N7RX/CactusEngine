@@ -2,10 +2,11 @@
 #include "GraphicsHardwareInterface_VK.h"
 #include "GHIUtilities_VK.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
-	RawBuffer_VK::RawBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo)
+	RawBuffer_VK::RawBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo)
 		: m_pAllocator(pAllocator), m_deviceSize(createInfo.size)
 	{
 		DEBUG_ASSERT_CE(pAllocator);
@@ -28,11 +29,11 @@ namespace Engine
 		}
 	}
 
-	DataTransferBuffer_VK::DataTransferBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo)
+	DataTransferBuffer_VK::DataTransferBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo)
 		: m_pAllocator(pAllocator), m_constantlyMapped(false), m_ppMappedData(nullptr)
 	{
 		m_sizeInBytes = createInfo.size;
-		m_pBufferImpl = std::make_shared<RawBuffer_VK>(m_pAllocator, createInfo);
+		CE_NEW(m_pBufferImpl, RawBuffer_VK, m_pAllocator, createInfo);
 	}
 
 	DataTransferBuffer_VK::~DataTransferBuffer_VK()
@@ -43,23 +44,22 @@ namespace Engine
 		}
 	}
 
-	VertexBuffer_VK::VertexBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo)
+	VertexBuffer_VK::VertexBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo)
 		: m_pAllocator(pAllocator)
 	{
-		m_pVertexBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, vertexBufferCreateInfo);
+		CE_NEW(m_pVertexBufferImpl, RawBuffer_VK, pAllocator, vertexBufferCreateInfo);
+		CE_NEW(m_pIndexBufferImpl, RawBuffer_VK, pAllocator, indexBufferCreateInfo);
 
-		m_pIndexBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, indexBufferCreateInfo);
 		m_indexType = indexBufferCreateInfo.indexFormat;
-
 		m_sizeInBytes = vertexBufferCreateInfo.size + indexBufferCreateInfo.size;
 	}
 
-	std::shared_ptr<RawBuffer_VK> VertexBuffer_VK::GetBufferImpl() const
+	RawBuffer_VK* VertexBuffer_VK::GetBufferImpl() const
 	{
 		return m_pVertexBufferImpl;
 	}
 
-	std::shared_ptr<RawBuffer_VK> VertexBuffer_VK::GetIndexBufferImpl() const
+	RawBuffer_VK* VertexBuffer_VK::GetIndexBufferImpl() const
 	{
 		return m_pIndexBufferImpl;
 	}
@@ -69,7 +69,7 @@ namespace Engine
 		return m_indexType;
 	}
 
-	UniformBuffer_VK::UniformBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const UniformBufferCreateInfo_VK& createInfo)
+	UniformBuffer_VK::UniformBuffer_VK(UploadAllocator_VK* pAllocator, const UniformBufferCreateInfo_VK& createInfo)
 		: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_pHostData(nullptr), m_subAllocatedSize(0)
 	{
 		RawBufferCreateInfo_VK bufferImplCreateInfo = {};
@@ -77,7 +77,7 @@ namespace Engine
 		bufferImplCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 		bufferImplCreateInfo.size = createInfo.size;
 
-		m_pBufferImpl = std::make_shared<RawBuffer_VK>(pAllocator, bufferImplCreateInfo);
+		CE_NEW(m_pBufferImpl, RawBuffer_VK, pAllocator, bufferImplCreateInfo);
 		m_sizeInBytes = createInfo.size;
 
 		if (m_eType == EUniformBufferType_VK::Uniform)
@@ -120,12 +120,13 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<SubUniformBuffer> UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
+	SubUniformBuffer* UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
 	{
 		std::lock_guard<std::mutex> lock(m_subAllocateMutex);
 		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
-		auto pSubBuffer = std::make_shared<SubUniformBuffer_VK>(this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
+		SubUniformBuffer* pSubBuffer;
+		CE_NEW(pSubBuffer, SubUniformBuffer_VK, this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
 		m_subAllocatedSize += size;
 
 		return pSubBuffer;
@@ -136,7 +137,7 @@ namespace Engine
 		m_subAllocatedSize = 0;
 	}
 
-	void UniformBuffer_VK::UpdateToDevice(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
+	void UniformBuffer_VK::UpdateToDevice(CommandBuffer_VK* pCmdBuffer)
 	{
 		DEBUG_ASSERT_CE(m_pBufferImpl->m_pAllocator);
 		DEBUG_ASSERT_CE(m_pRawData != nullptr);
@@ -158,7 +159,7 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<RawBuffer_VK> UniformBuffer_VK::GetBufferImpl() const
+	RawBuffer_VK* UniformBuffer_VK::GetBufferImpl() const
 	{
 		return m_pBufferImpl;
 	}

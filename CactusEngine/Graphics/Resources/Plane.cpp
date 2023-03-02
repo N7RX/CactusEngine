@@ -4,7 +4,7 @@
 namespace Engine
 {
 	Plane::Plane(uint64_t dimLength, uint64_t dimWidth)
-		: Mesh(std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice())
+		: Mesh(((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetGraphicsDevice())
 	{
 		std::vector<float> positions((dimLength + 1) * (dimWidth + 1) * 3, 0);
 		std::vector<float> normals((dimLength + 1) * (dimWidth + 1) * 3, 0);

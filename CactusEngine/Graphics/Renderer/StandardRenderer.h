@@ -11,20 +11,20 @@ namespace Engine
 	class RenderGraphResource;
 	class GraphicsCommandBuffer;
 
-	class StandardRenderer : public BaseRenderer, std::enable_shared_from_this<StandardRenderer>
+	class StandardRenderer : public BaseRenderer
 	{
 	public:
-		StandardRenderer(const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem);
+		StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem);
 		~StandardRenderer() = default;
 
 		void BuildRenderGraph() override;
-		void Draw(const std::vector<std::shared_ptr<BaseEntity>>& drawList, const std::shared_ptr<BaseEntity> pCamera) override;
-		void WriteCommandRecordList(const char* pNodeName, const std::shared_ptr<GraphicsCommandBuffer>& pCommandBuffer) override;
+		void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera) override;
+		void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer) override;
 
 	private:
-		std::shared_ptr<RenderGraphResource> m_pGraphResources;
+		RenderGraphResource* m_pGraphResources;
 
-		std::unordered_map<uint32_t, std::shared_ptr<GraphicsCommandBuffer>> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
+		std::unordered_map<uint32_t, GraphicsCommandBuffer*> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
 		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted
 
 		std::mutex m_commandRecordListWriteMutex;

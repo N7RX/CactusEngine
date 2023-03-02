@@ -15,7 +15,7 @@
 
 namespace Engine
 {
-	bool ReadECSWorldFromJson(std::shared_ptr<ECSWorld> pWorld, const char* fileAddress)
+	bool ReadECSWorldFromJson(ECSWorld* pWorld, const char* fileAddress)
 	{
 		if (!pWorld)
 		{
@@ -55,10 +55,10 @@ namespace Engine
 
 			// Check and configure components
 
-			std::stack<std::shared_ptr<BaseComponent>> components;
+			std::stack<BaseComponent*> components;
 			// TODO: find a better solution
 			int scriptID = -1;
-			std::shared_ptr<ScriptComponent> pScriptComp = nullptr;
+			ScriptComponent* pScriptComp = nullptr;
 
 			if (entity["transform"])
 			{
@@ -91,13 +91,13 @@ namespace Engine
 				Json::Value component = entity["meshFilter"];
 
 				bool attachMesh = true;
-				std::shared_ptr<Mesh> pMesh = nullptr;
+				Mesh* pMesh = nullptr;
 				switch ((EBuiltInMeshType)(component["type"].asInt()))
 				{
 				case EBuiltInMeshType::External:
 					if (ResourceManagement::LoadedMeshes.find(component["filePath"].asString()) == ResourceManagement::LoadedMeshes.end())
 					{
-						pMesh = std::make_shared<ExternalMesh>(component["filePath"].asCString());
+						CE_NEW(pMesh, ExternalMesh, component["filePath"].asCString());
 						ResourceManagement::LoadedMeshes.emplace(component["filePath"].asString(), pMesh);
 					}
 					else
@@ -106,7 +106,7 @@ namespace Engine
 					}
 					break;
 				case EBuiltInMeshType::Plane:
-					pMesh = std::make_shared<Plane>(component["planeDimension"]["x"].asUInt(), component["planeDimension"]["y"].asUInt());
+					CE_NEW(pMesh, Plane, component["planeDimension"]["x"].asUInt(), component["planeDimension"]["y"].asUInt());
 					break;
 				default:
 					LOG_WARNING("ECSSceneReader: Unhandled mesh type: " + std::to_string(component["type"].asInt()));
@@ -126,7 +126,8 @@ namespace Engine
 			{
 				Json::Value component = entity["material"];
 
-				auto pMaterialComp = std::make_shared<MaterialComponent>();
+				MaterialComponent* pMaterialComp;
+				CE_NEW(pMaterialComp, MaterialComponent);
 
 				static std::string pathTypes[(uint32_t)EMaterialTextureType::COUNT] =
 				{
@@ -146,7 +147,8 @@ namespace Engine
 					materialName << "materialImpl" << i;
 					Json::Value subComponent = component[materialName.str()];
 
-					auto pMaterial = std::make_shared<Material>();
+					Material* pMaterial;
+					CE_NEW(pMaterial, Material);
 
 					pMaterial->SetShaderProgram((EBuiltInShaderProgramType)(subComponent["shaderType"].asInt()));
 
@@ -154,10 +156,10 @@ namespace Engine
 					{
 						if (subComponent[pathTypes[i]])
 						{
-							std::shared_ptr<Texture2D> pTexture = nullptr;
+							Texture2D* pTexture = nullptr;
 							if (ResourceManagement::LoadedImageTextures.find(subComponent[pathTypes[i]].asString()) == ResourceManagement::LoadedImageTextures.end())
 							{
-								pTexture = std::make_shared<ImageTexture>(subComponent[pathTypes[i]].asCString());
+								CE_NEW(pTexture, ImageTexture, subComponent[pathTypes[i]].asCString());
 								ResourceManagement::LoadedImageTextures.emplace(subComponent[pathTypes[i]].asString(), pTexture);
 							}
 							else

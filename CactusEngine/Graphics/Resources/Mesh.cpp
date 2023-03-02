@@ -3,12 +3,12 @@
 
 namespace Engine
 {
-	Mesh::Mesh(const std::shared_ptr<GraphicsDevice> pDevice)
+	Mesh::Mesh(GraphicsDevice* pDevice)
 		: m_pDevice(pDevice), m_type(EBuiltInMeshType::External), m_planeDimension(0, 0)
 	{
 	}
 
-	std::shared_ptr<VertexBuffer> Mesh::GetVertexBuffer() const
+	VertexBuffer* Mesh::GetVertexBuffer() const
 	{
 		return m_pVertexBuffer;
 	}

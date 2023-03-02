@@ -29,7 +29,7 @@ namespace Engine
 		auto pEntityList = m_pECSWorld->GetEntityList();
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
-			auto pScriptComp = std::static_pointer_cast<ScriptComponent>(itr->second->GetComponent(EComponentType::Script));
+			auto pScriptComp = (ScriptComponent*)itr->second->GetComponent(EComponentType::Script);
 			if (pScriptComp)
 			{
 				auto pScript = pScriptComp->GetScript();

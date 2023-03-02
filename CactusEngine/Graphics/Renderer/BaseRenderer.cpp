@@ -3,7 +3,7 @@
 
 namespace Engine
 {
-	BaseRenderer::BaseRenderer(ERendererType type, const std::shared_ptr<GraphicsDevice> pDevice, RenderingSystem* pSystem)
+	BaseRenderer::BaseRenderer(ERendererType type, GraphicsDevice* pDevice, RenderingSystem* pSystem)
 		: m_rendererType(type), m_renderPriority(0), m_pDevice(pDevice), m_pSystem(pSystem)
 	{
 		m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
@@ -24,7 +24,7 @@ namespace Engine
 		return m_renderPriority;
 	}
 
-	std::shared_ptr<GraphicsDevice> BaseRenderer::GetGraphicsDevice() const
+	GraphicsDevice* BaseRenderer::GetGraphicsDevice() const
 	{
 		return m_pDevice;
 	}

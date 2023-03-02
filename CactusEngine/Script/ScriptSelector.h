@@ -4,27 +4,33 @@
 #include "SampleScript/BunnyScript.h"
 #include "SampleScript/LightScript.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
 namespace SampleScript
 {
 	// TODO: find a better solution
-	inline std::shared_ptr<Engine::BaseScript> GenerateScriptByID(EScriptID id, const std::shared_ptr<Engine::BaseEntity> pEntity)
+	inline Engine::BaseScript* GenerateScriptByID(EScriptID id, Engine::BaseEntity* pEntity)
 	{
+		Engine::BaseScript* pScript = nullptr;
 		switch (id)
 		{
 		case EScriptID::Camera:
-			return std::make_shared<CameraScript>(pEntity);
+			Engine::CE_NEW(pScript, CameraScript, pEntity);
+			break;
 		case EScriptID::Cube:
-			return std::make_shared<CubeScript>(pEntity);
+			Engine::CE_NEW(pScript, CubeScript, pEntity);
+			break;
 		case EScriptID::Bunny:
-			return std::make_shared<BunnyScript>(pEntity);
+			Engine::CE_NEW(pScript, BunnyScript, pEntity);
+			break;
 		case EScriptID::Light:
-			return std::make_shared<LightScript>(pEntity);
+			Engine::CE_NEW(pScript, LightScript, pEntity);
+			break;
 		default:
 			Engine::LOG_WARNING("ScriptSelector: Unhandled script type: " + std::to_string((uint32_t)id));
 			break;
 		}
 
-		return nullptr;
+		return pScript;
 	}
 }

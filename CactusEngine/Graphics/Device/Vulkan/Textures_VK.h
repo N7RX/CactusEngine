@@ -4,8 +4,6 @@
 
 namespace Engine
 {
-	struct LogicalDevice_VK;
-
 	enum class EAllocatorType_VK
 	{
 		None = 0,
@@ -17,11 +15,11 @@ namespace Engine
 	class Sampler_VK : public TextureSampler
 	{
 	public:
-		Sampler_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkSamplerCreateInfo& createInfo);
+		Sampler_VK(LogicalDevice_VK* pDevice, const VkSamplerCreateInfo& createInfo);
 		~Sampler_VK();
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkSampler m_sampler;
 
 		friend class GraphicsHardwareInterface_VK;
@@ -31,18 +29,18 @@ namespace Engine
 	class Texture2D_VK : public Texture2D
 	{
 	public:
-		Texture2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const Texture2DCreateInfo_VK& createInfo);
+		Texture2D_VK(LogicalDevice_VK* pDevice, const Texture2DCreateInfo_VK& createInfo);
 		virtual ~Texture2D_VK();
 
 		bool HasSampler() const override;
-		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
-		std::shared_ptr<TextureSampler> GetSampler() const override;
+		void SetSampler(const TextureSampler* pSampler) override;
+		TextureSampler* GetSampler() const override;
 
 	protected:
 		Texture2D_VK();
 
 	protected:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 
 		VkImage				m_image = VK_NULL_HANDLE;
 		VkImageView			m_imageView = VK_NULL_HANDLE;
@@ -55,7 +53,7 @@ namespace Engine
 
 		EAllocatorType_VK m_allocatorType;
 
-		std::shared_ptr<Sampler_VK> m_pSampler;
+		Sampler_VK* m_pSampler;
 
 		uint32_t m_appliedStages; // EShaderType bitmap
 
@@ -67,22 +65,22 @@ namespace Engine
 	class RenderTarget2D_VK : public Texture2D_VK
 	{
 	public:
-		RenderTarget2D_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
+		RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
 		~RenderTarget2D_VK();
 	};
 
 	class FrameBuffer_VK : public FrameBuffer
 	{
 	public:
-		FrameBuffer_VK(const std::shared_ptr<LogicalDevice_VK> pDevice);
+		FrameBuffer_VK(LogicalDevice_VK* pDevice);
 		~FrameBuffer_VK();
 
 		uint32_t GetFrameBufferID() const override;
 
 	private:
-		std::shared_ptr<LogicalDevice_VK> m_pDevice;
+		LogicalDevice_VK* m_pDevice;
 		VkFramebuffer m_frameBuffer;
-		std::vector<std::shared_ptr<Texture2D_VK>> m_bufferAttachments;
+		std::vector<Texture2D_VK*> m_bufferAttachments;
 
 		friend class GraphicsHardwareInterface_VK;
 	};

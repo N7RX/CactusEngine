@@ -60,7 +60,7 @@ namespace Engine
 		return m_glShaderID;
 	}
 
-	ShaderProgram_GL::ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<VertexShader_GL> pVertexShader, const std::shared_ptr<FragmentShader_GL> pFragmentShader)
+	ShaderProgram_GL::ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const VertexShader_GL* pVertexShader, const FragmentShader_GL* pFragmentShader)
 		: ShaderProgram((uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment)
 	{
 		m_pDevice = pDevice;
@@ -101,31 +101,31 @@ namespace Engine
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	void ShaderProgram_GL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes)
+	void ShaderProgram_GL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const RawResource* pRes)
 	{
 		switch (type)
 		{
 		case EDescriptorType::UniformBuffer:
 		{
-			auto pBuffer = std::static_pointer_cast<UniformBuffer_GL>(pRes);
+			auto pBuffer = (UniformBuffer_GL*)pRes;
 			glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
 			break;
 		}
 		case EDescriptorType::CombinedImageSampler:
 		{
-			std::shared_ptr<Texture2D_GL> pTexture = nullptr;
-			switch (std::static_pointer_cast<Texture2D>(pRes)->QuerySource())
+			Texture2D_GL* pTexture = nullptr;
+			switch (((Texture2D*)pRes)->QuerySource())
 			{
 			case ETexture2DSource::ImageTexture:
-				pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<ImageTexture>(pRes)->GetTexture());
+				pTexture = (Texture2D_GL*)(((ImageTexture*)pRes)->GetTexture());
 				break;
 
 			case ETexture2DSource::RenderTexture:
-				pTexture = std::static_pointer_cast<Texture2D_GL>(std::static_pointer_cast<RenderTexture>(pRes)->GetTexture());
+				pTexture = (Texture2D_GL*)(((RenderTexture*)pRes)->GetTexture());
 				break;
 
 			case ETexture2DSource::RawDeviceTexture:
-				pTexture = std::static_pointer_cast<Texture2D_GL>(pRes);
+				pTexture = (Texture2D_GL*)pRes;
 				break;
 
 			default:

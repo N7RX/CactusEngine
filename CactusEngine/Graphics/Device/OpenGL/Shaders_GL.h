@@ -31,14 +31,14 @@ namespace Engine
 	class ShaderProgram_GL : public ShaderProgram
 	{
 	public:
-		ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<VertexShader_GL> pVertexShader, const std::shared_ptr<FragmentShader_GL> pFragmentShader);
+		ShaderProgram_GL(GraphicsHardwareInterface_GL* pDevice, const VertexShader_GL* pVertexShader, const FragmentShader_GL* pFragmentShader);
 
 		GLuint GetGLProgramID() const;
 
 		unsigned int GetParamBinding(const char* paramName) const override;
 		void Reset() override;
 
-		void UpdateParameterValue(unsigned int binding, EDescriptorType type, const std::shared_ptr<RawResource> pRes);
+		void UpdateParameterValue(unsigned int binding, EDescriptorType type, const RawResource* pRes);
 
 	private:
 		void ReflectParamLocations();

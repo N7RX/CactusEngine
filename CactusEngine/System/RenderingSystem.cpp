@@ -53,7 +53,7 @@ namespace Engine
 		return m_pDevice->GetGraphicsAPIType();
 	}
 
-	std::shared_ptr<ShaderProgram> RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
+	ShaderProgram* RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
 	{
 		DEBUG_ASSERT_CE((uint32_t)type < m_shaderPrograms.size());
 		return m_shaderPrograms[(uint32_t)type];
@@ -92,7 +92,7 @@ namespace Engine
 		}
 
 		m_pDevice->Initialize();
-		std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->SetGraphicsDevice(m_pDevice);
+		((GraphicsApplication*)gpGlobal->GetCurrentApplication())->SetGraphicsDevice(m_pDevice);
 
 		return true;
 	}
@@ -162,8 +162,8 @@ namespace Engine
 		auto pEntityList = m_pECSWorld->GetEntityList();
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
-			auto pMeshFilterComp = std::static_pointer_cast<MeshFilterComponent>(itr->second->GetComponent(EComponentType::MeshFilter));
-			auto pLightComp = std::static_pointer_cast<LightComponent>(itr->second->GetComponent(EComponentType::Light));
+			auto pMeshFilterComp = (MeshFilterComponent*)itr->second->GetComponent(EComponentType::MeshFilter);
+			auto pLightComp = (LightComponent*)itr->second->GetComponent(EComponentType::Light);
 
 			if (pMeshFilterComp)
 			{
@@ -179,7 +179,7 @@ namespace Engine
 	void RenderingSystem::ExecuteRenderTask()
 	{
 		auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
-		auto pCameraComp = pCamera ? std::static_pointer_cast<CameraComponent>(pCamera->GetComponent(EComponentType::Camera)) : nullptr;
+		auto pCameraComp = pCamera ? (CameraComponent*)pCamera->GetComponent(EComponentType::Camera) : nullptr;
 
 		if (!m_renderTaskTable.empty())
 		{

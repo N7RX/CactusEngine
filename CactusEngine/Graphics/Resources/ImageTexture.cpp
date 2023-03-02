@@ -15,7 +15,7 @@ namespace Engine
 
 	void ImageTexture::LoadAndCreateTexture(const char* filePath)
 	{
-		m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
+		m_pDevice = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
 
 		if (!m_pDevice)
 		{
@@ -50,7 +50,7 @@ namespace Engine
 		stbi_image_free(imageData);
 	}
 
-	std::shared_ptr<Texture2D> ImageTexture::GetTexture() const
+	Texture2D* ImageTexture::GetTexture() const
 	{
 		return m_pTextureImpl;
 	}
@@ -60,12 +60,12 @@ namespace Engine
 		return m_pTextureImpl->HasSampler();
 	}
 
-	void ImageTexture::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+	void ImageTexture::SetSampler(const TextureSampler* pSampler)
 	{
 		m_pTextureImpl->SetSampler(pSampler);
 	}
 
-	std::shared_ptr<TextureSampler> ImageTexture::GetSampler() const
+	TextureSampler* ImageTexture::GetSampler() const
 	{
 		return m_pTextureImpl->GetSampler();
 	}

@@ -45,14 +45,14 @@ namespace Engine
 	class GraphicsPipeline_GL : public GraphicsPipelineObject
 	{
 	public:
-		GraphicsPipeline_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<ShaderProgram_GL> pShaderProgram, GraphicsPipelineCreateInfo_GL& createInfo);
+		GraphicsPipeline_GL(GraphicsHardwareInterface_GL* pDevice, ShaderProgram_GL* pShaderProgram, GraphicsPipelineCreateInfo_GL& createInfo);
 		~GraphicsPipeline_GL() = default;
 
 		void Apply() const;
 
 	private:
 		GraphicsHardwareInterface_GL* m_pDevice;
-		std::shared_ptr<ShaderProgram_GL> m_pShaderProgram;
+		ShaderProgram_GL* m_pShaderProgram;
 
 		GLenum m_primitiveTopologyMode;
 		bool   m_enablePrimitiveRestart;

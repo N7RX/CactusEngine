@@ -1,7 +1,6 @@
 #pragma once
 #include "GraphicsResources.h"
 
-#include <memory>
 #include <vector>
 
 namespace Engine
@@ -18,7 +17,7 @@ namespace Engine
 	public:
 		virtual ~Mesh() = default;
 
-		std::shared_ptr<VertexBuffer> GetVertexBuffer() const;
+		VertexBuffer* GetVertexBuffer() const;
 		const std::vector<SubMesh>* GetSubMeshes() const;
 		unsigned int GetSubmeshCount() const;
 		const char* GetFilePath() const;
@@ -26,13 +25,13 @@ namespace Engine
 		Vector2 GetPlaneDimenstion() const;
 
 	protected:
-		Mesh(const std::shared_ptr<GraphicsDevice> pDevice);
+		Mesh(GraphicsDevice* pDevice);
 
 		void CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<float>& tangents, std::vector<float>& bitangents, std::vector<int>& indices);
 
 	protected:
-		std::shared_ptr<GraphicsDevice> m_pDevice;
-		std::shared_ptr<VertexBuffer> m_pVertexBuffer;
+		GraphicsDevice* m_pDevice;
+		VertexBuffer* m_pVertexBuffer;
 		std::vector<SubMesh> m_subMeshes;
 
 		std::string m_filePath;

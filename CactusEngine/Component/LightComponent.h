@@ -21,7 +21,7 @@ namespace Engine
 
 			Color3					lightColor;
 			float					lightIntensity;
-			std::shared_ptr<Mesh>	pVolumeMesh;
+			Mesh*	pVolumeMesh;
 
 			Vector3					direction;
 			float					radius;

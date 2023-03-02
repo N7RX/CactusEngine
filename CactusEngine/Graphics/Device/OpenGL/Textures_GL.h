@@ -17,8 +17,8 @@ namespace Engine
 
 		// Not used in OpenGL device
 		bool HasSampler() const override;
-		void SetSampler(const std::shared_ptr<TextureSampler> pSampler) override;
-		std::shared_ptr<TextureSampler> GetSampler() const override;
+		void SetSampler(const TextureSampler* pSampler) override;
+		TextureSampler* GetSampler() const override;
 
 	private:
 		GLuint m_glTextureID;

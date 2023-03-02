@@ -2,10 +2,11 @@
 #include "GraphicsHardwareInterface_VK.h"
 #include "Textures_VK.h"
 #include "GHIUtilities_VK.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
-	Swapchain_VK::Swapchain_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const SwapchainCreateInfo_VK& createInfo)
+	Swapchain_VK::Swapchain_VK(LogicalDevice_VK* pDevice, const SwapchainCreateInfo_VK& createInfo)
 		: m_pDevice(pDevice), m_presentQueue(VK_NULL_HANDLE), m_targetImageIndex(0), m_swapchain(VK_NULL_HANDLE)
 	{
 		uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
@@ -83,7 +84,9 @@ namespace Engine
 				return;
 			}
 
-			m_renderTargets.emplace_back(std::make_shared<RenderTarget2D_VK>(m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format));
+			RenderTarget2D_VK* pRenderTarget;
+			CE_NEW(pRenderTarget, RenderTarget2D_VK, m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format);
+			m_renderTargets.emplace_back(pRenderTarget);
 		}
 
 		m_imageAvailableSemaphores.resize(GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT, nullptr);
@@ -115,7 +118,7 @@ namespace Engine
 		return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, ACQUIRE_IMAGE_TIMEOUT, m_imageAvailableSemaphores[currentFrame]->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
 	}
 
-	bool Swapchain_VK::Present(const std::vector<std::shared_ptr<Semaphore_VK>>& waitSemaphores)
+	bool Swapchain_VK::Present(const std::vector<Semaphore_VK*>& waitSemaphores)
 	{
 		DEBUG_ASSERT_CE(m_swapchain != VK_NULL_HANDLE);
 		DEBUG_ASSERT_CE(m_presentQueue != VK_NULL_HANDLE);
@@ -144,7 +147,7 @@ namespace Engine
 		return (uint32_t)m_renderTargets.size();
 	}
 
-	std::shared_ptr<RenderTarget2D_VK> Swapchain_VK::GetTargetImage() const
+	RenderTarget2D_VK* Swapchain_VK::GetTargetImage() const
 	{
 		DEBUG_ASSERT_CE(m_targetImageIndex < m_renderTargets.size());
 		return m_renderTargets[m_targetImageIndex];
@@ -155,7 +158,7 @@ namespace Engine
 		return m_targetImageIndex;
 	}
 
-	std::shared_ptr<RenderTarget2D_VK> Swapchain_VK::GetSwapchainImageByIndex(unsigned int index) const
+	RenderTarget2D_VK* Swapchain_VK::GetSwapchainImageByIndex(unsigned int index) const
 	{
 		DEBUG_ASSERT_CE(index < m_renderTargets.size());
 		return m_renderTargets[index];
@@ -166,7 +169,7 @@ namespace Engine
 		return m_swapExtent;
 	}
 
-	std::shared_ptr<Semaphore_VK> Swapchain_VK::GetImageAvailableSemaphore(unsigned int currentFrame) const
+	Semaphore_VK* Swapchain_VK::GetImageAvailableSemaphore(unsigned int currentFrame) const
 	{
 		DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
 		return m_imageAvailableSemaphores[currentFrame];

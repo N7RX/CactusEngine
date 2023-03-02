@@ -3,15 +3,14 @@
 #include "EntityProperties.h"
 
 #include <unordered_map>
-#include <memory>
 
 namespace Engine
 {
 	class BaseComponent;
 
-	typedef std::unordered_map<EComponentType, std::shared_ptr<BaseComponent>> ComponentList;
+	typedef std::unordered_map<EComponentType, BaseComponent*> ComponentList;
 
-	class BaseEntity : std::enable_shared_from_this<BaseEntity>
+	class BaseEntity
 	{
 	public:
 		BaseEntity();
@@ -20,19 +19,19 @@ namespace Engine
 		void SetEntityID(uint32_t id);
 		uint32_t GetEntityID() const;
 
-		void AttachComponent(const std::shared_ptr<BaseComponent> pComponent);
+		void AttachComponent(BaseComponent* pComponent);
 		void DetachComponent(EComponentType compType);
 
 		const ComponentList& GetComponentList() const;
-		std::shared_ptr<BaseComponent> GetComponent(EComponentType compType) const;
+		BaseComponent* GetComponent(EComponentType compType) const;
 
 		template<typename T>
-		inline std::shared_ptr<T> GetComponent(EComponentType compType) const
+		inline T* GetComponent(EComponentType compType) const
 		{
 			auto comp = GetComponent(compType);
 			if (comp != nullptr)
 			{
-				return std::static_pointer_cast<T>(comp);
+				return (T*)comp;
 			}
 			return nullptr;
 		}

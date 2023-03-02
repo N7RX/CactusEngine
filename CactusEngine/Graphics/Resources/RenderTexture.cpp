@@ -7,7 +7,7 @@ namespace Engine
 	RenderTexture::RenderTexture(uint32_t width, uint32_t height)
 		: Texture2D(ETexture2DSource::RenderTexture)
 	{
-		m_pDevice = std::dynamic_pointer_cast<GraphicsApplication>(gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
+		m_pDevice = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
 
 		m_width = width;
 		m_height = height;
@@ -32,7 +32,7 @@ namespace Engine
 		m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);
 	}
 
-	std::shared_ptr<Texture2D> RenderTexture::GetTexture() const
+	Texture2D* RenderTexture::GetTexture() const
 	{
 		return m_pTextureImpl;
 	}
@@ -42,12 +42,12 @@ namespace Engine
 		return m_pTextureImpl->HasSampler();
 	}
 
-	void RenderTexture::SetSampler(const std::shared_ptr<TextureSampler> pSampler)
+	void RenderTexture::SetSampler(const TextureSampler* pSampler)
 	{
 		m_pTextureImpl->SetSampler(pSampler);
 	}
 
-	std::shared_ptr<TextureSampler> RenderTexture::GetSampler() const
+	TextureSampler* RenderTexture::GetSampler() const
 	{
 		return m_pTextureImpl->GetSampler();
 	}

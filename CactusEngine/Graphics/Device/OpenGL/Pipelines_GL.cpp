@@ -55,7 +55,7 @@ namespace Engine
 		}
 	}
 
-	GraphicsPipeline_GL::GraphicsPipeline_GL(GraphicsHardwareInterface_GL* pDevice, const std::shared_ptr<ShaderProgram_GL> pShaderProgram, GraphicsPipelineCreateInfo_GL& createInfo)
+	GraphicsPipeline_GL::GraphicsPipeline_GL(GraphicsHardwareInterface_GL* pDevice, ShaderProgram_GL* pShaderProgram, GraphicsPipelineCreateInfo_GL& createInfo)
 		: m_pDevice(pDevice), m_pShaderProgram(pShaderProgram)
 	{
 		m_primitiveTopologyMode = OpenGLAssemblyTopologyMode(createInfo.topologyMode);

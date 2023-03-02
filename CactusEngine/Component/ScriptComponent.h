@@ -10,10 +10,10 @@ namespace Engine
 		ScriptComponent();
 		~ScriptComponent() = default;
 
-		void BindScript(const std::shared_ptr<BaseScript> pScript);
-		std::shared_ptr<BaseScript> GetScript() const;
+		void BindScript(BaseScript* pScript);
+		BaseScript* GetScript() const;
 
 	private:
-		std::shared_ptr<BaseScript> m_pScript;
+		BaseScript* m_pScript;
 	};
 }

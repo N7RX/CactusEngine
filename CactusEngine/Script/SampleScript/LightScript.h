@@ -7,16 +7,16 @@ namespace SampleScript
 	class LightScript : public Engine::BaseScript
 	{
 	public:
-		LightScript(const std::shared_ptr<Engine::BaseEntity> pEntity);
+		LightScript(Engine::BaseEntity* pEntity);
 		~LightScript() = default;
 
 		void Start() override;
 		void Update() override;
 
 	private:
-		std::shared_ptr<Engine::BaseEntity> m_pEntity;
+		Engine::BaseEntity* m_pEntity;
 
-		std::shared_ptr<Engine::TransformComponent> m_pLightTransform;
+		Engine::TransformComponent* m_pLightTransform;
 		Engine::Vector3 m_center;
 		float m_startTime;
 	};

@@ -11,11 +11,11 @@ namespace Engine
 	class RawBuffer_VK : public RawResource
 	{
 	public:
-		RawBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo);
+		RawBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo);
 		virtual ~RawBuffer_VK();
 
 	protected:
-		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
+		UploadAllocator_VK* m_pAllocator;
 
 		VkBuffer		m_buffer;
 		VmaAllocation	m_allocation;
@@ -31,12 +31,12 @@ namespace Engine
 	class DataTransferBuffer_VK : public DataTransferBuffer
 	{
 	public:
-		DataTransferBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& createInfo);
+		DataTransferBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo);
 		~DataTransferBuffer_VK();
 
 	private:
-		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
-		std::shared_ptr<RawBuffer_VK> m_pBufferImpl;
+		UploadAllocator_VK* m_pAllocator;
+		RawBuffer_VK* m_pBufferImpl;
 
 		bool m_constantlyMapped;
 		void* m_ppMappedData;
@@ -47,17 +47,17 @@ namespace Engine
 	class VertexBuffer_VK : public VertexBuffer
 	{
 	public:
-		VertexBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo);
+		VertexBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& vertexBufferCreateInfo, const RawBufferCreateInfo_VK& indexBufferCreateInfo);
 		~VertexBuffer_VK() = default;
 
-		std::shared_ptr<RawBuffer_VK> GetBufferImpl() const;
-		std::shared_ptr<RawBuffer_VK> GetIndexBufferImpl() const;
+		RawBuffer_VK* GetBufferImpl() const;
+		RawBuffer_VK* GetIndexBufferImpl() const;
 		VkIndexType GetIndexFormat() const;
 
 	private:
-		std::shared_ptr<UploadAllocator_VK> m_pAllocator;
-		std::shared_ptr<RawBuffer_VK> m_pVertexBufferImpl;
-		std::shared_ptr<RawBuffer_VK> m_pIndexBufferImpl;
+		UploadAllocator_VK* m_pAllocator;
+		RawBuffer_VK* m_pVertexBufferImpl;
+		RawBuffer_VK* m_pIndexBufferImpl;
 		VkIndexType m_indexType;
 	};
 
@@ -79,21 +79,21 @@ namespace Engine
 	class UniformBuffer_VK : public UniformBuffer
 	{
 	public:
-		UniformBuffer_VK(const std::shared_ptr<UploadAllocator_VK> pAllocator, const UniformBufferCreateInfo_VK& createInfo);
+		UniformBuffer_VK(UploadAllocator_VK* pAllocator, const UniformBufferCreateInfo_VK& createInfo);
 		~UniformBuffer_VK();
 
 		void UpdateBufferData(const void* pData) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
-		std::shared_ptr<SubUniformBuffer> AllocateSubBuffer(uint32_t size) override;
+		SubUniformBuffer* AllocateSubBuffer(uint32_t size) override;
 		void ResetSubBufferAllocation() override;
 
-		void UpdateToDevice(std::shared_ptr<CommandBuffer_VK> pCmdBuffer = nullptr);
-		std::shared_ptr<RawBuffer_VK> GetBufferImpl() const;
+		void UpdateToDevice(CommandBuffer_VK* pCmdBuffer = nullptr);
+		RawBuffer_VK* GetBufferImpl() const;
 
 		EUniformBufferType_VK GetType() const;
 
 	private:
-		std::shared_ptr<RawBuffer_VK> m_pBufferImpl;
+		RawBuffer_VK* m_pBufferImpl;
 		EUniformBufferType_VK m_eType;
 		VkShaderStageFlags m_appliedShaderStage;
 

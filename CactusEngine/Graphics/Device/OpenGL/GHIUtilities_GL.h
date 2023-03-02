@@ -1,6 +1,7 @@
 #pragma once
 #include "SharedTypes.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>

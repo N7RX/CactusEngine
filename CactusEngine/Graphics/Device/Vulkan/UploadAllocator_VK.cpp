@@ -8,7 +8,7 @@
 
 namespace Engine
 {
-	UploadAllocator_VK::UploadAllocator_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkInstance instance)
+	UploadAllocator_VK::UploadAllocator_VK(LogicalDevice_VK* pDevice, VkInstance instance)
 		: m_pDevice(pDevice)
 	{
 		VmaAllocatorCreateInfo createInfo = {};

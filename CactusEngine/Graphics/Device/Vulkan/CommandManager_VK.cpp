@@ -4,6 +4,7 @@
 #include "Textures_VK.h"
 #include "GHIUtilities_VK.h"
 #include "LogUtility.h"
+#include "MemoryAllocator.h"
 
 #include <thread>
 #include <mutex>
@@ -123,7 +124,7 @@ namespace Engine
 		vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
 	}
 
-	void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<std::shared_ptr<DescriptorSet_VK>>& descriptorSets, uint32_t firstSet)
+	void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<DescriptorSet_VK*>& descriptorSets, uint32_t firstSet)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 
@@ -178,7 +179,7 @@ namespace Engine
 		}
 	}
 
-	void CommandBuffer_VK::TransitionImageLayout(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
+	void CommandBuffer_VK::TransitionImageLayout(Texture2D_VK* pImage, const VkImageLayout newLayout, uint32_t appliedStages)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 
@@ -251,7 +252,7 @@ namespace Engine
 		pImage->m_appliedStages = appliedStages;
 	}
 
-	void CommandBuffer_VK::GenerateMipmap(std::shared_ptr<Texture2D_VK> pImage, const VkImageLayout newLayout, uint32_t appliedStages)
+	void CommandBuffer_VK::GenerateMipmap(Texture2D_VK* pImage, const VkImageLayout newLayout, uint32_t appliedStages)
 	{
 #if defined(DEBUG_MODE_CE)
 		// Check whether linear blitting on given image's format is supported
@@ -340,45 +341,45 @@ namespace Engine
 		pImage->m_appliedStages = appliedStages;
 	}
 
-	void CommandBuffer_VK::CopyBufferToBuffer(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const VkBufferCopy& region)
+	void CommandBuffer_VK::CopyBufferToBuffer(const RawBuffer_VK* pSrcBuffer, const RawBuffer_VK* pDstBuffer, const VkBufferCopy& region)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 		vkCmdCopyBuffer(m_commandBuffer, pSrcBuffer->m_buffer, pDstBuffer->m_buffer, 1, &region); // TODO: offer a batch version
 	}
 
-	void CommandBuffer_VK::CopyBufferToTexture2D(const std::shared_ptr<RawBuffer_VK> pSrcBuffer, std::shared_ptr<Texture2D_VK> pDstImage, const std::vector<VkBufferImageCopy>& regions)
+	void CommandBuffer_VK::CopyBufferToTexture2D(const RawBuffer_VK* pSrcBuffer, Texture2D_VK* pDstImage, const std::vector<VkBufferImageCopy>& regions)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 		vkCmdCopyBufferToImage(m_commandBuffer, pSrcBuffer->m_buffer, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
 	}
 
-	void CommandBuffer_VK::CopyTexture2DToBuffer(std::shared_ptr<Texture2D_VK> pSrcImage, const std::shared_ptr<RawBuffer_VK> pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
+	void CommandBuffer_VK::CopyTexture2DToBuffer(Texture2D_VK* pSrcImage, const RawBuffer_VK* pDstBuffer, const std::vector<VkBufferImageCopy>& regions)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 		vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
 	}
 
-	void CommandBuffer_VK::WaitPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
+	void CommandBuffer_VK::WaitPresentationSemaphore(Semaphore_VK* pSemaphore)
 	{
 		m_waitPresentationSemaphores.emplace_back(pSemaphore);
 	}
 
-	void CommandBuffer_VK::SignalPresentationSemaphore(const std::shared_ptr<Semaphore_VK> pSemaphore)
+	void CommandBuffer_VK::SignalPresentationSemaphore(Semaphore_VK* pSemaphore)
 	{
 		m_signalPresentationSemaphores.emplace_back(pSemaphore);
 	}
 
-	void CommandBuffer_VK::WaitSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
+	void CommandBuffer_VK::WaitSemaphore(TimelineSemaphore_VK* pSemaphore)
 	{
 		m_waitSemaphores.emplace_back(pSemaphore);
 	}
 
-	void CommandBuffer_VK::SignalSemaphore(const std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
+	void CommandBuffer_VK::SignalSemaphore(TimelineSemaphore_VK* pSemaphore)
 	{
 		m_signalSemaphores.emplace_back(pSemaphore);
 	}
 
-	CommandPool_VK::CommandPool_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager)
+	CommandPool_VK::CommandPool_VK(LogicalDevice_VK* pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager)
 		: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0), m_pManager(pManager)
 	{
 
@@ -389,9 +390,9 @@ namespace Engine
 		vkDestroyCommandPool(m_pDevice->logicalDevice, m_commandPool, nullptr);
 	}
 
-	std::shared_ptr<CommandBuffer_VK> CommandPool_VK::RequestPrimaryCommandBuffer()
+	CommandBuffer_VK* CommandPool_VK::RequestPrimaryCommandBuffer()
 	{
-		std::shared_ptr<CommandBuffer_VK> pCommandBuffer = nullptr;
+		CommandBuffer_VK* pCommandBuffer = nullptr;
 
 		if (!m_freeCommandBuffers.TryPop(pCommandBuffer))
 		{
@@ -423,7 +424,8 @@ namespace Engine
 
 			for (auto& cmdBuffer : cmdBufferHandles)
 			{
-				auto pNewCmdBuffer = std::make_shared<CommandBuffer_VK>(cmdBuffer);
+				CommandBuffer_VK* pNewCmdBuffer;
+				CE_NEW(pNewCmdBuffer, CommandBuffer_VK, cmdBuffer);
 				pNewCmdBuffer->m_pSyncObjectManager = m_pDevice->pSyncObjectManager;
 
 				m_freeCommandBuffers.Push(pNewCmdBuffer);
@@ -435,10 +437,10 @@ namespace Engine
 		return false;
 	}
 
-	CommandManager_VK::CommandManager_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const CommandQueue_VK& queue)
+	CommandManager_VK::CommandManager_VK(LogicalDevice_VK* pDevice, const CommandQueue_VK& queue)
 		: m_pDevice(pDevice), m_workingQueue(queue)
 	{
-		m_pDefaultCommandPool = std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
+		CE_NEW(m_pDefaultCommandPool, CommandPool_VK, m_pDevice, CreateCommandPool(), this);
 
 		m_isRunning = true;
 
@@ -467,27 +469,28 @@ namespace Engine
 		return m_workingQueue.type;
 	}
 
-	std::shared_ptr<CommandBuffer_VK> CommandManager_VK::RequestPrimaryCommandBuffer()
+	CommandBuffer_VK* CommandManager_VK::RequestPrimaryCommandBuffer()
 	{
-		std::shared_ptr<CommandBuffer_VK> pCommandBuffer = m_pDefaultCommandPool->RequestPrimaryCommandBuffer();
+		CommandBuffer_VK* pCommandBuffer = m_pDefaultCommandPool->RequestPrimaryCommandBuffer();
 		pCommandBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
 		m_inUseCommandBuffers.Push(pCommandBuffer);
 
 		return pCommandBuffer;
 	}
 
-	void CommandManager_VK::SubmitCommandBuffers(std::shared_ptr <TimelineSemaphore_VK> pSubmitSemaphore, uint32_t usageMask)
+	void CommandManager_VK::SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask)
 	{
 		DEBUG_ASSERT_CE(pSubmitSemaphore != nullptr);
 
-		std::queue<std::shared_ptr<CommandBuffer_VK>> inUseBuffers;
+		std::queue<CommandBuffer_VK*> inUseBuffers;
 		m_inUseCommandBuffers.TryPopAll(inUseBuffers);
 
-		auto pSubmitInfo = std::make_shared<CommandSubmitInfo_VK>();
+		CommandSubmitInfo_VK* pSubmitInfo;
+		CE_NEW(pSubmitInfo, CommandSubmitInfo_VK);
 
 		while (!inUseBuffers.empty())
 		{
-			std::shared_ptr<CommandBuffer_VK> ptrCopy = inUseBuffers.front();
+			CommandBuffer_VK* ptrCopy = inUseBuffers.front();
 
 			if ((ptrCopy->m_usageFlags & usageMask) == 0)
 			{
@@ -578,7 +581,7 @@ namespace Engine
 		m_commandBufferSubmissionCv.notify_one();
 	}
 
-	void CommandManager_VK::SubmitSingleCommandBuffer_Immediate(const std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
+	void CommandManager_VK::SubmitSingleCommandBuffer_Immediate(CommandBuffer_VK* pCmdBuffer)
 	{
 		DEBUG_ASSERT_CE(pCmdBuffer->m_isRecording);
 
@@ -613,13 +616,16 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<CommandPool_VK> CommandManager_VK::RequestExternalCommandPool()
+	CommandPool_VK* CommandManager_VK::RequestExternalCommandPool()
 	{
 		std::lock_guard<std::mutex> lock(m_externalCommandPoolCreationMutex);
-		return std::make_shared<CommandPool_VK>(m_pDevice, CreateCommandPool(), this);
+
+		CommandPool_VK* pPool;
+		CE_NEW(pPool, CommandPool_VK, m_pDevice, CreateCommandPool(), this);
+		return pPool;
 	}
 
-	void CommandManager_VK::ReturnExternalCommandBuffer(std::shared_ptr<CommandBuffer_VK> pCmdBuffer)
+	void CommandManager_VK::ReturnExternalCommandBuffer(CommandBuffer_VK* pCmdBuffer)
 	{
 		m_inUseCommandBuffers.Push(pCmdBuffer);
 	}
@@ -646,7 +652,7 @@ namespace Engine
 
 	void CommandManager_VK::SubmitCommandBufferAsync()
 	{
-		std::shared_ptr<CommandSubmitInfo_VK> pCommandSubmitInfo;
+		CommandSubmitInfo_VK* pCommandSubmitInfo;
 
 		while (m_isRunning)
 		{
@@ -665,11 +671,13 @@ namespace Engine
 
 					while (!pCommandSubmitInfo->queuedCmdBuffers.empty())
 					{
-						std::shared_ptr<CommandBuffer_VK> ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
+						CommandBuffer_VK* ptrCopy = pCommandSubmitInfo->queuedCmdBuffers.front();
 						m_inExecutionCommandBuffers.Push(ptrCopy);
 						pCommandSubmitInfo->queuedCmdBuffers.pop();
 					}
 				}
+
+				CE_DELETE(pCommandSubmitInfo);
 
 				{
 					std::lock_guard<std::mutex> guard(m_commandBufferRecycleMutex);
@@ -684,7 +692,7 @@ namespace Engine
 
 	void CommandManager_VK::RecycleCommandBufferAsync()
 	{
-		std::unordered_map<std::shared_ptr<TimelineSemaphore_VK>, std::vector<std::shared_ptr<CommandBuffer_VK>>> timelineGroups;
+		std::unordered_map<TimelineSemaphore_VK*, std::vector<CommandBuffer_VK*>> timelineGroups;
 
 		while (m_isRunning)
 		{
@@ -694,7 +702,7 @@ namespace Engine
 				m_commandBufferRecycleFlag = false;
 			}
 
-			std::queue<std::shared_ptr<CommandBuffer_VK>> inExecutionCmdBufferQueue;
+			std::queue<CommandBuffer_VK*> inExecutionCmdBufferQueue;
 
 			{
 				std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
@@ -702,7 +710,7 @@ namespace Engine
 			}
 			while (!inExecutionCmdBufferQueue.empty()) // Group command buffers by timeline semaphore
 			{
-				std::shared_ptr<CommandBuffer_VK> ptrCopy = inExecutionCmdBufferQueue.front();
+				CommandBuffer_VK* ptrCopy = inExecutionCmdBufferQueue.front();
 				DEBUG_ASSERT_CE(ptrCopy->m_pAssociatedSubmitSemaphore);
 				timelineGroups[ptrCopy->m_pAssociatedSubmitSemaphore].emplace_back(ptrCopy);
 				inExecutionCmdBufferQueue.pop();

@@ -7,7 +7,7 @@ namespace Engine
 {
 	class ShaderProgram;
 
-	class RenderingSystem : public BaseSystem, std::enable_shared_from_this<RenderingSystem>
+	class RenderingSystem : public BaseSystem
 	{
 	public:
 		RenderingSystem(ECSWorld* pWorld);
@@ -21,12 +21,13 @@ namespace Engine
 		void FrameEnd() override;
 
 		EGraphicsAPIType GetGraphicsAPIType() const;
-		std::shared_ptr<ShaderProgram> GetShaderProgramByType(EBuiltInShaderProgramType type) const;
+		ShaderProgram* GetShaderProgramByType(EBuiltInShaderProgramType type) const;
 
 		template<typename T>
 		inline void RegisterRenderer(ERendererType type, uint32_t priority = 0)
 		{
-			auto pRenderer = std::make_shared<T>(m_pDevice, this); // TODO: replace this temp solution to reference current System
+			T* pRenderer;
+			CE_NEW(pRenderer, T, m_pDevice, this); // TODO: replace this temp solution to reference current System
 			pRenderer->SetRendererPriority(priority);
 			m_rendererTable[(uint32_t)type] = pRenderer;
 		}
@@ -44,11 +45,11 @@ namespace Engine
 
 	private:
 		ECSWorld* m_pECSWorld;
-		std::shared_ptr<GraphicsDevice> m_pDevice;
-		std::vector<std::shared_ptr<ShaderProgram>> m_shaderPrograms;
+		GraphicsDevice* m_pDevice;
+		std::vector<ShaderProgram*> m_shaderPrograms;
 
 		ERendererType m_activeRenderer;
-		std::shared_ptr<BaseRenderer> m_rendererTable[(uint32_t)ERendererType::COUNT];
-		std::vector<std::shared_ptr<BaseEntity>> m_renderTaskTable;
+		BaseRenderer* m_rendererTable[(uint32_t)ERendererType::COUNT];
+		std::vector<BaseEntity*> m_renderTaskTable;
 	};
 }

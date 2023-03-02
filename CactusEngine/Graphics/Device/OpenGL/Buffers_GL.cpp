@@ -51,7 +51,7 @@ namespace Engine
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
-	std::shared_ptr<SubUniformBuffer> UniformBuffer_GL::AllocateSubBuffer(uint32_t size)
+	SubUniformBuffer* UniformBuffer_GL::AllocateSubBuffer(uint32_t size)
 	{
 		LOG_ERROR("OpenGL: shouldn't call AllocateSubBuffer on uniform buffer.");
 		return nullptr;

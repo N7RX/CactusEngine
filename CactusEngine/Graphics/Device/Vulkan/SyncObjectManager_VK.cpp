@@ -1,5 +1,6 @@
 #include "SyncObjectManager_VK.h"
 #include "GraphicsHardwareInterface_VK.h"
+#include "MemoryAllocator.h"
 
 namespace Engine
 {
@@ -9,7 +10,7 @@ namespace Engine
 
 	}
 
-	TimelineSemaphore_VK::TimelineSemaphore_VK(const std::shared_ptr<LogicalDevice_VK> pDevice, const VkSemaphore& semaphoreHandle, uint32_t assignedID)
+	TimelineSemaphore_VK::TimelineSemaphore_VK(LogicalDevice_VK* pDevice, const VkSemaphore& semaphoreHandle, uint32_t assignedID)
 		: m_pDevice(pDevice), semaphore(semaphoreHandle), waitStage(0), id(assignedID), m_waitValue(1), m_signalValue(1)
 	{
 		m_waitInfo = {};
@@ -30,7 +31,7 @@ namespace Engine
 		m_signalValue = m_waitValue;
 	}
 
-	SyncObjectManager_VK::SyncObjectManager_VK(const std::shared_ptr<LogicalDevice_VK> pDevice)
+	SyncObjectManager_VK::SyncObjectManager_VK(LogicalDevice_VK* pDevice)
 		: m_pDevice(pDevice)
 	{
 		CreateNewSemaphore(3); // TODO: adjust the initial count based on usage scenario
@@ -52,7 +53,7 @@ namespace Engine
 		}
 	}
 
-	std::shared_ptr<Semaphore_VK> SyncObjectManager_VK::RequestSemaphore()
+	Semaphore_VK* SyncObjectManager_VK::RequestSemaphore()
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -71,7 +72,7 @@ namespace Engine
 		return m_semaphorePool[id];
 	}
 
-	std::shared_ptr<TimelineSemaphore_VK> SyncObjectManager_VK::RequestTimelineSemaphore()
+	TimelineSemaphore_VK* SyncObjectManager_VK::RequestTimelineSemaphore()
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -91,12 +92,12 @@ namespace Engine
 		return m_timelineSemaphorePool[id];
 	}
 
-	void SyncObjectManager_VK::ReturnSemaphore(std::shared_ptr<Semaphore_VK> pSemaphore)
+	void SyncObjectManager_VK::ReturnSemaphore(Semaphore_VK* pSemaphore)
 	{
 		m_semaphoreAvailability.at(pSemaphore->id) = true;
 	}
 
-	void SyncObjectManager_VK::ReturnTimelineSemaphore(std::shared_ptr<TimelineSemaphore_VK> pSemaphore)
+	void SyncObjectManager_VK::ReturnTimelineSemaphore(TimelineSemaphore_VK* pSemaphore)
 	{
 		m_timelineSemaphoreAvailability.at(pSemaphore->id) = true;
 	}
@@ -114,7 +115,9 @@ namespace Engine
 			if (vkCreateSemaphore(m_pDevice->logicalDevice, &semaphoreInfo, nullptr, &newSemaphore) == VK_SUCCESS)
 			{
 				uint32_t newID = static_cast<uint32_t>(m_semaphorePool.size()); // We use current pool size as assigned ID
-				m_semaphorePool.emplace_back(std::make_shared<Semaphore_VK>(newSemaphore, newID));
+				Semaphore_VK* pSemaphore;
+				CE_NEW(pSemaphore, Semaphore_VK, newSemaphore, newID);
+				m_semaphorePool.emplace_back(pSemaphore);
 				m_semaphoreAvailability.emplace(newID, true);
 			}
 			else
@@ -146,7 +149,9 @@ namespace Engine
 			if (vkCreateSemaphore(m_pDevice->logicalDevice, &semaphoreInfo, nullptr, &newSemaphore) == VK_SUCCESS)
 			{
 				uint32_t newID = static_cast<uint32_t>(m_timelineSemaphorePool.size()); // We use current pool size as assigned ID
-				m_timelineSemaphorePool.emplace_back(std::make_shared<TimelineSemaphore_VK>(m_pDevice, newSemaphore, newID));
+				TimelineSemaphore_VK* pTimelineSemaphore;
+				CE_NEW(pTimelineSemaphore, TimelineSemaphore_VK, m_pDevice, newSemaphore, newID);
+				m_timelineSemaphorePool.emplace_back(pTimelineSemaphore);
 				m_timelineSemaphoreAvailability.emplace(newID, true);
 			}
 			else
