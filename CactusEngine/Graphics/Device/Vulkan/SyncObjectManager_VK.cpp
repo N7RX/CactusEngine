@@ -5,13 +5,20 @@
 namespace Engine
 {
 	Semaphore_VK::Semaphore_VK(const VkSemaphore& semaphoreHandle, uint32_t assignedID)
-		: semaphore(semaphoreHandle), waitStage(0), id(assignedID)
+		: semaphore(semaphoreHandle),
+		waitStage(0),
+		id(assignedID)
 	{
 
 	}
 
 	TimelineSemaphore_VK::TimelineSemaphore_VK(LogicalDevice_VK* pDevice, const VkSemaphore& semaphoreHandle, uint32_t assignedID)
-		: m_pDevice(pDevice), semaphore(semaphoreHandle), waitStage(0), id(assignedID), m_waitValue(1), m_signalValue(1)
+		: m_pDevice(pDevice),
+		semaphore(semaphoreHandle),
+		waitStage(0),
+		id(assignedID),
+		m_waitValue(1),
+		m_signalValue(1)
 	{
 		m_waitInfo = {};
 		m_waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;

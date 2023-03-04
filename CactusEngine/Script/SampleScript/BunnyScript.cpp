@@ -14,7 +14,8 @@ namespace SampleScript
 	int BunnyScript::m_instanceCounter = 0;
 
 	BunnyScript::BunnyScript(BaseEntity* pEntity)
-		: m_pEntity(pEntity), m_pBunnyTransform(nullptr)
+		: m_pEntity(pEntity),
+		m_pBunnyTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
 

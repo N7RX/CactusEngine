@@ -5,7 +5,8 @@
 namespace Engine
 {
 	GLFWWindow::GLFWWindow(const char* name, uint32_t width, uint32_t height)
-		: BaseWindow(name, width, height), m_pGLFWWindowHandle(nullptr)
+		: BaseWindow(name, width, height),
+		m_pGLFWWindowHandle(nullptr)
 	{
 	}
 

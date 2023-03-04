@@ -10,7 +10,9 @@ namespace SampleScript
 	int CubeScript::m_instanceCounter = 0;
 
 	CubeScript::CubeScript(BaseEntity* pEntity)
-		: m_pEntity(pEntity), m_pCubeTransform(nullptr), m_pCubeMaterial(nullptr)
+		: m_pEntity(pEntity),
+		m_pCubeTransform(nullptr),
+		m_pCubeMaterial(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
 

@@ -6,13 +6,15 @@
 namespace Engine
 {
 	LightComponent::LightComponent()
-		: BaseComponent(EComponentType::Light)
+		: BaseComponent(EComponentType::Light),
+		m_profile()
 	{
 
 	}
 
 	LightComponent::LightComponent(const Profile& profile)
-		: BaseComponent(EComponentType::Light), m_profile(profile)
+		: BaseComponent(EComponentType::Light),
+		m_profile(profile)
 	{
 		auto pTransformComp = (TransformComponent*)m_pParentEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(pTransformComp != nullptr);

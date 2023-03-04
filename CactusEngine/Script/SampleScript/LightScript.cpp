@@ -8,7 +8,8 @@ using namespace Engine;
 namespace SampleScript
 {
 	LightScript::LightScript(BaseEntity* pEntity)
-		: m_pEntity(pEntity), m_pLightTransform(nullptr)
+		: m_pEntity(pEntity),
+		m_pLightTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
 		m_id = EScriptID::Light;

@@ -5,6 +5,17 @@
 
 namespace Engine
 {
+	GraphicsApplication::GraphicsApplication()
+		: m_pECSWorld(nullptr),
+		m_pDevice(nullptr),
+#if defined(GLFW_IMPLEMENTATION_CE)
+		m_pWindow(nullptr),
+#endif
+		m_pSetupFunc(nullptr)
+	{
+
+	}
+
 	void GraphicsApplication::Initialize()
 	{
 		CE_NEW(m_pECSWorld, ECSWorld);

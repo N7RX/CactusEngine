@@ -12,7 +12,7 @@ namespace Engine
 	class GraphicsApplication : public BaseApplication
 	{
 	public:
-		GraphicsApplication() : m_pSetupFunc(nullptr) {};
+		GraphicsApplication();
 		~GraphicsApplication() = default;
 
 		void Initialize() override;

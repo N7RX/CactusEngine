@@ -215,7 +215,12 @@ namespace Engine
 		virtual uint32_t GetFrameBufferID() const = 0;
 
 	protected:
-		FrameBuffer() = default;
+		FrameBuffer()
+			: m_width(0),
+			m_height(0)
+		{
+
+		}
 
 	protected:
 		uint32_t m_width;

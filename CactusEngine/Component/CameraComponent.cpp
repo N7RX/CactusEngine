@@ -5,8 +5,15 @@
 namespace Engine
 {
 	CameraComponent::CameraComponent()
-		: BaseComponent(EComponentType::Camera), m_fov(45.0f), m_nearClip(0.1f), m_farClip(1000.0f), m_projectionType(ECameraProjectionType::Perspective), m_clearColor(Color4(0, 0, 0, 1)),
-		m_aperture(4.0f), m_focalDistance(2.0f), m_imageDistance(2.0f)
+		: BaseComponent(EComponentType::Camera),
+		m_fov(45.0f),
+		m_nearClip(0.1f),
+		m_farClip(1000.0f),
+		m_projectionType(ECameraProjectionType::Perspective),
+		m_clearColor(Color4(0, 0, 0, 1)),
+		m_aperture(4.0f),
+		m_focalDistance(2.0f),
+		m_imageDistance(2.0f)
 	{
 	}
 

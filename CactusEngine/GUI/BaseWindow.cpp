@@ -4,7 +4,11 @@
 namespace Engine
 {
 	BaseWindow::BaseWindow(const char* name, uint32_t width, uint32_t height)
-		: m_windowName(name), m_windowWidth(width), m_windowHeight(height), m_shouldQuit(false), m_windowID(-1)
+		: m_windowName(name),
+		m_windowWidth(width),
+		m_windowHeight(height),
+		m_shouldQuit(false),
+		m_windowID(-1)
 	{
 	}
 

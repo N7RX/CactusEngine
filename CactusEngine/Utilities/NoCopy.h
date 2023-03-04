@@ -9,5 +9,6 @@ namespace Engine
 		virtual ~NoCopy() = default;
 
 		NoCopy(const NoCopy& copyFrom) = delete;
+		NoCopy& operator=(const NoCopy& copyFrom) = delete;
 	};
 }

@@ -24,7 +24,19 @@ namespace Engine
 	}
 
 	Texture2D_VK::Texture2D_VK(LogicalDevice_VK* pDevice, const Texture2DCreateInfo_VK& createInfo)
-		: Texture2D(ETexture2DSource::RawDeviceTexture), m_pDevice(pDevice), m_allocatorType(EAllocatorType_VK::VMA), m_appliedStages(0)
+		: Texture2D(ETexture2DSource::RawDeviceTexture),
+		m_pDevice(pDevice),
+		m_image(VK_NULL_HANDLE),
+		m_imageView(VK_NULL_HANDLE),
+		m_layout(VK_IMAGE_LAYOUT_UNDEFINED),
+		m_allocation(VK_NULL_HANDLE),
+		m_extent({ 0, 0 }),
+		m_format(VK_FORMAT_UNDEFINED),
+		m_mipLevels(0),
+		m_aspect(VK_IMAGE_ASPECT_COLOR_BIT),
+		m_allocatorType(EAllocatorType_VK::VMA),
+		m_pSampler(nullptr),
+		m_appliedStages(0)
 	{
 		DEBUG_ASSERT_CE(pDevice);
 
@@ -57,7 +69,19 @@ namespace Engine
 	}
 
 	Texture2D_VK::Texture2D_VK()
-		: Texture2D(ETexture2DSource::RawDeviceTexture)
+		: Texture2D(ETexture2DSource::RawDeviceTexture),
+		m_pDevice(nullptr),
+		m_image(VK_NULL_HANDLE),
+		m_imageView(VK_NULL_HANDLE),
+		m_layout(VK_IMAGE_LAYOUT_UNDEFINED),
+		m_allocation(VK_NULL_HANDLE),
+		m_extent({ 0, 0 }),
+		m_format(VK_FORMAT_UNDEFINED),
+		m_mipLevels(0),
+		m_aspect(VK_IMAGE_ASPECT_COLOR_BIT),
+		m_allocatorType(EAllocatorType_VK::None),
+		m_pSampler(nullptr),
+		m_appliedStages(0)
 	{
 
 	}
@@ -116,7 +140,8 @@ namespace Engine
 	}
 
 	FrameBuffer_VK::FrameBuffer_VK(LogicalDevice_VK* pDevice)
-		: m_pDevice(pDevice)
+		: m_pDevice(pDevice),
+		m_frameBuffer(VK_NULL_HANDLE)
 	{
 
 	}

@@ -7,7 +7,10 @@
 namespace Engine
 {
 	Swapchain_VK::Swapchain_VK(LogicalDevice_VK* pDevice, const SwapchainCreateInfo_VK& createInfo)
-		: m_pDevice(pDevice), m_presentQueue(VK_NULL_HANDLE), m_targetImageIndex(0), m_swapchain(VK_NULL_HANDLE)
+		: m_pDevice(pDevice),
+		m_presentQueue(VK_NULL_HANDLE),
+		m_targetImageIndex(0),
+		m_swapchain(VK_NULL_HANDLE)
 	{
 		uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
 		if (createInfo.supportDetails.capabilities.maxImageCount > 0 && imageCount > createInfo.supportDetails.capabilities.maxImageCount)

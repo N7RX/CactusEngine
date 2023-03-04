@@ -3,7 +3,8 @@
 namespace Engine
 {
 	BaseScript::BaseScript()
-		: m_id(SampleScript::EScriptID::Invalid), m_started(false)
+		: m_id(SampleScript::EScriptID::Invalid),
+		m_started(false)
 	{
 
 	}

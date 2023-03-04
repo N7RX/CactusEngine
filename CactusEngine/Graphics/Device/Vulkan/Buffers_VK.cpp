@@ -7,7 +7,8 @@
 namespace Engine
 {
 	RawBuffer_VK::RawBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo)
-		: m_pAllocator(pAllocator), m_deviceSize(createInfo.size)
+		: m_pAllocator(pAllocator),
+		m_deviceSize(createInfo.size)
 	{
 		DEBUG_ASSERT_CE(pAllocator);
 
@@ -30,7 +31,9 @@ namespace Engine
 	}
 
 	DataTransferBuffer_VK::DataTransferBuffer_VK(UploadAllocator_VK* pAllocator, const RawBufferCreateInfo_VK& createInfo)
-		: m_pAllocator(pAllocator), m_constantlyMapped(false), m_ppMappedData(nullptr)
+		: m_pAllocator(pAllocator),
+		m_constantlyMapped(false),
+		m_ppMappedData(nullptr)
 	{
 		m_sizeInBytes = createInfo.size;
 		CE_NEW(m_pBufferImpl, RawBuffer_VK, m_pAllocator, createInfo);
@@ -70,7 +73,11 @@ namespace Engine
 	}
 
 	UniformBuffer_VK::UniformBuffer_VK(UploadAllocator_VK* pAllocator, const UniformBufferCreateInfo_VK& createInfo)
-		: m_eType(createInfo.type), m_appliedShaderStage(createInfo.appliedStages), m_pHostData(nullptr), m_subAllocatedSize(0)
+		: m_eType(createInfo.type),
+		m_appliedShaderStage(createInfo.appliedStages),
+		m_pRawData(nullptr),
+		m_pHostData(nullptr),
+		m_subAllocatedSize(0)
 	{
 		RawBufferCreateInfo_VK bufferImplCreateInfo = {};
 		bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -170,7 +177,10 @@ namespace Engine
 	}
 
 	SubUniformBuffer_VK::SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, VkBuffer buffer, uint32_t offset, uint32_t size)
-		: m_pParentBuffer(pParentBuffer), m_buffer(buffer), m_offset(offset), m_size(size)
+		: m_pParentBuffer(pParentBuffer),
+		m_buffer(buffer),
+		m_offset(offset),
+		m_size(size)
 	{
 		m_sizeInBytes = size;
 	}

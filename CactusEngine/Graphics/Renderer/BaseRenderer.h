@@ -42,6 +42,6 @@ namespace Engine
 		RenderGraph* m_pRenderGraph;
 		GraphicsDevice* m_pDevice;
 		RenderingSystem* m_pSystem;
-		EGraphicsAPIType	m_eGraphicsDeviceType;
+		EGraphicsAPIType m_eGraphicsDeviceType;
 	};
 }

@@ -5,9 +5,10 @@ namespace Engine
 	uint32_t RawResource::m_assignedID = 0;
 
 	RawResource::RawResource()
-		: m_sizeInBytes(0)
+		: m_sizeInBytes(0),
+		m_resourceID(m_assignedID++) // Alert: this ID would run out under rare situation
 	{
-		m_resourceID = m_assignedID++; // Alert: this ID would run out under rare situation
+		
 	}
 
 	uint32_t RawResource::GetResourceID() const
@@ -92,7 +93,10 @@ namespace Engine
 	}
 
 	Texture2D::Texture2D(ETexture2DSource source)
-		: m_source(source), m_height(0), m_width(0), m_type(ETextureType::SampledImage)
+		: m_source(source),
+		m_height(0),
+		m_width(0),
+		m_type(ETextureType::SampledImage)
 	{
 
 	}
@@ -153,7 +157,9 @@ namespace Engine
 	}
 
 	ShaderProgram::ShaderProgram(uint32_t shaderStages)
-		: m_shaderStages(shaderStages), m_programID(-1), m_pDevice(nullptr)
+		: m_shaderStages(shaderStages),
+		m_programID(-1),
+		m_pDevice(nullptr)
 	{
 	}
 

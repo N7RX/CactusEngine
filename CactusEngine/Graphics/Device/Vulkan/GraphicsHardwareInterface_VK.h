@@ -45,6 +45,7 @@ namespace Engine
 		};
 
 	public:
+		GraphicsHardwareInterface_VK();
 		~GraphicsHardwareInterface_VK();
 
 		void Initialize() override;

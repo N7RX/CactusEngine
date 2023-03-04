@@ -7,7 +7,8 @@
 namespace Engine
 {
 	StandardRenderer::StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem)
-		: BaseRenderer(ERendererType::Standard, pDevice, pSystem), m_newCommandRecorded(false)
+		: BaseRenderer(ERendererType::Standard, pDevice, pSystem),
+		m_newCommandRecorded(false)
 	{
 		CE_NEW(m_pGraphResources, RenderGraphResource);
 	}

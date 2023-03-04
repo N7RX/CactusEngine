@@ -18,6 +18,21 @@
 
 namespace Engine
 {
+	GraphicsHardwareInterface_VK::GraphicsHardwareInterface_VK()
+		: m_instance(VK_NULL_HANDLE),
+		m_presentationSurface(VK_NULL_HANDLE),
+		m_debugMessenger(VK_NULL_HANDLE),
+		m_isRunning(false),
+		m_appInfo{},
+		m_pMainDevice(nullptr),
+		m_pSwapchain(nullptr),
+		m_currentFrame(0),
+		m_pDefaultSampler_0(nullptr),
+		m_pDefaultSampler_1(nullptr)
+	{
+
+	}
+
 	GraphicsHardwareInterface_VK::~GraphicsHardwareInterface_VK()
 	{
 		if (m_isRunning)

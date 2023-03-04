@@ -4,6 +4,7 @@ namespace Engine
 {
 	MeshFilterComponent::MeshFilterComponent()
 		: BaseComponent(EComponentType::MeshFilter)
+		, m_pMesh(nullptr)
 	{
 	}
 

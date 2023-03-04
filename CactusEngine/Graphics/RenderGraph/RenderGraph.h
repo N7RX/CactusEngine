@@ -54,14 +54,14 @@ namespace Engine
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
 
 	protected:
-		const char*									m_pName;
-		BaseRenderer*								m_pRenderer;
+		const char*					m_pName;
+		BaseRenderer*				m_pRenderer;
 		GraphicsDevice*				m_pDevice;
-		EGraphicsAPIType							m_eGraphicsDeviceType;
+		EGraphicsAPIType			m_eGraphicsDeviceType;
 
-		std::vector<RenderNode*>					m_prevNodes;
+		std::vector<RenderNode*>	m_prevNodes;
 		std::vector<RenderNode*>	m_nextNodes;
-		bool										m_finishedExecution;
+		bool						m_finishedExecution;
 
 		RenderGraphResource*		m_pGraphResources;
 		RenderContext*				m_pRenderContext;

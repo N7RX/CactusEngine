@@ -54,6 +54,8 @@ namespace Engine
 		friend class CommandManager_VK;
 	};
 
+	// TODO: add fallback VkFence support
+
 	class SyncObjectManager_VK : public NoCopy
 	{
 	public:

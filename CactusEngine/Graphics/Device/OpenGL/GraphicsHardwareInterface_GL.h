@@ -10,6 +10,7 @@ namespace Engine
 	class GraphicsHardwareInterface_GL : public GraphicsDevice
 	{
 	public:
+		GraphicsHardwareInterface_GL() = default;
 		~GraphicsHardwareInterface_GL();
 
 		void Initialize() override;

@@ -3,7 +3,8 @@
 namespace Engine
 {
 	BaseApplication::BaseApplication()
-		: m_applicationID(-1), m_shouldQuit(false)
+		: m_applicationID(-1),
+		m_shouldQuit(false)
 	{
 	}
 

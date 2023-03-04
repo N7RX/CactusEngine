@@ -22,6 +22,12 @@ namespace Engine
 
 	struct SwapchainSupportDetails_VK
 	{
+		SwapchainSupportDetails_VK()
+			: capabilities{}
+		{
+
+		}
+
 		VkSurfaceCapabilitiesKHR		capabilities;
 		std::vector<VkSurfaceFormatKHR>	formats;
 		std::vector<VkPresentModeKHR>	presentModes;

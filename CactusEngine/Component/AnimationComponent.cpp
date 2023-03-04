@@ -3,7 +3,8 @@
 namespace Engine
 {
 	AnimationComponent::AnimationComponent()
-		: BaseComponent(EComponentType::Animation), m_pAnimFunc(nullptr)
+		: BaseComponent(EComponentType::Animation),
+		m_pAnimFunc(nullptr)
 	{
 	}
 

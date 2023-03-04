@@ -10,7 +10,8 @@ using namespace Engine;
 namespace SampleScript
 {
 	CameraScript::CameraScript(BaseEntity* pEntity)
-		: m_pEntity(pEntity), m_pCameraTransform(nullptr)
+		: m_pEntity(pEntity),
+		m_pCameraTransform(nullptr)
 	{
 		DEBUG_ASSERT_CE(pEntity != nullptr);
 

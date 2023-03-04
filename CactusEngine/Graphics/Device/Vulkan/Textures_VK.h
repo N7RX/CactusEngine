@@ -42,14 +42,14 @@ namespace Engine
 	protected:
 		LogicalDevice_VK* m_pDevice;
 
-		VkImage				m_image = VK_NULL_HANDLE;
-		VkImageView			m_imageView = VK_NULL_HANDLE;
-		VkImageLayout		m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-		VmaAllocation		m_allocation = VK_NULL_HANDLE;
-		VkExtent2D			m_extent = { 0, 0 };
-		VkFormat			m_format = VK_FORMAT_UNDEFINED;
-		uint32_t			m_mipLevels = 0;
-		VkImageAspectFlags	m_aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		VkImage				m_image;
+		VkImageView			m_imageView;
+		VkImageLayout		m_layout;
+		VmaAllocation		m_allocation;
+		VkExtent2D			m_extent;
+		VkFormat			m_format;
+		uint32_t			m_mipLevels;
+		VkImageAspectFlags	m_aspect;
 
 		EAllocatorType_VK m_allocatorType;
 

@@ -5,7 +5,9 @@
 namespace Engine
 {
 	VertexBuffer_GL::VertexBuffer_GL()
-		: m_vao(-1), m_vboIndices(-1), m_vboVertices(-1)
+		: m_vao(-1),
+		m_vboIndices(-1),
+		m_vboVertices(-1)
 	{
 	}
 

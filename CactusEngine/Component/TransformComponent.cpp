@@ -3,15 +3,25 @@
 namespace Engine
 {
 	TransformComponent::TransformComponent()
-		: BaseComponent(EComponentType::Transform), m_position(Vector3(0)), m_scale(Vector3(1)), m_rotationEuler(Vector3(0, -90, 0)),
-		m_forwardDirection(Vector3(0, 0, -1)), m_rightDirection(Vector3(1, 0, 0)), m_rotationQuaternion(Vector4(0))
+		: BaseComponent(EComponentType::Transform),
+		m_position(Vector3(0)),
+		m_scale(Vector3(1)),
+		m_rotationEuler(Vector3(0, -90, 0)),
+		m_forwardDirection(Vector3(0, 0, -1)),
+		m_rightDirection(Vector3(1, 0, 0)),
+		m_rotationQuaternion(Vector4(0))
 	{
 
 	}
 
 	TransformComponent::TransformComponent(Vector3 position, Vector3 scale, Vector3 rotation)
-		: BaseComponent(EComponentType::Transform), m_position(position), m_scale(scale), m_rotationEuler(rotation),
-		m_forwardDirection(Vector3(0, 0, -1)), m_rightDirection(Vector3(1, 0, 0)), m_rotationQuaternion(Vector4(0))
+		: BaseComponent(EComponentType::Transform),
+		m_position(position),
+		m_scale(scale),
+		m_rotationEuler(rotation),
+		m_forwardDirection(Vector3(0, 0, -1)),
+		m_rightDirection(Vector3(1, 0, 0)),
+		m_rotationQuaternion(Vector4(0))
 	{
 
 	}

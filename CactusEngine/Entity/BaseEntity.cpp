@@ -4,7 +4,9 @@
 namespace Engine
 {
 	BaseEntity::BaseEntity()
-		: m_componentBitmap(0), m_tag(EEntityTag::None), m_entityID(-1)
+		: m_componentBitmap(0),
+		m_tag(EEntityTag::None),
+		m_entityID(-1)
 	{
 	}
 

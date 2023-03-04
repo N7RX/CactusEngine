@@ -8,7 +8,10 @@
 namespace Engine
 {
 	RawShader_VK::RawShader_VK(LogicalDevice_VK* pDevice, VkShaderModule shaderModule, VkShaderStageFlagBits shaderStage, const char* entry)
-		: m_pDevice(pDevice), m_shaderModule(shaderModule), m_shaderStage(shaderStage), m_entryName(entry)
+		: m_pDevice(pDevice),
+		m_shaderModule(shaderModule),
+		m_shaderStage(shaderStage),
+		m_entryName(entry)
 	{
 
 	}
@@ -80,7 +83,9 @@ namespace Engine
 	}
 
 	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader)
-		: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
+		: ShaderProgram(0),
+		m_pLogicalDevice(pLogicalDevice),
+		m_descriptorSetAccessIndex(0)
 	{
 		m_pDevice = pDevice;
 
@@ -478,7 +483,7 @@ namespace Engine
 
 	void ShaderProgram_VK::CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo)
 	{
-CE_NEW(	m_pDescriptorSetLayout, DescriptorSetLayout_VK, m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
+		CE_NEW(m_pDescriptorSetLayout, DescriptorSetLayout_VK, m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
 	}
 
 	void ShaderProgram_VK::CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo)

@@ -13,8 +13,16 @@
 namespace Engine
 {
 	CommandBuffer_VK::CommandBuffer_VK(const VkCommandBuffer& cmdBuffer)
-		: m_isRecording(false), m_inRenderPass(false), m_inExecution(false), m_pAssociatedSubmitSemaphore(nullptr), m_commandBuffer(cmdBuffer), m_pipelineLayout(VK_NULL_HANDLE),
-		m_pSyncObjectManager(nullptr), m_isExternal(false), m_pAllocatedPool(nullptr), m_usageFlags(0)
+		: m_isRecording(false),
+		m_inRenderPass(false),
+		m_inExecution(false),
+		m_pAssociatedSubmitSemaphore(nullptr),
+		m_commandBuffer(cmdBuffer),
+		m_pipelineLayout(VK_NULL_HANDLE),
+		m_pSyncObjectManager(nullptr),
+		m_isExternal(false),
+		m_pAllocatedPool(nullptr),
+		m_usageFlags(0)
 	{
 
 	}
@@ -380,7 +388,10 @@ namespace Engine
 	}
 
 	CommandPool_VK::CommandPool_VK(LogicalDevice_VK* pDevice, VkCommandPool poolHandle, CommandManager_VK* pManager)
-		: m_pDevice(pDevice), m_commandPool(poolHandle), m_allocatedCommandBufferCount(0), m_pManager(pManager)
+		: m_pDevice(pDevice),
+		m_commandPool(poolHandle),
+		m_allocatedCommandBufferCount(0),
+		m_pManager(pManager)
 	{
 
 	}
@@ -438,7 +449,8 @@ namespace Engine
 	}
 
 	CommandManager_VK::CommandManager_VK(LogicalDevice_VK* pDevice, const CommandQueue_VK& queue)
-		: m_pDevice(pDevice), m_workingQueue(queue)
+		: m_pDevice(pDevice),
+		m_workingQueue(queue)
 	{
 		CE_NEW(m_pDefaultCommandPool, CommandPool_VK, m_pDevice, CreateCommandPool(), this);
 

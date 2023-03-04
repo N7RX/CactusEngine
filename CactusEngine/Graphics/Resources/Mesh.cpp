@@ -4,8 +4,12 @@
 namespace Engine
 {
 	Mesh::Mesh(GraphicsDevice* pDevice)
-		: m_pDevice(pDevice), m_type(EBuiltInMeshType::External), m_planeDimension(0, 0)
+		: m_pDevice(pDevice),
+		m_pVertexBuffer(nullptr),
+		m_type(EBuiltInMeshType::External),
+		m_planeDimension(0, 0)
 	{
+
 	}
 
 	VertexBuffer* Mesh::GetVertexBuffer() const

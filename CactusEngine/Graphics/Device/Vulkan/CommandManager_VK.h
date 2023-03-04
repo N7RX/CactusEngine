@@ -14,12 +14,21 @@
 namespace Engine
 {
 	struct CommandQueue_VK
-	{		
+	{
+		CommandQueue_VK()
+			: type(EQueueType::Graphics),
+			queueFamilyIndex(0),
+			queue(VK_NULL_HANDLE),
+			isValid(true)
+		{
+
+		}
+
 		EQueueType	type;
 		uint32_t	queueFamilyIndex;
 		VkQueue		queue;
 
-		bool		isValid = true;
+		bool		isValid;
 	};
 
 	enum class ECommandBufferUsageFlagBits_VK
@@ -126,6 +135,12 @@ namespace Engine
 
 	struct CommandSubmitInfo_VK
 	{
+		CommandSubmitInfo_VK()
+			: submitInfo{}
+		{
+
+		}
+
 		VkSubmitInfo submitInfo;
 
 		//QueueSubmitConditionLock_Vulkan* submitConditionLock;

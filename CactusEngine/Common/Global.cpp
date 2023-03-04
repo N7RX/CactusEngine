@@ -6,6 +6,7 @@ namespace Engine
 	Global* gpGlobal;
 
 	Global::Global()
+		: m_pCurrentApp(nullptr)
 	{
 		m_configurations.resize((uint32_t)EConfigurationType::COUNT, nullptr);
 		m_globalStates.resize((uint32_t)EGlobalStateQueryType::COUNT, false);

@@ -4,7 +4,9 @@
 namespace Engine
 {
 	BaseComponent::BaseComponent(EComponentType type)
-		: m_componentType(type), m_pParentEntity(nullptr), m_componentID(-1)
+		: m_componentType(type),
+		m_pParentEntity(nullptr),
+		m_componentID(-1)
 	{
 	}
 

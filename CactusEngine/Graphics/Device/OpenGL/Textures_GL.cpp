@@ -5,7 +5,8 @@
 namespace Engine
 {
 	Texture2D_GL::Texture2D_GL()
-		: Texture2D(ETexture2DSource::RawDeviceTexture), m_glTextureID(-1)
+		: Texture2D(ETexture2DSource::RawDeviceTexture),
+		m_glTextureID(-1)
 	{
 
 	}

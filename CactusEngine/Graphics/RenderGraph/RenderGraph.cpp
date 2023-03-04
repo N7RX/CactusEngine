@@ -35,11 +35,16 @@ namespace Engine
 	}
 
 	RenderNode::RenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
-		: m_pRenderer(pRenderer), m_pGraphResources(pGraphResources), m_finishedExecution(false), m_pName(nullptr)
+		: m_pRenderer(pRenderer),
+		m_pDevice(m_pRenderer->GetGraphicsDevice()),
+		m_eGraphicsDeviceType(m_pDevice->GetGraphicsAPIType()),
+		m_pGraphResources(pGraphResources),
+		m_finishedExecution(false),
+		m_pName(nullptr),
+		m_pRenderContext(nullptr),
+		m_pCmdContext(nullptr)
 	{
 		DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
-		m_pDevice = m_pRenderer->GetGraphicsDevice();
-		m_eGraphicsDeviceType = m_pDevice->GetGraphicsAPIType();
 	}
 
 	void RenderNode::ConnectNext(RenderNode* pNode)
@@ -85,7 +90,9 @@ namespace Engine
 	}
 
 	RenderGraph::RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount)
-		: m_pDevice(pDevice), m_isRunning(true), m_executionThreadCount(executionThreadCount)
+		: m_pDevice(pDevice),
+		m_isRunning(true),
+		m_executionThreadCount(executionThreadCount)
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 		{

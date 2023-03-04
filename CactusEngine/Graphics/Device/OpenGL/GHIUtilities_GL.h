@@ -17,7 +17,8 @@ namespace Engine
 		{
 			size_t filesize = static_cast<size_t>(ifs.tellg());
 			ifs.seekg(0, std::ios::beg);
-			char* bytes = new char[filesize + (size_t)1];
+			char* bytes;
+			CE_NEW_ARRAY(bytes, char, filesize + (size_t)1);
 			memset(bytes, 0, filesize + (size_t)1);
 			ifs.read(bytes, filesize);
 			ifs.close();
@@ -31,20 +32,22 @@ namespace Engine
 	{
 		GLint logSize;
 		glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &logSize);
-		char* logMsg = new char[logSize];
+		char* logMsg;
+		CE_NEW_ARRAY(logMsg, char, logSize);
 		glGetShaderInfoLog(shaderID, logSize, NULL, logMsg);
 		LOG_ERROR(logMsg);
-		delete[] logMsg;
+		CE_DELETE_ARRAY(logMsg);
 	}
 
 	inline void PrintProgramLinkError_GL(GLuint programID)
 	{
 		GLint  logSize;
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
-		char* logMsg = new char[logSize];
+		char* logMsg;
+		CE_NEW_ARRAY(logMsg, char, logSize);
 		glGetProgramInfoLog(programID, logSize, NULL, logMsg);
 		LOG_ERROR(logMsg);
-		delete[] logMsg;
+		CE_DELETE_ARRAY(logMsg);
 	}
 
 	inline unsigned int OpenGLFormat(ETextureFormat format)

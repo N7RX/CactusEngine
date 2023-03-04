@@ -5,10 +5,10 @@
 namespace Engine
 {
 	RenderTexture::RenderTexture(uint32_t width, uint32_t height)
-		: Texture2D(ETexture2DSource::RenderTexture)
+		: Texture2D(ETexture2DSource::RenderTexture),
+		m_pDevice(((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetGraphicsDevice()),
+		m_pTextureImpl(nullptr)
 	{
-		m_pDevice = ((GraphicsApplication*)gpGlobal->GetCurrentApplication())->GetGraphicsDevice();
-
 		m_width = width;
 		m_height = height;
 	}

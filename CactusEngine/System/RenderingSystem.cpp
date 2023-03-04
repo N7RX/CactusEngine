@@ -12,7 +12,8 @@
 namespace Engine
 {
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
-		: m_pECSWorld(pWorld), m_activeRenderer(ERendererType::Standard)
+		: m_pECSWorld(pWorld),
+		m_activeRenderer(ERendererType::Standard)
 	{
 		CreateDevice();
 		RegisterRenderers();

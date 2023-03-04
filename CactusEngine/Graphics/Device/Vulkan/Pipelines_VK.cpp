@@ -5,7 +5,8 @@
 namespace Engine
 {
 	RenderPass_VK::RenderPass_VK(LogicalDevice_VK* pDevice)
-		: m_pDevice(pDevice), m_renderPass(VK_NULL_HANDLE)
+		: m_pDevice(pDevice),
+		m_renderPass(VK_NULL_HANDLE)
 	{
 
 	}
@@ -17,7 +18,8 @@ namespace Engine
 	}
 
 	GraphicsPipeline_VK::GraphicsPipeline_VK(LogicalDevice_VK* pDevice, ShaderProgram_VK* pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo)
-		: m_pDevice(pDevice), m_pShaderProgram(pShaderProgram)
+		: m_pDevice(pDevice),
+		m_pShaderProgram(pShaderProgram)
 	{
 		// TODO: support creation from cache & batched creations to reduce startup time
 		m_pipelineLayout = createInfo.layout;
