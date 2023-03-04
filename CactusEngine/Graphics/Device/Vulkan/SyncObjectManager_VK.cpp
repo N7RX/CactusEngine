@@ -41,7 +41,7 @@ namespace Engine
 	SyncObjectManager_VK::SyncObjectManager_VK(LogicalDevice_VK* pDevice)
 		: m_pDevice(pDevice)
 	{
-		CreateNewSemaphore(3); // TODO: adjust the initial count based on usage scenario
+		CreateNewSemaphore(3);
 		CreateNewTimelineSemaphore(16);
 	}
 

@@ -472,7 +472,7 @@ namespace Engine
 		PipelineMultisampleState*	pMultisampleState;
 		PipelineViewportState*		pViewportState;
 		RenderPassObject*			pRenderPass;
-		//uint32_t									subpassIndex; // TODO: add subpass support
+		//uint32_t					subpassIndex; // TODO: add subpass support
 	};
 
 	class GraphicsPipelineObject : public RawResource

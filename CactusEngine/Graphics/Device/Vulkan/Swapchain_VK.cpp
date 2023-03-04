@@ -137,7 +137,6 @@ namespace Engine
 		presentInfo.waitSemaphoreCount = (uint32_t)semaphoresToWait.size();
 		presentInfo.pWaitSemaphores = semaphoresToWait.data();
 
-		// TODO: we can present multiple swapchains at once if needed
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = &m_swapchain;
 		presentInfo.pImageIndices = &m_targetImageIndex;

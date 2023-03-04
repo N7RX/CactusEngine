@@ -8,6 +8,7 @@ namespace Engine
 		: BaseWindow(name, width, height),
 		m_pGLFWWindowHandle(nullptr)
 	{
+
 	}
 
 	GLFWWindow::~GLFWWindow()

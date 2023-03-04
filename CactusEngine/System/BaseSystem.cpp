@@ -3,7 +3,8 @@
 namespace Engine
 {
 	BaseSystem::BaseSystem()
-		: m_systemID(-1)
+		: m_systemID(-1),
+		m_systemPriority(1)
 	{
 
 	}
@@ -16,5 +17,15 @@ namespace Engine
 	uint32_t BaseSystem::GetSystemID() const
 	{
 		return m_systemID;
+	}
+
+	void BaseSystem::SetSystemPriority(uint32_t priority)
+	{
+		m_systemPriority = priority;
+	}
+
+	uint32_t BaseSystem::GetSystemPriority() const
+	{
+		return m_systemPriority;
 	}
 }

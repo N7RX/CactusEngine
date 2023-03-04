@@ -7,7 +7,7 @@
 namespace Engine
 {
 	typedef std::unordered_map<uint32_t, BaseEntity*> EntityList;
-	typedef std::unordered_map<uint32_t, BaseSystem*> SystemList;
+	typedef std::vector<BaseSystem*> SystemList;
 
 	class ECSWorld
 	{
@@ -40,16 +40,19 @@ namespace Engine
 		}
 
 		template<typename T>
-		inline void RegisterSystem(ESystemType type)
+		inline void RegisterSystem(ESystemType type, uint32_t priority)
 		{
 			T* pSystem;
 			CE_NEW(pSystem, T, this);
 			pSystem->SetSystemID((uint32_t)type);
-			m_systemList.emplace((uint32_t)type, pSystem);
+			pSystem->SetSystemPriority(priority);
+			m_systemList.push_back(pSystem);
 		}
 
 		void RemoveEntity(uint32_t entityID);
 		void RemoveSystem(ESystemType type);
+
+		void SortSystems(); // Sort systems by priority. Should be called when new system is added
 
 		const EntityList* GetEntityList() const;
 

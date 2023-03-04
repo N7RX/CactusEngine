@@ -105,7 +105,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, VertexBuffer*& pOutput)
 	{
-		// Alert: we are using directly mapped buffer instead of staging buffer
+		// We are using directly mapped buffer instead of staging buffer
 		// TODO: use staging pool for discrete device and CPU_TO_GPU for integrated device
 
 		RawBufferCreateInfo_VK vertexBufferCreateInfo = {};

@@ -277,7 +277,6 @@ namespace Engine
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
-		// TODO: handle acceleration structures
 	}
 
 	void ShaderProgram_VK::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
@@ -293,7 +292,6 @@ namespace Engine
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
-		// TODO: handle acceleration structures
 	}
 
 	void ShaderProgram_VK::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
@@ -623,7 +621,7 @@ namespace Engine
 			break;
 		}
 
-		return EShaderType::Vertex; // Alert: returning unhandled stage as vertex stage could cause problem
+		return EShaderType::Undefined;
 	}
 
 	VkShaderStageFlagBits ShaderProgram_VK::ShaderTypeConvertToStageBits(EShaderType shaderType)

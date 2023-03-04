@@ -15,6 +15,10 @@ namespace Engine
 		void SetSystemID(uint32_t id);
 		uint32_t GetSystemID() const;
 
+		// Smaller number means higher priority, 0 is the highest priority; Systems with same priority have no guarantee on execution sequence
+		void SetSystemPriority(uint32_t priority);
+		uint32_t GetSystemPriority() const;
+
 		virtual void Initialize() = 0;
 		virtual void ShutDown() = 0;
 
@@ -24,5 +28,6 @@ namespace Engine
 
 	protected:
 		uint32_t m_systemID;
+		uint32_t m_systemPriority;
 	};
 }

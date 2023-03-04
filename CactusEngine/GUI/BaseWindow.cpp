@@ -10,6 +10,7 @@ namespace Engine
 		m_shouldQuit(false),
 		m_windowID(-1)
 	{
+
 	}
 
 	void BaseWindow::SetWindowID(uint32_t id)

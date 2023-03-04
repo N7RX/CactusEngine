@@ -33,7 +33,7 @@ namespace Engine
 		}
 
 		bool QueryGlobalState(EGlobalStateQueryType type) const;
-		void MarkGlobalState(EGlobalStateQueryType type, bool val); // Alert: this does not "change" global state, that's why it's "Mark.."
+		void MarkGlobalState(EGlobalStateQueryType type, bool val); // This does not change global state, that's why it's named "Mark.."
 
 		void* GetWindowHandle() const;
 

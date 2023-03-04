@@ -42,6 +42,7 @@ namespace Engine
 
 	enum class EShaderType
 	{
+		Undefined = 0,
 		Vertex = 0x1,
 		Fragment = 0x2,
 		TessControl = 0x4,

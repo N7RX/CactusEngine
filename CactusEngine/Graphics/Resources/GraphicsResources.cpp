@@ -6,7 +6,7 @@ namespace Engine
 
 	RawResource::RawResource()
 		: m_sizeInBytes(0),
-		m_resourceID(m_assignedID++) // Alert: this ID would run out under rare situation
+		m_resourceID(m_assignedID++)
 	{
 		
 	}

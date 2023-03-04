@@ -48,7 +48,6 @@ namespace Engine
 		m_pRenderGraph->AddRenderNode("BlendNode", pBlendNode);
 		m_pRenderGraph->AddRenderNode("DOFNode", pDOFNode);
 
-		// TODO: make the connection automatic
 		pShadowMapNode->ConnectNext(pOpaqueNode);
 		pGBufferNode->ConnectNext(pOpaqueNode);
 		pOpaqueNode->ConnectNext(pDeferredLightingNode);
@@ -121,7 +120,7 @@ namespace Engine
 
 			// Submit async recorded command buffers by correct sequence
 
-			unsigned int finishedNodeCount = 0;
+			uint32_t finishedNodeCount = 0;
 
 			while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
 			{

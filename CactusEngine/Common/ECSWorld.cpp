@@ -1,6 +1,8 @@
 #include "ECSWorld.h"
 #include "LogUtility.h"
 
+#include <algorithm>
+
 namespace Engine
 {
 	ECSWorld::ECSWorld()
@@ -12,7 +14,7 @@ namespace Engine
 	{
 		for (auto& system : m_systemList)
 		{
-			system.second->Initialize();
+			system->Initialize();
 		}
 	}
 
@@ -20,7 +22,7 @@ namespace Engine
 	{
 		for (auto& system : m_systemList)
 		{
-			system.second->ShutDown();
+			system->ShutDown();
 		}
 	}
 
@@ -28,17 +30,17 @@ namespace Engine
 	{
 		for (auto& system : m_systemList)
 		{
-			system.second->FrameBegin();
+			system->FrameBegin();
 		}
 
 		for (auto& system : m_systemList)
 		{
-			system.second->Tick();
+			system->Tick();
 		}
 
 		for (auto& system : m_systemList)
 		{
-			system.second->FrameEnd();
+			system->FrameEnd();
 		}
 	}
 
@@ -49,7 +51,23 @@ namespace Engine
 
 	void ECSWorld::RemoveSystem(ESystemType type)
 	{
-		m_systemList.erase(m_systemList[(uint32_t)type]->GetSystemID());
+		for (auto itr = m_systemList.begin(); itr != m_systemList.end(); ++itr)
+		{
+			if ((*itr)->GetSystemID() == (uint32_t)type)
+			{
+				m_systemList.erase(itr);
+				return;
+			}
+		}
+		DEBUG_LOG_ERROR("The system requested to remove does not exist.");
+	}
+
+	void ECSWorld::SortSystems()
+	{
+		std::sort(m_systemList.begin(), m_systemList.end(), [](const BaseSystem* lhs, const BaseSystem* rhs)
+			{
+				return lhs->GetSystemPriority() < rhs->GetSystemPriority();
+			});
 	}
 
 	const EntityList* ECSWorld::GetEntityList() const
@@ -90,6 +108,6 @@ namespace Engine
 	uint32_t ECSWorld::GetNewECSID(EECSType type)
 	{
 		DEBUG_ASSERT_CE((uint32_t)type < m_IDAssignments.size());
-		return m_IDAssignments[(uint32_t)type]++; // Alert: the ID may run out in rare cases
+		return m_IDAssignments[(uint32_t)type]++;
 	}
 }

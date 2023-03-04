@@ -122,7 +122,6 @@ namespace Engine
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
-		// TODO: handle acceleration structures
 
 		// Descriptor functions
 		void CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo);

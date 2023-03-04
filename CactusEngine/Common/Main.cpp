@@ -100,11 +100,11 @@ void TestSetup(GraphicsApplication* pApp)
 {
 	auto pWorld = pApp->GetECSWorld();
 
-	// Alert: the registration sequence may correspond to execution sequence
-	pWorld->RegisterSystem<InputSystem>(ESystemType::Input);
-	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation);
-	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering);
+	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
+	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 0);
+	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
+	pWorld->SortSystems();
 
 	// Read scene from file
 	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
