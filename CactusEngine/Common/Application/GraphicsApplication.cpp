@@ -85,7 +85,7 @@ namespace Engine
 
 	void GraphicsApplication::InitWindow()
 	{
-		CE_NEW(m_pWindow, GLFWWindow,
+		CE_NEW(m_pWindow, GLFWWindow_CE,
 			gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight()

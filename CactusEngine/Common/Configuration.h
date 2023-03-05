@@ -5,10 +5,14 @@
 
 // Macro configurations
 
-#define GLFW_IMPLEMENTATION_CE
+#define PLATFORM_WINDOWS_CE
 
 #if defined(_DEBUG)
 #define DEBUG_MODE_CE
+#endif
+
+#if defined(PLATFORM_WINDOWS_CE)
+#define GLFW_IMPLEMENTATION_CE
 #endif
 
 // Runtime configurations

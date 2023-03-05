@@ -1,8 +1,8 @@
 #pragma once
 #include "NoCopy.h"
 #include "CommandResources.h"
+#include "VulkanIncludes.h"
 
-#include <vulkan.h>
 #include <vector>
 #include <unordered_map>
 #include <mutex>

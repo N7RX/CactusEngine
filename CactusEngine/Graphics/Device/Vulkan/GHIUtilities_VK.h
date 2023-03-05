@@ -1,5 +1,4 @@
 #pragma once
-#include "SharedTypes.h"
 #include "LogUtility.h"
 
 #include <fstream>

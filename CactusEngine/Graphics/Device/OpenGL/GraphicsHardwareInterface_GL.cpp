@@ -8,6 +8,13 @@
 
 namespace Engine
 {
+	GraphicsHardwareInterface_GL::GraphicsHardwareInterface_GL()
+		: m_attributeless_vao(-1),
+		m_primitiveTopologyMode(GL_TRIANGLES)
+	{
+
+	}
+
 	GraphicsHardwareInterface_GL::~GraphicsHardwareInterface_GL()
 	{
 		ShutDown();

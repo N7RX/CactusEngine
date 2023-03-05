@@ -1099,7 +1099,7 @@ namespace Engine
 		m_appInfo.applicationVersion = 1;
 		m_appInfo.pEngineName = "Cactus Engine";
 		m_appInfo.engineVersion = 1;
-		m_appInfo.apiVersion = VK_API_VERSION_1_2;
+		m_appInfo.apiVersion = VULKAN_VERSION_CE;
 
 		// Generate creation info
 		VkInstanceCreateInfo instanceCreateInfo = {};
@@ -1127,6 +1127,9 @@ namespace Engine
 		{
 			throw std::runtime_error("Could not create Vulkan instance.");
 		}
+
+		// Load all required Vulkan entrypoints, including all extensions
+		volkLoadInstance(m_instance);
 	}
 
 	void GraphicsHardwareInterface_VK::SetupDebugMessenger()
@@ -1323,6 +1326,9 @@ namespace Engine
 			throw std::runtime_error("Vulkan: Failed to create logical device.");
 			return;
 		}
+
+		// Load device-related Vulkan entrypoints directly from the driver
+		volkLoadDevice(m_pMainDevice->logicalDevice);
 
 		if (queueFamilyIndices.graphicsFamily.has_value())
 		{

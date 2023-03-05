@@ -33,6 +33,9 @@ namespace Engine
 	class GraphicsHardwareInterface_VK : public GraphicsDevice
 	{
 	public:
+
+		// TODO: refactor this part and move into ExtensionLoader_VK
+
 		const std::vector<const char*> m_validationLayers =
 		{
 			"VK_LAYER_KHRONOS_validation"
@@ -41,7 +44,22 @@ namespace Engine
 		const std::vector<const char*> m_deviceExtensions =
 		{
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME
+			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+
+			// For VMA
+#if VK_KHR_get_memory_requirements2 && VK_KHR_dedicated_allocation
+			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
+			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+#endif
+#if VK_KHR_bind_memory2
+			VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
+#endif
+#if VK_EXT_memory_budget
+			VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
+#endif
+#if VK_KHR_maintenance4
+			VK_KHR_MAINTENANCE_4_EXTENSION_NAME
+#endif
 		};
 
 	public:
@@ -172,6 +190,20 @@ namespace Engine
 	template<>
 	static GraphicsDevice* CreateGraphicsDevice<EGraphicsAPIType::Vulkan>()
 	{
+		if (!gpGlobal->QueryGlobalState(EGlobalStateQueryType::VulkanInit))
+		{
+			// Attempt to load Vulkan loader from the system
+			if (volkInitialize() != VK_SUCCESS)
+			{
+				throw std::runtime_error("Vulkan: Failed to initialize Volk.");
+				return nullptr;
+			}
+			else
+			{
+				gpGlobal->MarkGlobalState(EGlobalStateQueryType::VulkanInit, true);
+			}
+		}
+
 		GraphicsHardwareInterface_VK* pDevice;
 		CE_NEW(pDevice, GraphicsHardwareInterface_VK);
 		pDevice->SetupDevice();

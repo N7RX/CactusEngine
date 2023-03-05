@@ -1,6 +1,7 @@
 #pragma once
 #include "SafeBasicTypes.h"
-#include <vulkan.h>
+#include "VulkanIncludes.h"
+
 #include <vector>
 
 namespace Engine

@@ -1,4 +1,6 @@
 #define VMA_IMPLEMENTATION
+#define VMA_STATIC_VULKAN_FUNCTIONS 0 // Use function addresses returned by Volk
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #include "UploadAllocator_VK.h"
 
 #include "GraphicsHardwareInterface_VK.h"
@@ -15,6 +17,41 @@ namespace Engine
 		createInfo.physicalDevice = pDevice->physicalDevice;
 		createInfo.device = pDevice->logicalDevice;
 		createInfo.instance = instance;
+		createInfo.vulkanApiVersion = VULKAN_VERSION_CE;
+
+		// Pass Vulkan function pointers to VMA
+		VmaVulkanFunctions volkFunctions{};
+		volkFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		volkFunctions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+		volkFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		volkFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		volkFunctions.vkAllocateMemory = vkAllocateMemory;
+		volkFunctions.vkFreeMemory = vkFreeMemory;
+		volkFunctions.vkMapMemory = vkMapMemory;
+		volkFunctions.vkUnmapMemory = vkUnmapMemory;
+		volkFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+		volkFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+		volkFunctions.vkBindBufferMemory = vkBindBufferMemory;
+		volkFunctions.vkBindImageMemory = vkBindImageMemory;
+		volkFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+		volkFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+		volkFunctions.vkCreateBuffer = vkCreateBuffer;
+		volkFunctions.vkDestroyBuffer = vkDestroyBuffer;
+		volkFunctions.vkCreateImage = vkCreateImage;
+		volkFunctions.vkDestroyImage = vkDestroyImage;
+		volkFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+		// These are supported by extensions
+		volkFunctions.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+		volkFunctions.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+		volkFunctions.vkBindBufferMemory2KHR = vkBindBufferMemory2KHR;
+		volkFunctions.vkBindImageMemory2KHR = vkBindImageMemory2KHR;
+		volkFunctions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+		volkFunctions.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements;
+		volkFunctions.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements;
+
+		createInfo.pVulkanFunctions = &volkFunctions;
+
+		// TODO: integrate MemoryAllocationTracker
 
 		if (vmaCreateAllocator(&createInfo, &m_allocator) != VK_SUCCESS)
 		{

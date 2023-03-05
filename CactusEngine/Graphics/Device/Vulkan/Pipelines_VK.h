@@ -4,7 +4,7 @@
 
 namespace Engine
 {
-	class LogicalDevice_VK;
+	struct LogicalDevice_VK;
 	class ShaderProgram_VK;
 
 	class RenderPass_VK : public RenderPassObject

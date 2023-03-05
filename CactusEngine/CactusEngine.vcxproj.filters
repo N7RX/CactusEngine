@@ -238,6 +238,9 @@
     <Filter Include="Graphics\RenderGraph\Nodes\Source">
       <UniqueIdentifier>{e34edae6-13cf-4700-8df7-b6bda79ba50a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Third-party\Volk">
+      <UniqueIdentifier>{cfd218d7-3ed6-41d0-bc86-d6eb9fa1ec70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Application\BaseApplication.h">
@@ -527,6 +530,15 @@
     </ClInclude>
     <ClInclude Include="Common\MemoryAllocator.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\OpenGLIncludes.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\VulkanIncludes.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Third-party\volk\volk.h">
+      <Filter>Third-party\Volk</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

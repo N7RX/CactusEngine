@@ -7,8 +7,8 @@
 #include "BasicMathTypes.h"
 #include "DescriptorAllocator_VK.h"
 #include "CommandResources.h"
+#include "VulkanIncludes.h"
 
-#include <vulkan.h>
 #include <vector>
 
 namespace Engine

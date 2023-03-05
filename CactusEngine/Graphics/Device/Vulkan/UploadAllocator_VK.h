@@ -1,5 +1,6 @@
 #pragma once
-#include <vulkan.h>
+#include "VulkanIncludes.h"
+
 #include <vk_mem_alloc.h>
 #include <vector>
 

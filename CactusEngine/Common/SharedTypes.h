@@ -92,6 +92,7 @@ namespace Engine
 	enum class EGlobalStateQueryType
 	{
 		GLFWInit = 0,
+		VulkanInit,
 		COUNT
 	};
 

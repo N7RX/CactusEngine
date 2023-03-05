@@ -1,16 +1,16 @@
 #pragma once
 #include "BaseWindow.h"
+#include "OpenGLIncludes.h" // Needs to be included before GLFW include
 
-#include <glad/glad.h>
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 namespace Engine
 {
-	class GLFWWindow : public BaseWindow
+	class GLFWWindow_CE : public BaseWindow
 	{
 	public:
-		GLFWWindow(const char* name, uint32_t width, uint32_t height);
-		~GLFWWindow();
+		GLFWWindow_CE(const char* name, uint32_t width, uint32_t height);
+		~GLFWWindow_CE();
 
 		void Initialize() override;
 		void Tick() override;

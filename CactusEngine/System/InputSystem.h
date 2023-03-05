@@ -2,8 +2,11 @@
 #include "BaseSystem.h"
 #include "Configuration.h"
 #include "ECSWorld.h"
-#include "GLFWWindow.h"
 #include "BasicMathTypes.h"
+
+#if defined(GLFW_IMPLEMENTATION_CE)
+#include <GLFW/glfw3.h>
+#endif
 
 namespace Engine
 {

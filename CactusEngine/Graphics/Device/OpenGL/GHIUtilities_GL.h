@@ -2,9 +2,8 @@
 #include "SharedTypes.h"
 #include "LogUtility.h"
 #include "MemoryAllocator.h"
+#include "OpenGLIncludes.h"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <fstream>
 
 namespace Engine
@@ -41,7 +40,7 @@ namespace Engine
 
 	inline void PrintProgramLinkError_GL(GLuint programID)
 	{
-		GLint  logSize;
+		GLint logSize;
 		glGetProgramiv(programID, GL_INFO_LOG_LENGTH, &logSize);
 		char* logMsg;
 		CE_NEW_ARRAY(logMsg, char, logSize);

@@ -4,14 +4,14 @@
 
 namespace Engine
 {
-	GLFWWindow::GLFWWindow(const char* name, uint32_t width, uint32_t height)
+	GLFWWindow_CE::GLFWWindow_CE(const char* name, uint32_t width, uint32_t height)
 		: BaseWindow(name, width, height),
 		m_pGLFWWindowHandle(nullptr)
 	{
 
 	}
 
-	GLFWWindow::~GLFWWindow()
+	GLFWWindow_CE::~GLFWWindow_CE()
 	{
 		ShutDown();
 	}
@@ -26,7 +26,7 @@ namespace Engine
 		LOG_ERROR("Vulkan window resized but not handled.");
 	}
 
-	void GLFWWindow::Initialize()
+	void GLFWWindow_CE::Initialize()
 	{
 		glfwInit();
 
@@ -88,7 +88,7 @@ namespace Engine
 		}
 	}
 
-	void GLFWWindow::Tick()
+	void GLFWWindow_CE::Tick()
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
 		{
@@ -100,22 +100,22 @@ namespace Engine
 		glfwPollEvents();
 	}
 
-	void GLFWWindow::ShutDown()
+	void GLFWWindow_CE::ShutDown()
 	{
 		glfwTerminate();
 	}
 
-	void GLFWWindow::RegisterCallback()
+	void GLFWWindow_CE::RegisterCallback()
 	{
 
 	}
 
-	void* GLFWWindow::GetWindowHandle() const
+	void* GLFWWindow_CE::GetWindowHandle() const
 	{
 		return m_pGLFWWindowHandle;
 	}
 
-	void GLFWWindow::SetWindowSize(uint32_t width, uint32_t height)
+	void GLFWWindow_CE::SetWindowSize(uint32_t width, uint32_t height)
 	{
 		BaseWindow::SetWindowSize(width, height);
 		glViewport(0, 0, width, height);

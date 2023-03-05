@@ -37,7 +37,7 @@ namespace Engine
 		ECSWorld* m_pECSWorld;
 		GraphicsDevice* m_pDevice;
 #if defined(GLFW_IMPLEMENTATION_CE)
-		GLFWWindow* m_pWindow;
+		GLFWWindow_CE* m_pWindow;
 #endif
 		void(*m_pSetupFunc)(GraphicsApplication* pApp);
 	};

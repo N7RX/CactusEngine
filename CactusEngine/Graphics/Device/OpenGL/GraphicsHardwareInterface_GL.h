@@ -1,8 +1,8 @@
 #pragma once
 #include "GraphicsDevice.h"
 #include "MemoryAllocator.h"
+#include "OpenGLIncludes.h"
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 namespace Engine
@@ -10,7 +10,7 @@ namespace Engine
 	class GraphicsHardwareInterface_GL : public GraphicsDevice
 	{
 	public:
-		GraphicsHardwareInterface_GL() = default;
+		GraphicsHardwareInterface_GL();
 		~GraphicsHardwareInterface_GL();
 
 		void Initialize() override;
@@ -82,23 +82,28 @@ namespace Engine
 		void SetRenderTarget(const FrameBuffer* pFrameBuffer);
 
 	private:
-		GLuint m_attributeless_vao = -1;
-		GLenum m_primitiveTopologyMode = GL_TRIANGLES;
+		GLuint m_attributeless_vao;
+		GLenum m_primitiveTopologyMode;
 	};
 
 	template<>
 	static GraphicsDevice* CreateGraphicsDevice<EGraphicsAPIType::OpenGL>()
 	{
-		GraphicsHardwareInterface_GL* pDevice;
-		CE_NEW(pDevice, GraphicsHardwareInterface_GL);
-
 		if (!gpGlobal->QueryGlobalState(EGlobalStateQueryType::GLFWInit))
-		{		
+		{
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			{
-				throw std::runtime_error("OpenGL: Failed to initialize GLAD");
+				throw std::runtime_error("OpenGL: Failed to initialize GLAD.");
+				return nullptr;
+			}
+			else
+			{
+				gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
 			}
 		}
+
+		GraphicsHardwareInterface_GL* pDevice;
+		CE_NEW(pDevice, GraphicsHardwareInterface_GL);
 
 		return pDevice;
 	}

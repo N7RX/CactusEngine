@@ -77,11 +77,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\vulkan\lib;.\Third-party\jsoncpp\lib\Debug;.\Third-party\spirv_cross\lib\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\jsoncpp\lib\Debug;.\Third-party\spirv_cross\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
-    <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\vulkan\lib;.\Third-party\jsoncpp\lib\Release;.\Third-party\spirv_cross\lib\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\jsoncpp\lib\Release;.\Third-party\spirv_cross\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -101,7 +101,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mtd.lib;spirv-cross-reflectd.lib;spirv-cross-cored.lib;jsoncpp_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;spirv-cross-reflectd.lib;spirv-cross-cored.lib;jsoncpp_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -132,7 +132,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;assimp-vc143-mt.lib;spirv-cross-reflect.lib;spirv-cross-core.lib;jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;spirv-cross-reflect.lib;spirv-cross-core.lib;jsoncpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -205,6 +205,7 @@
     <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h" />
+    <ClInclude Include="Graphics\Device\OpenGL\OpenGLIncludes.h" />
     <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\Shaders_GL.h" />
     <ClInclude Include="Graphics\Device\OpenGL\Textures_GL.h" />
@@ -220,6 +221,7 @@
     <ClInclude Include="Graphics\Device\Vulkan\Textures_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\UploadAllocator_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h" />
+    <ClInclude Include="Graphics\Device\Vulkan\VulkanIncludes.h" />
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
     <ClInclude Include="Graphics\Renderer\StandardRenderer.h" />
     <ClInclude Include="Graphics\RenderGraph\AllRenderNodes.h" />
@@ -271,6 +273,7 @@
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h" />
+    <ClInclude Include="Third-party\volk\volk.h" />
     <ClInclude Include="Utilities\LogUtility.h" />
     <ClInclude Include="Utilities\NoCopy.h" />
     <ClInclude Include="Utilities\SafeBasicTypes.h" />
