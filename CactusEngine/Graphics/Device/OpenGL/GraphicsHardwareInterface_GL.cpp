@@ -398,7 +398,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_GL::CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, GraphicsPipelineObject*& pOutput)
 	{
-		GraphicsPipelineCreateInfo_GL glCreateInfo = {};
+		GraphicsPipelineCreateInfo_GL glCreateInfo{};
 
 		glCreateInfo.topologyMode = ((PipelineInputAssemblyState_GL*)createInfo.pInputAssemblyState)->topologyMode;
 		glCreateInfo.enablePrimitiveRestart = ((PipelineInputAssemblyState_GL*)createInfo.pInputAssemblyState)->enablePrimitiveRestart;

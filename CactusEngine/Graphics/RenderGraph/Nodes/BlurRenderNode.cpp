@@ -23,7 +23,7 @@ namespace Engine
 
 		// Color output and horizontal result
 
-		Texture2DCreateInfo texCreateInfo = {};
+		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
@@ -40,7 +40,7 @@ namespace Engine
 
 		// Render pass object
 
-		RenderPassAttachmentDescription colorDesc = {};
+		RenderPassAttachmentDescription colorDesc{};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
@@ -53,7 +53,7 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
+		RenderPassCreateInfo passCreateInfo{};
 		passCreateInfo.clearColor = Color4(1);
 		passCreateInfo.clearDepth = 1.0f;
 		passCreateInfo.clearStencil = 0;
@@ -63,13 +63,13 @@ namespace Engine
 
 		// Frame buffers
 
-		FrameBufferCreateInfo fbCreateInfo_Horizontal = {};
+		FrameBufferCreateInfo fbCreateInfo_Horizontal{};
 		fbCreateInfo_Horizontal.attachments.emplace_back(m_pHorizontalResult);
 		fbCreateInfo_Horizontal.framebufferWidth = screenWidth;
 		fbCreateInfo_Horizontal.framebufferHeight = screenHeight;
 		fbCreateInfo_Horizontal.pRenderPass = m_pRenderPassObject;
 
-		FrameBufferCreateInfo fbCreateInfo_FinalColor = {};
+		FrameBufferCreateInfo fbCreateInfo_FinalColor{};
 		fbCreateInfo_FinalColor.attachments.emplace_back(m_pColorOutput);
 		fbCreateInfo_FinalColor.framebufferWidth = screenWidth;
 		fbCreateInfo_FinalColor.framebufferHeight = screenHeight;
@@ -82,7 +82,7 @@ namespace Engine
 
 		uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 8 : 1;
 
-		UniformBufferCreateInfo ubCreateInfo = {};
+		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * perPassAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
 		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
@@ -91,7 +91,7 @@ namespace Engine
 
 		// Vertex input state
 
-		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo = {};
+		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo{};
 		emptyVertexInputStateCreateInfo.bindingDescs = {};
 		emptyVertexInputStateCreateInfo.attributeDescs = {};
 
@@ -100,7 +100,7 @@ namespace Engine
 
 		// Input assembly state
 
-		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
+		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
@@ -109,7 +109,7 @@ namespace Engine
 
 		// Rasterization state
 
-		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
+		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
 		rasterizationStateCreateInfo.polygonMode = EPolygonMode::Fill;
 		rasterizationStateCreateInfo.enableDepthClamp = false;
 		rasterizationStateCreateInfo.discardRasterizerResults = false;
@@ -121,7 +121,7 @@ namespace Engine
 
 		// Depth stencil state
 
-		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
+		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
 		depthStencilStateCreateInfo.enableDepthTest = false;
 		depthStencilStateCreateInfo.enableDepthWrite = false;
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
@@ -132,7 +132,7 @@ namespace Engine
 
 		// Multisample state
 
-		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
+		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
@@ -141,10 +141,10 @@ namespace Engine
 
 		// Color blend state
 
-		AttachmentColorBlendStateDescription attachmentNoBlendDesc = {};
+		AttachmentColorBlendStateDescription attachmentNoBlendDesc{};
 		attachmentNoBlendDesc.enableBlend = false;
 
-		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
 		PipelineColorBlendState* pColorBlendState = nullptr;
@@ -152,7 +152,7 @@ namespace Engine
 
 		// Viewport state
 
-		PipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
@@ -161,7 +161,7 @@ namespace Engine
 
 		// Pipeline creation
 
-		GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		GraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GaussianBlur);
 		pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
@@ -186,7 +186,7 @@ namespace Engine
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GaussianBlur), pCommandBuffer);
 
-		UBControlVariables ubControlVariables = {};
+		UBControlVariables ubControlVariables{};
 
 		// Horizontal pass
 

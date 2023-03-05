@@ -108,7 +108,7 @@ namespace Engine
 		// We are using directly mapped buffer instead of staging buffer
 		// TODO: use staging pool for discrete device and CPU_TO_GPU for integrated device
 
-		RawBufferCreateInfo_VK vertexBufferCreateInfo = {};
+		RawBufferCreateInfo_VK vertexBufferCreateInfo{};
 		vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		vertexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 		vertexBufferCreateInfo.size = sizeof(float) * createInfo.positionDataCount
@@ -118,7 +118,7 @@ namespace Engine
 			+ sizeof(float) * createInfo.bitangentDataCount;
 		vertexBufferCreateInfo.stride = createInfo.interleavedStride * sizeof(float);
 
-		RawBufferCreateInfo_VK indexBufferCreateInfo = {};
+		RawBufferCreateInfo_VK indexBufferCreateInfo{};
 		indexBufferCreateInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		indexBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 		indexBufferCreateInfo.size = sizeof(int) * createInfo.indexDataCount;
@@ -132,7 +132,7 @@ namespace Engine
 		void* ppIndexData;
 		void* ppVertexData;
 
-		RawBufferCreateInfo_VK vertexStagingBufferCreateInfo = {};
+		RawBufferCreateInfo_VK vertexStagingBufferCreateInfo{};
 		vertexStagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		vertexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 		vertexStagingBufferCreateInfo.size = vertexBufferCreateInfo.size;
@@ -144,7 +144,7 @@ namespace Engine
 		memcpy(ppVertexData, interleavedVertices.data(), vertexBufferCreateInfo.size);
 		m_pMainDevice->pUploadAllocator->UnmapMemory(pVertexStagingBuffer->m_allocation);
 
-		RawBufferCreateInfo_VK indexStagingBufferCreateInfo = {};
+		RawBufferCreateInfo_VK indexStagingBufferCreateInfo{};
 		indexStagingBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		indexStagingBufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 		indexStagingBufferCreateInfo.size = indexBufferCreateInfo.size;
@@ -158,14 +158,14 @@ namespace Engine
 
 		auto pCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
-		VkBufferCopy vertexBufferCopyRegion = {};
+		VkBufferCopy vertexBufferCopyRegion{};
 		vertexBufferCopyRegion.srcOffset = 0;
 		vertexBufferCopyRegion.dstOffset = 0;
 		vertexBufferCopyRegion.size = vertexBufferCreateInfo.size;
 
 		pCmdBuffer->CopyBufferToBuffer(pVertexStagingBuffer, ((VertexBuffer_VK*)pOutput)->GetBufferImpl(), vertexBufferCopyRegion);
 
-		VkBufferCopy indexBufferCopyRegion = {};
+		VkBufferCopy indexBufferCopyRegion{};
 		indexBufferCopyRegion.srcOffset = 0;
 		indexBufferCopyRegion.dstOffset = 0;
 		indexBufferCopyRegion.size = indexBufferCreateInfo.size;
@@ -179,7 +179,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateTexture2D(const Texture2DCreateInfo& createInfo, Texture2D*& pOutput)
 	{
-		Texture2DCreateInfo_VK tex2dCreateInfo = {};
+		Texture2DCreateInfo_VK tex2dCreateInfo{};
 		tex2dCreateInfo.extent = { createInfo.textureWidth, createInfo.textureHeight };
 		tex2dCreateInfo.format = VulkanImageFormat(createInfo.format);
 		tex2dCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL; // Alert: TILING_OPTIMAL could be incompatible with certain formats on certain devices
@@ -199,7 +199,7 @@ namespace Engine
 
 		if (createInfo.pTextureData != nullptr)
 		{
-			RawBufferCreateInfo_VK bufferCreateInfo = {};
+			RawBufferCreateInfo_VK bufferCreateInfo{};
 			bufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_ONLY;
 			bufferCreateInfo.size = (VkDeviceSize)createInfo.textureWidth * createInfo.textureHeight * VulkanFormatUnitSize(createInfo.format);
@@ -213,7 +213,7 @@ namespace Engine
 
 			std::vector<VkBufferImageCopy> copyRegions;
 			// Only has one level of data
-			VkBufferImageCopy region = {};
+			VkBufferImageCopy region{};
 			region.bufferOffset = 0;
 			region.bufferRowLength = 0;  // Tightly packed
 			region.bufferImageHeight = 0;// Tightly packed
@@ -267,7 +267,7 @@ namespace Engine
 			pFrameBuffer->m_bufferAttachments.emplace_back(((Texture2D_VK*)pAttachment));
 		}
 
-		VkFramebufferCreateInfo frameBufferInfo = {};
+		VkFramebufferCreateInfo frameBufferInfo{};
 		frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		frameBufferInfo.renderPass = ((RenderPass_VK*)createInfo.pRenderPass)->m_renderPass;
 		frameBufferInfo.attachmentCount = (uint32_t)viewAttachments.size();
@@ -284,7 +284,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput)
 	{
-		UniformBufferCreateInfo_VK vkUniformBufferCreateInfo = {};
+		UniformBufferCreateInfo_VK vkUniformBufferCreateInfo{};
 		vkUniformBufferCreateInfo.size = createInfo.sizeInBytes;
 		vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
 		vkUniformBufferCreateInfo.type = EUniformBufferType_VK::Uniform;
@@ -304,7 +304,7 @@ namespace Engine
 
 		for (auto& item : pTable->m_table)
 		{
-			DesciptorUpdateInfo_VK updateInfo = {};
+			DesciptorUpdateInfo_VK updateInfo{};
 			updateInfo.hasContent = true;
 			updateInfo.infoType = VulkanDescriptorResourceType(item.type);
 			updateInfo.dstDescriptorType = VulkanDescriptorType(item.type);
@@ -316,7 +316,7 @@ namespace Engine
 			{
 			case EDescriptorResourceType_VK::Buffer:
 			{
-				VkDescriptorBufferInfo bufferInfo = {};
+				VkDescriptorBufferInfo bufferInfo{};
 				GetBufferInfoByDescriptorType(item.type, item.pResource, bufferInfo);
 
 				updateInfo.bufferInfos.emplace_back(bufferInfo);
@@ -345,7 +345,7 @@ namespace Engine
 					return;
 				}
 
-				VkDescriptorImageInfo imageInfo = {};
+				VkDescriptorImageInfo imageInfo{};
 				imageInfo.imageView = pImage->m_imageView;
 				imageInfo.imageLayout = pImage->m_layout;
 				if (pImage->HasSampler())
@@ -481,7 +481,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput)
 	{
-		RawBufferCreateInfo_VK vkBufferCreateInfo = {};
+		RawBufferCreateInfo_VK vkBufferCreateInfo{};
 		vkBufferCreateInfo.size = createInfo.size;
 		vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
 		vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
@@ -508,7 +508,7 @@ namespace Engine
 
 		std::vector<VkAttachmentDescription> attachmentDescs;
 		std::vector<VkAttachmentReference> colorAttachmentRefs;
-		VkAttachmentReference depthAttachmentRef = {};
+		VkAttachmentReference depthAttachmentRef{};
 		bool foundDepthAttachment = false;
 
 		VkClearValue clearColor;
@@ -519,7 +519,7 @@ namespace Engine
 
 		for (int i = 0; i < createInfo.attachmentDescriptions.size(); i++)
 		{
-			VkAttachmentDescription desc = {};
+			VkAttachmentDescription desc{};
 			desc.format = VulkanImageFormat(createInfo.attachmentDescriptions[i].format);
 			desc.samples = VulkanSampleCount(createInfo.attachmentDescriptions[i].sampleCount);
 			desc.loadOp = VulkanLoadOp(createInfo.attachmentDescriptions[i].loadOp);
@@ -533,7 +533,7 @@ namespace Engine
 
 			if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Color)
 			{
-				VkAttachmentReference ref = {};
+				VkAttachmentReference ref{};
 				ref.attachment = createInfo.attachmentDescriptions[i].index;
 				ref.layout = VulkanImageLayout(createInfo.attachmentDescriptions[i].usageLayout);
 
@@ -562,13 +562,13 @@ namespace Engine
 
 		// TODO: add support for multiple subpasses
 
-		VkSubpassDescription subpassDesc = {};
+		VkSubpassDescription subpassDesc{};
 		subpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpassDesc.colorAttachmentCount = (uint32_t)colorAttachmentRefs.size();
 		subpassDesc.pColorAttachments = colorAttachmentRefs.data();
 		subpassDesc.pDepthStencilAttachment = &depthAttachmentRef;
 
-		VkSubpassDependency subpassDependency = {};
+		VkSubpassDependency subpassDependency{};
 		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		subpassDependency.dstSubpass = 0;
 		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -576,7 +576,7 @@ namespace Engine
 		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		VkRenderPassCreateInfo renderPassInfo = {};
+		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = (uint32_t)attachmentDescs.size();
 		renderPassInfo.pAttachments = attachmentDescs.data();
@@ -595,7 +595,7 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput)
 	{
-		VkSamplerCreateInfo samplerCreateInfo = {};
+		VkSamplerCreateInfo samplerCreateInfo{};
 		samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerCreateInfo.magFilter = VulkanSamplerFilterMode(createInfo.magMode);
 		samplerCreateInfo.minFilter = VulkanSamplerFilterMode(createInfo.minMode);
@@ -625,7 +625,7 @@ namespace Engine
 
 		for (auto& desc : createInfo.bindingDescs)
 		{
-			VkVertexInputBindingDescription bindingDesc = {};
+			VkVertexInputBindingDescription bindingDesc{};
 			bindingDesc.binding = desc.binding;
 			bindingDesc.stride = desc.stride;
 			bindingDesc.inputRate = VulkanVertexInputRate(desc.inputRate);
@@ -635,7 +635,7 @@ namespace Engine
 
 		for (auto& desc : createInfo.attributeDescs)
 		{
-			VkVertexInputAttributeDescription attribDesc = {};
+			VkVertexInputAttributeDescription attribDesc{};
 			attribDesc.location = desc.location;
 			attribDesc.binding = desc.binding;
 			attribDesc.offset = desc.offset;
@@ -662,7 +662,7 @@ namespace Engine
 		// all VkPipelineColorBlendAttachmentState elements in the pAttachments array must be identical
 		for (auto& desc : createInfo.blendStateDescs)
 		{
-			VkPipelineColorBlendAttachmentState colorBlendAttachmentState = {};
+			VkPipelineColorBlendAttachmentState colorBlendAttachmentState{};
 
 			colorBlendAttachmentState.blendEnable = desc.enableBlend ? VK_TRUE : VK_FALSE;
 			colorBlendAttachmentState.srcColorBlendFactor = VulkanBlendFactor(desc.srcColorBlendFactor);
@@ -710,7 +710,7 @@ namespace Engine
 
 		VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pushConstantRangeCount = pShaderProgram->GetPushConstantRangeCount();
@@ -723,7 +723,7 @@ namespace Engine
 			return false;
 		}
 
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
 		pipelineCreateInfo.stageCount = pShaderProgram->GetStageCount();
@@ -971,7 +971,7 @@ namespace Engine
 		DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes >= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
 
 		std::vector<VkBufferImageCopy> copyRegions;
-		VkBufferImageCopy region = {};
+		VkBufferImageCopy region{};
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;  // Tightly packed
 		region.bufferImageHeight = 0;// Tightly packed
@@ -995,7 +995,7 @@ namespace Engine
 		DEBUG_ASSERT_CE(pVkBuffer->m_sizeInBytes <= pVkTexture->m_width * pVkTexture->m_height * VulkanFormatUnitSize(pVkTexture->m_format));
 
 		std::vector<VkBufferImageCopy> copyRegions;
-		VkBufferImageCopy region = {};
+		VkBufferImageCopy region{};
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;  // Tightly packed
 		region.bufferImageHeight = 0;// Tightly packed
@@ -1022,7 +1022,7 @@ namespace Engine
 
 		DEBUG_ASSERT_CE(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
 
-		VkBufferCopy region = {};
+		VkBufferCopy region{};
 		region.srcOffset = 0;
 		region.dstOffset = 0;
 		region.size = pSrcVkBuffer->m_sizeInBytes;
@@ -1068,7 +1068,9 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::GetRequiredExtensions()
 	{
-		m_requiredExtensions = GetRequiredExtensions_VK(m_enableValidationLayers);
+		m_requiredInstanceExtensions = GetRequiredInstanceExtensions_VK(m_enableValidationLayers);
+		m_requiredDeviceExtensions = GetRequiredDeviceExtensions_VK();
+		m_validationLayers = GetValidationLayerNames_VK();
 	}
 
 	void GraphicsHardwareInterface_VK::CreateInstance()
@@ -1084,7 +1086,7 @@ namespace Engine
 		{
 			return;
 		}
-		for (auto& extension : m_requiredExtensions)
+		for (auto& extension : m_requiredInstanceExtensions)
 		{
 			if (!IsExtensionSupported_VK(m_availableExtensions, extension))
 			{
@@ -1102,11 +1104,11 @@ namespace Engine
 		m_appInfo.apiVersion = VULKAN_VERSION_CE;
 
 		// Generate creation info
-		VkInstanceCreateInfo instanceCreateInfo = {};
+		VkInstanceCreateInfo instanceCreateInfo{};
 		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		instanceCreateInfo.pApplicationInfo = &m_appInfo;
-		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredExtensions.size());
-		instanceCreateInfo.ppEnabledExtensionNames = m_requiredExtensions.size() > 0 ? m_requiredExtensions.data() : nullptr;
+		instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredInstanceExtensions.size());
+		instanceCreateInfo.ppEnabledExtensionNames = m_requiredInstanceExtensions.size() > 0 ? m_requiredInstanceExtensions.data() : nullptr;
 
 		// Configure debug messenger
 		if (m_enableValidationLayers)
@@ -1206,7 +1208,7 @@ namespace Engine
 		std::vector<VkPhysicalDevice> suitableDevices;
 		for (const auto& device : devices)
 		{
-			if (IsPhysicalDeviceSuitable_VK(device, m_presentationSurface, m_deviceExtensions))
+			if (IsPhysicalDeviceSuitable_VK(device, m_presentationSurface, m_requiredDeviceExtensions))
 			{
 				suitableDevices.emplace_back(device);
 			}
@@ -1232,6 +1234,7 @@ namespace Engine
 				m_pMainDevice->deviceProperties = deviceProperties;
 
 	#if defined(DEBUG_MODE_CE)
+				DEBUG_LOG_MESSAGE("Found a suitable GPU:");
 				PrintPhysicalDeviceInfo_VK(deviceProperties);
 	#endif
 				return;
@@ -1279,7 +1282,7 @@ namespace Engine
 		float queuePriority = 1.0f;
 		for (uint32_t queueFamily : uniqueQueueFamilies)
 		{
-			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			VkDeviceQueueCreateInfo queueCreateInfo{};
 			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 			queueCreateInfo.queueFamilyIndex = queueFamily;
 			queueCreateInfo.queueCount = 1;
@@ -1288,26 +1291,34 @@ namespace Engine
 		}
 
 		// Enabling timeline semaphore
-		VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {};
+		VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures{};
 		timelineSemaphoreFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
 		timelineSemaphoreFeatures.timelineSemaphore = true;
 
+#if defined(VK_KHR_maintenance4)
+		VkPhysicalDeviceMaintenance4Features maintenance4Feature{};
+		maintenance4Feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_4_FEATURES;
+		maintenance4Feature.maintenance4 = true;
+
+		timelineSemaphoreFeatures.pNext = &maintenance4Feature;
+#endif
+
 		// TODO: configure device features by configuration settings
-		VkPhysicalDeviceFeatures deviceFeatures = {};
+		VkPhysicalDeviceFeatures deviceFeatures{};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
 
-		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
+		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 		physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		physicalDeviceFeatures2.pNext = &timelineSemaphoreFeatures;
 		physicalDeviceFeatures2.features = deviceFeatures;
 
-		VkDeviceCreateInfo deviceCreateInfo = {};
+		VkDeviceCreateInfo deviceCreateInfo{};
 		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 		deviceCreateInfo.pNext = &physicalDeviceFeatures2;
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
-		deviceCreateInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_requiredDeviceExtensions.size());
+		deviceCreateInfo.ppEnabledExtensionNames = m_requiredDeviceExtensions.data();
 
 		if (m_enableValidationLayers)
 		{
@@ -1363,7 +1374,7 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::SetupSwapchain()
 	{
-		SwapchainCreateInfo_VK createInfo = {};
+		SwapchainCreateInfo_VK createInfo{};
 		createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
 		createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 		createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
@@ -1400,7 +1411,7 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::CreateDefaultSampler()
 	{
-		TextureSamplerCreateInfo createInfo = {};
+		TextureSamplerCreateInfo createInfo{};
 		createInfo.magMode = ESamplerFilterMode::Linear;
 		createInfo.minMode = ESamplerFilterMode::Linear;
 		createInfo.addressMode = ESamplerAddressMode::Repeat;
@@ -1447,7 +1458,7 @@ namespace Engine
 		file.close();
 		DEBUG_ASSERT_CE(outRawCode.size() > 0);
 
-		VkShaderModuleCreateInfo createInfo = {};
+		VkShaderModuleCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		createInfo.codeSize = fileSize;
 		createInfo.pCode = reinterpret_cast<uint32_t*>(outRawCode.data());

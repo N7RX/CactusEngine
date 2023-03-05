@@ -41,7 +41,9 @@ namespace Engine
 	bool CheckAvailableInstanceExtensions_VK(std::vector<VkExtensionProperties>& availableExtensions);
 	bool IsExtensionSupported_VK(const std::vector<VkExtensionProperties>& availableExtensions, const char desiredExtension[VK_MAX_EXTENSION_NAME_SIZE]);
 	bool CheckDeviceExtensionsSupport_VK(const VkPhysicalDevice& device, const std::vector<const char*>& deviceExtensions);
-	std::vector<const char*> GetRequiredExtensions_VK(bool enableValidationLayers = false);
+	std::vector<const char*> GetRequiredInstanceExtensions_VK(bool enableValidationLayers = false);
+	std::vector<const char*> GetRequiredDeviceExtensions_VK();
+	std::vector<const char*> GetValidationLayerNames_VK();
 
 	// Device
 	bool IsPhysicalDeviceSuitable_VK(const VkPhysicalDevice& device, const VkSurfaceKHR& surface, const std::vector<const char*>& deviceExtensions);

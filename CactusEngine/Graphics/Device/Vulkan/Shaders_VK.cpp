@@ -52,7 +52,7 @@ namespace Engine
 		va_start(vaShaders, shaderCount); // shaderCount is the parameter preceding the first variable parameter 
 		RawShader_VK* shaderPtr = nullptr;
 
-		DescriptorSetCreateInfo descSetCreateInfo = {};
+		DescriptorSetCreateInfo descSetCreateInfo{};
 		descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
 
 		m_shaderStages = 0;
@@ -64,7 +64,7 @@ namespace Engine
 
 			ReflectResources(shaderPtr, descSetCreateInfo);
 
-			VkPipelineShaderStageCreateInfo shaderStageInfo = {};
+			VkPipelineShaderStageCreateInfo shaderStageInfo{};
 			shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shaderStageInfo.stage = shaderPtr->m_shaderStage;
 			shaderStageInfo.module = shaderPtr->m_shaderModule;
@@ -93,12 +93,12 @@ namespace Engine
 		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_VERTEX_BIT);
 		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		DescriptorSetCreateInfo descSetCreateInfo = {};
+		DescriptorSetCreateInfo descSetCreateInfo{};
 		descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
 
 		ReflectResources(pVertexShader, descSetCreateInfo);
 
-		VkPipelineShaderStageCreateInfo shaderStageInfo = {};
+		VkPipelineShaderStageCreateInfo shaderStageInfo{};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = pVertexShader->m_shaderStage;
 		shaderStageInfo.module = pVertexShader->m_shaderModule;
@@ -222,7 +222,7 @@ namespace Engine
 	{
 		for (auto& buffer : shaderRes.uniform_buffers)
 		{
-			ResourceDescription desc = {};
+			ResourceDescription desc{};
 			desc.type = EShaderResourceType_VK::Uniform;
 			desc.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
 			desc.name = MatchShaderParamName(buffer.name.c_str());
@@ -235,7 +235,7 @@ namespace Engine
 		{
 			accumulatePushConstSize += (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
 
-			ResourceDescription desc = {};
+			ResourceDescription desc{};
 			desc.type = EShaderResourceType_VK::PushConstant;
 			desc.binding = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
 			desc.name = MatchShaderParamName(spvCompiler.get_name(constant.id).c_str());
@@ -246,7 +246,7 @@ namespace Engine
 
 		for (auto& separateImage : shaderRes.separate_images)
 		{
-			ResourceDescription desc = {};
+			ResourceDescription desc{};
 			desc.type = EShaderResourceType_VK::SeparateImage;
 			desc.binding = spvCompiler.get_decoration(separateImage.id, spv::DecorationBinding);
 			desc.name = MatchShaderParamName(spvCompiler.get_name(separateImage.id).c_str());
@@ -256,7 +256,7 @@ namespace Engine
 
 		for (auto& separateSampler : shaderRes.separate_samplers)
 		{
-			ResourceDescription desc = {};
+			ResourceDescription desc{};
 			desc.type = EShaderResourceType_VK::SeparateSampler;
 			desc.binding = spvCompiler.get_decoration(separateSampler.id, spv::DecorationBinding);
 			desc.name = MatchShaderParamName(spvCompiler.get_name(separateSampler.id).c_str());
@@ -266,7 +266,7 @@ namespace Engine
 
 		for (auto& sampledImage : shaderRes.sampled_images)
 		{
-			ResourceDescription desc = {};
+			ResourceDescription desc{};
 			desc.type = EShaderResourceType_VK::SampledImage;
 			desc.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
 			desc.name = MatchShaderParamName(spvCompiler.get_name(sampledImage.id).c_str());
@@ -300,7 +300,7 @@ namespace Engine
 
 		for (auto& buffer : shaderRes.uniform_buffers)
 		{
-			VkDescriptorSetLayoutBinding binding = {};
+			VkDescriptorSetLayoutBinding binding{};
 			binding.descriptorCount = 1; // Alert: not sure if this is correct for uniform blocks
 			binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
@@ -323,7 +323,7 @@ namespace Engine
 		{
 			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) == descSetCreateInfo.recordedPoolSizes.end())
 			{
-				VkDescriptorPoolSize poolSize = {};
+				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
@@ -343,7 +343,7 @@ namespace Engine
 
 		for (auto& sampler : shaderRes.separate_samplers)
 		{
-			VkDescriptorSetLayoutBinding binding = {};
+			VkDescriptorSetLayoutBinding binding{};
 			binding.descriptorCount = 1;
 			binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 			binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
@@ -366,7 +366,7 @@ namespace Engine
 		{
 			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
 			{
-				VkDescriptorPoolSize poolSize = {};
+				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
 				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
@@ -386,7 +386,7 @@ namespace Engine
 
 		for (auto& image : shaderRes.separate_images)
 		{
-			VkDescriptorSetLayoutBinding binding = {};
+			VkDescriptorSetLayoutBinding binding{};
 			binding.descriptorCount = 1;
 			binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
 			binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
@@ -409,7 +409,7 @@ namespace Engine
 		{
 			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) == descSetCreateInfo.recordedPoolSizes.end())
 			{
-				VkDescriptorPoolSize poolSize = {};
+				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
@@ -429,7 +429,7 @@ namespace Engine
 
 		for (auto& sampledImage : shaderRes.sampled_images)
 		{
-			VkDescriptorSetLayoutBinding binding = {};
+			VkDescriptorSetLayoutBinding binding{};
 			binding.descriptorCount = 1;
 			binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			binding.stageFlags = ShaderTypeConvertToStageBits(shaderType);
@@ -452,7 +452,7 @@ namespace Engine
 		{
 			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
 			{
-				VkDescriptorPoolSize poolSize = {};
+				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
 
@@ -470,7 +470,7 @@ namespace Engine
 	{
 		for (auto& constant : shaderRes.push_constant_buffers)
 		{
-			VkPushConstantRange range = {};
+			VkPushConstantRange range{};
 			range.offset = spvCompiler.get_decoration(constant.id, spv::DecorationOffset);
 			range.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
 			range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the push constant is bind with multiple shader stages

@@ -34,7 +34,7 @@ namespace Engine
 		m_width = texWidth;
 		m_height = texHeight;
 
-		Texture2DCreateInfo createInfo = {};
+		Texture2DCreateInfo createInfo{};
 		createInfo.textureWidth = texWidth;
 		createInfo.textureHeight = texHeight;
 		createInfo.pTextureData = imageData;

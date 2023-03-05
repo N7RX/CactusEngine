@@ -20,7 +20,7 @@ namespace Engine
 			return;
 		}
 
-		Texture2DCreateInfo createInfo = {};
+		Texture2DCreateInfo createInfo{};
 		createInfo.textureWidth = m_width;
 		createInfo.textureHeight = m_height;
 		createInfo.pTextureData = pData;

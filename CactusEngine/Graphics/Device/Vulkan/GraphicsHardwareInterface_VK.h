@@ -33,36 +33,6 @@ namespace Engine
 	class GraphicsHardwareInterface_VK : public GraphicsDevice
 	{
 	public:
-
-		// TODO: refactor this part and move into ExtensionLoader_VK
-
-		const std::vector<const char*> m_validationLayers =
-		{
-			"VK_LAYER_KHRONOS_validation"
-		};
-
-		const std::vector<const char*> m_deviceExtensions =
-		{
-			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-
-			// For VMA
-#if VK_KHR_get_memory_requirements2 && VK_KHR_dedicated_allocation
-			VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME,
-			VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-#endif
-#if VK_KHR_bind_memory2
-			VK_KHR_BIND_MEMORY_2_EXTENSION_NAME,
-#endif
-#if VK_EXT_memory_budget
-			VK_EXT_MEMORY_BUDGET_EXTENSION_NAME,
-#endif
-#if VK_KHR_maintenance4
-			VK_KHR_MAINTENANCE_4_EXTENSION_NAME
-#endif
-		};
-
-	public:
 		GraphicsHardwareInterface_VK();
 		~GraphicsHardwareInterface_VK();
 
@@ -174,7 +144,9 @@ namespace Engine
 		bool m_isRunning;
 		
 		VkApplicationInfo m_appInfo;
-		std::vector<const char*> m_requiredExtensions;
+		std::vector<const char*> m_requiredInstanceExtensions;
+		std::vector<const char*> m_requiredDeviceExtensions;
+		std::vector<const char*> m_validationLayers;
 		std::vector<VkExtensionProperties> m_availableExtensions;
 
 		LogicalDevice_VK* m_pMainDevice;

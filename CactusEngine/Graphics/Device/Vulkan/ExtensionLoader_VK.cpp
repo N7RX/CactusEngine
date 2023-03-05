@@ -49,7 +49,7 @@ namespace Engine
 
 	VkDebugUtilsMessengerCreateInfoEXT GetDebugUtilsMessengerCreateInfo_VK()
 	{
-		VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -111,6 +111,7 @@ namespace Engine
 		{
 			if (strcmp(desiredExtension, extension.extensionName) == 0)
 			{
+				DEBUG_LOG_MESSAGE((std::string)"Vulkan: requested extension: " + desiredExtension);
 				return true;
 			}
 		}
@@ -129,16 +130,23 @@ namespace Engine
 		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 		for (const auto& extension : availableExtensions)
 		{
+#if defined(DEBUG_MODE_CE)
+			uint32_t prevCount = requiredExtensions.size();
 			requiredExtensions.erase(extension.extensionName);
+			if (prevCount != requiredExtensions.size())
+			{
+				DEBUG_LOG_MESSAGE((std::string)"Vulkan: requested extension: " + extension.extensionName);
+			}
+#else
+			requiredExtensions.erase(extension.extensionName);
+#endif
 		}
 
 		return requiredExtensions.empty();
 	}
 
-	std::vector<const char*> GetRequiredExtensions_VK(bool enableValidationLayers)
+	std::vector<const char*> GetRequiredInstanceExtensions_VK(bool enableValidationLayers)
 	{
-		// These are instance extensions
-
 		std::vector<const char*> extensions;
 
 		extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
@@ -168,11 +176,45 @@ namespace Engine
 		}
 
 		// For VMA
-#if VK_KHR_get_physical_device_properties2
+#if defined(VK_KHR_get_physical_device_properties2)
 		extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 #endif
 
 		return extensions;
+	}
+
+	std::vector<const char*> GetRequiredDeviceExtensions_VK()
+	{
+		std::vector<const char*> extensions;
+
+		extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		extensions.push_back(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME);
+
+		// For VMA
+#if defined(VK_KHR_get_memory_requirements2) && defined(VK_KHR_dedicated_allocation)
+		extensions.push_back(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+		extensions.push_back(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+#endif
+#if defined(VK_KHR_bind_memory2)
+		extensions.push_back(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
+#endif
+#if defined(VK_EXT_memory_budget)
+		extensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+#endif
+#if defined(VK_KHR_maintenance4)
+		extensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
+#endif
+
+		return extensions;
+	}
+
+	std::vector<const char*> GetValidationLayerNames_VK()
+	{
+		std::vector<const char*> layers;
+
+		layers.push_back("VK_LAYER_KHRONOS_validation");
+
+		return layers;
 	}
 
 	bool IsPhysicalDeviceSuitable_VK(const VkPhysicalDevice& device, const VkSurfaceKHR& surface, const std::vector<const char*>& deviceExtensions)

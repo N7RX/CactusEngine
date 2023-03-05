@@ -47,7 +47,7 @@ namespace Engine
 		m_mipLevels = createInfo.mipLevels;
 		m_aspect = createInfo.aspect;
 
-		VkImageViewCreateInfo viewCreateInfo = {};
+		VkImageViewCreateInfo viewCreateInfo{};
 		viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewCreateInfo.image = m_image;
 		viewCreateInfo.viewType = createInfo.viewType;

@@ -50,7 +50,7 @@ namespace Engine
 			return;
 		}
 
-		VertexBufferCreateInfo createInfo = {};
+		VertexBufferCreateInfo createInfo{};
 
 		createInfo.pIndexData = indices.data();
 		createInfo.indexDataCount = static_cast<uint32_t>(indices.size());

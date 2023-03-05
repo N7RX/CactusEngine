@@ -29,7 +29,7 @@ namespace Engine
 
 		// Color output
 
-		Texture2DCreateInfo texCreateInfo = {};
+		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
@@ -45,7 +45,7 @@ namespace Engine
 
 		// Render pass object
 
-		RenderPassAttachmentDescription colorDesc = {};
+		RenderPassAttachmentDescription colorDesc{};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
@@ -58,7 +58,7 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
+		RenderPassCreateInfo passCreateInfo{};
 		passCreateInfo.clearColor = Color4(1);
 		passCreateInfo.clearDepth = 1.0f;
 		passCreateInfo.clearStencil = 0;
@@ -68,7 +68,7 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo = {};
+		FrameBufferCreateInfo fbCreateInfo{};
 		fbCreateInfo.attachments.emplace_back(m_pColorOutput);
 		fbCreateInfo.framebufferWidth = screenWidth;
 		fbCreateInfo.framebufferHeight = screenHeight;
@@ -80,7 +80,7 @@ namespace Engine
 
 		// Vertex input state
 
-		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo = {};
+		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo{};
 		emptyVertexInputStateCreateInfo.bindingDescs = {};
 		emptyVertexInputStateCreateInfo.attributeDescs = {};
 
@@ -89,7 +89,7 @@ namespace Engine
 
 		// Input assembly state
 
-		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
+		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
@@ -98,7 +98,7 @@ namespace Engine
 
 		// Rasterization state
 
-		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
+		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
 		rasterizationStateCreateInfo.polygonMode = EPolygonMode::Fill;
 		rasterizationStateCreateInfo.enableDepthClamp = false;
 		rasterizationStateCreateInfo.discardRasterizerResults = false;
@@ -110,7 +110,7 @@ namespace Engine
 
 		// Depth stencil state
 
-		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
+		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
 		depthStencilStateCreateInfo.enableDepthTest = false;
 		depthStencilStateCreateInfo.enableDepthWrite = false;
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
@@ -121,7 +121,7 @@ namespace Engine
 
 		// Multisample state
 
-		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
+		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
@@ -130,10 +130,10 @@ namespace Engine
 
 		// Color blend state
 
-		AttachmentColorBlendStateDescription attachmentNoBlendDesc = {};
+		AttachmentColorBlendStateDescription attachmentNoBlendDesc{};
 		attachmentNoBlendDesc.enableBlend = false;
 
-		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
 		PipelineColorBlendState* pColorBlendState = nullptr;
@@ -141,7 +141,7 @@ namespace Engine
 
 		// Viewport state
 
-		PipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
@@ -150,7 +150,7 @@ namespace Engine
 
 		// Pipeline creation
 
-		GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		GraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
 		pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;

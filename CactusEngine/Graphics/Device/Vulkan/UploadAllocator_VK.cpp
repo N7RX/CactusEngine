@@ -13,7 +13,7 @@ namespace Engine
 	UploadAllocator_VK::UploadAllocator_VK(LogicalDevice_VK* pDevice, VkInstance instance)
 		: m_pDevice(pDevice)
 	{
-		VmaAllocatorCreateInfo createInfo = {};
+		VmaAllocatorCreateInfo createInfo{};
 		createInfo.physicalDevice = pDevice->physicalDevice;
 		createInfo.device = pDevice->logicalDevice;
 		createInfo.instance = instance;
@@ -68,13 +68,13 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE);
 
-		VkBufferCreateInfo bufferCreateInfo = {};
+		VkBufferCreateInfo bufferCreateInfo{};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = createInfo.size;
 		bufferCreateInfo.usage = createInfo.usage;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VmaAllocationCreateInfo allocationInfo = {};
+		VmaAllocationCreateInfo allocationInfo{};
 		allocationInfo.usage = createInfo.memoryUsage;
 
 		if (vmaCreateBuffer(m_allocator, &bufferCreateInfo, &allocationInfo, &rawBuffer.m_buffer, &rawBuffer.m_allocation, nullptr) == VK_SUCCESS)
@@ -90,7 +90,7 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_allocator != VK_NULL_HANDLE);
 
-		VkImageCreateInfo imageCreateInfo = {};
+		VkImageCreateInfo imageCreateInfo{};
 		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.extent = { createInfo.extent.width, createInfo.extent.height, 1 };
@@ -103,7 +103,7 @@ namespace Engine
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		VmaAllocationCreateInfo allocationInfo = {};
+		VmaAllocationCreateInfo allocationInfo{};
 		allocationInfo.usage = createInfo.memoryUsage;
 
 		texture2d.m_width = createInfo.extent.width;

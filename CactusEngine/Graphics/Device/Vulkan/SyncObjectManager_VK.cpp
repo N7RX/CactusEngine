@@ -17,10 +17,10 @@ namespace Engine
 		semaphore(semaphoreHandle),
 		waitStage(0),
 		id(assignedID),
+		m_signalValue(1),
 		m_waitValue(1),
-		m_signalValue(1)
+		m_waitInfo{}
 	{
-		m_waitInfo = {};
 		m_waitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO;
 		m_waitInfo.semaphoreCount = 1;
 		m_waitInfo.pSemaphores = &semaphore;
@@ -113,7 +113,7 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_semaphorePool.size() + count <= MAX_SEMAPHORE_COUNT);
 
-		VkSemaphoreCreateInfo semaphoreInfo = {};
+		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
 		for (uint32_t i = 0; i < count; ++i)
@@ -141,12 +141,12 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_timelineSemaphorePool.size() + count <= MAX_TIMELINE_SEMAPHORE_COUNT);
 
-		VkSemaphoreTypeCreateInfo timelineCreateInfo = {};
+		VkSemaphoreTypeCreateInfo timelineCreateInfo{};
 		timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
 		timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
 		timelineCreateInfo.initialValue = initialValue;
 
-		VkSemaphoreCreateInfo semaphoreInfo = {};
+		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 		semaphoreInfo.pNext = &timelineCreateInfo;
 

@@ -74,7 +74,7 @@ namespace Engine
 
 	void CommandBuffer_VK::BeginCommandBuffer(VkCommandBufferUsageFlags usage)
 	{
-		VkCommandBufferBeginInfo beginInfo = {};
+		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = usage;
 
@@ -102,7 +102,7 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 
-		VkRenderPassBeginInfo passBeginInfo = {};
+		VkRenderPassBeginInfo passBeginInfo{};
 		passBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		passBeginInfo.renderPass = renderPass;
 		passBeginInfo.renderArea.offset = areaOffset;
@@ -198,7 +198,7 @@ namespace Engine
 
 		DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED && newLayout != VK_IMAGE_LAYOUT_PREINITIALIZED);
 
-		VkImageMemoryBarrier barrier = {};
+		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = pImage->m_layout;
 		barrier.newLayout = newLayout;
@@ -271,7 +271,7 @@ namespace Engine
 
 		DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
-		VkImageMemoryBarrier barrier = {};
+		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.image = pImage->m_image;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -297,7 +297,7 @@ namespace Engine
 
 			vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
-			VkImageBlit blitRegion = {};
+			VkImageBlit blitRegion{};
 			blitRegion.srcOffsets[0] = { 0, 0, 0 };
 			blitRegion.srcOffsets[1] = { (int32_t)mipWidth, (int32_t)mipHeight, 1 };
 			blitRegion.srcSubresource.aspectMask = pImage->m_aspect;
@@ -423,7 +423,7 @@ namespace Engine
 
 		std::vector<VkCommandBuffer> cmdBufferHandles(count);
 
-		VkCommandBufferAllocateInfo allocInfo = {};
+		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.commandPool = m_commandPool;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -609,7 +609,7 @@ namespace Engine
 		{
 			pCmdBuffer->m_inExecution = true;
 
-			VkSubmitInfo submitInfo = {};
+			VkSubmitInfo submitInfo{};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &pCmdBuffer->m_commandBuffer;
@@ -646,7 +646,7 @@ namespace Engine
 	{
 		VkCommandPool newPool = VK_NULL_HANDLE;
 
-		VkCommandPoolCreateInfo poolInfo = {};
+		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		poolInfo.queueFamilyIndex = m_workingQueue.queueFamilyIndex;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;

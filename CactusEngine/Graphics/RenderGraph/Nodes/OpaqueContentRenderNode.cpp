@@ -27,7 +27,7 @@ namespace Engine
 
 		// Color output and shadow mark output
 
-		Texture2DCreateInfo texCreateInfo = {};
+		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
@@ -53,7 +53,7 @@ namespace Engine
 
 		// Render pass object
 
-		RenderPassAttachmentDescription colorDesc = {};
+		RenderPassAttachmentDescription colorDesc{};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::Clear;
@@ -66,7 +66,7 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		RenderPassAttachmentDescription shadowDesc = {};
+		RenderPassAttachmentDescription shadowDesc{};
 		shadowDesc.format = ETextureFormat::RGBA32F;
 		shadowDesc.sampleCount = 1;
 		shadowDesc.loadOp = EAttachmentOperation::Clear;
@@ -79,7 +79,7 @@ namespace Engine
 		shadowDesc.type = EAttachmentType::Color;
 		shadowDesc.index = 1;
 
-		RenderPassAttachmentDescription depthDesc = {};
+		RenderPassAttachmentDescription depthDesc{};
 		depthDesc.format = ETextureFormat::Depth;
 		depthDesc.sampleCount = 1;
 		depthDesc.loadOp = EAttachmentOperation::Clear;
@@ -92,7 +92,7 @@ namespace Engine
 		depthDesc.type = EAttachmentType::Depth;
 		depthDesc.index = 2;
 
-		RenderPassCreateInfo passCreateInfo = {};
+		RenderPassCreateInfo passCreateInfo{};
 		passCreateInfo.clearColor = Color4(1);
 		passCreateInfo.clearDepth = 1.0f;
 		passCreateInfo.clearStencil = 0;
@@ -104,7 +104,7 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo = {};
+		FrameBufferCreateInfo fbCreateInfo{};
 		fbCreateInfo.attachments.emplace_back(m_pColorOutput);
 		fbCreateInfo.attachments.emplace_back(m_pLineSpaceOutput);
 		fbCreateInfo.attachments.emplace_back(m_pDepthOutput);
@@ -118,7 +118,7 @@ namespace Engine
 
 		uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 4096 : 1;
 
-		UniformBufferCreateInfo ubCreateInfo = {};
+		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
 		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
@@ -137,42 +137,42 @@ namespace Engine
 
 		// Vertex input state
 
-		VertexInputBindingDescription vertexInputBindingDesc = {};
+		VertexInputBindingDescription vertexInputBindingDesc{};
 		vertexInputBindingDesc.binding = 0;
 		vertexInputBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
 		vertexInputBindingDesc.inputRate = EVertexInputRate::PerVertex;
 
-		VertexInputAttributeDescription positionAttributeDesc = {};
+		VertexInputAttributeDescription positionAttributeDesc{};
 		positionAttributeDesc.binding = vertexInputBindingDesc.binding;
 		positionAttributeDesc.location = GraphicsDevice::ATTRIB_POSITION_LOCATION;
 		positionAttributeDesc.offset = VertexBufferCreateInfo::positionOffset;
 		positionAttributeDesc.format = ETextureFormat::RGB32F;
 
-		VertexInputAttributeDescription normalAttributeDesc = {};
+		VertexInputAttributeDescription normalAttributeDesc{};
 		normalAttributeDesc.binding = vertexInputBindingDesc.binding;
 		normalAttributeDesc.location = GraphicsDevice::ATTRIB_NORMAL_LOCATION;
 		normalAttributeDesc.offset = VertexBufferCreateInfo::normalOffset;
 		normalAttributeDesc.format = ETextureFormat::RGB32F;
 
-		VertexInputAttributeDescription texcoordAttributeDesc = {};
+		VertexInputAttributeDescription texcoordAttributeDesc{};
 		texcoordAttributeDesc.binding = vertexInputBindingDesc.binding;
 		texcoordAttributeDesc.location = GraphicsDevice::ATTRIB_TEXCOORD_LOCATION;
 		texcoordAttributeDesc.offset = VertexBufferCreateInfo::texcoordOffset;
 		texcoordAttributeDesc.format = ETextureFormat::RG32F;
 
-		VertexInputAttributeDescription tangentAttributeDesc = {};
+		VertexInputAttributeDescription tangentAttributeDesc{};
 		tangentAttributeDesc.binding = vertexInputBindingDesc.binding;
 		tangentAttributeDesc.location = GraphicsDevice::ATTRIB_TANGENT_LOCATION;
 		tangentAttributeDesc.offset = VertexBufferCreateInfo::tangentOffset;
 		tangentAttributeDesc.format = ETextureFormat::RGB32F;
 
-		VertexInputAttributeDescription bitangentAttributeDesc = {};
+		VertexInputAttributeDescription bitangentAttributeDesc{};
 		bitangentAttributeDesc.binding = vertexInputBindingDesc.binding;
 		bitangentAttributeDesc.location = GraphicsDevice::ATTRIB_BITANGENT_LOCATION;
 		bitangentAttributeDesc.offset = VertexBufferCreateInfo::bitangentOffset;
 		bitangentAttributeDesc.format = ETextureFormat::RGB32F;
 
-		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {};
+		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
 		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
 
@@ -181,7 +181,7 @@ namespace Engine
 
 		// Input assembly state
 
-		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
+		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleList;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
@@ -190,7 +190,7 @@ namespace Engine
 
 		// Rasterization state
 
-		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
+		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
 		rasterizationStateCreateInfo.polygonMode = EPolygonMode::Fill;
 		rasterizationStateCreateInfo.enableDepthClamp = false;
 		rasterizationStateCreateInfo.discardRasterizerResults = false;
@@ -202,7 +202,7 @@ namespace Engine
 
 		// Depth stencil state
 
-		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
+		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
 		depthStencilStateCreateInfo.enableDepthTest = true;
 		depthStencilStateCreateInfo.enableDepthWrite = true;
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
@@ -213,7 +213,7 @@ namespace Engine
 
 		// Multisample state
 
-		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
+		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
@@ -222,10 +222,10 @@ namespace Engine
 
 		// Color blend state
 
-		AttachmentColorBlendStateDescription attachmentNoBlendDesc = {};
+		AttachmentColorBlendStateDescription attachmentNoBlendDesc{};
 		attachmentNoBlendDesc.enableBlend = false;
 
-		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 
@@ -234,7 +234,7 @@ namespace Engine
 
 		// Viewport state
 
-		PipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
@@ -243,7 +243,7 @@ namespace Engine
 
 		// Pipeline creation
 
-		GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		GraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::AnimeStyle);
 		pipelineCreateInfo.pVertexInputState = pVertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
@@ -298,10 +298,10 @@ namespace Engine
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
 
-		UBTransformMatrices ubTransformMatrices = {};
-		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix = {};
-		UBCameraProperties ubCameraProperties = {};
-		UBMaterialNumericalProperties ubMaterialNumericalProperties = {};
+		UBTransformMatrices ubTransformMatrices{};
+		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
+		UBCameraProperties ubCameraProperties{};
+		UBMaterialNumericalProperties ubMaterialNumericalProperties{};
 
 		ubTransformMatrices.projectionMatrix = projectionMat;
 		ubTransformMatrices.viewMatrix = viewMat;

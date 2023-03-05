@@ -6409,7 +6409,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
         // Handle manual resize: Resize Grips, Borders, Gamepad
         int border_held = -1;
-        ImU32 resize_grip_col[4] = {};
+        ImU32 resize_grip_col[4]{};
         const int resize_grip_count = g.IO.ConfigWindowsResizeFromEdges ? 2 : 1; // Allow resize from lower-left if we have the mouse cursor feedback for it.
         const float resize_grip_draw_size = IM_FLOOR(ImMax(g.FontSize * 1.10f, window->WindowRounding + 1.0f + g.FontSize * 0.2f));
         if (!window->Collapsed)
@@ -13028,12 +13028,12 @@ static void SetPlatformImeDataFn_DefaultImpl(ImGuiViewport* viewport, ImGuiPlatf
     //::ImmAssociateContextEx(hwnd, NULL, data->WantVisible ? IACE_DEFAULT : 0);
     if (HIMC himc = ::ImmGetContext(hwnd))
     {
-        COMPOSITIONFORM composition_form = {};
+        COMPOSITIONFORM composition_form{};
         composition_form.ptCurrentPos.x = (LONG)data->InputPos.x;
         composition_form.ptCurrentPos.y = (LONG)data->InputPos.y;
         composition_form.dwStyle = CFS_FORCE_POSITION;
         ::ImmSetCompositionWindow(himc, &composition_form);
-        CANDIDATEFORM candidate_form = {};
+        CANDIDATEFORM candidate_form{};
         candidate_form.dwStyle = CFS_CANDIDATEPOS;
         candidate_form.ptCurrentPos.x = (LONG)data->InputPos.x;
         candidate_form.ptCurrentPos.y = (LONG)data->InputPos.y;

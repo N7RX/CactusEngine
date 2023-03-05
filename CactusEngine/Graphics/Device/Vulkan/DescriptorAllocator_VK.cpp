@@ -17,7 +17,7 @@ namespace Engine
 	{
 		m_descriptorSetLayout = VK_NULL_HANDLE;
 
-		VkDescriptorSetLayoutCreateInfo createInfo = {};
+		VkDescriptorSetLayoutCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		createInfo.bindingCount = (uint32_t)bindings.size();
 		createInfo.pBindings = bindings.data();
@@ -63,7 +63,7 @@ namespace Engine
 			m_allocatedSetsCount = 0;
 		}
 
-		VkDescriptorSetAllocateInfo allocateInfo = {};
+		VkDescriptorSetAllocateInfo allocateInfo{};
 		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocateInfo.descriptorPool = m_descriptorPool;
 		allocateInfo.descriptorSetCount = (uint32_t)layouts.size();
@@ -99,7 +99,7 @@ namespace Engine
 				continue;
 			}
 
-			VkWriteDescriptorSet descriptorWrite = {};
+			VkWriteDescriptorSet descriptorWrite{};
 
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrite.dstSet = updateInfos[i].dstDescriptorSet;
@@ -146,7 +146,7 @@ namespace Engine
 
 	DescriptorPool_VK* DescriptorAllocator_VK::CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes)
 	{
-		VkDescriptorPoolCreateInfo createInfo = {};
+		VkDescriptorPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		createInfo.poolSizeCount = (uint32_t)poolSizes.size();
 		createInfo.pPoolSizes = poolSizes.data();

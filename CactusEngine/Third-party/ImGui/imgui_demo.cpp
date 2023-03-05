@@ -1257,7 +1257,7 @@ static void ShowDemoWindowWidgets()
         IMGUI_DEMO_MARKER("Widgets/Selectables/In columns");
         if (ImGui::TreeNode("In columns"))
         {
-            static bool selected[10] = {};
+            static bool selected[10]{};
 
             if (ImGui::BeginTable("split1", 3, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders))
             {
@@ -1676,7 +1676,7 @@ static void ShowDemoWindowWidgets()
         // Fill an array of contiguous float values to plot
         // Tip: If your float aren't contiguous but part of a structure, you can pass a pointer to your first float
         // and the sizeof() of your structure in the "stride" parameter.
-        static float values[90] = {};
+        static float values[90]{};
         static int values_offset = 0;
         static double refresh_time = 0.0;
         if (!animate || refresh_time == 0.0)
@@ -1791,7 +1791,7 @@ static void ShowDemoWindowWidgets()
 
         // Generate a default palette. The palette will persist and can be edited.
         static bool saved_palette_init = true;
-        static ImVec4 saved_palette[32] = {};
+        static ImVec4 saved_palette[32]{};
         if (saved_palette_init)
         {
             for (int n = 0; n < IM_ARRAYSIZE(saved_palette); n++)
@@ -2339,7 +2339,7 @@ static void ShowDemoWindowWidgets()
         bool ret = false;
         static bool b = false;
         static float col4f[4] = { 1.0f, 0.5, 0.0f, 1.0f };
-        static char str[16] = {};
+        static char str[16]{};
         if (item_disabled)
             ImGui::BeginDisabled(true);
         if (item_type == 0) { ImGui::Text("ITEM: Text"); }                                              // Testing text items with no identifier/interaction
@@ -4917,7 +4917,7 @@ static void ShowDemoWindowTables()
 
             // Dummy entire-column selection storage
             // FIXME: It would be nice to actually demonstrate full-featured selection using those checkbox.
-            static bool column_selected[3] = {};
+            static bool column_selected[3]{};
 
             // Instead of calling TableHeadersRow() we'll submit custom headers ourselves
             ImGui::TableNextRow(ImGuiTableRowFlags_Headers);

@@ -79,7 +79,7 @@ namespace Engine
 		m_pHostData(nullptr),
 		m_subAllocatedSize(0)
 	{
-		RawBufferCreateInfo_VK bufferImplCreateInfo = {};
+		RawBufferCreateInfo_VK bufferImplCreateInfo{};
 		bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		bufferImplCreateInfo.memoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 		bufferImplCreateInfo.size = createInfo.size;

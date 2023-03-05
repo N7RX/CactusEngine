@@ -2388,7 +2388,7 @@ void ImGui::TableMergeDrawChannels(ImGuiTable* table)
         ImBitArrayPtr   ChannelsMask;
     };
     int merge_group_mask = 0x00;
-    MergeGroup merge_groups[4] = {};
+    MergeGroup merge_groups[4]{};
 
     // Use a reusable temp buffer for the merge masks as they are dynamically sized.
     const int max_draw_channels = (4 + table->ColumnsCount * 2);

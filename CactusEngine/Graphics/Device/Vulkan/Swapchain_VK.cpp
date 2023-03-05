@@ -20,7 +20,7 @@ namespace Engine
 
 		m_swapExtent = createInfo.swapExtent;
 
-		VkSwapchainCreateInfoKHR createInfoKHR = {};
+		VkSwapchainCreateInfoKHR createInfoKHR{};
 		createInfoKHR.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 		createInfoKHR.surface = createInfo.surface;
 		createInfoKHR.minImageCount = imageCount;
@@ -65,7 +65,7 @@ namespace Engine
 
 		for (unsigned int i = 0; i < imageCount; ++i)
 		{
-			VkImageViewCreateInfo imageViewCreateInfo = {};
+			VkImageViewCreateInfo imageViewCreateInfo{};
 			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			imageViewCreateInfo.image = swapchainImages[i];
 			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -126,7 +126,7 @@ namespace Engine
 		DEBUG_ASSERT_CE(m_swapchain != VK_NULL_HANDLE);
 		DEBUG_ASSERT_CE(m_presentQueue != VK_NULL_HANDLE);
 
-		VkPresentInfoKHR presentInfo = {};
+		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
 		std::vector<VkSemaphore> semaphoresToWait;

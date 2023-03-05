@@ -26,7 +26,7 @@ namespace Engine
 
 		// Textures
 
-		Texture2DCreateInfo texCreateInfo = {};
+		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
@@ -43,7 +43,7 @@ namespace Engine
 
 		// Render pass object
 
-		RenderPassAttachmentDescription colorDesc = {};
+		RenderPassAttachmentDescription colorDesc{};
 		colorDesc.format = ETextureFormat::RGBA32F;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
@@ -56,7 +56,7 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		RenderPassCreateInfo passCreateInfo = {};
+		RenderPassCreateInfo passCreateInfo{};
 		passCreateInfo.clearColor = Color4(1);
 		passCreateInfo.clearDepth = 1.0f;
 		passCreateInfo.clearStencil = 0;
@@ -65,13 +65,13 @@ namespace Engine
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 		// Frame buffers
-		FrameBufferCreateInfo fbCreateInfo_Line = {};
+		FrameBufferCreateInfo fbCreateInfo_Line{};
 		fbCreateInfo_Line.attachments.emplace_back(m_pLineResult);
 		fbCreateInfo_Line.framebufferWidth = screenWidth;
 		fbCreateInfo_Line.framebufferHeight = screenHeight;
 		fbCreateInfo_Line.pRenderPass = m_pRenderPassObject;
 
-		FrameBufferCreateInfo fbCreateInfo_FinalBlend = {};
+		FrameBufferCreateInfo fbCreateInfo_FinalBlend{};
 		fbCreateInfo_FinalBlend.attachments.emplace_back(m_pColorOutput);
 		fbCreateInfo_FinalBlend.framebufferWidth = screenWidth;
 		fbCreateInfo_FinalBlend.framebufferHeight = screenHeight;
@@ -82,13 +82,13 @@ namespace Engine
 
 		if (m_enableLineSmooth)
 		{
-			FrameBufferCreateInfo fbCreateInfo_BlurHorizontal = {};
+			FrameBufferCreateInfo fbCreateInfo_BlurHorizontal{};
 			fbCreateInfo_BlurHorizontal.attachments.emplace_back(m_pColorOutput);
 			fbCreateInfo_BlurHorizontal.framebufferWidth = screenWidth;
 			fbCreateInfo_BlurHorizontal.framebufferHeight = screenHeight;
 			fbCreateInfo_BlurHorizontal.pRenderPass = m_pRenderPassObject;
 
-			FrameBufferCreateInfo fbCreateInfo_BlurFinal = {};
+			FrameBufferCreateInfo fbCreateInfo_BlurFinal{};
 			fbCreateInfo_BlurFinal.attachments.emplace_back(m_pLineResult);
 			fbCreateInfo_BlurFinal.framebufferWidth = screenWidth;
 			fbCreateInfo_BlurFinal.framebufferHeight = screenHeight;
@@ -102,7 +102,7 @@ namespace Engine
 
 		uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 8 : 1;
 
-		UniformBufferCreateInfo ubCreateInfo = {};
+		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * perPassAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
 		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
@@ -111,7 +111,7 @@ namespace Engine
 
 		// Vertex input state
 
-		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo = {};
+		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo{};
 		emptyVertexInputStateCreateInfo.bindingDescs = {};
 		emptyVertexInputStateCreateInfo.attributeDescs = {};
 
@@ -120,7 +120,7 @@ namespace Engine
 
 		// Input assembly state
 
-		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {};
+		PipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo{};
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
@@ -129,7 +129,7 @@ namespace Engine
 
 		// Rasterization state
 
-		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo = {};
+		PipelineRasterizationStateCreateInfo rasterizationStateCreateInfo{};
 		rasterizationStateCreateInfo.polygonMode = EPolygonMode::Fill;
 		rasterizationStateCreateInfo.enableDepthClamp = false;
 		rasterizationStateCreateInfo.discardRasterizerResults = false;
@@ -141,7 +141,7 @@ namespace Engine
 
 		// Depth stencil state
 
-		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo = {};
+		PipelineDepthStencilStateCreateInfo depthStencilStateCreateInfo{};
 		depthStencilStateCreateInfo.enableDepthTest = false;
 		depthStencilStateCreateInfo.enableDepthWrite = false;
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
@@ -152,7 +152,7 @@ namespace Engine
 
 		// Multisample state
 
-		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo = {};
+		PipelineMultisampleStateCreateInfo multisampleStateCreateInfo{};
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
@@ -161,10 +161,10 @@ namespace Engine
 
 		// Color blend state
 
-		AttachmentColorBlendStateDescription attachmentNoBlendDesc = {};
+		AttachmentColorBlendStateDescription attachmentNoBlendDesc{};
 		attachmentNoBlendDesc.enableBlend = false;
 
-		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
+		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
 		PipelineColorBlendState* pColorBlendState = nullptr;
@@ -172,7 +172,7 @@ namespace Engine
 
 		// Viewport state
 
-		PipelineViewportStateCreateInfo viewportStateCreateInfo = {};
+		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.width = screenWidth;
 		viewportStateCreateInfo.height = screenHeight;
 
@@ -181,7 +181,7 @@ namespace Engine
 
 		// Pipeline creation
 
-		GraphicsPipelineCreateInfo pipelineCreateInfo = {};
+		GraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::LineDrawing_Simplified);
 		pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
@@ -220,7 +220,7 @@ namespace Engine
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-		UBControlVariables ubControlVariables = {};
+		UBControlVariables ubControlVariables{};
 
 		// Outlining pass
 
