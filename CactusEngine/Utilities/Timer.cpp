@@ -5,10 +5,10 @@ namespace Engine
 	std::chrono::time_point<std::chrono::high_resolution_clock> Timer::m_sTimeAtStartUp;
 	std::chrono::time_point<std::chrono::high_resolution_clock> Timer::m_sTimeAtBeginOfFrame;
 	float Timer::m_sFrameDeltaTime = 0.0f;
-	unsigned int Timer::m_sCurrentFPS = 0;
-	unsigned int Timer::m_sAverageFPS = 0;
+	uint32_t Timer::m_sCurrentFPS = 0;
+	uint32_t Timer::m_sAverageFPS = 0;
 	std::chrono::duration<float, std::milli> Timer::m_sOneSecDuration;
-	unsigned int Timer::m_sOneSecTicks = 0;
+	uint32_t Timer::m_sOneSecTicks = 0;
 	uint64_t Timer::m_frameCount = 0;
 
 	void Timer::Initialize()
@@ -28,7 +28,7 @@ namespace Engine
 		auto lastFrameInterval = std::chrono::high_resolution_clock::now() - m_sTimeAtBeginOfFrame;
 		auto lastFrameDuration = std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(lastFrameInterval);
 		m_sFrameDeltaTime = lastFrameDuration.count() / 1000.0f;
-		m_sCurrentFPS = (unsigned int)(1000.0f / lastFrameDuration.count());
+		m_sCurrentFPS = (uint32_t)(1000.0f / lastFrameDuration.count());
 
 		m_sOneSecDuration += lastFrameDuration;
 		if (m_sOneSecDuration.count() >= 1000.0f)
@@ -41,7 +41,7 @@ namespace Engine
 		m_sOneSecTicks++;
 	}
 
-	long long Timer::TimeSinceStartUp()
+	int64_t Timer::TimeSinceStartUp()
 	{
 		return (std::chrono::high_resolution_clock::now().time_since_epoch() - m_sTimeAtStartUp.time_since_epoch()).count();
 	}
@@ -53,12 +53,12 @@ namespace Engine
 		return duration.count() / 1000.0f;
 	}
 
-	unsigned int Timer::GetCurrentFPS()
+	uint32_t Timer::GetCurrentFPS()
 	{
 		return m_sCurrentFPS;
 	}
 
-	unsigned int Timer::GetAverageFPS()
+	uint32_t Timer::GetAverageFPS()
 	{
 		return m_sAverageFPS;
 	}

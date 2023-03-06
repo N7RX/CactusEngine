@@ -125,7 +125,7 @@ namespace Engine
 	public:
 		PipelineViewportState_GL(const PipelineViewportStateCreateInfo& createInfo);
 
-		unsigned int viewportWidth;
-		unsigned int viewportHeight;
+		uint32_t viewportWidth;
+		uint32_t viewportHeight;
 	};
 }

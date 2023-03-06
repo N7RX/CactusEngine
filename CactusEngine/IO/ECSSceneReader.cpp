@@ -45,9 +45,9 @@ namespace Engine
 
 		// Resolve the json structure and construct ECS world
 
-		int entityCount = root["entityCount"].asInt();
+		uint32_t entityCount = root["entityCount"].asInt();
 
-		for (int i = 0; i < entityCount; ++i)
+		for (uint32_t i = 0; i < entityCount; ++i)
 		{
 			std::stringstream entityName;
 			entityName << "entity" << i;
@@ -57,7 +57,7 @@ namespace Engine
 
 			std::stack<BaseComponent*> components;
 			// TODO: find a better solution
-			int scriptID = -1;
+			int32_t scriptID = -1;
 			ScriptComponent* pScriptComp = nullptr;
 
 			if (entity["transform"])
@@ -139,9 +139,9 @@ namespace Engine
 					"toneTexturePath"
 				};
 
-				unsigned int materialCount = component["materialCount"].asUInt();
+				uint32_t materialCount = component["materialCount"].asUInt();
 
-				for (unsigned int i = 0; i < materialCount; ++i)
+				for (uint32_t i = 0; i < materialCount; ++i)
 				{
 					std::stringstream materialName;
 					materialName << "materialImpl" << i;
@@ -152,7 +152,7 @@ namespace Engine
 
 					pMaterial->SetShaderProgram((EBuiltInShaderProgramType)(subComponent["shaderType"].asInt()));
 
-					for (int i = 0; i < (uint32_t)EMaterialTextureType::COUNT; ++i)
+					for (uint32_t i = 0; i < (uint32_t)EMaterialTextureType::COUNT; ++i)
 					{
 						if (subComponent[pathTypes[i]])
 						{

@@ -20,7 +20,7 @@ namespace SampleScript
 		Engine::TransformComponent* m_pCubeTransform;
 		Engine::MaterialComponent* m_pCubeMaterial;
 
-		static int m_instanceCounter;
-		int m_instanceIndex;
+		static uint32_t m_instanceCounter;
+		uint32_t m_instanceIndex;
 	};
 }

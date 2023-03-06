@@ -96,7 +96,7 @@ namespace Engine
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 		{
-			for (unsigned int i = 0; i < m_executionThreadCount; i++)
+			for (uint32_t i = 0; i < m_executionThreadCount; i++)
 			{
 				m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodeParallel, this);
 			}
@@ -107,7 +107,7 @@ namespace Engine
 	{
 		m_isRunning = false;
 
-		for (unsigned int i = 0; i < m_executionThreadCount; i++)
+		for (uint32_t i = 0; i < m_executionThreadCount; i++)
 		{
 			m_executionThreads[i].join();
 		}
@@ -160,14 +160,14 @@ namespace Engine
 
 		// Assign priority by traverse sequence
 		uint32_t assignedPriority = 0;
-		for (unsigned int i = 0; i < traverseResult.size(); i++)
+		for (uint32_t i = 0; i < traverseResult.size(); i++)
 		{
 			m_renderNodePriorities[traverseResult[i]->m_pName] = assignedPriority;
 			assignedPriority++;
 		}
 
 		// Record priority dependencies
-		for (unsigned int i = 0; i < traverseResult.size(); i++)
+		for (uint32_t i = 0; i < traverseResult.size(); i++)
 		{
 			m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]] = std::vector<uint32_t>();
 			for (auto pNode : traverseResult[i]->m_prevNodes)

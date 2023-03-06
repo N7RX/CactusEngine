@@ -92,7 +92,7 @@ namespace Engine
 	{
 		std::vector<VkWriteDescriptorSet> descriptorWrites;
 
-		for (int i = 0; i < updateInfos.size(); ++i)
+		for (uint32_t i = 0; i < updateInfos.size(); ++i)
 		{
 			if (!updateInfos[i].hasContent)
 			{

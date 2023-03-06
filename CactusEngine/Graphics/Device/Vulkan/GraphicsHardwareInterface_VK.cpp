@@ -369,7 +369,7 @@ namespace Engine
 				break;
 			}
 			default:
-				LOG_ERROR("Vulkan: Unhandled descriptor resource type: " + std::to_string((unsigned int)updateInfo.infoType));
+				LOG_ERROR("Vulkan: Unhandled descriptor resource type: " + std::to_string((uint32_t)updateInfo.infoType));
 				updateInfo.hasContent = false;
 				break;
 			}
@@ -454,7 +454,7 @@ namespace Engine
 			}
 
 		default:
-			LOG_ERROR("Vulkan: Unhandled queue type: " + std::to_string((unsigned int)queueType));
+			LOG_ERROR("Vulkan: Unhandled queue type: " + std::to_string((uint32_t)queueType));
 			return nullptr;
 		}
 	}
@@ -517,7 +517,7 @@ namespace Engine
 		VkClearValue clearDepthStencil;
 		clearDepthStencil.depthStencil = { createInfo.clearDepth, (uint32_t)createInfo.clearStencil };
 
-		for (int i = 0; i < createInfo.attachmentDescriptions.size(); i++)
+		for (uint32_t i = 0; i < createInfo.attachmentDescriptions.size(); i++)
 		{
 			VkAttachmentDescription desc{};
 			desc.format = VulkanImageFormat(createInfo.attachmentDescriptions[i].format);
@@ -1519,7 +1519,7 @@ namespace Engine
 			return EDescriptorResourceType_VK::TexelBuffer;
 
 		default:
-			LOG_ERROR("Vulkan: Unhandled descriptor type: " + std::to_string((unsigned int)type));
+			LOG_ERROR("Vulkan: Unhandled descriptor type: " + std::to_string((uint32_t)type));
 			return EDescriptorResourceType_VK::Buffer;
 		}
 	}

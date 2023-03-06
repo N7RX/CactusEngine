@@ -184,7 +184,7 @@ namespace Engine
 		std::vector<RenderPassAttachmentDescription> attachmentDescriptions;
 		Color4		 clearColor;
 		float		 clearDepth;
-		unsigned int clearStencil;	
+		uint32_t clearStencil;	
 
 		// TODO: add subpass description
 	};
@@ -298,7 +298,7 @@ namespace Engine
 		uint32_t GetProgramID() const;
 		uint32_t GetShaderStages() const;
 
-		virtual unsigned int GetParamBinding(const char* paramName) const = 0;
+		virtual uint32_t GetParamBinding(const char* paramName) const = 0;
 		virtual void Reset() = 0;
 
 	protected:
@@ -321,7 +321,7 @@ namespace Engine
 		// For high-level APIs like OpenGL
 		struct ShaderParameterTableEntry
 		{
-			ShaderParameterTableEntry(unsigned int binding, EDescriptorType descType, RawResource* pRes)
+			ShaderParameterTableEntry(uint32_t binding, EDescriptorType descType, RawResource* pRes)
 				: binding(binding),
 				type(descType),
 				pResource(pRes)
@@ -329,14 +329,14 @@ namespace Engine
 
 			}
 
-			unsigned int	binding;
+			uint32_t	binding;
 			EDescriptorType	type;
 			RawResource*	pResource;
 		};
 
 		std::vector<ShaderParameterTableEntry> m_table;
 
-		void AddEntry(unsigned int binding, EDescriptorType descType, RawResource* pRes)
+		void AddEntry(uint32_t binding, EDescriptorType descType, RawResource* pRes)
 		{
 			m_table.emplace_back(binding, descType, pRes);
 		}

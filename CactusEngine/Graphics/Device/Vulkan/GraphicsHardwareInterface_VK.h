@@ -128,7 +128,7 @@ namespace Engine
 
 	public:
 		const uint64_t FRAME_TIMEOUT = 5e9; // 5 seconds
-		const static unsigned int MAX_FRAME_IN_FLIGHT = 2;
+		const static uint32_t MAX_FRAME_IN_FLIGHT = 2;
 
 	private:
 #if defined(DEBUG_MODE_CE)
@@ -152,7 +152,7 @@ namespace Engine
 		LogicalDevice_VK* m_pMainDevice;
 
 		Swapchain_VK* m_pSwapchain;
-		unsigned int m_currentFrame;
+		uint32_t m_currentFrame;
 
 		Sampler_VK* m_pDefaultSampler_0; // No AF
 		Sampler_VK* m_pDefaultSampler_1; // 4x AF

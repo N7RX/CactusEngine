@@ -18,7 +18,7 @@ namespace SampleScript
 
 		Engine::TransformComponent* m_pBunnyTransform;
 
-		static int m_instanceCounter;
-		int m_instanceIndex;
+		static uint32_t m_instanceCounter;
+		uint32_t m_instanceIndex;
 	};
 }

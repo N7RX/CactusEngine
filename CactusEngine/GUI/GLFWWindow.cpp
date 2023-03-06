@@ -16,12 +16,12 @@ namespace Engine
 		ShutDown();
 	}
 
-	void GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int width, int height)
+	void GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int32_t width, int32_t height)
 	{
 		glViewport(0, 0, width, height);
 	}
 
-	void GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int width, int height)
+	void GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int32_t width, int32_t height)
 	{
 		LOG_ERROR("Vulkan window resized but not handled.");
 	}

@@ -11,9 +11,9 @@ namespace Engine
 		~VertexBuffer_GL();
 
 	public:
-		unsigned int m_vao;
-		unsigned int m_vboIndices;
-		unsigned int m_vboVertices;
+		uint32_t m_vao;
+		uint32_t m_vboIndices;
+		uint32_t m_vboVertices;
 	};
 
 	class UniformBuffer_GL : public UniformBuffer

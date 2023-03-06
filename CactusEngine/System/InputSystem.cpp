@@ -63,7 +63,7 @@ namespace Engine
 #endif
 	}
 
-	bool InputSystem::GetMousePress(int key)
+	bool InputSystem::GetMousePress(int32_t key)
 	{
 #if defined(GLFW_IMPLEMENTATION_CE)
 		DEBUG_ASSERT_CE(m_pGLFWWindow != nullptr);

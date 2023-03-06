@@ -368,12 +368,12 @@ namespace Engine
 				m_pLightSourceProperties_UB->UpdateBufferData(&ubLightSourceProperties);
 			}
 
-			unsigned int submeshCount = lightProfile.pVolumeMesh->GetSubmeshCount();
+			uint32_t submeshCount = lightProfile.pVolumeMesh->GetSubmeshCount();
 			auto subMeshes = lightProfile.pVolumeMesh->GetSubMeshes();
 
 			m_pDevice->SetVertexBuffer(lightProfile.pVolumeMesh->GetVertexBuffer(), pCommandBuffer);
 
-			for (unsigned int i = 0; i < submeshCount; ++i)
+			for (uint32_t i = 0; i < submeshCount; ++i)
 			{
 				pShaderParamTable->Clear();
 

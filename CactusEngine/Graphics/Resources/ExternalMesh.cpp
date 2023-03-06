@@ -36,10 +36,10 @@ namespace Engine
 		m_subMeshes.resize(totalNumSubMeshes);
 
 		// Record submeshes
-		for (int i = 0; i < totalNumSubMeshes; ++i)
+		for (uint32_t i = 0; i < totalNumSubMeshes; ++i)
 		{
-			m_subMeshes[i].m_baseIndex = (unsigned int)totalNumIndices;
-			m_subMeshes[i].m_baseVertex = (unsigned int)totalNumVertices;
+			m_subMeshes[i].m_baseIndex = (uint32_t)totalNumIndices;
+			m_subMeshes[i].m_baseVertex = (uint32_t)totalNumVertices;
 			m_subMeshes[i].m_numIndices = scene->mMeshes[i]->mNumFaces * 3;
 
 			totalNumVertices += scene->mMeshes[i]->mNumVertices;
@@ -53,30 +53,30 @@ namespace Engine
 		std::vector<float> tangents(totalNumVertices * 3);
 		std::vector<float> bitangents(totalNumVertices * 3);
 
-		unsigned int faceIndex = 0;
-		unsigned int vertexOffset = 0;
-		unsigned int normalOffset = 0;
-		unsigned int texcoordOffset = 0;
-		unsigned int tangentOffset = 0;
-		unsigned int bitangentOffset = 0;
+		uint32_t faceIndex = 0;
+		uint32_t vertexOffset = 0;
+		uint32_t normalOffset = 0;
+		uint32_t texcoordOffset = 0;
+		uint32_t tangentOffset = 0;
+		uint32_t bitangentOffset = 0;
 
 		// Buffer data
-		for (int i = 0; i < totalNumSubMeshes; ++i)
+		for (uint32_t i = 0; i < totalNumSubMeshes; ++i)
 		{
 			aiMesh* mesh = scene->mMeshes[i];
 
 			// Indices
-			unsigned int numFaces = mesh->mNumFaces;
-			for (unsigned int j = 0; j < numFaces; ++j)
+			uint32_t numFaces = mesh->mNumFaces;
+			for (uint32_t j = 0; j < numFaces; ++j)
 			{
-				memcpy(&indices[faceIndex], mesh->mFaces[j].mIndices, 3 * sizeof(unsigned int));
+				memcpy(&indices[faceIndex], mesh->mFaces[j].mIndices, 3 * sizeof(uint32_t));
 				faceIndex += 3;
 			}
 
 			// Vertices
 			if (mesh->HasPositions())
 			{
-				const int size = 3 * sizeof(float) * mesh->mNumVertices;
+				const size_t size = 3 * sizeof(float) * mesh->mNumVertices;
 				memcpy(&vertices[vertexOffset], mesh->mVertices, size);
 				vertexOffset += 3 * mesh->mNumVertices;
 			}
@@ -84,7 +84,7 @@ namespace Engine
 			// Normals
 			if (mesh->HasNormals())
 			{
-				const int size = 3 * sizeof(float) * mesh->mNumVertices;
+				const size_t size = 3 * sizeof(float) * mesh->mNumVertices;
 				memcpy(&normals[normalOffset], mesh->mNormals, size);
 				normalOffset += 3 * mesh->mNumVertices;
 			}
@@ -92,7 +92,7 @@ namespace Engine
 			// Texcoords
 			if (mesh->HasTextureCoords(0))
 			{
-				for (unsigned int j = 0; j < mesh->mNumVertices; ++j)
+				for (uint32_t j = 0; j < mesh->mNumVertices; ++j)
 				{
 					texcoords[(uint64_t)j * 2 + texcoordOffset] = mesh->mTextureCoords[0][j].x;
 					texcoords[(uint64_t)j * 2 + 1 + texcoordOffset] = mesh->mTextureCoords[0][j].y;
@@ -103,7 +103,7 @@ namespace Engine
 			// Tangents
 			if (mesh->HasTangentsAndBitangents())
 			{
-				const int size = 3 * sizeof(float) * mesh->mNumVertices;
+				const size_t size = 3 * sizeof(float) * mesh->mNumVertices;
 				memcpy(&tangents[tangentOffset], mesh->mTangents, size);
 				tangentOffset += 3 * mesh->mNumVertices;
 			}
@@ -111,7 +111,7 @@ namespace Engine
 			// Bitangents
 			if (mesh->HasTangentsAndBitangents())
 			{
-				const int size = 3 * sizeof(float) * mesh->mNumVertices;
+				const size_t size = 3 * sizeof(float) * mesh->mNumVertices;
 				memcpy(&bitangents[bitangentOffset], mesh->mBitangents, size);
 				bitangentOffset += 3 * mesh->mNumVertices;
 			}

@@ -23,7 +23,7 @@ namespace Engine
 			return;
 		}
 
-		int texWidth, texHeight, texChannels;
+		int32_t texWidth, texHeight, texChannels;
 		stbi_uc* imageData = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 
 		if (!imageData)

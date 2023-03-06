@@ -24,15 +24,15 @@ namespace Engine
 		Swapchain_VK(LogicalDevice_VK* pDevice, const SwapchainCreateInfo_VK& createInfo);
 		~Swapchain_VK();
 
-		bool UpdateBackBuffer(unsigned int currentFrame);
+		bool UpdateBackBuffer(uint32_t currentFrame);
 		bool Present(const std::vector<Semaphore_VK*>& waitSemaphores);
 
 		uint32_t GetSwapchainImageCount() const;
 		RenderTarget2D_VK* GetTargetImage() const;
 		uint32_t GetTargetImageIndex() const;
-		RenderTarget2D_VK* GetSwapchainImageByIndex(unsigned int index) const;
+		RenderTarget2D_VK* GetSwapchainImageByIndex(uint32_t index) const;
 		VkExtent2D GetSwapExtent() const;
-		Semaphore_VK* GetImageAvailableSemaphore(unsigned int currentFrame) const;
+		Semaphore_VK* GetImageAvailableSemaphore(uint32_t currentFrame) const;
 
 	public:
 		const uint64_t ACQUIRE_IMAGE_TIMEOUT = 3e9; // 3 seconds

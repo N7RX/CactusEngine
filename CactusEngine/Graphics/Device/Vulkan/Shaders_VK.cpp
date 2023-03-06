@@ -130,7 +130,7 @@ namespace Engine
 		}
 	}
 
-	unsigned int ShaderProgram_VK::GetParamBinding(const char* paramName) const
+	uint32_t ShaderProgram_VK::GetParamBinding(const char* paramName) const
 	{
 		if (m_resourceTable.find(paramName) != m_resourceTable.end())
 		{
@@ -170,7 +170,7 @@ namespace Engine
 		std::lock_guard<std::mutex> lock(m_descriptorSetGetMutex);
 
 		bool flag = true;
-		for (unsigned int i = m_descriptorSetAccessIndex; ; i = (i + 1) % m_descriptorSets.size())
+		for (uint32_t i = m_descriptorSetAccessIndex; ; i = (i + 1) % m_descriptorSets.size())
 		{
 			if (!flag && i == m_descriptorSetAccessIndex)
 			{

@@ -74,7 +74,7 @@ namespace Engine
 		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader);
 		~ShaderProgram_VK();
 
-		unsigned int GetParamBinding(const char* paramName) const override;
+		uint32_t GetParamBinding(const char* paramName) const override;
 		void Reset() override; // Does not work on Vulkan shader program
 
 		uint32_t GetStageCount() const;
@@ -94,7 +94,7 @@ namespace Engine
 		struct ResourceDescription
 		{
 			EShaderResourceType_VK	type;
-			unsigned int				binding;
+			uint32_t				binding;
 			const char* name;
 		};
 
@@ -144,7 +144,7 @@ namespace Engine
 		DescriptorSetLayout_VK* m_pDescriptorSetLayout;
 		DescriptorPool_VK* m_pDescriptorPool;
 		std::vector<DescriptorSet_VK*> m_descriptorSets;
-		unsigned int m_descriptorSetAccessIndex;
+		uint32_t m_descriptorSetAccessIndex;
 		mutable std::mutex m_descriptorSetGetMutex;
 
 		std::vector<VkPipelineShaderStageCreateInfo> m_pipelineShaderStageCreateInfos;

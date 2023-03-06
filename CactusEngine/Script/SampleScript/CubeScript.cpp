@@ -7,7 +7,7 @@ using namespace Engine;
 
 namespace SampleScript
 {
-	int CubeScript::m_instanceCounter = 0;
+	uint32_t CubeScript::m_instanceCounter = 0;
 
 	CubeScript::CubeScript(BaseEntity* pEntity)
 		: m_pEntity(pEntity),

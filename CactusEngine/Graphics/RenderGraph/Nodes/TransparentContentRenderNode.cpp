@@ -320,12 +320,12 @@ namespace Engine
 
 			pShaderParamTable->Clear();
 
-			unsigned int submeshCount = pMesh->GetSubmeshCount();
+			uint32_t submeshCount = pMesh->GetSubmeshCount();
 			auto subMeshes = pMesh->GetSubMeshes();
 
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
-			for (unsigned int i = 0; i < submeshCount; ++i)
+			for (uint32_t i = 0; i < submeshCount; ++i)
 			{
 				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
 

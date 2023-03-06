@@ -24,7 +24,7 @@ namespace Engine
 		void FrameEnd() override;
 
 		static bool GetKeyPress(char key);
-		static bool GetMousePress(int key);
+		static bool GetMousePress(int32_t key);
 		static Vector2 GetCursorPosition();
 
 	private:

@@ -141,7 +141,7 @@ namespace Engine
 					}
 					std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
 
-					for (unsigned int i = 0; i < sortedQueueContents.size(); i++)
+					for (uint32_t i = 0; i < sortedQueueContents.size(); i++)
 					{
 						bool proceed = true;
 						uint32_t currPriority = sortedQueueContents[i];
@@ -177,7 +177,7 @@ namespace Engine
 							return lhs.first < rhs.first;
 						});
 
-					for (unsigned int i = 0; i < buffersToReturn.size(); i++)
+					for (uint32_t i = 0; i < buffersToReturn.size(); i++)
 					{
 						m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i].second);
 					}

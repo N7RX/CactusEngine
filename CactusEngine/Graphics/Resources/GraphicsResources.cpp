@@ -38,7 +38,7 @@ namespace Engine
 
 	std::vector<float> VertexBufferCreateInfo::ConvertToInterleavedData() const
 	{
-		unsigned int elementStride = 14;
+		uint32_t elementStride = 14;
 		std::vector<float> interleavedVertices(elementStride * (size_t)(positionDataCount / 3));
 
 		// Layout : [ position | normal | texcoord | tangent | bitengent ]

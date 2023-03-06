@@ -7,9 +7,9 @@ namespace Engine
 {
 	struct SubMesh
 	{
-		unsigned int m_numIndices;
-		unsigned int m_baseIndex;
-		unsigned int m_baseVertex;
+		uint32_t m_numIndices;
+		uint32_t m_baseIndex;
+		uint32_t m_baseVertex;
 	};
 
 	class Mesh
@@ -19,7 +19,7 @@ namespace Engine
 
 		VertexBuffer* GetVertexBuffer() const;
 		const std::vector<SubMesh>* GetSubMeshes() const;
-		unsigned int GetSubmeshCount() const;
+		uint32_t GetSubmeshCount() const;
 		const char* GetFilePath() const;
 		EBuiltInMeshType GetMeshType() const;
 		Vector2 GetPlaneDimenstion() const;

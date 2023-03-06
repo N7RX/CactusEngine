@@ -43,7 +43,7 @@ namespace Engine
 		float m_roughness;
 	};
 
-	typedef std::unordered_map<unsigned int, Material*> MaterialList;
+	typedef std::unordered_map<uint32_t, Material*> MaterialList;
 
 	class MaterialComponent : public BaseComponent
 	{
@@ -51,10 +51,10 @@ namespace Engine
 		MaterialComponent();
 		~MaterialComponent() = default;
 
-		void AddMaterial(unsigned int submeshIndex, Material* pMaterialComp);
+		void AddMaterial(uint32_t submeshIndex, Material* pMaterialComp);
 		const MaterialList& GetMaterialList() const;
-		Material* GetMaterialBySubmeshIndex(unsigned int submeshIndex) const;
-		unsigned int GetMaterialCount() const;
+		Material* GetMaterialBySubmeshIndex(uint32_t submeshIndex) const;
+		uint32_t GetMaterialCount() const;
 
 	private:
 		MaterialList m_materialList; // This is a temporary solution, a better way is to implement auto sub-entity creation

@@ -49,7 +49,7 @@ namespace Engine
 		CE_DELETE_ARRAY(logMsg);
 	}
 
-	inline unsigned int OpenGLFormat(ETextureFormat format)
+	inline uint32_t OpenGLFormat(ETextureFormat format)
 	{
 		switch (format)
 		{
@@ -84,7 +84,7 @@ namespace Engine
 		return 0;
 	}
 
-	inline int OpenGLDataType(EDataType type)
+	inline int32_t OpenGLDataType(EDataType type)
 	{
 		switch (type)
 		{

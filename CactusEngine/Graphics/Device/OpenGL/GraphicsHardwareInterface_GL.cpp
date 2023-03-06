@@ -166,8 +166,8 @@ namespace Engine
 
 		glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 
-		int colorAttachmentCount = 0;
-		for (int i = 0; i < createInfo.attachments.size(); ++i)
+		uint32_t colorAttachmentCount = 0;
+		for (uint32_t i = 0; i < createInfo.attachments.size(); ++i)
 		{
 			switch (createInfo.attachments[i]->GetTextureType())
 			{
@@ -243,7 +243,7 @@ namespace Engine
 			else
 			{
 				std::vector<GLenum> colorAttachments;
-				for (unsigned int i = 0; i < attachments.size(); ++i)
+				for (uint32_t i = 0; i < attachments.size(); ++i)
 				{
 					colorAttachments.emplace_back(pTarget->GetColorAttachment(attachments[i]));
 				}
@@ -274,7 +274,7 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		glDrawElementsBaseVertex(m_primitiveTopologyMode, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(unsigned int) * baseIndex), baseVertex);
+		glDrawElementsBaseVertex(m_primitiveTopologyMode, indicesCount, GL_UNSIGNED_INT, (void*)(sizeof(uint32_t) * baseIndex), baseVertex);
 	}
 
 	void GraphicsHardwareInterface_GL::DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer)
@@ -328,7 +328,7 @@ namespace Engine
 		CE_NEW(pOutput, RenderPass_GL);
 		auto pRenderPass = (RenderPass_GL*)pOutput;
 
-		for (int i = 0; i < createInfo.attachmentDescriptions.size(); i++)
+		for (uint32_t i = 0; i < createInfo.attachmentDescriptions.size(); i++)
 		{
 			if (createInfo.attachmentDescriptions[i].type == EAttachmentType::Color)
 			{

@@ -273,7 +273,7 @@ namespace Engine
 			}
 
 			auto subMeshes = pMesh->GetSubMeshes();
-			for (unsigned int i = 0; i < subMeshes->size(); ++i)
+			for (uint32_t i = 0; i < subMeshes->size(); ++i)
 			{
 				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
 

@@ -22,9 +22,9 @@ namespace Engine
 		return &m_subMeshes;
 	}
 
-	unsigned int Mesh::GetSubmeshCount() const
+	uint32_t Mesh::GetSubmeshCount() const
 	{
-		return (unsigned int)m_subMeshes.size();
+		return (uint32_t)m_subMeshes.size();
 	}
 
 	const char* Mesh::GetFilePath() const

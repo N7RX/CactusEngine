@@ -85,7 +85,7 @@ namespace Engine
 	{
 	}
 
-	void MaterialComponent::AddMaterial(unsigned int submeshIndex, Material* pMaterialComp)
+	void MaterialComponent::AddMaterial(uint32_t submeshIndex, Material* pMaterialComp)
 	{
 		m_materialList[submeshIndex] = pMaterialComp;
 	}
@@ -95,7 +95,7 @@ namespace Engine
 		return m_materialList;
 	}
 
-	Material* MaterialComponent::GetMaterialBySubmeshIndex(unsigned int submeshIndex) const
+	Material* MaterialComponent::GetMaterialBySubmeshIndex(uint32_t submeshIndex) const
 	{
 		if (m_materialList.find(submeshIndex) != m_materialList.end())
 		{
@@ -108,8 +108,8 @@ namespace Engine
 		return nullptr;
 	}
 
-	unsigned int MaterialComponent::GetMaterialCount() const
+	uint32_t MaterialComponent::GetMaterialCount() const
 	{
-		return (unsigned int)m_materialList.size();
+		return (uint32_t)m_materialList.size();
 	}
 }

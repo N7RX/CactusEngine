@@ -63,7 +63,7 @@ namespace Engine
 			return;
 		}
 
-		for (unsigned int i = 0; i < imageCount; ++i)
+		for (uint32_t i = 0; i < imageCount; ++i)
 		{
 			VkImageViewCreateInfo imageViewCreateInfo{};
 			imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -93,14 +93,14 @@ namespace Engine
 		}
 
 		m_imageAvailableSemaphores.resize(GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT, nullptr);
-		for (unsigned int i = 0; i < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT; i++)
+		for (uint32_t i = 0; i < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT; i++)
 		{
 			m_imageAvailableSemaphores[i] = m_pDevice->pSyncObjectManager->RequestSemaphore();
 			m_imageAvailableSemaphores[i]->waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		}
 
 		auto pCmdBuffer = m_pDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
-		for (unsigned int i = 0; i < imageCount; i++)
+		for (uint32_t i = 0; i < imageCount; i++)
 		{
 			pCmdBuffer->TransitionImageLayout(m_renderTargets[i], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0);
 		}
@@ -115,7 +115,7 @@ namespace Engine
 		vkDestroySwapchainKHR(m_pDevice->logicalDevice, m_swapchain, nullptr);
 	}
 
-	bool Swapchain_VK::UpdateBackBuffer(unsigned int currentFrame)
+	bool Swapchain_VK::UpdateBackBuffer(uint32_t currentFrame)
 	{
 		DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
 		return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, ACQUIRE_IMAGE_TIMEOUT, m_imageAvailableSemaphores[currentFrame]->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
@@ -160,7 +160,7 @@ namespace Engine
 		return m_targetImageIndex;
 	}
 
-	RenderTarget2D_VK* Swapchain_VK::GetSwapchainImageByIndex(unsigned int index) const
+	RenderTarget2D_VK* Swapchain_VK::GetSwapchainImageByIndex(uint32_t index) const
 	{
 		DEBUG_ASSERT_CE(index < m_renderTargets.size());
 		return m_renderTargets[index];
@@ -171,7 +171,7 @@ namespace Engine
 		return m_swapExtent;
 	}
 
-	Semaphore_VK* Swapchain_VK::GetImageAvailableSemaphore(unsigned int currentFrame) const
+	Semaphore_VK* Swapchain_VK::GetImageAvailableSemaphore(uint32_t currentFrame) const
 	{
 		DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
 		return m_imageAvailableSemaphores[currentFrame];

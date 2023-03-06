@@ -74,7 +74,7 @@ namespace Engine
 
 	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBControlVariables
 	{
-		int bool_1;
+		uint32_t bool_1;
 	};
 
 	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBLightSourceProperties

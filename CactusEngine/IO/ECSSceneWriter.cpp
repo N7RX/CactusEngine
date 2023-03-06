@@ -36,7 +36,7 @@ namespace Engine
 		Json::Value root;
 
 		auto pEntityList = pWorld->GetEntityList();
-		unsigned int entityIndex = 0;
+		uint32_t entityIndex = 0;
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
 			Json::Value entity;

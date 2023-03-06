@@ -11,7 +11,7 @@ using namespace Engine;
 
 namespace SampleScript
 {
-	int BunnyScript::m_instanceCounter = 0;
+	uint32_t BunnyScript::m_instanceCounter = 0;
 
 	BunnyScript::BunnyScript(BaseEntity* pEntity)
 		: m_pEntity(pEntity),

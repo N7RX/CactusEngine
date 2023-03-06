@@ -87,7 +87,7 @@ namespace Engine
 		return m_glProgramID;
 	}
 
-	unsigned int ShaderProgram_GL::GetParamBinding(const char* paramName) const
+	uint32_t ShaderProgram_GL::GetParamBinding(const char* paramName) const
 	{
 		if (m_paramBindings.find(paramName) != m_paramBindings.end())
 		{
@@ -101,7 +101,7 @@ namespace Engine
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	void ShaderProgram_GL::UpdateParameterValue(unsigned int binding, EDescriptorType type, const RawResource* pRes)
+	void ShaderProgram_GL::UpdateParameterValue(uint32_t binding, EDescriptorType type, const RawResource* pRes)
 	{
 		switch (type)
 		{

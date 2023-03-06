@@ -35,16 +35,16 @@ namespace Engine
 
 		GLuint GetGLProgramID() const;
 
-		unsigned int GetParamBinding(const char* paramName) const override;
+		uint32_t GetParamBinding(const char* paramName) const override;
 		void Reset() override;
 
-		void UpdateParameterValue(unsigned int binding, EDescriptorType type, const RawResource* pRes);
+		void UpdateParameterValue(uint32_t binding, EDescriptorType type, const RawResource* pRes);
 
 	private:
 		void ReflectParamLocations();
 
 	private:
 		GLuint m_glProgramID;
-		std::unordered_map<const char*, unsigned int> m_paramBindings;
+		std::unordered_map<const char*, uint32_t> m_paramBindings;
 	};
 }

@@ -24,7 +24,7 @@ using namespace Engine;
 void ConfigSetup();
 void TestSetup(GraphicsApplication* pApp);
 
-int main()
+int32_t main()
 {
 	LOG_SYSTEM_INITIALIZE();
 
@@ -117,7 +117,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// Or manually add contents here
 	// ...
 
-	// 121 point lights for deferred lighting test
+	// 121 pouint32_t lights for deferred lighting test
 
 	LightComponent::Profile lightProfile{};
 	lightProfile.sourceType = LightComponent::SourceType::PointLight;
@@ -135,11 +135,11 @@ void TestSetup(GraphicsApplication* pApp)
 		Color3(0.0f, 1.0f, 1.0f),
 		Color3(1.0f, 1.0f, 0.0f)
 	};
-	int colorIndex = 0;
+	uint32_t colorIndex = 0;
 
-	for (int i = -5; i < 6; i++)
+	for (int32_t i = -5; i < 6; i++)
 	{
-		for (int j = -5; j < 6; j++)
+		for (int32_t j = -5; j < 6; j++)
 		{
 			auto pTransformComp = pWorld->CreateComponent<TransformComponent>();		
 			auto pLightComp = pWorld->CreateComponent<LightComponent>();

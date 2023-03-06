@@ -54,7 +54,7 @@ namespace Engine
 		m_subMeshes.resize(1);
 		m_subMeshes[0].m_baseIndex = 0;
 		m_subMeshes[0].m_baseVertex = 0;
-		m_subMeshes[0].m_numIndices = (unsigned int)vertexIndices.size();
+		m_subMeshes[0].m_numIndices = (uint32_t)vertexIndices.size();
 
 		m_type = EBuiltInMeshType::Plane;
 		m_planeDimension = Vector2(dimLength, dimWidth);
