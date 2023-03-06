@@ -84,7 +84,7 @@ namespace Engine
 
 		void UpdateBufferData(const void* pData) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
-		SubUniformBuffer* AllocateSubBuffer(uint32_t size) override;
+		SubUniformBuffer* AllocateSubBuffer(uint32_t size) override; // Remember to CE_DELETE the returned sub-buffer
 		void ResetSubBufferAllocation() override;
 
 		void UpdateToDevice(CommandBuffer_VK* pCmdBuffer = nullptr);
@@ -109,14 +109,13 @@ namespace Engine
 	class SubUniformBuffer_VK : public SubUniformBuffer
 	{
 	public:
-		SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, VkBuffer buffer, uint32_t offset, uint32_t size);
+		SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, uint32_t offset, uint32_t size);
 		~SubUniformBuffer_VK() = default;
 
 		void UpdateSubBufferData(const void* pData) override;
 
 	private:
 		UniformBuffer_VK* m_pParentBuffer;
-		VkBuffer m_buffer;
 		uint32_t m_offset;
 		uint32_t m_size;
 

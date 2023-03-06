@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 
 namespace Engine
 {
@@ -12,12 +13,19 @@ namespace Engine
 		void ShutDown();
 
 		void TrackNewAllocation(size_t size);
-		void TrackDeallocation(size_t size);
+		void TrackDeallocation(); // Because derived type size cannot be determined from base type pointer directly without wrapper,
+								  // deallocated size is not tracked
 
-		size_t GetAllocatedSize() const { return m_allocatedSize; }
+		// Size of all allocations so far, including deleted ones
+		inline size_t GetTotalAllocatedSize() const { return m_totalAllocatedSize; }
+		// Number of allocations that has not been deleted. Used for memory leak checking
+		inline size_t GetActiveAllocationCount() const { return m_activeAllocationCount; }
+
+		// TODO: provide ability to track active allocation size
 
 	private:
-		size_t m_allocatedSize;
+		std::atomic<size_t> m_totalAllocatedSize;
+		std::atomic<size_t> m_activeAllocationCount;
 	};
 
 	extern MemoryAllocationTracker gAllocationTrackerInstance;
@@ -31,10 +39,10 @@ namespace Engine
 	outPtr = new type[length];
 
 #define CE_DELETE(ptr) \
-	gAllocationTrackerInstance.TrackDeallocation(sizeof(*ptr)); \
+	gAllocationTrackerInstance.TrackDeallocation(); \
 	delete ptr;
 
 #define CE_DELETE_ARRAY(ptr) \
-	gAllocationTrackerInstance.TrackDeallocation(sizeof(ptr)); \
+	gAllocationTrackerInstance.TrackDeallocation(); \
 	delete[] ptr;
 }

@@ -102,7 +102,7 @@ namespace Engine
 			}
 		}
 
-		GraphicsHardwareInterface_GL* pDevice;
+		GraphicsHardwareInterface_GL* pDevice = nullptr;
 		CE_NEW(pDevice, GraphicsHardwareInterface_GL);
 
 		return pDevice;

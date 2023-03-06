@@ -103,10 +103,9 @@ namespace Engine
 			return;
 		}
 
-		RenderContext* pContext;
-		CE_NEW(pContext, RenderContext);
-		pContext->pCamera = pCamera;
-		pContext->pDrawList = &drawList;
+		RenderContext currentContext{};
+		currentContext.pCamera = pCamera;
+		currentContext.pDrawList = &drawList;
 
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
@@ -116,7 +115,7 @@ namespace Engine
 				m_commandRecordReadyListFlag[item.first] = false;
 			}
 
-			m_pRenderGraph->BeginRenderPassesParallel(pContext);
+			m_pRenderGraph->BeginRenderPassesParallel(&currentContext);
 
 			// Submit async recorded command buffers by correct sequence
 
@@ -132,7 +131,7 @@ namespace Engine
 					m_newCommandRecorded = false;
 
 					std::vector<uint32_t> sortedQueueContents;
-					std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as prior dependencies have not finished
+					std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as dependencies have not finished
 
 					// Eliminate dependency jump
 					while (!m_writtenCommandPriorities.empty())
@@ -190,7 +189,7 @@ namespace Engine
 		}
 		else // OpenGL
 		{
-			m_pRenderGraph->BeginRenderPassesSequential(pContext);
+			m_pRenderGraph->BeginRenderPassesSequential(&currentContext);
 		}
 	}
 

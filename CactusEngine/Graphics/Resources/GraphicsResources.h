@@ -243,6 +243,8 @@ namespace Engine
 	class SubUniformBuffer : public RawResource
 	{
 	public:
+		virtual ~SubUniformBuffer() = default;
+
 		virtual void UpdateSubBufferData(const void* pData) = 0;
 
 	protected:
@@ -320,8 +322,11 @@ namespace Engine
 		struct ShaderParameterTableEntry
 		{
 			ShaderParameterTableEntry(unsigned int binding, EDescriptorType descType, RawResource* pRes)
-				: binding(binding), type(descType), pResource(pRes)
+				: binding(binding),
+				type(descType),
+				pResource(pRes)
 			{
+
 			}
 
 			unsigned int	binding;

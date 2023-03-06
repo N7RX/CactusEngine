@@ -1539,7 +1539,7 @@ namespace Engine
 		case EDescriptorType::SubUniformBuffer:
 		{
 			auto pBuffer = (SubUniformBuffer_VK*)pRes;
-			outInfo.buffer = pBuffer->m_buffer;
+			outInfo.buffer = pBuffer->m_pParentBuffer->GetBufferImpl()->m_buffer;
 			outInfo.offset = pBuffer->m_offset;
 			outInfo.range = pBuffer->m_size;
 			break;

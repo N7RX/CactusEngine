@@ -64,6 +64,9 @@ int main()
 		try
 		{
 			pApplication->Tick();
+
+			// For memory leak debugging
+			//LOG_MESSAGE("Active allocation count: " + std::to_string(gAllocationTrackerInstance.GetActiveAllocationCount()));
 		}
 		catch (const std::runtime_error& e)
 		{

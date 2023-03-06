@@ -6,26 +6,33 @@ namespace Engine
 	MemoryAllocationTracker gAllocationTrackerInstance;
 
 	MemoryAllocationTracker::MemoryAllocationTracker()
-		: m_allocatedSize(0)
+		: m_totalAllocatedSize(0),
+		m_activeAllocationCount(0)
 	{
 
 	}
 
 	MemoryAllocationTracker::~MemoryAllocationTracker()
 	{
-		//DEBUG_ASSERT_MESSAGE_CE(m_allocatedSize == 0, "Some of the allocated memory is not released upon closing.");
-		LOG_MESSAGE("Unreleased allocation: " + std::to_string(m_allocatedSize) + " bytes");
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE("Total allocated size: " + std::to_string(m_totalAllocatedSize) + " bytes");
+		LOG_MESSAGE("Unreleased allocation(s) count: " + std::to_string(m_activeAllocationCount));
+#endif
 	}
 
 	void MemoryAllocationTracker::TrackNewAllocation(size_t size)
 	{
-		// TODO: this is not thread safe
-		m_allocatedSize += size;
+#if defined(DEVELOPMENT_MODE_CE)
+		m_totalAllocatedSize += size;
+		++m_activeAllocationCount;
+#endif
 	}
 
-	void MemoryAllocationTracker::TrackDeallocation(size_t size)
+	void MemoryAllocationTracker::TrackDeallocation()
 	{
-		DEBUG_ASSERT_CE(m_allocatedSize >= size);
-		m_allocatedSize -= size;
+#if defined(DEVELOPMENT_MODE_CE)
+		DEBUG_ASSERT_CE(m_activeAllocationCount > 0);
+		--m_activeAllocationCount;
+#endif
 	}
 }

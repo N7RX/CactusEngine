@@ -297,6 +297,8 @@ namespace Engine
 
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
+		ShaderParameterTable* pShaderParamTable;
+		CE_NEW(pShaderParamTable, ShaderParameterTable);
 
 		UBTransformMatrices ubTransformMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
@@ -344,8 +346,7 @@ namespace Engine
 				m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
 			}
 
-			ShaderParameterTable* pShaderParamTable;
-			CE_NEW(pShaderParamTable, ShaderParameterTable);
+			pShaderParamTable->Clear();
 
 			unsigned int submeshCount = pMesh->GetSubmeshCount();
 			auto subMeshes = pMesh->GetSubMeshes();
@@ -385,9 +386,11 @@ namespace Engine
 				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 				ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
 				ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
+
+				SubUniformBuffer* pSubMaterialNumericalPropertiesUB = nullptr;
 				if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 				{
-					auto pSubMaterialNumericalPropertiesUB = m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
+					pSubMaterialNumericalPropertiesUB = m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 					pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubMaterialNumericalPropertiesUB);
 				}
@@ -418,6 +421,15 @@ namespace Engine
 				{
 					pShaderProgram->Reset();
 				}
+				else
+				{
+					CE_DELETE(pSubMaterialNumericalPropertiesUB);
+				}
+			}
+
+			if (pSubTransformMatricesUB)
+			{
+				CE_DELETE(pSubTransformMatricesUB);
 			}
 		}
 
@@ -428,5 +440,7 @@ namespace Engine
 
 			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 		}
+
+		CE_DELETE(pShaderParamTable);
 	}
 }

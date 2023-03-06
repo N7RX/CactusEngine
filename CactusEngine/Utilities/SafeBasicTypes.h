@@ -9,14 +9,14 @@ namespace Engine
 	public:
 		SafeCounter() : m_countImpl(0) {};
 
-		void GetCountValue(unsigned int& val) const;
+		void GetCountValue(uint32_t& val) const;
 		void Tick();
 		bool Decrease();
-		bool Equals(unsigned int val) const;
+		bool Equals(uint32_t val) const;
 		void Reset();
 
 	private:
-		std::atomic<unsigned int> m_countImpl;
+		std::atomic<uint32_t> m_countImpl;
 	};
 
 	class ThreadSemaphore

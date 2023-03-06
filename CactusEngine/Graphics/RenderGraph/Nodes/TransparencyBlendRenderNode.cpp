@@ -205,5 +205,7 @@ namespace Engine
 		{
 			pShaderProgram->Reset();
 		}
+
+		CE_DELETE(pShaderParamTable);
 	}
 }

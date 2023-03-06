@@ -11,6 +11,8 @@
 #define DEBUG_MODE_CE
 #endif
 
+#define DEVELOPMENT_MODE_CE
+
 #if defined(PLATFORM_WINDOWS_CE)
 #define GLFW_IMPLEMENTATION_CE
 #endif

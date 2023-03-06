@@ -133,7 +133,7 @@ namespace Engine
 		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
 		SubUniformBuffer* pSubBuffer;
-		CE_NEW(pSubBuffer, SubUniformBuffer_VK, this, m_pBufferImpl->m_buffer, m_subAllocatedSize, size);
+		CE_NEW(pSubBuffer, SubUniformBuffer_VK, this, m_subAllocatedSize, size);
 		m_subAllocatedSize += size;
 
 		return pSubBuffer;
@@ -176,9 +176,8 @@ namespace Engine
 		return m_eType;
 	}
 
-	SubUniformBuffer_VK::SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, VkBuffer buffer, uint32_t offset, uint32_t size)
+	SubUniformBuffer_VK::SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, uint32_t offset, uint32_t size)
 		: m_pParentBuffer(pParentBuffer),
-		m_buffer(buffer),
 		m_offset(offset),
 		m_size(size)
 	{

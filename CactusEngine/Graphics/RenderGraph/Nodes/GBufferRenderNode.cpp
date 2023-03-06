@@ -269,6 +269,8 @@ namespace Engine
 
 		// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
+		ShaderParameterTable* pShaderParamTable;
+		CE_NEW(pShaderParamTable, ShaderParameterTable);
 
 		UBTransformMatrices ubTransformMatrices{};
 		ubTransformMatrices.projectionMatrix = projectionMat;
@@ -292,15 +294,15 @@ namespace Engine
 				continue;
 			}
 
-			ShaderParameterTable* pShaderParamTable;
-			CE_NEW(pShaderParamTable, ShaderParameterTable);
+			pShaderParamTable->Clear();
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
 
+			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
 			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
-				auto pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 			}
@@ -330,6 +332,10 @@ namespace Engine
 			{
 				pShaderProgram->Reset();
 			}
+			else
+			{
+				CE_DELETE(pSubTransformMatricesUB);
+			}
 		}
 
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
@@ -339,5 +345,7 @@ namespace Engine
 
 			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 		}
+
+		CE_DELETE(pShaderParamTable);
 	}
 }

@@ -229,6 +229,8 @@ namespace Engine
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
+		ShaderParameterTable* pShaderParamTable;
+		CE_NEW(pShaderParamTable, ShaderParameterTable);
 
 		UBTransformMatrices ubTransformMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
@@ -254,8 +256,7 @@ namespace Engine
 				continue;
 			}
 
-			ShaderParameterTable* pShaderParamTable;
-			CE_NEW(pShaderParamTable, ShaderParameterTable);
+			pShaderParamTable->Clear();
 
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
@@ -308,6 +309,11 @@ namespace Engine
 					pShaderProgram->Reset();
 				}
 			}
+			
+			if (pSubTransformMatricesUB)
+			{
+				CE_DELETE(pSubTransformMatricesUB);
+			}
 		}
 
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
@@ -322,5 +328,7 @@ namespace Engine
 			m_pDevice->ResizeViewPort(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight());
 		}
+
+		CE_DELETE(pShaderParamTable);
 	}
 }

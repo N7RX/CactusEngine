@@ -279,6 +279,8 @@ namespace Engine
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
+		ShaderParameterTable* pShaderParamTable;
+		CE_NEW(pShaderParamTable, ShaderParameterTable);
 		ShaderParameterTable* pShaderParamTable_ext;
 		CE_NEW(pShaderParamTable_ext, ShaderParameterTable);
 
@@ -366,9 +368,6 @@ namespace Engine
 				m_pLightSourceProperties_UB->UpdateBufferData(&ubLightSourceProperties);
 			}
 
-			ShaderParameterTable* pShaderParamTable;
-			CE_NEW(pShaderParamTable, ShaderParameterTable);
-
 			unsigned int submeshCount = lightProfile.pVolumeMesh->GetSubmeshCount();
 			auto subMeshes = lightProfile.pVolumeMesh->GetSubMeshes();
 
@@ -399,6 +398,12 @@ namespace Engine
 				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
+
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
+			{
+				CE_DELETE(pSubTransformMatricesUB);
+				CE_DELETE(pSubLightSourcePropertiesUB);
+			}
 		}
 
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
@@ -412,5 +417,8 @@ namespace Engine
 		{
 			pShaderProgram->Reset();
 		}
+
+		CE_DELETE(pShaderParamTable);
+		CE_DELETE(pShaderParamTable_ext);		
 	}
 }

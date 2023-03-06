@@ -200,9 +200,10 @@ namespace Engine
 			(Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
 
 		ubControlVariables.bool_1 = 1;
+		SubUniformBuffer* pSubControlVariablesUB = nullptr;
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
-			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+			pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
 		}
@@ -236,7 +237,8 @@ namespace Engine
 		ubControlVariables.bool_1 = 0;
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
-			auto pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+			CE_DELETE(pSubControlVariablesUB);
+			pSubControlVariablesUB = m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
 			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
 			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
 		}
@@ -255,10 +257,14 @@ namespace Engine
 			m_pDevice->EndCommandBuffer(pCommandBuffer);
 
 			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+
+			CE_DELETE(pSubControlVariablesUB);
 		}
 		else
 		{
 			pShaderProgram->Reset();
 		}
+
+		CE_DELETE(pShaderParamTable);
 	}
 }

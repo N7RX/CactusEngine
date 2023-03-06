@@ -3,7 +3,7 @@
 
 namespace Engine
 {
-	void SafeCounter::GetCountValue(unsigned int& val) const
+	void SafeCounter::GetCountValue(uint32_t& val) const
 	{
 		val = m_countImpl;
 	}
@@ -26,7 +26,7 @@ namespace Engine
 		}
 	}
 
-	bool SafeCounter::Equals(unsigned int val) const
+	bool SafeCounter::Equals(uint32_t val) const
 	{
 		return m_countImpl == val;
 	}

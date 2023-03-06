@@ -176,7 +176,7 @@ namespace Engine
 			}
 		}
 
-		GraphicsHardwareInterface_VK* pDevice;
+		GraphicsHardwareInterface_VK* pDevice = nullptr;
 		CE_NEW(pDevice, GraphicsHardwareInterface_VK);
 		pDevice->SetupDevice();
 
