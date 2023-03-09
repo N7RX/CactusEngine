@@ -117,7 +117,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// Or manually add contents here
 	// ...
 
-	// 121 pouint32_t lights for deferred lighting test
+	// 121 point lights for deferred lighting test
 
 	LightComponent::Profile lightProfile{};
 	lightProfile.sourceType = LightComponent::SourceType::PointLight;

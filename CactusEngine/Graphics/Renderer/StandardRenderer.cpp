@@ -27,10 +27,6 @@ namespace Engine
 		CE_NEW(pOpaqueNode, OpaqueContentRenderNode, m_pGraphResources, this);
 		DeferredLightingRenderNode* pDeferredLightingNode;
 		CE_NEW(pDeferredLightingNode, DeferredLightingRenderNode, m_pGraphResources, this);
-		BlurRenderNode* pBlurNode;
-		CE_NEW(pBlurNode, BlurRenderNode, m_pGraphResources, this);
-		LineDrawingRenderNode* pLineDrawingNode;
-		CE_NEW(pLineDrawingNode, LineDrawingRenderNode, m_pGraphResources, this);
 		TransparentContentRenderNode* pTransparencyNode;
 		CE_NEW(pTransparencyNode, TransparentContentRenderNode, m_pGraphResources, this);
 		TransparencyBlendRenderNode* pBlendNode;
@@ -42,8 +38,6 @@ namespace Engine
 		m_pRenderGraph->AddRenderNode("GBufferNode", pGBufferNode);
 		m_pRenderGraph->AddRenderNode("OpaqueNode", pOpaqueNode);
 		m_pRenderGraph->AddRenderNode("DeferredLightingNode", pDeferredLightingNode);
-		m_pRenderGraph->AddRenderNode("BlurNode", pBlurNode);
-		m_pRenderGraph->AddRenderNode("LineDrawingNode", pLineDrawingNode);
 		m_pRenderGraph->AddRenderNode("TransparencyNode", pTransparencyNode);
 		m_pRenderGraph->AddRenderNode("BlendNode", pBlendNode);
 		m_pRenderGraph->AddRenderNode("DOFNode", pDOFNode);
@@ -51,9 +45,7 @@ namespace Engine
 		pShadowMapNode->ConnectNext(pOpaqueNode);
 		pGBufferNode->ConnectNext(pOpaqueNode);
 		pOpaqueNode->ConnectNext(pDeferredLightingNode);
-		pDeferredLightingNode->ConnectNext(pBlurNode);
-		pBlurNode->ConnectNext(pLineDrawingNode);
-		pLineDrawingNode->ConnectNext(pTransparencyNode);
+		pDeferredLightingNode->ConnectNext(pTransparencyNode);
 		pTransparencyNode->ConnectNext(pBlendNode);
 		pBlendNode->ConnectNext(pDOFNode);
 
@@ -67,22 +59,16 @@ namespace Engine
 		pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
 		pDeferredLightingNode->SetInputResource(DeferredLightingRenderNode::INPUT_DEPTH_TEXTURE, OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 
-		pBlurNode->SetInputResource(BlurRenderNode::INPUT_COLOR_TEXTURE, OpaqueContentRenderNode::OUTPUT_LINE_SPACE_TEXTURE);
-
-		pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_COLOR_TEXTURE, DeferredLightingRenderNode::OUTPUT_COLOR_TEXTURE);
-		pLineDrawingNode->SetInputResource(LineDrawingRenderNode::INPUT_LINE_SPACE_TEXTURE, BlurRenderNode::OUTPUT_COLOR_TEXTURE);
-
-		pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_COLOR_TEXTURE, LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE);
+		pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_COLOR_TEXTURE, DeferredLightingRenderNode::OUTPUT_COLOR_TEXTURE);
 		pTransparencyNode->SetInputResource(TransparentContentRenderNode::INPUT_BACKGROUND_DEPTH, OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 
-		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_OPQAUE_COLOR_TEXTURE, LineDrawingRenderNode::OUTPUT_COLOR_TEXTURE);
+		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_OPQAUE_COLOR_TEXTURE, DeferredLightingRenderNode::OUTPUT_COLOR_TEXTURE);
 		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_OPQAUE_DEPTH_TEXTURE, OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_TRANSPARENCY_COLOR_TEXTURE, TransparentContentRenderNode::OUTPUT_COLOR_TEXTURE);
 		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_TRANSPARENCY_DEPTH_TEXTURE, TransparentContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 
 		pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_COLOR_TEXTURE, TransparencyBlendRenderNode::OUTPUT_COLOR_TEXTURE);
 		pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
-		pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_SHADOW_MARK_TEXTURE, OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE);
 
 		// Initialize render graph
 

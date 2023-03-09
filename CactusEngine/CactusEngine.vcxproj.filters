@@ -26,12 +26,6 @@
     <None Include="Assets\Shader\GLSL\AnimeStyle.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
-    <None Include="Assets\Shader\GLSL\Gaussian.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LineDrawing_Blend.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
     <None Include="Assets\Shader\GLSL\Basic_Transparent.frag">
       <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
@@ -57,12 +51,6 @@
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\DepthOfField.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\SPIRV-Source\Gaussian.frag">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Blend.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\ShadowMap.frag">
@@ -99,12 +87,6 @@
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\GBuffer.vert">
-      <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LineDrawing_Simplified.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\SPIRV-Source\LineDrawing_Simplified.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\GLSL\Basic_Transparent.vert">
@@ -498,9 +480,6 @@
     <ClInclude Include="Utilities\LogUtility.h">
       <Filter>Utilities</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\RenderGraph\Nodes\BlurRenderNode.h">
-      <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.h">
       <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
     </ClInclude>
@@ -508,9 +487,6 @@
       <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.h">
-      <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.h">
       <Filter>Graphics\RenderGraph\Nodes\Header</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.h">
@@ -746,9 +722,6 @@
     <ClCompile Include="Utilities\LogUtility.cpp">
       <Filter>Utilities</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\RenderGraph\Nodes\BlurRenderNode.cpp">
-      <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.cpp">
       <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
     </ClCompile>
@@ -756,9 +729,6 @@
       <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\Nodes\GBufferRenderNode.cpp">
-      <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\RenderGraph\Nodes\LineDrawingRenderNode.cpp">
       <Filter>Graphics\RenderGraph\Nodes\Source</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\RenderGraph\Nodes\OpaqueContentRenderNode.cpp">

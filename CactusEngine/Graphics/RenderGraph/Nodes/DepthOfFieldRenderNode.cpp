@@ -10,14 +10,12 @@ namespace Engine
 {
 	const char* DepthOfFieldRenderNode::INPUT_COLOR_TEXTURE = "DOFInputColorTexture";
 	const char* DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION = "DOFInputGBufferPosition";
-	const char* DepthOfFieldRenderNode::INPUT_SHADOW_MARK_TEXTURE = "DOFInputShadowMarkTexture";
 
 	DepthOfFieldRenderNode::DepthOfFieldRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
 		: RenderNode(pGraphResources, pRenderer)
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
-		m_inputResourceNames[INPUT_SHADOW_MARK_TEXTURE] = nullptr;
 	}
 
 	void DepthOfFieldRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
@@ -38,18 +36,6 @@ namespace Engine
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 		m_pDevice->CreateTexture2D(texCreateInfo, m_pHorizontalResult);
-
-		// Post effects images
-
-		CE_NEW(m_pBrushMaskTexture_1, ImageTexture, "Assets/Textures/BrushStock_1.png");
-		CE_NEW(m_pBrushMaskTexture_2, ImageTexture, "Assets/Textures/BrushStock_2.png");
-		CE_NEW(m_pPencilMaskTexture_1, ImageTexture, "Assets/Textures/PencilStock_1.jpg");
-		CE_NEW(m_pPencilMaskTexture_2, ImageTexture, "Assets/Textures/PencilStock_2.jpg");
-
-		m_pBrushMaskTexture_1->SetSampler(m_pDevice->GetDefaultTextureSampler());
-		m_pBrushMaskTexture_2->SetSampler(m_pDevice->GetDefaultTextureSampler());
-		m_pPencilMaskTexture_1->SetSampler(m_pDevice->GetDefaultTextureSampler());
-		m_pPencilMaskTexture_2->SetSampler(m_pDevice->GetDefaultTextureSampler());
 
 		// Render pass object
 
@@ -139,9 +125,6 @@ namespace Engine
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
 		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pCameraProperties_UB);
-
-		ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables);
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pSystemVariables_UB);
 
 		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * perPassAllocation;
 		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pControlVariables_UB);
@@ -270,9 +253,6 @@ namespace Engine
 		ubTransformMatrices.viewMatrix = viewMat;
 		m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
 
-		ubSystemVariables.timeInSec = Timer::Now();
-		m_pSystemVariables_UB->UpdateBufferData(&ubSystemVariables);
-
 		ubCameraProperties.aperture = pCameraComp->GetAperture();
 		ubCameraProperties.focalDistance = pCameraComp->GetFocalDistance();
 		ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
@@ -292,23 +272,6 @@ namespace Engine
 
 		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, m_pSystemVariables_UB);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			m_pBrushMaskTexture_1);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			m_pBrushMaskTexture_2);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			m_pPencilMaskTexture_1);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			m_pPencilMaskTexture_2);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MARK_TEXTURE)));
 
 		ubControlVariables.bool_1 = 1;
 		SubUniformBuffer* pSubControlVariablesUB = nullptr;
@@ -361,23 +324,6 @@ namespace Engine
 
 		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, m_pSystemVariables_UB);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			m_pBrushMaskTexture_1);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			m_pBrushMaskTexture_2);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MASK_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			m_pPencilMaskTexture_1);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			m_pPencilMaskTexture_2);
-
-		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_2), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MARK_TEXTURE)));
 
 		ubControlVariables.bool_1 = 0;
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)

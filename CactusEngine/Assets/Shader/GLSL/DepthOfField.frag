@@ -7,17 +7,6 @@ layout(location = 0) out vec4 outColor;
 layout(binding = 6) uniform sampler2D ColorTexture_1;
 layout(binding = 3) uniform sampler2D GPositionTexture;
 
-layout(binding = 7) uniform sampler2D ColorTexture_2; // Shadow value (a)
-layout(binding = 11) uniform sampler2D MaskTexture_1;
-layout(binding = 9) uniform sampler2D NoiseTexture_1;
-layout(binding = 12) uniform sampler2D MaskTexture_2;
-layout(binding = 10) uniform sampler2D NoiseTexture_2;
-
-layout(std140, binding = 18) uniform SystemVariables
-{
-	float Time;
-};
-
 layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
@@ -96,28 +85,6 @@ void main(void)
 	level = int(clamp(abs(Aperture * focalLength * (FocalDistance - sceneDepth) / (sceneDepth * (FocalDistance - focalLength))), 0.0, 10.0f));
 
 	vec3 result = LevelBlur(level);
+
 	outColor = vec4(result, 1.0);
-
-	// TODO: move this step to an individual shader
-	if (Bool_1 != 1) // Final output (vertical)
-	{
-		// Apply pencil mask
-		float pencilStrength_1 = texture(MaskTexture_2, v2fTexCoord).r;
-		float pencilStrength_2 = texture(NoiseTexture_2, v2fTexCoord).r;
-
-		float interpVal = texture(ColorTexture_2, v2fTexCoord).a; // Interpolate by shadow
-		float interpMin = 0.86f * interpVal + 0.98f * (1.0f - interpVal);
-
-		float coeff = step(0, fract(Time) - 0.5f); // 0-0.5 and 0.5-1.0
-		outColor *= coeff * clamp(pencilStrength_1, interpMin, 1.0f) + (1.0f - coeff) * clamp(pencilStrength_2, interpMin, 1.0f);
-
-		// Apply brush mask
-		float maskStrength_1 = texture(MaskTexture_1, v2fTexCoord).r;
-		float maskStrength_2 = texture(NoiseTexture_1, v2fTexCoord).r;
-
-		float portion = abs(sin(fract(0.1f * Time) * 2 * PI));
-		float finalStrength = portion * maskStrength_1 + (1.0f - portion) * maskStrength_2;
-
-		outColor = (1.0f - finalStrength) * outColor + vec4(1, 0.9f, 0.8f, 1) * finalStrength;
-	}
 }

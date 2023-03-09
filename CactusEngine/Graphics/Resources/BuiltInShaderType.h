@@ -6,21 +6,18 @@ namespace Engine
 {
 	enum class EBuiltInShaderProgramType
 	{
+		NONE = -1,
 		Basic = 0,
 		Basic_Transparent,
 		WaterBasic,
 		DepthBased_ColorBlend_2,
 		AnimeStyle,
 		GBuffer,
-		LineDrawing_Simplified,
-		LineDrawing_Blend,
-		GaussianBlur,
 		ShadowMap,
 		DOF,
 		DeferredLighting,
 		DeferredLighting_Directional,
-		COUNT,
-		NONE
+		COUNT
 	};
 
 	enum class EMaterialTextureType
