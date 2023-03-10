@@ -490,7 +490,7 @@ namespace Engine
 		return pCommandBuffer;
 	}
 
-	void CommandManager_VK::SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask)
+	void CommandManager_VK::SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask, ThreadSemaphore* pNotifySemaphore)
 	{
 		DEBUG_ASSERT_CE(pSubmitSemaphore != nullptr);
 
@@ -583,6 +583,8 @@ namespace Engine
 		pSubmitInfo->submitInfo.waitSemaphoreCount = (uint32_t)pSubmitInfo->semaphoresToWait.size();
 		pSubmitInfo->submitInfo.pWaitSemaphores = pSubmitInfo->semaphoresToWait.data();
 		pSubmitInfo->submitInfo.pWaitDstStageMask = pSubmitInfo->waitStages.data();
+
+		pSubmitInfo->pNotifySemaphore = pNotifySemaphore;
 
 		m_commandSubmissionQueue.Push(pSubmitInfo);
 
@@ -687,6 +689,11 @@ namespace Engine
 						m_inExecutionCommandBuffers.Push(ptrCopy);
 						pCommandSubmitInfo->queuedCmdBuffers.pop();
 					}
+				}
+
+				if (pCommandSubmitInfo->pNotifySemaphore)
+				{
+					pCommandSubmitInfo->pNotifySemaphore->Signal();
 				}
 
 				CE_DELETE(pCommandSubmitInfo);

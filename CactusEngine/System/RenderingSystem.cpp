@@ -13,7 +13,9 @@ namespace Engine
 {
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
 		: m_pECSWorld(pWorld),
-		m_activeRenderer(ERendererType::Standard)
+		m_activeRenderer(ERendererType::Standard),
+		m_frameIndex(0),
+		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight())
 	{
 		CreateDevice();
 		RegisterRenderers();
@@ -47,6 +49,14 @@ namespace Engine
 	{
 		// TODO: implement clear only on scene content chage
 		m_renderTaskTable.clear();
+
+		// TODO: remove this condition
+		if (m_pDevice->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
+		{
+			m_pDevice->Present(m_frameIndex);
+		}
+
+		m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;
 	}
 
 	EGraphicsAPIType RenderingSystem::GetGraphicsAPIType() const
@@ -179,13 +189,7 @@ namespace Engine
 		if (!m_renderTaskTable.empty())
 		{
 			DEBUG_ASSERT_CE(m_rendererTable[(uint32_t)m_activeRenderer]);
-			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(m_renderTaskTable, pCamera);
-		}
-
-		// TODO: remove this condition
-		if (m_pDevice->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
-		{
-			m_pDevice->Present();
+			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(m_renderTaskTable, pCamera, m_frameIndex);
 		}
 	}
 }

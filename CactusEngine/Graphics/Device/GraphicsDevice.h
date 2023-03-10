@@ -62,7 +62,7 @@ namespace Engine
 		virtual void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) = 0;
 		virtual void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) = 0;
 
-		virtual void Present() = 0;
+		virtual void Present(uint32_t frameIndex) = 0;
 		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands) = 0;
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(GraphicsSemaphore* pSemaphore) = 0;

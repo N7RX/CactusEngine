@@ -25,7 +25,7 @@ namespace Engine
 		virtual void FrameEnd() {}
 
 		virtual void BuildRenderGraph() = 0;
-		virtual void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera) = 0;
+		virtual void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex) = 0;
 		virtual void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer) = 0;
 
 		ERendererType GetRendererType() const;

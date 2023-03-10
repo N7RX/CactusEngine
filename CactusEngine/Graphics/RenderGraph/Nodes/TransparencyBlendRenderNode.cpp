@@ -13,8 +13,9 @@ namespace Engine
 	const char* TransparencyBlendRenderNode::INPUT_TRANSPARENCY_COLOR_TEXTURE = "TransparencyTransparentColorTexture";
 	const char* TransparencyBlendRenderNode::INPUT_TRANSPARENCY_DEPTH_TEXTURE = "TransparencyTransparentDepthTexture";
 
-	TransparencyBlendRenderNode::TransparencyBlendRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
-		: RenderNode(pGraphResources, pRenderer)
+	TransparencyBlendRenderNode::TransparencyBlendRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer)
+		: RenderNode(graphResources, pRenderer),
+		m_pRenderPassObject(nullptr)
 	{
 		m_inputResourceNames[INPUT_OPQAUE_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_OPQAUE_DEPTH_TEXTURE] = nullptr;
@@ -22,10 +23,14 @@ namespace Engine
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void TransparencyBlendRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
+	void TransparencyBlendRenderNode::SetupFunction()
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+
+		m_frameResources.resize(maxFramesInFlight);
 
 		// Color output
 
@@ -39,9 +44,11 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pColorOutput);
-
-		pGraphResources->Add(OUTPUT_COLOR_TEXTURE, m_pColorOutput);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+		}
 
 		// Render pass object
 
@@ -68,13 +75,16 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo{};
-		fbCreateInfo.attachments.emplace_back(m_pColorOutput);
-		fbCreateInfo.framebufferWidth = screenWidth;
-		fbCreateInfo.framebufferHeight = screenHeight;
-		fbCreateInfo.pRenderPass = m_pRenderPassObject;
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.framebufferWidth = screenWidth;
+			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		m_pDevice->CreateFrameBuffer(fbCreateInfo, m_pFrameBuffer);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
 
 		// Pipeline objects
 
@@ -169,9 +179,11 @@ namespace Engine
 
 	void TransparencyBlendRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
+		auto& frameResources = m_frameResources[m_frameIndex];
+
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 

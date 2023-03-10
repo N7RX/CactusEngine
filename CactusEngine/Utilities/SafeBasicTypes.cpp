@@ -52,4 +52,15 @@ namespace Engine
 		m_cv.wait(lock, [this]() { return m_signaled; });
 		m_signaled = false;
 	}
+
+	void ThreadSemaphore::Reset()
+	{
+		std::lock_guard<std::mutex> guard(m_mutex);
+		m_signaled = false;
+	}
+
+	void ThreadSemaphore::UnsafeReset()
+	{
+		m_signaled = false;
+	}
 }

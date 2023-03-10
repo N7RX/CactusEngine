@@ -136,7 +136,9 @@ namespace Engine
 	struct CommandSubmitInfo_VK
 	{
 		CommandSubmitInfo_VK()
-			: submitInfo{}
+			: submitInfo{},
+			timelineSemaphoreSubmitInfo{},
+			pNotifySemaphore(nullptr)
 		{
 
 		}
@@ -154,6 +156,8 @@ namespace Engine
 		std::vector<VkSemaphore>		  semaphoresToWait;
 		std::vector<VkSemaphore>		  semaphoresToSignal;
 		VkTimelineSemaphoreSubmitInfo	  timelineSemaphoreSubmitInfo;
+
+		ThreadSemaphore* pNotifySemaphore; // Notice other thread(s) when command buffer(s) are submitted
 	};
 
 	class CommandManager_VK : public NoCopy
@@ -167,10 +171,10 @@ namespace Engine
 		EQueueType GetWorkingQueueType() const;
 
 		CommandBuffer_VK* RequestPrimaryCommandBuffer();
-		void SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask);
+		void SubmitCommandBuffers(TimelineSemaphore_VK* pSubmitSemaphore, uint32_t usageMask, ThreadSemaphore* pNotifySemaphore = nullptr);
 		void SubmitSingleCommandBuffer_Immediate(CommandBuffer_VK* pCmdBuffer); // This function would stall the queue, use with caution
-																					  // Additionally, it ONLY accepts command buffers allocated from default pool
-		// For multithreading														  // Additionally, DO NOT use this function for frequently called operations (e.g. per frame)
+																				// Additionally, it ONLY accepts command buffers allocated from default pool
+		// For multithreading													// Additionally, DO NOT use this function for frequently called operations (e.g. per frame)
 		CommandPool_VK* RequestExternalCommandPool();
 		void ReturnExternalCommandBuffer(CommandBuffer_VK* pCmdBuffer);
 

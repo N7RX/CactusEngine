@@ -40,7 +40,8 @@ namespace Engine
 	class RenderNode
 	{
 	public:
-		RenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer);
+		RenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
+		virtual ~RenderNode() = default;
 
 		void ConnectNext(RenderNode* pNode);
 		void SetInputResource(const char* slot, const char* pResourceName);
@@ -50,7 +51,7 @@ namespace Engine
 		void ExecuteSequential(); // For OpenGL
 		void ExecuteParallel();	  // For Vulkan
 
-		virtual void SetupFunction(RenderGraphResource* pGraphResources) = 0;
+		virtual void SetupFunction() = 0;
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
 
 	protected:
@@ -63,9 +64,11 @@ namespace Engine
 		std::vector<RenderNode*>	m_nextNodes;
 		bool						m_finishedExecution;
 
-		RenderGraphResource*		m_pGraphResources;
-		RenderContext*				m_pRenderContext;
-		CommandContext*				m_pCmdContext;
+		std::vector<RenderGraphResource*> m_graphResources;
+		uint32_t m_frameIndex;
+
+		RenderContext* m_pRenderContext;
+		CommandContext*	m_pCmdContext;
 		std::unordered_map<const char*, const char*> m_inputResourceNames;
 		std::unordered_map<EBuiltInShaderProgramType, GraphicsPipelineObject*> m_graphicsPipelines;
 
@@ -82,14 +85,14 @@ namespace Engine
 		void SetupRenderNodes();
 		void BuildRenderNodePriorities();
 
-		void BeginRenderPassesSequential(RenderContext* pContext);
-		void BeginRenderPassesParallel(RenderContext* pContext);
+		void BeginRenderPassesSequential(RenderContext* pContext, uint32_t frameIndex);
+		void BeginRenderPassesParallel(RenderContext* pContext, uint32_t frameIndex);
 
 		RenderNode* GetNodeByName(const char* name) const;
 		uint32_t GetRenderNodeCount() const;
 
 	private:
-		void ExecuteRenderNodeParallel();
+		void ExecuteRenderNodesParallel();
 		void EnqueueRenderNode(RenderNode* pNode);
 		void TraverseRenderNode(RenderNode* pNode, std::vector<RenderNode*>& output);
 

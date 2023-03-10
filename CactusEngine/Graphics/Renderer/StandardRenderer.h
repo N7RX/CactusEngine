@@ -18,11 +18,11 @@ namespace Engine
 		~StandardRenderer() = default;
 
 		void BuildRenderGraph() override;
-		void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera) override;
+		void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex) override;
 		void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer) override;
 
 	private:
-		RenderGraphResource* m_pGraphResources;
+		std::vector<RenderGraphResource*> m_graphResources;
 
 		std::unordered_map<uint32_t, GraphicsCommandBuffer*> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
 		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted

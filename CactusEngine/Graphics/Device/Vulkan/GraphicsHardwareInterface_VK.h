@@ -12,6 +12,23 @@ namespace Engine
 
 	struct LogicalDevice_VK
 	{
+		LogicalDevice_VK()
+			: type(EGPUType::Unknown),
+			physicalDevice(VK_NULL_HANDLE),
+			logicalDevice(VK_NULL_HANDLE),
+			deviceProperties{},
+			presentQueue{},
+			graphicsQueue{},
+			transferQueue{},
+			pGraphicsCommandManager(nullptr),
+			pTransferCommandManager(nullptr),
+			pUploadAllocator(nullptr),
+			pDescriptorAllocator(nullptr),
+			pSyncObjectManager(nullptr),
+			pImplicitCmdBuffer(nullptr)
+		{
+		}
+
 		EGPUType				   type;
 		VkPhysicalDevice		   physicalDevice;
 		VkDevice				   logicalDevice;
@@ -86,7 +103,7 @@ namespace Engine
 		void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override;
 		void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override;
 
-		void Present() override;	
+		void Present(uint32_t frameIndex) override;
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
@@ -128,7 +145,6 @@ namespace Engine
 
 	public:
 		const uint64_t FRAME_TIMEOUT = 5e9; // 5 seconds
-		const static uint32_t MAX_FRAME_IN_FLIGHT = 2;
 
 	private:
 #if defined(DEBUG_MODE_CE)
@@ -152,7 +168,9 @@ namespace Engine
 		LogicalDevice_VK* m_pMainDevice;
 
 		Swapchain_VK* m_pSwapchain;
-		uint32_t m_currentFrame;
+		std::queue<TimelineSemaphore_VK*> m_frameSemaphores;
+		std::queue<Semaphore_VK*> m_renderFinishSemaphores;
+		ThreadSemaphore m_commandSubmissionSemaphore;
 
 		Sampler_VK* m_pDefaultSampler_0; // No AF
 		Sampler_VK* m_pDefaultSampler_1; // 4x AF

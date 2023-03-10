@@ -51,5 +51,7 @@ namespace Engine
 		ERendererType m_activeRenderer;
 		BaseRenderer* m_rendererTable[(uint32_t)ERendererType::COUNT];
 		std::vector<BaseEntity*> m_renderTaskTable;
+		uint32_t m_frameIndex;
+		uint32_t m_maxFramesInFlight;
 	};
 }

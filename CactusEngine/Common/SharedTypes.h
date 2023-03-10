@@ -77,6 +77,7 @@ namespace Engine
 
 	enum class EGPUType
 	{
+		Unknown = 0,
 		Discrete = 0x1,
 		Integrated = 0x2,
 		COUNT = 2

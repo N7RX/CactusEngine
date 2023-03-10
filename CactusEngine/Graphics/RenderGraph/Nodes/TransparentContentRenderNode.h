@@ -6,9 +6,9 @@ namespace Engine
 	class TransparentContentRenderNode : public RenderNode
 	{
 	public:
-		TransparentContentRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer);
+		TransparentContentRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer);
 
-		void SetupFunction(RenderGraphResource* pGraphResources) override;
+		void SetupFunction() override;
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
 	public:
@@ -19,15 +19,32 @@ namespace Engine
 		static const char* INPUT_BACKGROUND_DEPTH;
 
 	private:
-		FrameBuffer*		m_pFrameBuffer;
-		RenderPassObject*	m_pRenderPassObject;
+		struct FrameResources
+		{
+			FrameResources()
+				: m_pFrameBuffer(nullptr),
+				m_pTransformMatrices_UB(nullptr),
+				m_pSystemVariables_UB(nullptr),
+				m_pCameraProperties_UB(nullptr),
+				m_pMaterialNumericalProperties_UB(nullptr),
+				m_pColorOutput(nullptr),
+				m_pDepthOutput(nullptr)
+			{
 
-		UniformBuffer*		m_pTransformMatrices_UB;
-		UniformBuffer*		m_pSystemVariables_UB;
-		UniformBuffer*		m_pCameraProperties_UB;
-		UniformBuffer*		m_pMaterialNumericalProperties_UB;	
+			}
 
-		Texture2D*			m_pColorOutput;
-		Texture2D*			m_pDepthOutput;
+			FrameBuffer*		m_pFrameBuffer;
+
+			UniformBuffer*		m_pTransformMatrices_UB;
+			UniformBuffer*		m_pSystemVariables_UB;
+			UniformBuffer*		m_pCameraProperties_UB;
+			UniformBuffer*		m_pMaterialNumericalProperties_UB;
+
+			Texture2D*			m_pColorOutput;
+			Texture2D*			m_pDepthOutput;
+		};
+		std::vector<FrameResources> m_frameResources;
+
+		RenderPassObject* m_pRenderPassObject;
 	};
 }

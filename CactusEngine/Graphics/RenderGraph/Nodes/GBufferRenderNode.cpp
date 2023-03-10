@@ -9,16 +9,21 @@ namespace Engine
 	const char* GBufferRenderNode::OUTPUT_NORMAL_GBUFFER = "NormalGBufferTexture";
 	const char* GBufferRenderNode::OUTPUT_POSITION_GBUFFER = "PositionGBufferTexture";
 
-	GBufferRenderNode::GBufferRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
-		: RenderNode(pGraphResources, pRenderer)
+	GBufferRenderNode::GBufferRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
+		: RenderNode(graphResources, pRenderer),
+		m_pRenderPassObject(nullptr)
 	{
 
 	}
 
-	void GBufferRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
+	void GBufferRenderNode::SetupFunction()
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+
+		m_frameResources.resize(maxFramesInFlight);
 
 		// GBuffer color textures
 
@@ -32,11 +37,14 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pNormalOutput);
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pPositionOutput);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pNormalOutput);
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pPositionOutput);
 
-		pGraphResources->Add(OUTPUT_NORMAL_GBUFFER, m_pNormalOutput);
-		pGraphResources->Add(OUTPUT_POSITION_GBUFFER, m_pPositionOutput);
+			m_graphResources[i]->Add(OUTPUT_NORMAL_GBUFFER, m_frameResources[i].m_pNormalOutput);
+			m_graphResources[i]->Add(OUTPUT_POSITION_GBUFFER, m_frameResources[i].m_pPositionOutput);
+		}
 
 		// Depth attachment
 
@@ -44,7 +52,10 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 		texCreateInfo.initialLayout = EImageLayout::DepthStencilAttachment;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pDepthBuffer);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthBuffer);
+		}
 
 		// Render pass object
 
@@ -99,15 +110,18 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo{};
-		fbCreateInfo.attachments.emplace_back(m_pNormalOutput);
-		fbCreateInfo.attachments.emplace_back(m_pPositionOutput);
-		fbCreateInfo.attachments.emplace_back(m_pDepthBuffer);
-		fbCreateInfo.framebufferWidth = screenWidth;
-		fbCreateInfo.framebufferHeight = screenHeight;
-		fbCreateInfo.pRenderPass = m_pRenderPassObject;
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pNormalOutput);
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pPositionOutput);
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthBuffer);
+			fbCreateInfo.framebufferWidth = screenWidth;
+			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		m_pDevice->CreateFrameBuffer(fbCreateInfo, m_pFrameBuffer);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
 
 		// Uniform buffer
 
@@ -116,7 +130,10 @@ namespace Engine
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
+		}
 
 		// Pipeline object
 
@@ -247,7 +264,9 @@ namespace Engine
 
 	void GBufferRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		auto& frameResources = m_frameResources[m_frameIndex];
+
+		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
 
 		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
 		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
@@ -263,7 +282,7 @@ namespace Engine
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 
@@ -302,14 +321,14 @@ namespace Engine
 			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
 			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
-				pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
 			}
 			else
 			{
-				m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);
+				frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
 			}
 
 			m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);

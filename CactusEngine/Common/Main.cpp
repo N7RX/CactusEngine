@@ -96,6 +96,7 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::Vulkan);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetPreferredGPUType(EGPUType::Discrete);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetMaxFramesInFlight(3);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
 }
 
@@ -105,8 +106,8 @@ void TestSetup(GraphicsApplication* pApp)
 
 	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
 	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 0);
-	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
+	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 2);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 1);
 	pWorld->SortSystems();
 
 	// Read scene from file

@@ -13,17 +13,22 @@ namespace Engine
 	const char* TransparentContentRenderNode::INPUT_COLOR_TEXTURE = "TransparencyBackgroundColorTexture";
 	const char* TransparentContentRenderNode::INPUT_BACKGROUND_DEPTH = "TransparencyBackgroundDepthTexture";
 
-	TransparentContentRenderNode::TransparentContentRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
-		: RenderNode(pGraphResources, pRenderer)
+	TransparentContentRenderNode::TransparentContentRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer)
+		: RenderNode(graphResources, pRenderer),
+		m_pRenderPassObject(nullptr)
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_BACKGROUND_DEPTH] = nullptr;
 	}
 
-	void TransparentContentRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
+	void TransparentContentRenderNode::SetupFunction()
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+
+		m_frameResources.resize(maxFramesInFlight);
 
 		// Color and depth texture
 
@@ -37,15 +42,20 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pColorOutput);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+		}		
 
 		texCreateInfo.format = ETextureFormat::Depth;
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pDepthOutput);
-
-		pGraphResources->Add(OUTPUT_COLOR_TEXTURE, m_pColorOutput);
-		pGraphResources->Add(OUTPUT_DEPTH_TEXTURE, m_pDepthOutput);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthOutput);
+			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
+		}
 
 		// Render pass object
 
@@ -86,14 +96,17 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo{};
-		fbCreateInfo.attachments.emplace_back(m_pColorOutput);
-		fbCreateInfo.attachments.emplace_back(m_pDepthOutput);
-		fbCreateInfo.framebufferWidth = screenWidth;
-		fbCreateInfo.framebufferHeight = screenHeight;
-		fbCreateInfo.pRenderPass = m_pRenderPassObject;
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
+			fbCreateInfo.framebufferWidth = screenWidth;
+			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		m_pDevice->CreateFrameBuffer(fbCreateInfo, m_pFrameBuffer);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
 
 		// Uniform buffers
 
@@ -102,17 +115,29 @@ namespace Engine
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
+		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables);
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pSystemVariables_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pSystemVariables_UB);
+		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pCameraProperties_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
+		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties) * perSubmeshAllocation;
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pMaterialNumericalProperties_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pMaterialNumericalProperties_UB);
+		}
 
 		// Pipeline objects
 
@@ -248,8 +273,10 @@ namespace Engine
 
 	void TransparentContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		m_pTransformMatrices_UB->ResetSubBufferAllocation();
-		m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
+		auto& frameResources = m_frameResources[m_frameIndex];
+
+		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		frameResources.m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
 
 		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
 		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
@@ -274,17 +301,17 @@ namespace Engine
 		ubTransformMatrices.viewMatrix = viewMat;
 
 		ubSystemVariables.timeInSec = Timer::Now();
-		m_pSystemVariables_UB->UpdateBufferData(&ubSystemVariables);
+		frameResources.m_pSystemVariables_UB->UpdateBufferData(&ubSystemVariables);
 
 		ubCameraProperties.cameraPosition = cameraPos;
-		m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
+		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
 
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
 		ShaderParameterTable* pShaderParamTable;
 		CE_NEW(pShaderParamTable, ShaderParameterTable);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{
@@ -310,12 +337,12 @@ namespace Engine
 			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
 			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
-				pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 			}
 			else
 			{
-				m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
+				frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
 			}
 
 			pShaderParamTable->Clear();
@@ -348,10 +375,10 @@ namespace Engine
 				}
 				else
 				{
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
 				}
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, m_pCameraProperties_UB);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, m_pSystemVariables_UB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, frameResources.m_pSystemVariables_UB);
 
 				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 				ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
@@ -360,14 +387,14 @@ namespace Engine
 				SubUniformBuffer* pSubMaterialNumericalPropertiesUB = nullptr;
 				if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 				{
-					pSubMaterialNumericalPropertiesUB = m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
+					pSubMaterialNumericalPropertiesUB = frameResources.m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 					pSubMaterialNumericalPropertiesUB->UpdateSubBufferData(&ubMaterialNumericalProperties);
 					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubMaterialNumericalPropertiesUB);
 				}
 				else
 				{
-					m_pMaterialNumericalProperties_UB->UpdateBufferData(&ubMaterialNumericalProperties);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, m_pMaterialNumericalProperties_UB);
+					frameResources.m_pMaterialNumericalProperties_UB->UpdateBufferData(&ubMaterialNumericalProperties);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pMaterialNumericalProperties_UB);
 				}
 
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,

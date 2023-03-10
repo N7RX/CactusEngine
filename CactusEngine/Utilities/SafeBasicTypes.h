@@ -26,6 +26,8 @@ namespace Engine
 
 		void Signal();
 		void Wait();
+		void Reset();
+		void UnsafeReset();
 
 	private:
 		std::mutex m_mutex;

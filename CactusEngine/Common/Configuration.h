@@ -5,13 +5,14 @@
 
 // Macro configurations
 
-#define PLATFORM_WINDOWS_CE
-
 #if defined(_DEBUG)
 #define DEBUG_MODE_CE
 #endif
 
 #define DEVELOPMENT_MODE_CE
+
+
+#define PLATFORM_WINDOWS_CE
 
 #if defined(PLATFORM_WINDOWS_CE)
 #define GLFW_IMPLEMENTATION_CE
@@ -32,8 +33,9 @@ namespace Engine
 	{
 	public:
 		AppConfiguration()
-			: m_appName("CEApplication"),
-			m_appVersion("0.1.1")
+			: m_appName("CE_Application"),
+			m_appVersion("1.0.0"),
+			m_engineVersion("0.1.1")
 		{
 
 		}
@@ -48,9 +50,25 @@ namespace Engine
 			return m_appName;
 		}
 
+		void SetAppVersion(const char* version)
+		{
+			m_appVersion = version;
+		}
+
+		const char* GetAppVersion() const
+		{
+			return m_appVersion;
+		}
+
+		const char* GetEngineVersion() const
+		{
+			return m_engineVersion;
+		}
+
 	private:
 		const char* m_appName;
 		const char* m_appVersion;
+		const char* m_engineVersion;
 	};
 
 	class GraphicsConfiguration : public BaseConfiguration
@@ -61,6 +79,7 @@ namespace Engine
 			m_preferredGPU(EGPUType::Discrete),
 			m_windowWidth(1280),
 			m_windowHeight(720),
+			m_maxFramesInFlight(3),
 			m_enableVSync(false)
 		{
 
@@ -107,6 +126,26 @@ namespace Engine
 			return float(m_windowWidth) / float(m_windowHeight);
 		}
 
+		// Right now this can only be set before render system initializes
+		void SetMaxFramesInFlight(uint32_t val)
+		{
+			if (val > 4) // Upper limit is 4
+			{
+				val = 4;
+			}
+			else if (val == 0)
+			{
+				val = 1;
+			}
+
+			m_maxFramesInFlight = val;
+		}
+
+		uint32_t GetMaxFramesInFlight() const
+		{
+			return m_maxFramesInFlight;
+		}
+
 		void SetVSync(bool val)
 		{
 			m_enableVSync = val;
@@ -120,8 +159,12 @@ namespace Engine
 	private:
 		EGraphicsAPIType m_graphicsAPIType;
 		EGPUType m_preferredGPU;
+
 		uint32_t m_windowWidth;
 		uint32_t m_windowHeight;
+
+		uint32_t m_maxFramesInFlight;
+
 		bool m_enableVSync;
 	};
 }

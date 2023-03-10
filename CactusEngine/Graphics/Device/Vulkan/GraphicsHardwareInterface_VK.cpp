@@ -26,7 +26,6 @@ namespace Engine
 		m_appInfo{},
 		m_pMainDevice(nullptr),
 		m_pSwapchain(nullptr),
-		m_currentFrame(0),
 		m_pDefaultSampler_0(nullptr),
 		m_pDefaultSampler_1(nullptr)
 	{
@@ -51,7 +50,6 @@ namespace Engine
 		SetupSwapchain();
 		CreateDefaultSampler();
 
-		m_currentFrame = 0;
 		m_isRunning = true;
 	}
 
@@ -854,7 +852,7 @@ namespace Engine
 		((CommandBuffer_VK*)pCommandBuffer)->SignalSemaphore((TimelineSemaphore_VK*)pSemaphore);
 	}
 
-	void GraphicsHardwareInterface_VK::Present()
+	void GraphicsHardwareInterface_VK::Present(uint32_t frameIndex)
 	{
 		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 
@@ -864,28 +862,38 @@ namespace Engine
 
 		auto pRenderFinishSemaphore = m_pMainDevice->pSyncObjectManager->RequestSemaphore();
 		m_pMainDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
+		m_renderFinishSemaphores.push(pRenderFinishSemaphore);
 
 		auto pFrameSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
-		m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask);
+		m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask, &m_commandSubmissionSemaphore);
+		m_frameSemaphores.push(pFrameSemaphore);
 
-		if (pFrameSemaphore->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+		if (m_frameSemaphores.size() >= m_pSwapchain->GetMaxFramesInFlight())
 		{
-			throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
+			if (m_frameSemaphores.front()->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
+			}
+			m_frameSemaphores.pop();
+
+			m_pMainDevice->pSyncObjectManager->ReturnSemaphore(m_renderFinishSemaphores.front());
+			m_renderFinishSemaphores.pop();
+			DEBUG_ASSERT_CE(m_frameSemaphores.size() == m_renderFinishSemaphores.size());
 		}
 
-		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		// Becasue command buffers are submitted on a separate thread, we need to make sure pRenderFinishSemaphore
+		// is submitted before we present the frame
+		m_commandSubmissionSemaphore.Wait();
 
 		std::vector<Semaphore_VK*> presentWaitSemaphores = { pRenderFinishSemaphore };
 		m_pSwapchain->Present(presentWaitSemaphores);
 
-		m_pMainDevice->pSyncObjectManager->ReturnSemaphore(pRenderFinishSemaphore);
-
 		// Preparation for next frame
 
-		m_currentFrame = (m_currentFrame + 1) % MAX_FRAME_IN_FLIGHT;
+		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
-		m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+		m_pSwapchain->UpdateBackBuffer(frameIndex);
+		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(frameIndex));
 	}
 
 	void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -1375,7 +1383,7 @@ namespace Engine
 	void GraphicsHardwareInterface_VK::SetupSwapchain()
 	{
 		SwapchainCreateInfo_VK createInfo{};
-		createInfo.maxFramesInFlight = MAX_FRAME_IN_FLIGHT;
+		createInfo.maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
 		createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 		createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
 		createInfo.supportDetails = QuerySwapchainSupport_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
@@ -1386,8 +1394,8 @@ namespace Engine
 
 		CE_NEW(m_pSwapchain, Swapchain_VK, m_pMainDevice, createInfo);
 
-		m_pSwapchain->UpdateBackBuffer(m_currentFrame);
-		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(m_currentFrame));
+		m_pSwapchain->UpdateBackBuffer(0);
+		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(0));
 	}
 
 	VkSurfaceFormatKHR GraphicsHardwareInterface_VK::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

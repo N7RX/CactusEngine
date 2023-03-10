@@ -33,15 +33,17 @@ namespace Engine
 		RenderTarget2D_VK* GetSwapchainImageByIndex(uint32_t index) const;
 		VkExtent2D GetSwapExtent() const;
 		Semaphore_VK* GetImageAvailableSemaphore(uint32_t currentFrame) const;
+		uint32_t GetMaxFramesInFlight() const;
 
 	public:
-		const uint64_t ACQUIRE_IMAGE_TIMEOUT = 3e9; // 3 seconds
+		const uint64_t ACQUIRE_IMAGE_TIMEOUT = 5e9; // 5 seconds
 
 	private:
 		LogicalDevice_VK* m_pDevice;
 		VkSwapchainKHR m_swapchain;
 		VkQueue m_presentQueue;
 		VkExtent2D m_swapExtent;
+		uint32_t m_maxFramesInFlight;
 
 		std::vector<RenderTarget2D_VK*> m_renderTargets; // Swapchain images
 		uint32_t m_targetImageIndex;

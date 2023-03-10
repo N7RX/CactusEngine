@@ -10,29 +10,37 @@ namespace Engine
 		: BaseRenderer(ERendererType::Standard, pDevice, pSystem),
 		m_newCommandRecorded(false)
 	{
-		CE_NEW(m_pGraphResources, RenderGraphResource);
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+		
+		m_graphResources.resize(maxFramesInFlight);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			CE_NEW(m_graphResources[i], RenderGraphResource);
+		}
 	}
 
 	void StandardRenderer::BuildRenderGraph()
 	{
 		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice, 4);
 
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+
 		// Create required nodes
 
 		ShadowMapRenderNode* pShadowMapNode;
-		CE_NEW(pShadowMapNode, ShadowMapRenderNode, m_pGraphResources, this);
+		CE_NEW(pShadowMapNode, ShadowMapRenderNode, m_graphResources, this);
 		GBufferRenderNode* pGBufferNode;
-		CE_NEW(pGBufferNode, GBufferRenderNode, m_pGraphResources, this);
+		CE_NEW(pGBufferNode, GBufferRenderNode, m_graphResources, this);
 		OpaqueContentRenderNode* pOpaqueNode;
-		CE_NEW(pOpaqueNode, OpaqueContentRenderNode, m_pGraphResources, this);
+		CE_NEW(pOpaqueNode, OpaqueContentRenderNode, m_graphResources, this);
 		DeferredLightingRenderNode* pDeferredLightingNode;
-		CE_NEW(pDeferredLightingNode, DeferredLightingRenderNode, m_pGraphResources, this);
+		CE_NEW(pDeferredLightingNode, DeferredLightingRenderNode, m_graphResources, this);
 		TransparentContentRenderNode* pTransparencyNode;
-		CE_NEW(pTransparencyNode, TransparentContentRenderNode, m_pGraphResources, this);
+		CE_NEW(pTransparencyNode, TransparentContentRenderNode, m_graphResources, this);
 		TransparencyBlendRenderNode* pBlendNode;
-		CE_NEW(pBlendNode, TransparencyBlendRenderNode, m_pGraphResources, this);
+		CE_NEW(pBlendNode, TransparencyBlendRenderNode, m_graphResources, this);
 		DepthOfFieldRenderNode* pDOFNode;
-		CE_NEW(pDOFNode, DepthOfFieldRenderNode, m_pGraphResources, this);
+		CE_NEW(pDOFNode, DepthOfFieldRenderNode, m_graphResources, this);
 
 		m_pRenderGraph->AddRenderNode("ShadowMapNode", pShadowMapNode);
 		m_pRenderGraph->AddRenderNode("GBufferNode", pGBufferNode);
@@ -82,7 +90,7 @@ namespace Engine
 		}
 	}
 
-	void StandardRenderer::Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera)
+	void StandardRenderer::Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex)
 	{
 		if (!pCamera)
 		{
@@ -101,7 +109,7 @@ namespace Engine
 				m_commandRecordReadyListFlag[item.first] = false;
 			}
 
-			m_pRenderGraph->BeginRenderPassesParallel(&currentContext);
+			m_pRenderGraph->BeginRenderPassesParallel(&currentContext, frameIndex);
 
 			// Submit async recorded command buffers by correct sequence
 
@@ -175,7 +183,7 @@ namespace Engine
 		}
 		else // OpenGL
 		{
-			m_pRenderGraph->BeginRenderPassesSequential(&currentContext);
+			m_pRenderGraph->BeginRenderPassesSequential(&currentContext, frameIndex);
 		}
 	}
 

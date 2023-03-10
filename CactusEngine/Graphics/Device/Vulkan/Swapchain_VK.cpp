@@ -10,15 +10,15 @@ namespace Engine
 		: m_pDevice(pDevice),
 		m_presentQueue(VK_NULL_HANDLE),
 		m_targetImageIndex(0),
-		m_swapchain(VK_NULL_HANDLE)
+		m_swapchain(VK_NULL_HANDLE),
+		m_maxFramesInFlight(createInfo.maxFramesInFlight), // Or maybe actual imageCount?
+		m_swapExtent(createInfo.swapExtent)
 	{
 		uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
 		if (createInfo.supportDetails.capabilities.maxImageCount > 0 && imageCount > createInfo.supportDetails.capabilities.maxImageCount)
 		{
 			imageCount = createInfo.supportDetails.capabilities.maxImageCount;
 		}
-
-		m_swapExtent = createInfo.swapExtent;
 
 		VkSwapchainCreateInfoKHR createInfoKHR{};
 		createInfoKHR.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -92,8 +92,8 @@ namespace Engine
 			m_renderTargets.emplace_back(pRenderTarget);
 		}
 
-		m_imageAvailableSemaphores.resize(GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT, nullptr);
-		for (uint32_t i = 0; i < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT; i++)
+		m_imageAvailableSemaphores.resize(m_maxFramesInFlight, nullptr);
+		for (uint32_t i = 0; i < m_maxFramesInFlight; i++)
 		{
 			m_imageAvailableSemaphores[i] = m_pDevice->pSyncObjectManager->RequestSemaphore();
 			m_imageAvailableSemaphores[i]->waitStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -117,7 +117,7 @@ namespace Engine
 
 	bool Swapchain_VK::UpdateBackBuffer(uint32_t currentFrame)
 	{
-		DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
+		DEBUG_ASSERT_CE(currentFrame < m_maxFramesInFlight);
 		return vkAcquireNextImageKHR(m_pDevice->logicalDevice, m_swapchain, ACQUIRE_IMAGE_TIMEOUT, m_imageAvailableSemaphores[currentFrame]->semaphore, VK_NULL_HANDLE, &m_targetImageIndex) == VK_SUCCESS;
 	}
 
@@ -173,7 +173,12 @@ namespace Engine
 
 	Semaphore_VK* Swapchain_VK::GetImageAvailableSemaphore(uint32_t currentFrame) const
 	{
-		DEBUG_ASSERT_CE(currentFrame < GraphicsHardwareInterface_VK::MAX_FRAME_IN_FLIGHT);
+		DEBUG_ASSERT_CE(currentFrame < m_maxFramesInFlight);
 		return m_imageAvailableSemaphores[currentFrame];
+	}
+
+	uint32_t Swapchain_VK::GetMaxFramesInFlight() const
+	{
+		return m_maxFramesInFlight;
 	}
 }

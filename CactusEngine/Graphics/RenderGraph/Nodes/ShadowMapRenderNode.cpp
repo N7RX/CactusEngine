@@ -8,16 +8,21 @@ namespace Engine
 {
 	const char* ShadowMapRenderNode::OUTPUT_DEPTH_TEXTURE = "ShadowMapDepthTexture";
 
-	ShadowMapRenderNode::ShadowMapRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
-		: RenderNode(pGraphResources, pRenderer)
+	ShadowMapRenderNode::ShadowMapRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer)
+		: RenderNode(graphResources, pRenderer),
+		m_pRenderPassObject(nullptr)
 	{
 
 	}
 
-	void ShadowMapRenderNode::SetupFunction(RenderGraphResource* pGraphResources)
+	void ShadowMapRenderNode::SetupFunction()
 	{
 		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+
+		m_frameResources.resize(maxFramesInFlight);
 
 		// Depth texture
 
@@ -31,9 +36,11 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		m_pDevice->CreateTexture2D(texCreateInfo, m_pDepthOutput);
-
-		pGraphResources->Add(OUTPUT_DEPTH_TEXTURE, m_pDepthOutput);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthOutput);
+			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
+		}		
 
 		// Render pass object
 
@@ -60,13 +67,16 @@ namespace Engine
 
 		// Frame buffer
 
-		FrameBufferCreateInfo fbCreateInfo{};
-		fbCreateInfo.attachments.emplace_back(m_pDepthOutput);
-		fbCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION;
-		fbCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION;
-		fbCreateInfo.pRenderPass = m_pRenderPassObject;
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
+			fbCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION;
+			fbCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		m_pDevice->CreateFrameBuffer(fbCreateInfo, m_pFrameBuffer);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
 
 		// Uniform buffers
 
@@ -75,10 +85,16 @@ namespace Engine
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pTransformMatrices_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
+		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
-		m_pDevice->CreateUniformBuffer(ubCreateInfo, m_pLightSpaceTransformMatrix_UB);
+		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
+		}
 
 		// Pipeline object
 
@@ -204,7 +220,9 @@ namespace Engine
 
 	void ShadowMapRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		auto& frameResources = m_frameResources[m_frameIndex];
+
+		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
 
 		Matrix4x4 lightProjection;
 		Matrix4x4 lightView;
@@ -224,7 +242,7 @@ namespace Engine
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, m_pFrameBuffer, pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
@@ -236,7 +254,7 @@ namespace Engine
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
 
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-		m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+		frameResources.m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{
@@ -264,12 +282,12 @@ namespace Engine
 			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
 			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
-				pSubTransformMatricesUB = m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+				pSubTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
 			}
 			else
 			{
-				m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
+				frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
 			}
 
 			auto subMeshes = pMesh->GetSubMeshes();
@@ -290,9 +308,9 @@ namespace Engine
 				}
 				else
 				{
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, m_pTransformMatrices_UB);
+					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
 				}
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, m_pLightSpaceTransformMatrix_UB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)

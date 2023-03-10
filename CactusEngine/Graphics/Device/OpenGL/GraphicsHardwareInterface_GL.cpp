@@ -469,7 +469,7 @@ namespace Engine
 		LOG_ERROR("OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.");
 	}
 
-	void GraphicsHardwareInterface_GL::Present()
+	void GraphicsHardwareInterface_GL::Present(uint32_t frameIndex)
 	{
 		LOG_ERROR("OpenGL: shouldn't call Present on OpenGL device.");
 	}

@@ -34,17 +34,18 @@ namespace Engine
 		}
 	}
 
-	RenderNode::RenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer)
+	RenderNode::RenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: m_pRenderer(pRenderer),
 		m_pDevice(m_pRenderer->GetGraphicsDevice()),
 		m_eGraphicsDeviceType(m_pDevice->GetGraphicsAPIType()),
-		m_pGraphResources(pGraphResources),
 		m_finishedExecution(false),
 		m_pName(nullptr),
-		m_pRenderContext(nullptr),
-		m_pCmdContext(nullptr)
+		m_pCmdContext(nullptr),
+		m_graphResources(graphResources),
+		m_frameIndex(0),
+		m_pRenderContext(nullptr)
 	{
-		DEBUG_ASSERT_CE(m_pGraphResources != nullptr);
+		
 	}
 
 	void RenderNode::ConnectNext(RenderNode* pNode)
@@ -61,7 +62,7 @@ namespace Engine
 
 	void RenderNode::Setup()
 	{
-		SetupFunction(m_pGraphResources);
+		SetupFunction();
 	}
 
 	void RenderNode::ExecuteSequential()
@@ -74,7 +75,7 @@ namespace Engine
 			}
 		}
 
-		RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
+		RenderPassFunction(m_graphResources[m_frameIndex], m_pRenderContext, m_pCmdContext);
 		m_finishedExecution = true;
 
 		for (auto& pNode : m_nextNodes)
@@ -85,7 +86,7 @@ namespace Engine
 
 	void RenderNode::ExecuteParallel()
 	{
-		RenderPassFunction(m_pGraphResources, m_pRenderContext, m_pCmdContext);
+		RenderPassFunction(m_graphResources[m_frameIndex], m_pRenderContext, m_pCmdContext);
 		m_finishedExecution = true;
 	}
 
@@ -98,7 +99,7 @@ namespace Engine
 		{
 			for (uint32_t i = 0; i < m_executionThreadCount; i++)
 			{
-				m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodeParallel, this);
+				m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodesParallel, this);
 			}
 		}
 	}
@@ -177,7 +178,7 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesSequential(RenderContext* pContext)
+	void RenderGraph::BeginRenderPassesSequential(RenderContext* pContext, uint32_t frameIndex)
 	{
 		static CommandContext* pEmptyCmdContext;
 		if (!pEmptyCmdContext)
@@ -190,6 +191,7 @@ namespace Engine
 			pNode.second->m_pRenderContext = pContext;
 			pNode.second->m_pCmdContext = pEmptyCmdContext;
 			pNode.second->m_finishedExecution = false;
+			pNode.second->m_frameIndex = frameIndex;
 
 			if (pNode.second->m_prevNodes.empty())
 			{
@@ -204,12 +206,13 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesParallel(RenderContext* pContext)
+	void RenderGraph::BeginRenderPassesParallel(RenderContext* pContext, uint32_t frameIndex)
 	{
 		for (auto& pNode : m_nodes)
 		{
 			pNode.second->m_pRenderContext = pContext;
 			pNode.second->m_finishedExecution = false;
+			pNode.second->m_frameIndex = frameIndex;
 
 			if (pNode.second->m_prevNodes.empty())
 			{
@@ -250,7 +253,7 @@ namespace Engine
 		return m_nodes.size();
 	}
 
-	void RenderGraph::ExecuteRenderNodeParallel()
+	void RenderGraph::ExecuteRenderNodesParallel()
 	{
 		CommandContext* pCmdContext;
 		CE_NEW(pCmdContext, CommandContext);

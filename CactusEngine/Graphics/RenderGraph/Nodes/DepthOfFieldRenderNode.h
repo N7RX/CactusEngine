@@ -6,9 +6,9 @@ namespace Engine
 	class DepthOfFieldRenderNode : public RenderNode
 	{
 	public:
-		DepthOfFieldRenderNode(RenderGraphResource* pGraphResources, BaseRenderer* pRenderer);
+		DepthOfFieldRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
 
-		void SetupFunction(RenderGraphResource* pGraphResources) override;
+		void SetupFunction() override;
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
 	public:
@@ -16,15 +16,31 @@ namespace Engine
 		static const char* INPUT_GBUFFER_POSITION;
 
 	private:
-		FrameBuffer*			m_pFrameBuffer_Horizontal;
-		SwapchainFrameBuffers*	m_pFrameBuffers_Present;
-		RenderPassObject*		m_pRenderPassObject_Horizontal;
-		RenderPassObject*		m_pRenderPassObject_Present;
+		struct FrameResources
+		{
+			FrameResources()
+				: m_pFrameBuffer_Horizontal(nullptr),
+				m_pTransformMatrices_UB(nullptr),
+				m_pCameraProperties_UB(nullptr),
+				m_pControlVariables_UB(nullptr),
+				m_pHorizontalResult(nullptr)
+			{
 
-		UniformBuffer*		m_pTransformMatrices_UB;
-		UniformBuffer*		m_pCameraProperties_UB;
-		UniformBuffer*		m_pControlVariables_UB;
+			}
 
-		Texture2D*			m_pHorizontalResult;
+			FrameBuffer* m_pFrameBuffer_Horizontal;
+
+			UniformBuffer* m_pTransformMatrices_UB;
+			UniformBuffer* m_pCameraProperties_UB;
+			UniformBuffer* m_pControlVariables_UB;
+
+			Texture2D* m_pHorizontalResult;
+		};
+		std::vector<FrameResources> m_frameResources;
+
+		RenderPassObject* m_pRenderPassObject_Horizontal;
+		RenderPassObject* m_pRenderPassObject_Present;
+
+		SwapchainFrameBuffers* m_pFrameBuffers_Present;
 	};
 }
