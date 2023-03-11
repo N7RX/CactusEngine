@@ -680,6 +680,11 @@ namespace Engine
 			{
 				vkQueueSubmit(m_workingQueue.queue, 1, &pCommandSubmitInfo->submitInfo, VK_NULL_HANDLE);
 
+				if (pCommandSubmitInfo->pNotifySemaphore)
+				{
+					pCommandSubmitInfo->pNotifySemaphore->Signal();
+				}
+
 				{
 					std::lock_guard<std::mutex> guard(m_inExecutionQueueRWMutex);
 
@@ -689,11 +694,6 @@ namespace Engine
 						m_inExecutionCommandBuffers.Push(ptrCopy);
 						pCommandSubmitInfo->queuedCmdBuffers.pop();
 					}
-				}
-
-				if (pCommandSubmitInfo->pNotifySemaphore)
-				{
-					pCommandSubmitInfo->pNotifySemaphore->Signal();
 				}
 
 				CE_DELETE(pCommandSubmitInfo);

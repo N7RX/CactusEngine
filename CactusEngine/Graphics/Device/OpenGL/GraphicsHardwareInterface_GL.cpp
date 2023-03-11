@@ -12,7 +12,8 @@ namespace Engine
 		: m_attributeless_vao(-1),
 		m_primitiveTopologyMode(GL_TRIANGLES)
 	{
-
+		// Temporary solution for enabling sRGB support
+		glEnable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	GraphicsHardwareInterface_GL::~GraphicsHardwareInterface_GL()

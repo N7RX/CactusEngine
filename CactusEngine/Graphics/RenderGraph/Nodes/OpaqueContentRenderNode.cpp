@@ -37,8 +37,8 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
 		texCreateInfo.textureHeight = screenHeight;
-		texCreateInfo.dataType = EDataType::Float32;
-		texCreateInfo.format = ETextureFormat::RGBA32F;
+		texCreateInfo.dataType = EDataType::UByte;
+		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
@@ -58,14 +58,14 @@ namespace Engine
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthOutput);
 
 			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
-			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
 			m_graphResources[i]->Add(OUTPUT_LINE_SPACE_TEXTURE, m_frameResources[i].m_pLineSpaceOutput);
+			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
 		}
 
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = ETextureFormat::RGBA32F;
+		colorDesc.format = ETextureFormat::RGBA8_SRGB;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::Clear;
 		colorDesc.storeOp = EAttachmentOperation::Store;
@@ -78,7 +78,7 @@ namespace Engine
 		colorDesc.index = 0;
 
 		RenderPassAttachmentDescription shadowDesc{};
-		shadowDesc.format = ETextureFormat::RGBA32F;
+		shadowDesc.format = ETextureFormat::RGBA8_SRGB;
 		shadowDesc.sampleCount = 1;
 		shadowDesc.loadOp = EAttachmentOperation::Clear;
 		shadowDesc.storeOp = EAttachmentOperation::Store;

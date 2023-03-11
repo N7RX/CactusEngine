@@ -51,26 +51,24 @@ Deprecated feature(s):
 
 #### Dependencies
 
-- [GLFW (Window/Input Utility)](https://github.com/glfw/glfw)
-- [GLM (Graphics Mathematics)](https://github.com/g-truc/glm)
-- [Dear ImGui (GUI Utility)](https://github.com/ocornut/imgui)
-- [Assimp (Asset Import)](https://github.com/assimp/assimp)
-- [stb (Image Utility)](https://github.com/nothings/stb)
+- [GLFW (window/input utility)](https://github.com/glfw/glfw)
+- [GLM (graphics mathematics)](https://github.com/g-truc/glm)
+- [Dear ImGui (GUI utility)](https://github.com/ocornut/imgui)
+- [Assimp (asset import)](https://github.com/assimp/assimp)
+- [stb (image utility)](https://github.com/nothings/stb)
 - [JsonCpp (JSON parser)](https://github.com/open-source-parsers/jsoncpp)
 - [Vulkan SDK 1.2+](https://www.lunarg.com/vulkan-sdk/)
-- [Volk (Vulkan Loader)](https://github.com/zeux/volk)
+- [Volk (Vulkan loader)](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-- [SPIRV-Cross (SPIR-V Utility)](https://github.com/KhronosGroup/SPIRV-Cross)
+- [SPIRV-Cross (SPIR-V utility)](https://github.com/KhronosGroup/SPIRV-Cross)
 - OpenGL 4.6
-- [GLAD (OpenGL Loader)](https://github.com/Dav1dde/glad/tree/master)
+- [GLAD (OpenGL loader)](https://github.com/Dav1dde/glad/tree/master)
 - C++ 17
 - Visual Studio 2022
 
 <br/>
 
 #### Samples
-
-(Sample screenshots taken from `legacy-2020` branch)
 
 <br/>
 

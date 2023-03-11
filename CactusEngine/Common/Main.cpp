@@ -91,8 +91,10 @@ void ConfigSetup()
 	gpGlobal->CreateConfiguration<AppConfiguration>(EConfigurationType::App);
 	gpGlobal->CreateConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics);
 
-	// TODO: read setitings from file
+	// TODO: read settings from file
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
+	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppVersion("0.0.1");
+
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::Vulkan);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetPreferredGPUType(EGPUType::Discrete);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);

@@ -92,6 +92,16 @@ namespace Engine
 			return GL_FLOAT;
 		case EDataType::UByte:
 			return GL_UNSIGNED_BYTE;
+		case EDataType::SByte:
+			return GL_BYTE;
+		case EDataType::UShort:
+			return GL_UNSIGNED_SHORT;
+		case EDataType::Short:
+			return GL_SHORT;
+		case EDataType::UInt32:
+			return GL_UNSIGNED_INT;
+		case EDataType::Int32:
+			return GL_INT;
 		default:
 			LOG_ERROR("OpenGL: Unhandled data type.");
 			break;
@@ -104,8 +114,12 @@ namespace Engine
 		switch (type)
 		{
 		case EDataType::Float32:
+		case EDataType::UInt32:
+		case EDataType::Int32:
 			return 16;
 		case EDataType::UByte:
+			return 4;
+		case EDataType::SByte:
 			return 4;
 		default:
 			LOG_ERROR("OpenGL: Unhandled data type.");

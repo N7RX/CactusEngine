@@ -37,8 +37,8 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
 		texCreateInfo.textureWidth = screenWidth;
 		texCreateInfo.textureHeight = screenHeight;
-		texCreateInfo.dataType = EDataType::Float32;
-		texCreateInfo.format = ETextureFormat::RGBA32F;
+		texCreateInfo.dataType = EDataType::UByte;
+		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
@@ -60,7 +60,7 @@ namespace Engine
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = ETextureFormat::RGBA32F;
+		colorDesc.format = ETextureFormat::RGBA8_SRGB;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::Clear;
 		colorDesc.storeOp = EAttachmentOperation::Store;
