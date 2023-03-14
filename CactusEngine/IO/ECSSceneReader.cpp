@@ -43,12 +43,20 @@ namespace Engine
 			return false;
 		}
 
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE(std::string("Loading scene: ") + fileAddress);
+#endif
+
 		// Resolve the json structure and construct ECS world
 
 		uint32_t entityCount = root["entityCount"].asInt();
 
 		for (uint32_t i = 0; i < entityCount; ++i)
 		{
+#if defined(DEVELOPMENT_MODE_CE)
+			LOG_MESSAGE("Loading finished " + std::to_string(i * 100.0f / entityCount) + "%");
+#endif
+
 			std::stringstream entityName;
 			entityName << "entity" << i;
 			Json::Value entity = root[entityName.str()];
@@ -243,6 +251,10 @@ namespace Engine
 
 			pEntity->SetEntityTag((EEntityTag)(entity["tag"].asInt()));
 		}
+
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE("Loading completed.");
+#endif
 
 		return true;
 	}

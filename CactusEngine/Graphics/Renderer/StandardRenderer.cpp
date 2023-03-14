@@ -21,6 +21,10 @@ namespace Engine
 
 	void StandardRenderer::BuildRenderGraph()
 	{
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE("Building render graph...");
+#endif
+
 		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice, 4);
 
 		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
@@ -88,6 +92,10 @@ namespace Engine
 			m_commandRecordReadyList.emplace(i, nullptr);
 			m_commandRecordReadyListFlag.emplace(i, false);
 		}
+
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE("Build render graph completed.");
+#endif
 	}
 
 	void StandardRenderer::Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex)

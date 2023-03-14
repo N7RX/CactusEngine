@@ -31,6 +31,10 @@ namespace Engine
 			return false;
 		}
 
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE(std::string("Saving scene to: ") + fileAddress);
+#endif
+
 		// Construct json hierarchy struture
 
 		Json::Value root;
@@ -216,6 +220,10 @@ namespace Engine
 
 		jsonWriter->write(root, &fileWriter);
 		fileWriter.close();
+
+#if defined(DEVELOPMENT_MODE_CE)
+		LOG_MESSAGE("Scene saving completed.");
+#endif
 
 		return true;
 	}

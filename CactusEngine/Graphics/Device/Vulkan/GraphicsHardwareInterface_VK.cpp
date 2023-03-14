@@ -957,7 +957,6 @@ namespace Engine
 		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 
 		uint32_t count = m_pSwapchain->GetSwapchainImageCount();
-
 		for (uint32_t i = 0; i < count; i++)
 		{
 			outImages.emplace_back(m_pSwapchain->GetSwapchainImageByIndex(i));
