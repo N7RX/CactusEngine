@@ -36,7 +36,6 @@ namespace Engine
 		GLuint GetGLProgramID() const;
 
 		uint32_t GetParamBinding(const char* paramName) const override;
-		void Reset() override;
 
 		void UpdateParameterValue(uint32_t binding, EDescriptorType type, const RawResource* pRes);
 

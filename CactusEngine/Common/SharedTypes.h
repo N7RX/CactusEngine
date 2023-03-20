@@ -288,6 +288,15 @@ namespace Engine
 		COUNT
 	};
 
+	enum class ESamplerAnisotropyLevel
+	{
+		None = 0,
+		AFx2,
+		AFx4,
+		AFx8,
+		AFx16
+	};
+
 	enum class EDataTransferBufferUsage
 	{
 		TransferSrc = 0x1,

@@ -68,6 +68,8 @@ namespace Engine
 		virtual void WaitSemaphore(GraphicsSemaphore* pSemaphore) = 0;
 
 		virtual TextureSampler* GetDefaultTextureSampler(bool withDefaultAF = false) const = 0;
+		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const = 0;
+
 		virtual void GetSwapchainImages(std::vector<Texture2D*>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
 

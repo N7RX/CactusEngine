@@ -321,11 +321,6 @@ namespace Engine
 
 				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-
-				if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
-				{
-					pShaderProgram->Reset();
-				}
 			}
 			
 			if (pSubTransformMatricesUB)
@@ -334,14 +329,12 @@ namespace Engine
 			}
 		}
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			m_pDevice->EndRenderPass(pCommandBuffer);
-			m_pDevice->EndCommandBuffer(pCommandBuffer);
+		m_pDevice->EndRenderPass(pCommandBuffer);
+		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
-		}
-		else
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::OpenGL)
 		{
 			m_pDevice->ResizeViewPort(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight());

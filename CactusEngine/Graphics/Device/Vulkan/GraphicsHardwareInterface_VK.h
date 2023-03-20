@@ -109,6 +109,8 @@ namespace Engine
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
 
 		TextureSampler* GetDefaultTextureSampler(bool withDefaultAF = false) const override;
+		TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const override;
+
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
 

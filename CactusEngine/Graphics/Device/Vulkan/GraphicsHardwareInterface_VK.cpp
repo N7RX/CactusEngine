@@ -952,6 +952,21 @@ namespace Engine
 		return withDefaultAF ? m_pDefaultSampler_0 : m_pDefaultSampler_1;
 	}
 
+	TextureSampler* GraphicsHardwareInterface_VK::GetTextureSampler(ESamplerAnisotropyLevel level) const
+	{
+		switch (level)
+		{
+		case ESamplerAnisotropyLevel::None:
+			return m_pDefaultSampler_0;
+		case ESamplerAnisotropyLevel::AFx2:
+			return m_pDefaultSampler_1;
+		default:
+			LOG_ERROR("Vulkan: unsupported sampler anisotropy level.");
+		}
+
+		return nullptr;
+	}
+
 	void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<Texture2D*>& outImages) const
 	{
 		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);

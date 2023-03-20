@@ -2,6 +2,8 @@
 
 namespace Engine
 {
+	// Graphics command buffer itself should not provide any functions as it may be empty (e.g. OpenGL)
+	// It should only be passed around as a handle in the render graph nodes
 	class GraphicsCommandBuffer
 	{
 	public:

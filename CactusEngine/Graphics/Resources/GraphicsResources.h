@@ -300,7 +300,6 @@ namespace Engine
 		uint32_t GetShaderStages() const;
 
 		virtual uint32_t GetParamBinding(const char* paramName) const = 0;
-		virtual void Reset() = 0;
 
 	protected:
 		ShaderProgram(uint32_t shaderStages);

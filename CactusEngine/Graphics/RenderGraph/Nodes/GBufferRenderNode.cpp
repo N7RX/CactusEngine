@@ -347,23 +347,16 @@ namespace Engine
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 
-			if (m_eGraphicsDeviceType != EGraphicsAPIType::Vulkan)
-			{
-				pShaderProgram->Reset();
-			}
-			else
+			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 			{
 				CE_DELETE(pSubTransformMatricesUB);
 			}
 		}
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			m_pDevice->EndRenderPass(pCommandBuffer);
-			m_pDevice->EndCommandBuffer(pCommandBuffer);
+		m_pDevice->EndRenderPass(pCommandBuffer);
+		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
-		}
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 
 		CE_DELETE(pShaderParamTable);
 	}

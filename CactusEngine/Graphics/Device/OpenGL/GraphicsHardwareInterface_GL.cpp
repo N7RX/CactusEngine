@@ -6,14 +6,23 @@
 #include "Pipelines_GL.h"
 #include "MemoryAllocator.h"
 
+// For now OpenGL always prefers discrete GPU regardless of graphics configuration
+// Full implementation requires WGL_NV_gpu_affinity and WGL_AMD_gpu_association extensions
+#if defined(PLATFORM_WINDOWS_CE)
+typedef unsigned long DWORD;
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 namespace Engine
 {
 	GraphicsHardwareInterface_GL::GraphicsHardwareInterface_GL()
 		: m_attributeless_vao(-1),
 		m_primitiveTopologyMode(GL_TRIANGLES)
 	{
-		// Temporary solution for enabling sRGB support
-		glEnable(GL_FRAMEBUFFER_SRGB);
+
 	}
 
 	GraphicsHardwareInterface_GL::~GraphicsHardwareInterface_GL()
@@ -24,6 +33,9 @@ namespace Engine
 	void GraphicsHardwareInterface_GL::Initialize()
 	{
 		glGenVertexArrays(1, &m_attributeless_vao);
+
+		// Temporary solution for enabling sRGB support
+		glEnable(GL_FRAMEBUFFER_SRGB);
 	}
 
 	void GraphicsHardwareInterface_GL::ShutDown()
@@ -284,6 +296,7 @@ namespace Engine
 		glBindVertexArray(m_attributeless_vao);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	void GraphicsHardwareInterface_GL::ResizeViewPort(uint32_t width, uint32_t height)
@@ -294,34 +307,6 @@ namespace Engine
 	EGraphicsAPIType GraphicsHardwareInterface_GL::GetGraphicsAPIType() const
 	{
 		return EGraphicsAPIType::OpenGL;
-	}
-
-	GraphicsCommandPool* GraphicsHardwareInterface_GL::RequestExternalCommandPool(EQueueType queueType)
-	{
-		LOG_ERROR("OpenGL: shouldn't call RequestExternalCommandPool on OpenGL device.");
-		return nullptr;
-	}
-
-	GraphicsCommandBuffer* GraphicsHardwareInterface_GL::RequestCommandBuffer(GraphicsCommandPool* pCommandPool)
-	{
-		return nullptr;
-	}
-
-	void GraphicsHardwareInterface_GL::ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
-	{
-		LOG_ERROR("OpenGL: shouldn't call ReturnExternalCommandBuffer on OpenGL device.");
-	}
-
-	GraphicsSemaphore* GraphicsHardwareInterface_GL::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
-	{
-		LOG_ERROR("OpenGL: shouldn't call RequestGraphicsSemaphore on OpenGL device.");
-		return nullptr;
-	}
-
-	bool GraphicsHardwareInterface_GL::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CreateDataTransferBuffer on OpenGL device.");
-		return false;
 	}
 
 	bool GraphicsHardwareInterface_GL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput)
@@ -347,18 +332,6 @@ namespace Engine
 		}
 
 		return pOutput != nullptr;
-	}
-
-	bool GraphicsHardwareInterface_GL::CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CreateSampler on OpenGL device.");
-		return false;
-	}
-
-	bool GraphicsHardwareInterface_GL::CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, PipelineVertexInputState*& pOutput)
-	{
-		pOutput = nullptr;
-		return false;
 	}
 
 	bool GraphicsHardwareInterface_GL::CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, PipelineInputAssemblyState*& pOutput)
@@ -424,21 +397,6 @@ namespace Engine
 		return pOutput != nullptr;
 	}
 
-	void GraphicsHardwareInterface_GL::TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
-	{
-		LOG_ERROR("OpenGL: shouldn't call TransitionImageLayout on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
-	{
-		LOG_ERROR("OpenGL: shouldn't call TransitionImageLayout_Immediate on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::ResizeSwapchain(uint32_t width, uint32_t height)
-	{
-		LOG_ERROR("OpenGL: shouldn't call ResizeSwapchain on OpenGL device.");
-	}
-
 	void GraphicsHardwareInterface_GL::BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer)
 	{
 		((GraphicsPipeline_GL*)pPipeline)->Apply();
@@ -452,27 +410,7 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::EndRenderPass(GraphicsCommandBuffer* pCommandBuffer)
 	{
-		LOG_ERROR("OpenGL: shouldn't call EndRenderPass on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::EndCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
-	{
-		LOG_ERROR("OpenGL: shouldn't call EndCommandBuffer on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CommandWaitSemaphore on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CommandSignalSemaphore on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::Present(uint32_t frameIndex)
-	{
-		LOG_ERROR("OpenGL: shouldn't call Present on OpenGL device.");
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -487,55 +425,14 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::FlushTransferCommands(bool waitExecution)
 	{
-		LOG_ERROR("OpenGL: shouldn't call FlushTransferCommands on OpenGL device.");
+		LOG_WARNING("OpenGL: shouldn't call FlushTransferCommands on OpenGL device.");
 		glFlush();
 	}
 
 	void GraphicsHardwareInterface_GL::WaitSemaphore(GraphicsSemaphore* pSemaphore)
 	{
-		LOG_ERROR("OpenGL: shouldn't call WaitSemaphore on OpenGL device.");
+		LOG_WARNING("OpenGL: shouldn't call WaitSemaphore on OpenGL device.");
 		glFinish();
-	}
-
-	TextureSampler* GraphicsHardwareInterface_GL::GetDefaultTextureSampler(bool withDefaultAF) const
-	{
-		return nullptr;
-	}
-
-	void GraphicsHardwareInterface_GL::GetSwapchainImages(std::vector<Texture2D*>& outImages) const
-	{
-		LOG_ERROR("OpenGL: shouldn't call GetSwapchainImages on OpenGL device.");
-	}
-
-	uint32_t GraphicsHardwareInterface_GL::GetSwapchainPresentImageIndex() const
-	{
-		LOG_ERROR("OpenGL: shouldn't call GetSwapchainPresentImageIndex on OpenGL device.");
-		return -1;
-	}
-
-	void GraphicsHardwareInterface_GL::CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CopyTexture2DToDataTransferBuffer on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBufferToTexture2D on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CopyDataTransferBuffer(DataTransferBuffer* pSrcBuffer, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBuffer on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CopyHostDataToDataTransferBuffer on OpenGL device.");
-	}
-
-	void GraphicsHardwareInterface_GL::CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc)
-	{
-		LOG_ERROR("OpenGL: shouldn't call CopyDataTransferBufferToHostDataLocation on OpenGL device.");
 	}
 
 	void GraphicsHardwareInterface_GL::SetPrimitiveTopology(GLenum mode)

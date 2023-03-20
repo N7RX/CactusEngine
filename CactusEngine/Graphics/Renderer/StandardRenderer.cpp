@@ -197,6 +197,11 @@ namespace Engine
 
 	void StandardRenderer::WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer)
 	{
+		if (!pCommandBuffer)
+		{
+			return;
+		}
+
 		{
 			std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);
 

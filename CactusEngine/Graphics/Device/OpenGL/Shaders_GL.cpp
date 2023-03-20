@@ -96,11 +96,6 @@ namespace Engine
 		return -1;
 	}
 
-	void ShaderProgram_GL::Reset()
-	{
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
 	void ShaderProgram_GL::UpdateParameterValue(uint32_t binding, EDescriptorType type, const RawResource* pRes)
 	{
 		switch (type)

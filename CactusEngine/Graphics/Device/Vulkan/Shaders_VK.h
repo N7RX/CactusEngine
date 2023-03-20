@@ -75,7 +75,6 @@ namespace Engine
 		~ShaderProgram_VK();
 
 		uint32_t GetParamBinding(const char* paramName) const override;
-		void Reset() override; // Does not work on Vulkan shader program
 
 		uint32_t GetStageCount() const;
 		const VkPipelineShaderStageCreateInfo* GetShaderStageCreateInfos() const;

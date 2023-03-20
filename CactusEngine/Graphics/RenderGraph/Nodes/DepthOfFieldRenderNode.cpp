@@ -314,14 +314,7 @@ namespace Engine
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			m_pDevice->EndRenderPass(pCommandBuffer);
-		}
-		else
-		{
-			pShaderProgram->Reset();
-		}
+		m_pDevice->EndRenderPass(pCommandBuffer);
 
 		// Vertical pass
 
@@ -365,18 +358,14 @@ namespace Engine
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 
+		m_pDevice->EndRenderPass(pCommandBuffer);
+		m_pDevice->EndCommandBuffer(pCommandBuffer);
+
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
-			m_pDevice->EndRenderPass(pCommandBuffer);
-			m_pDevice->EndCommandBuffer(pCommandBuffer);
-
-			m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
-
 			CE_DELETE(pSubControlVariablesUB);
-		}
-		else
-		{
-			pShaderProgram->Reset();
 		}
 
 		CE_DELETE(pShaderParamTable);

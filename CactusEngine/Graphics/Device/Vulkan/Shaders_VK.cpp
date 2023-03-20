@@ -140,11 +140,6 @@ namespace Engine
 		return -1;
 	}
 
-	void ShaderProgram_VK::Reset()
-	{
-		LOG_ERROR("Vulkan: shouldn't call Reset on Vulkan shader program.");
-	}
-
 	uint32_t ShaderProgram_VK::GetStageCount() const
 	{
 		return (uint32_t)m_pipelineShaderStageCreateInfos.size();

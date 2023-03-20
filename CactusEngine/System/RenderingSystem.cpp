@@ -50,11 +50,7 @@ namespace Engine
 		// TODO: implement clear only on scene content chage
 		m_renderTaskTable.clear();
 
-		// TODO: remove this condition
-		if (m_pDevice->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
-		{
-			m_pDevice->Present(m_frameIndex);
-		}
+		m_pDevice->Present(m_frameIndex);
 
 		m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;
 	}
