@@ -16,28 +16,23 @@ namespace Engine
 
 	}
 
-	void GBufferRenderNode::SetupFunction()
+	void GBufferRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
 	{
-		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-
-		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-
-		m_frameResources.resize(maxFramesInFlight);
+		m_frameResources.resize(framesInFlight);
 
 		// GBuffer color textures
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
-		texCreateInfo.textureWidth = screenWidth;
-		texCreateInfo.textureHeight = screenHeight;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::Float32;
 		texCreateInfo.format = ETextureFormat::RGBA32F;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pNormalOutput);
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pPositionOutput);
@@ -52,7 +47,7 @@ namespace Engine
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 		texCreateInfo.initialLayout = EImageLayout::DepthStencilAttachment;
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthBuffer);
 		}
@@ -110,14 +105,14 @@ namespace Engine
 
 		// Frame buffer
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pNormalOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pPositionOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthBuffer);
-			fbCreateInfo.framebufferWidth = screenWidth;
-			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
@@ -125,12 +120,12 @@ namespace Engine
 
 		// Uniform buffer
 
-		uint32_t perSubmeshAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 4096 : 1;
+		uint32_t perSubmeshAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
 
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
@@ -237,8 +232,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = screenWidth;
-		viewportStateCreateInfo.height = screenHeight;
+		viewportStateCreateInfo.width = width;
+		viewportStateCreateInfo.height = height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -318,18 +313,10 @@ namespace Engine
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
 
-			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
-			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-			{
-				pSubTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
-			}
-			else
-			{
-				frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
-			}
+			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
+
+			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
 
 			m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
@@ -346,11 +333,6 @@ namespace Engine
 
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
-
-			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-			{
-				CE_DELETE(pSubTransformMatricesUB);
-			}
 		}
 
 		m_pDevice->EndRenderPass(pCommandBuffer);
@@ -359,5 +341,20 @@ namespace Engine
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 
 		CE_DELETE(pShaderParamTable);
+	}
+
+	void GBufferRenderNode::UpdateResolution(uint32_t width, uint32_t height)
+	{
+
+	}
+
+	void GBufferRenderNode::UpdateMaxDrawCallCount(uint32_t count)
+	{
+
+	}
+
+	void GBufferRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
+	{
+
 	}
 }

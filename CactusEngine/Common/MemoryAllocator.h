@@ -40,9 +40,19 @@ namespace Engine
 
 #define CE_DELETE(ptr) \
 	gAllocationTrackerInstance.TrackDeallocation(); \
-	delete ptr;
+	delete ptr; \
+	ptr = nullptr;
+
+#define CE_SAFE_DELETE(ptr) \
+	if (ptr) \
+	{ \
+		gAllocationTrackerInstance.TrackDeallocation(); \
+		delete ptr; \
+		ptr = nullptr; \
+	}
 
 #define CE_DELETE_ARRAY(ptr) \
 	gAllocationTrackerInstance.TrackDeallocation(); \
-	delete[] ptr;
+	delete[] ptr; \
+	ptr = nullptr;
 }

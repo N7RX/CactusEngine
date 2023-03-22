@@ -106,6 +106,12 @@ namespace Engine
 			glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
 			break;
 		}
+		case EDescriptorType::SubUniformBuffer:
+		{
+			auto pBuffer = (UniformBuffer_GL*)(((SubUniformBuffer*)pRes)->m_pParentBuffer); // OpenGL does not use sub uniform buffer
+			glBindBufferBase(GL_UNIFORM_BUFFER, binding, pBuffer->GetGLBufferID());
+			break;
+		}
 		case EDescriptorType::CombinedImageSampler:
 		{
 			Texture2D_GL* pTexture = nullptr;

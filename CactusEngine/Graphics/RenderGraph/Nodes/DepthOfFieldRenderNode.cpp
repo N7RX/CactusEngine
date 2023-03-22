@@ -21,28 +21,23 @@ namespace Engine
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
 	}
 
-	void DepthOfFieldRenderNode::SetupFunction()
+	void DepthOfFieldRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
 	{
-		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-
-		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-
-		m_frameResources.resize(maxFramesInFlight);
+		m_frameResources.resize(framesInFlight);
 
 		// Horizontal result
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
-		texCreateInfo.textureWidth = screenWidth;
-		texCreateInfo.textureHeight = screenHeight;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pHorizontalResult);
 		}
@@ -93,12 +88,12 @@ namespace Engine
 
 		// Frame buffers
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo_Horizontal{};
 			fbCreateInfo_Horizontal.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
-			fbCreateInfo_Horizontal.framebufferWidth = screenWidth;
-			fbCreateInfo_Horizontal.framebufferHeight = screenHeight;
+			fbCreateInfo_Horizontal.framebufferWidth = width;
+			fbCreateInfo_Horizontal.framebufferHeight = height;
 			fbCreateInfo_Horizontal.pRenderPass = m_pRenderPassObject_Horizontal;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo_Horizontal, m_frameResources[i].m_pFrameBuffer_Horizontal);
@@ -117,8 +112,8 @@ namespace Engine
 			{
 				FrameBufferCreateInfo dofFBCreateInfo_Final{};
 				dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
-				dofFBCreateInfo_Final.framebufferWidth = screenWidth;
-				dofFBCreateInfo_Final.framebufferHeight = screenHeight;
+				dofFBCreateInfo_Final.framebufferWidth = width;
+				dofFBCreateInfo_Final.framebufferHeight = height;
 				dofFBCreateInfo_Final.pRenderPass = m_pRenderPassObject_Present;
 
 				FrameBuffer* pFrameBuffer = nullptr;
@@ -129,24 +124,24 @@ namespace Engine
 
 		// Uniform buffers
 
-		uint32_t perPassAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 8 : 1;
+		uint32_t perPassAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? 8 : 1;
 
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables) * perPassAllocation;
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pControlVariables_UB);
 		}
@@ -217,8 +212,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = screenWidth;
-		viewportStateCreateInfo.height = screenHeight;
+		viewportStateCreateInfo.width = width;
+		viewportStateCreateInfo.height = height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -298,18 +293,10 @@ namespace Engine
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
 
 		ubControlVariables.bool_1 = 1;
-		SubUniformBuffer* pSubControlVariablesUB = nullptr;
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			pSubControlVariablesUB = frameResource.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
-		}
-		else
-		{
-			frameResource.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, frameResource.m_pControlVariables_UB);
-		}
+		SubUniformBuffer subControlVariablesUB = frameResource.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+		frameResource.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
+
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
 
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
@@ -320,16 +307,9 @@ namespace Engine
 
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NONE), pCommandBuffer);
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			// Set to swapchain image output
-			m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_pFrameBuffers_Present->frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
-		}
-		else
-		{
-			// Set to back-buffer output
-			m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, nullptr, pCommandBuffer);
-		}
+		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, 
+			(m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? m_pFrameBuffers_Present->frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()] : nullptr, 
+			pCommandBuffer);
 
 		pShaderParamTable->Clear();
 
@@ -342,18 +322,10 @@ namespace Engine
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
 
 		ubControlVariables.bool_1 = 0;
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			CE_DELETE(pSubControlVariablesUB);
-			pSubControlVariablesUB = frameResource.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-			pSubControlVariablesUB->UpdateSubBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, pSubControlVariablesUB);
-		}
-		else
-		{
-			frameResource.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables);
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::UniformBuffer, frameResource.m_pControlVariables_UB);
-		}
+
+		subControlVariablesUB = frameResource.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+		frameResource.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
+		pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
 
 		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
@@ -363,11 +335,21 @@ namespace Engine
 
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			CE_DELETE(pSubControlVariablesUB);
-		}
-
 		CE_DELETE(pShaderParamTable);
+	}
+
+	void DepthOfFieldRenderNode::UpdateResolution(uint32_t width, uint32_t height)
+	{
+
+	}
+
+	void DepthOfFieldRenderNode::UpdateMaxDrawCallCount(uint32_t count)
+	{
+
+	}
+
+	void DepthOfFieldRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
+	{
+
 	}
 }

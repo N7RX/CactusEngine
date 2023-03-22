@@ -60,9 +60,9 @@ namespace Engine
 		m_inputResourceNames.at(slot) = pResourceName;
 	}
 
-	void RenderNode::Setup()
+	void RenderNode::Setup(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
 	{
-		SetupFunction();
+		SetupFunction(width, height, maxDrawCall, framesInFlight);
 	}
 
 	void RenderNode::ExecuteSequential()
@@ -122,9 +122,14 @@ namespace Engine
 
 	void RenderGraph::SetupRenderNodes()
 	{
+		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+		uint32_t defaultMaxDrawCall = 256;
+
 		for (auto& node : m_nodes)
 		{
-			node.second->Setup();
+			node.second->Setup(screenWidth, screenHeight, defaultMaxDrawCall, maxFramesInFlight);
 		}
 	}
 

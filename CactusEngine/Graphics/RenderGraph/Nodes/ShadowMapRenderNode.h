@@ -8,14 +8,18 @@ namespace Engine
 	public:
 		ShadowMapRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer);
 
-		void SetupFunction() override;
+		void SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight) override;
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
+
+		void UpdateResolution(uint32_t width, uint32_t height) override;
+		void UpdateMaxDrawCallCount(uint32_t count) override;
+		void UpdateFramesInFlight(uint32_t framesInFlight) override;
 
 	public:
 		static const char* OUTPUT_DEPTH_TEXTURE;
 
 	public:
-		const uint32_t SHADOW_MAP_RESOLUTION = 4096;
+		const uint32_t SHADOW_MAP_RESOLUTION = 2048; // TODO: move this into graphics config
 
 	private:
 		struct FrameResources

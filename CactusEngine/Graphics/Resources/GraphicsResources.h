@@ -19,7 +19,7 @@ namespace Engine
 		virtual uint32_t GetResourceID() const;
 
 		virtual void MarkSizeInByte(uint32_t size);
-		virtual uint32_t GetSizeInByte() const;
+		virtual uint32_t GetSizeInBytes() const;
 
 	protected:
 		RawResource();
@@ -241,23 +241,28 @@ namespace Engine
 		uint32_t appliedStages; // Bitmask, required for push constant
 	};
 
-	class SubUniformBuffer : public RawResource
+	class UniformBuffer;
+	struct SubUniformBuffer : public RawResource
 	{
-	public:
-		virtual ~SubUniformBuffer() = default;
+		SubUniformBuffer(UniformBuffer* pParentBuffer, uint32_t offset, uint32_t size)
+			: m_pParentBuffer(pParentBuffer),
+			m_offset(offset)
+		{
+			m_sizeInBytes = size;
+		}
 
-		virtual void UpdateSubBufferData(const void* pData) = 0;
+		~SubUniformBuffer() = default;
 
-	protected:
-		SubUniformBuffer() = default;
+		UniformBuffer* m_pParentBuffer;
+		uint32_t m_offset;
 	};
 
 	class UniformBuffer : public RawResource
 	{
 	public:
-		virtual void UpdateBufferData(const void* pData) = 0;
+		virtual void UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer = nullptr) = 0;
 		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
-		virtual SubUniformBuffer* AllocateSubBuffer(uint32_t size) = 0;
+		virtual SubUniformBuffer AllocateSubBuffer(uint32_t size) = 0;
 		virtual void ResetSubBufferAllocation() = 0;
 
 	protected:

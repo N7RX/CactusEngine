@@ -24,10 +24,10 @@ namespace Engine
 		void SetGLBufferID(GLuint id);
 		GLuint GetGLBufferID() const;
 
-		void UpdateBufferData(const void* pData) override;
+		void UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer = nullptr) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
-		SubUniformBuffer* AllocateSubBuffer(uint32_t size) override;
-		void ResetSubBufferAllocation() override;
+		SubUniformBuffer AllocateSubBuffer(uint32_t size) override;
+		void ResetSubBufferAllocation() override {}
 
 	private:
 		GLuint m_glBufferID = -1;

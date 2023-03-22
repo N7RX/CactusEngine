@@ -47,12 +47,16 @@ namespace Engine
 		void SetInputResource(const char* slot, const char* pResourceName);
 
 	protected:
-		void Setup();
+		void Setup(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight);
 		void ExecuteSequential(); // For OpenGL
 		void ExecuteParallel();	  // For Vulkan
 
-		virtual void SetupFunction() = 0;
+		virtual void SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight) = 0;
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
+
+		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
+		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // Affects the size of uniform buffers
+		virtual void UpdateFramesInFlight(uint32_t framesInFlight) = 0;
 
 	protected:
 		const char*					m_pName;

@@ -16,7 +16,7 @@ namespace Engine
 		return m_resourceID;
 	}
 
-	uint32_t RawResource::GetSizeInByte() const
+	uint32_t RawResource::GetSizeInBytes() const
 	{
 		return m_sizeInBytes;
 	}

@@ -23,28 +23,23 @@ namespace Engine
 		m_inputResourceNames[INPUT_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void DeferredLightingRenderNode::SetupFunction()
+	void DeferredLightingRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
 	{
-		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-
-		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-
-		m_frameResources.resize(maxFramesInFlight);
+		m_frameResources.resize(framesInFlight);
 
 		// Color output
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
-		texCreateInfo.textureWidth = screenWidth;
-		texCreateInfo.textureHeight = screenHeight;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
 			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
@@ -75,12 +70,12 @@ namespace Engine
 
 		// Frame buffer
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
-			fbCreateInfo.framebufferWidth = screenWidth;
-			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
@@ -88,25 +83,25 @@ namespace Engine
 
 		// Uniform buffer
 
-		uint32_t perLightSourceAllocation = m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan ? 1024 : 1;
+		uint32_t perLightSourceAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
 
 		UniformBufferCreateInfo ubCreateInfo{};
 		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perLightSourceAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBLightSourceProperties) * perLightSourceAllocation;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSourceProperties_UB);
 		}
@@ -243,8 +238,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = screenWidth;
-		viewportStateCreateInfo.height = screenHeight;
+		viewportStateCreateInfo.width = width;
+		viewportStateCreateInfo.height = height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -357,32 +352,16 @@ namespace Engine
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 
-			SubUniformBuffer* pSubTransformMatricesUB = nullptr;
-			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-			{
-				pSubTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-				pSubTransformMatricesUB->UpdateSubBufferData(&ubTransformMatrices);
-			}
-			else
-			{
-				frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
-			}
+			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
+			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
 
 			ubLightSourceProperties.source = Vector4(pTransformComp->GetPosition(), (int)lightProfile.sourceType);
 			ubLightSourceProperties.color = Color4(lightProfile.lightColor, 1.0f);
 			ubLightSourceProperties.intensity = lightProfile.lightIntensity;
 			ubLightSourceProperties.radius = lightProfile.radius;
 
-			SubUniformBuffer* pSubLightSourcePropertiesUB = nullptr;
-			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-			{
-				pSubLightSourcePropertiesUB = frameResources.m_pLightSourceProperties_UB->AllocateSubBuffer(sizeof(UBLightSourceProperties));
-				pSubLightSourcePropertiesUB->UpdateSubBufferData(&ubLightSourceProperties);
-			}
-			else
-			{
-				frameResources.m_pLightSourceProperties_UB->UpdateBufferData(&ubLightSourceProperties);
-			}
+			SubUniformBuffer subLightSourcePropertiesUB = frameResources.m_pLightSourceProperties_UB->AllocateSubBuffer(sizeof(UBLightSourceProperties));
+			frameResources.m_pLightSourceProperties_UB->UpdateBufferData(&ubLightSourceProperties, &subLightSourcePropertiesUB);
 
 			uint32_t submeshCount = lightProfile.pVolumeMesh->GetSubmeshCount();
 			auto subMeshes = lightProfile.pVolumeMesh->GetSubMeshes();
@@ -395,16 +374,8 @@ namespace Engine
 
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
 
-				if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-				{
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, pSubTransformMatricesUB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, pSubLightSourcePropertiesUB);
-				}
-				else
-				{
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pLightSourceProperties_UB);
-				}
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, &subLightSourcePropertiesUB);
 
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
 				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
@@ -413,12 +384,6 @@ namespace Engine
 
 				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
-			}
-
-			if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-			{
-				CE_DELETE(pSubTransformMatricesUB);
-				CE_DELETE(pSubLightSourcePropertiesUB);
 			}
 		}
 
@@ -429,5 +394,20 @@ namespace Engine
 
 		CE_DELETE(pShaderParamTable);
 		CE_DELETE(pShaderParamTable_ext);
+	}
+
+	void DeferredLightingRenderNode::UpdateResolution(uint32_t width, uint32_t height)
+	{
+
+	}
+
+	void DeferredLightingRenderNode::UpdateMaxDrawCallCount(uint32_t count)
+	{
+
+	}
+
+	void DeferredLightingRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
+	{
+
 	}
 }

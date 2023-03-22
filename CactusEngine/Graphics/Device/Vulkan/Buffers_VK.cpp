@@ -104,13 +104,20 @@ namespace Engine
 		}
 	}
 
-	void UniformBuffer_VK::UpdateBufferData(const void* pData)
+	void UniformBuffer_VK::UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer)
 	{
-		m_pRawData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
-
-		if (m_eType == EUniformBufferType_VK::Uniform)
+		if (!pSubBuffer)
 		{
-			UpdateToDevice();
+			m_pRawData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
+
+			if (m_eType == EUniformBufferType_VK::Uniform)
+			{
+				UpdateToDevice();
+			}
+		}
+		else
+		{
+			UpdateBufferSubData(pData, pSubBuffer->m_offset, pSubBuffer->GetSizeInBytes());
 		}
 	}
 
@@ -127,13 +134,11 @@ namespace Engine
 		}
 	}
 
-	SubUniformBuffer* UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
+	SubUniformBuffer UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
 	{
-		std::lock_guard<std::mutex> lock(m_subAllocateMutex);
 		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
-		SubUniformBuffer* pSubBuffer;
-		CE_NEW(pSubBuffer, SubUniformBuffer_VK, this, m_subAllocatedSize, size);
+		SubUniformBuffer pSubBuffer(this, m_subAllocatedSize, size);
 		m_subAllocatedSize += size;
 
 		return pSubBuffer;
@@ -174,19 +179,5 @@ namespace Engine
 	EUniformBufferType_VK UniformBuffer_VK::GetType() const
 	{
 		return m_eType;
-	}
-
-	SubUniformBuffer_VK::SubUniformBuffer_VK(UniformBuffer_VK* pParentBuffer, uint32_t offset, uint32_t size)
-		: m_pParentBuffer(pParentBuffer),
-		m_offset(offset),
-		m_size(size)
-	{
-		m_sizeInBytes = size;
-	}
-
-	void SubUniformBuffer_VK::UpdateSubBufferData(const void* pData)
-	{
-		DEBUG_ASSERT_CE(m_pParentBuffer != nullptr);
-		m_pParentBuffer->UpdateBufferSubData(pData, m_offset, m_size);
 	}
 }

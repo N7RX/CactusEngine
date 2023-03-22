@@ -23,28 +23,23 @@ namespace Engine
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void TransparencyBlendRenderNode::SetupFunction()
+	void TransparencyBlendRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
 	{
-		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-
-		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-
-		m_frameResources.resize(maxFramesInFlight);
+		m_frameResources.resize(framesInFlight);
 
 		// Color output
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
-		texCreateInfo.textureWidth = screenWidth;
-		texCreateInfo.textureHeight = screenHeight;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
 			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
@@ -75,12 +70,12 @@ namespace Engine
 
 		// Frame buffer
 
-		for (uint32_t i = 0; i < maxFramesInFlight; ++i)
+		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
-			fbCreateInfo.framebufferWidth = screenWidth;
-			fbCreateInfo.framebufferHeight = screenHeight;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
@@ -152,8 +147,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = screenWidth;
-		viewportStateCreateInfo.height = screenHeight;
+		viewportStateCreateInfo.width = width;
+		viewportStateCreateInfo.height = height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -212,5 +207,20 @@ namespace Engine
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 
 		CE_DELETE(pShaderParamTable);
+	}
+
+	void TransparencyBlendRenderNode::UpdateResolution(uint32_t width, uint32_t height)
+	{
+
+	}
+
+	void TransparencyBlendRenderNode::UpdateMaxDrawCallCount(uint32_t count)
+	{
+
+	}
+
+	void TransparencyBlendRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
+	{
+
 	}
 }

@@ -107,9 +107,9 @@ void TestSetup(GraphicsApplication* pApp)
 	auto pWorld = pApp->GetECSWorld();
 
 	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
-	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 0);
-	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 2);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 1);
+	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
+	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
 	pWorld->SortSystems();
 
 	// Read scene from file
