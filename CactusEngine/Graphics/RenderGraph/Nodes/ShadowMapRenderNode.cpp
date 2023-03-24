@@ -74,11 +74,9 @@ namespace Engine
 		}
 
 		// Uniform buffers
-
-		uint32_t perSubmeshAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
-
 		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
@@ -86,6 +84,7 @@ namespace Engine
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
+		ubCreateInfo.maxSubAllocationCount = 1;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
@@ -242,8 +241,7 @@ namespace Engine
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
-		ShaderParameterTable* pShaderParamTable;
-		CE_NEW(pShaderParamTable, ShaderParameterTable);
+		ShaderParameterTable shaderParamTable;
 
 		UBTransformMatrices ubTransformMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
@@ -269,7 +267,7 @@ namespace Engine
 				continue;
 			}
 
-			pShaderParamTable->Clear();
+			shaderParamTable.Clear();
 
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
@@ -287,26 +285,29 @@ namespace Engine
 					continue;
 				}
 
-				pShaderParamTable->Clear();
+				shaderParamTable.Clear();
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
 				{
 					pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
+					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 				}
 
-				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+				m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 		}
 
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
+
+		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pLightSpaceTransformMatrix_UB->FlushToDevice();
 
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 
@@ -315,8 +316,6 @@ namespace Engine
 			m_pDevice->ResizeViewPort(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight()); // TODO: use render node resolution
 		}
-
-		CE_DELETE(pShaderParamTable);
 	}
 
 	void ShadowMapRenderNode::UpdateResolution(uint32_t width, uint32_t height)

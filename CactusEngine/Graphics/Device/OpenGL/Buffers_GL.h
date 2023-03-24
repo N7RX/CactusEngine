@@ -28,6 +28,7 @@ namespace Engine
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
 		SubUniformBuffer AllocateSubBuffer(uint32_t size) override;
 		void ResetSubBufferAllocation() override {}
+		void FlushToDevice() override {}
 
 	private:
 		GLuint m_glBufferID = -1;

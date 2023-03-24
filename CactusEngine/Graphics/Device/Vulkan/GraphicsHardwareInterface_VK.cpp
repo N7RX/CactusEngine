@@ -282,10 +282,13 @@ namespace Engine
 
 	bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput)
 	{
+		DEBUG_ASSERT_MESSAGE_CE(createInfo.maxSubAllocationCount > 0, "Vulkan: UniformBufferCreateInfo.maxSubAllocationCount cannot be 0.");
+
 		UniformBufferCreateInfo_VK vkUniformBufferCreateInfo{};
-		vkUniformBufferCreateInfo.size = createInfo.sizeInBytes;
+		vkUniformBufferCreateInfo.size = createInfo.sizeInBytes * createInfo.maxSubAllocationCount;
 		vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
 		vkUniformBufferCreateInfo.type = EUniformBufferType_VK::Uniform;
+		vkUniformBufferCreateInfo.requiresFlush = (createInfo.maxSubAllocationCount > 1);
 
 		CE_NEW(pOutput, UniformBuffer_VK, m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
 

@@ -199,6 +199,7 @@ namespace Engine
 	{
 		if (!pCommandBuffer)
 		{
+			DEBUG_ASSERT_CE(m_eGraphicsDeviceType == EGraphicsAPIType::OpenGL);
 			return;
 		}
 

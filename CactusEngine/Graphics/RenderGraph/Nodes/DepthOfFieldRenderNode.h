@@ -45,6 +45,6 @@ namespace Engine
 		RenderPassObject* m_pRenderPassObject_Horizontal;
 		RenderPassObject* m_pRenderPassObject_Present;
 
-		SwapchainFrameBuffers* m_pFrameBuffers_Present;
+		SwapchainFrameBuffers m_frameBuffers_Present;
 	};
 }

@@ -236,9 +236,9 @@ namespace Engine
 
 	struct UniformBufferCreateInfo
 	{
-		uint32_t sizeInBytes;
-
-		uint32_t appliedStages; // Bitmask, required for push constant
+		uint32_t sizeInBytes;			// Per drawcall size
+		uint32_t maxSubAllocationCount;	// Ignored by OpenGL; In Vulkan actual buffer size is sizeInBytes * maxSubAllocationCount
+		uint32_t appliedStages;			// Bitmask, required for push constant
 	};
 
 	class UniformBuffer;
@@ -264,6 +264,7 @@ namespace Engine
 		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
 		virtual SubUniformBuffer AllocateSubBuffer(uint32_t size) = 0;
 		virtual void ResetSubBufferAllocation() = 0;
+		virtual void FlushToDevice() = 0; // If buffer is updated at sub buffer granularity, this function must be called to flush the changes to device
 
 	protected:
 		UniformBuffer() = default;

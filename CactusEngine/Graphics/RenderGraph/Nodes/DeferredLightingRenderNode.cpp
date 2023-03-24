@@ -83,10 +83,9 @@ namespace Engine
 
 		// Uniform buffer
 
-		uint32_t perLightSourceAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
-
 		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perLightSourceAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
@@ -94,12 +93,14 @@ namespace Engine
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+		ubCreateInfo.maxSubAllocationCount = 1;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
 		}
 
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSourceProperties) * perLightSourceAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBLightSourceProperties);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
@@ -295,15 +296,14 @@ namespace Engine
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
-		ShaderParameterTable* pShaderParamTable;
-		CE_NEW(pShaderParamTable, ShaderParameterTable);
-		ShaderParameterTable* pShaderParamTable_ext;
-		CE_NEW(pShaderParamTable_ext, ShaderParameterTable);
+		ShaderParameterTable shaderParamTable;
 
-		pShaderParamTable_ext->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
 
-		m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable_ext, pCommandBuffer);
+		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+
+		shaderParamTable.Clear();
 
 		// Other light sources pass
 
@@ -370,19 +370,19 @@ namespace Engine
 
 			for (uint32_t i = 0; i < submeshCount; ++i)
 			{
-				pShaderParamTable->Clear();
+				shaderParamTable.Clear();
+					
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+				
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, &subLightSourcePropertiesUB);
+				
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferPositionTexture);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, pSceneDepthTexture);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, &subLightSourcePropertiesUB);
-
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferPositionTexture);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler, pSceneDepthTexture);
-
-				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+				m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 		}
@@ -390,10 +390,11 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pCameraProperties_UB->FlushToDevice();
+		frameResources.m_pLightSourceProperties_UB->FlushToDevice();
 
-		CE_DELETE(pShaderParamTable);
-		CE_DELETE(pShaderParamTable_ext);
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
 	void DeferredLightingRenderNode::UpdateResolution(uint32_t width, uint32_t height)

@@ -40,7 +40,7 @@ namespace Engine
 		// SubUniformBuffer is ignored, always update whole buffer
 
 		glBindBuffer(GL_UNIFORM_BUFFER, m_glBufferID);
-		glBufferData(GL_UNIFORM_BUFFER, m_sizeInBytes, pData, GL_DYNAMIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, m_sizeInBytes, pData, GL_DYNAMIC_DRAW); // TODO: Make usage configurable
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 

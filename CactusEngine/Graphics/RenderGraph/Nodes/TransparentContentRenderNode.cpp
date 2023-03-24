@@ -105,10 +105,9 @@ namespace Engine
 
 		// Uniform buffers
 
-		uint32_t perSubmeshAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
-
 		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
@@ -116,19 +115,22 @@ namespace Engine
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBSystemVariables);
+		ubCreateInfo.maxSubAllocationCount = 1;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pSystemVariables_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+		ubCreateInfo.maxSubAllocationCount = 1;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
 		}
 
-		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties) * perSubmeshAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pMaterialNumericalProperties_UB);
@@ -303,8 +305,7 @@ namespace Engine
 
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
-		ShaderParameterTable* pShaderParamTable;
-		CE_NEW(pShaderParamTable, ShaderParameterTable);
+		ShaderParameterTable shaderParamTable;
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
@@ -332,7 +333,7 @@ namespace Engine
 			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
 
-			pShaderParamTable->Clear();
+			shaderParamTable.Clear();
 
 			uint32_t submeshCount = pMesh->GetSubmeshCount();
 			auto subMeshes = pMesh->GetSubMeshes();
@@ -354,12 +355,12 @@ namespace Engine
 					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 					lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 				}
-				pShaderParamTable->Clear();
+				shaderParamTable.Clear();
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, frameResources.m_pSystemVariables_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SYSTEM_VARIABLES), EDescriptorType::UniformBuffer, frameResources.m_pSystemVariables_UB);
 
 				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 				ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
@@ -368,29 +369,29 @@ namespace Engine
 				SubUniformBuffer subMaterialNumericalPropertiesUB = frameResources.m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 				frameResources.m_pMaterialNumericalProperties_UB->UpdateBufferData(&ubMaterialNumericalProperties, &subMaterialNumericalPropertiesUB);
 				
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, &subMaterialNumericalPropertiesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, &subMaterialNumericalPropertiesUB);
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 					pGraphResources->Get(m_inputResourceNames.at(INPUT_BACKGROUND_DEPTH)));
 
-				pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 					pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
 				{
 					pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
+					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 				}
 
 				auto pNoiseTexture = pMaterial->GetTexture(EMaterialTextureType::Noise);
 				if (pNoiseTexture)
 				{
 					pNoiseTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
-					pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
+					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::NOISE_TEXTURE_1), EDescriptorType::CombinedImageSampler, pNoiseTexture);
 				}
 
-				m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+				m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 		}
@@ -398,9 +399,12 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pSystemVariables_UB->FlushToDevice();
+		frameResources.m_pCameraProperties_UB->FlushToDevice();
+		frameResources.m_pMaterialNumericalProperties_UB->FlushToDevice();
 
-		CE_DELETE(pShaderParamTable);
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
 	void TransparentContentRenderNode::UpdateResolution(uint32_t width, uint32_t height)

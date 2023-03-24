@@ -31,7 +31,6 @@ namespace Engine
 
 		EGraphicsAPIType GetGraphicsAPIType() const override;
 
-		// Low-level functions that shouldn't be called on OpenGL device
 		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override { return nullptr; }
 		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override { return nullptr; }
 		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override {}
@@ -69,7 +68,7 @@ namespace Engine
 		TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const override { return nullptr; }
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override {}
-		uint32_t GetSwapchainPresentImageIndex() const override { return -1; }
+		uint32_t GetSwapchainPresentImageIndex() const override { return 0; }
 
 		void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) override {}
 		void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) override {}

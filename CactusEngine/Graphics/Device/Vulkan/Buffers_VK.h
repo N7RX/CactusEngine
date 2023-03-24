@@ -72,6 +72,7 @@ namespace Engine
 		EUniformBufferType_VK	type;
 		uint32_t				size;
 		VkShaderStageFlags		appliedStages;
+		bool					requiresFlush;
 	};
 
 	class UniformBuffer_VK : public UniformBuffer
@@ -84,10 +85,10 @@ namespace Engine
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
 		SubUniformBuffer AllocateSubBuffer(uint32_t size) override;
 		void ResetSubBufferAllocation() override;
+		void FlushToDevice() override;
 
 		void UpdateToDevice(CommandBuffer_VK* pCmdBuffer = nullptr);
 		RawBuffer_VK* GetBufferImpl() const;
-
 		EUniformBufferType_VK GetType() const;
 
 	private:
@@ -100,6 +101,7 @@ namespace Engine
 
 		uint32_t m_subAllocatedSize;
 
-		friend class SubUniformBuffer_VK;
+		std::vector<unsigned char> m_localData; // Cache changes locally to reduce the number of copies to the device
+		bool m_requiresFlush;
 	};
 }

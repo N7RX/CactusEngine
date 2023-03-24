@@ -120,10 +120,9 @@ namespace Engine
 
 		// Uniform buffer
 
-		uint32_t perSubmeshAllocation = (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan) ? maxDrawCall : 1;
-
 		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices) * perSubmeshAllocation;
+		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
@@ -283,8 +282,7 @@ namespace Engine
 
 		// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
-		ShaderParameterTable* pShaderParamTable;
-		CE_NEW(pShaderParamTable, ShaderParameterTable);
+		ShaderParameterTable shaderParamTable;
 
 		UBTransformMatrices ubTransformMatrices{};
 		ubTransformMatrices.projectionMatrix = projectionMat;
@@ -308,7 +306,7 @@ namespace Engine
 				continue;
 			}
 
-			pShaderParamTable->Clear();
+			shaderParamTable.Clear();
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
@@ -316,9 +314,9 @@ namespace Engine
 			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
 
-			pShaderParamTable->AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
 
-			m_pDevice->UpdateShaderParameter(pShaderProgram, pShaderParamTable, pCommandBuffer);
+			m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
 			auto subMeshes = pMesh->GetSubMeshes();
@@ -338,9 +336,9 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
+		frameResources.m_pTransformMatrices_UB->FlushToDevice();
 
-		CE_DELETE(pShaderParamTable);
+		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
 	void GBufferRenderNode::UpdateResolution(uint32_t width, uint32_t height)

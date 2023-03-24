@@ -77,7 +77,8 @@ namespace Engine
 		m_appliedShaderStage(createInfo.appliedStages),
 		m_pRawData(nullptr),
 		m_pHostData(nullptr),
-		m_subAllocatedSize(0)
+		m_subAllocatedSize(0),
+		m_requiresFlush(createInfo.requiresFlush)
 	{
 		RawBufferCreateInfo_VK bufferImplCreateInfo{};
 		bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -93,6 +94,11 @@ namespace Engine
 			{
 				LOG_ERROR("Vulkan: Failed to map uniform buffer memory.");
 			}
+		}
+
+		if (m_requiresFlush)
+		{
+			m_localData.resize(m_sizeInBytes);
 		}
 	}
 
@@ -125,7 +131,16 @@ namespace Engine
 	{
 		if (m_eType == EUniformBufferType_VK::Uniform)
 		{
-			void* start = (unsigned char*)m_pHostData + offset;
+			void* start = nullptr;
+			if (m_requiresFlush)
+			{
+				start = m_localData.data() + offset;
+			}
+			else
+			{
+				start = (unsigned char*)m_pHostData + offset;
+			}
+
 			memcpy(start, pData, size);
 		}
 		else
@@ -138,15 +153,24 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
-		SubUniformBuffer pSubBuffer(this, m_subAllocatedSize, size);
+		SubUniformBuffer subBuffer(this, m_subAllocatedSize, size);
 		m_subAllocatedSize += size;
 
-		return pSubBuffer;
+		return subBuffer;
 	}
 
 	void UniformBuffer_VK::ResetSubBufferAllocation()
 	{
 		m_subAllocatedSize = 0;
+	}
+
+	void UniformBuffer_VK::FlushToDevice()
+	{
+		if (m_requiresFlush)
+		{
+			DEBUG_ASSERT_CE(m_eType == EUniformBufferType_VK::Uniform);
+			memcpy(m_pHostData, m_localData.data(), m_sizeInBytes);
+		}
 	}
 
 	void UniformBuffer_VK::UpdateToDevice(CommandBuffer_VK* pCmdBuffer)
