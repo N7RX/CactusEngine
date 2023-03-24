@@ -130,12 +130,12 @@ namespace Engine
 		// Uniform buffers
 
 		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
 		ubCreateInfo.maxSubAllocationCount = 1;
 		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
 		}
 
 		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
@@ -268,13 +268,13 @@ namespace Engine
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 		ShaderParameterTable shaderParamTable;
 
-		UBTransformMatrices ubTransformMatrices{};
+		UBCameraMatrices ubCameraMatrices{};
 		UBSystemVariables ubSystemVariables{};
 		UBCameraProperties ubCameraProperties{};
 		UBControlVariables ubControlVariables{};
 
-		ubTransformMatrices.viewMatrix = viewMat;
-		frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices);
+		ubCameraMatrices.viewMatrix = viewMat;
+		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
 		ubCameraProperties.aperture = pCameraComp->GetAperture();
 		ubCameraProperties.focalDistance = pCameraComp->GetFocalDistance();
@@ -287,7 +287,7 @@ namespace Engine
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, frameResources.m_pFrameBuffer_Horizontal, pCommandBuffer);
 
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
 
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
@@ -315,7 +315,7 @@ namespace Engine
 
 		shaderParamTable.Clear();
 
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pTransformMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
 
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pHorizontalResult);
@@ -335,7 +335,7 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pCameraMatrices_UB->FlushToDevice();
 		frameResources.m_pCameraProperties_UB->FlushToDevice();
 		frameResources.m_pControlVariables_UB->FlushToDevice();
 

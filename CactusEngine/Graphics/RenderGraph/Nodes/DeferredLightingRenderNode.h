@@ -29,6 +29,7 @@ namespace Engine
 			FrameResources()
 				: m_pFrameBuffer(nullptr),
 				m_pTransformMatrices_UB(nullptr),
+				m_pCameraMatrices_UB(nullptr),
 				m_pCameraProperties_UB(nullptr),
 				m_pLightSourceProperties_UB(nullptr),
 				m_pColorOutput(nullptr)
@@ -39,6 +40,7 @@ namespace Engine
 			FrameBuffer* m_pFrameBuffer;
 
 			UniformBuffer* m_pTransformMatrices_UB;
+			UniformBuffer* m_pCameraMatrices_UB;
 			UniformBuffer* m_pCameraProperties_UB;
 			UniformBuffer* m_pLightSourceProperties_UB;
 

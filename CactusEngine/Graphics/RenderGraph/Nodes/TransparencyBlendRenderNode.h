@@ -33,9 +33,9 @@ namespace Engine
 
 			}
 
-			FrameBuffer*		m_pFrameBuffer;
+			FrameBuffer* m_pFrameBuffer;
 
-			Texture2D*			m_pColorOutput;
+			Texture2D* m_pColorOutput;
 		};
 		std::vector<FrameResources> m_frameResources;
 

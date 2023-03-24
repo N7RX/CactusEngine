@@ -11,8 +11,6 @@ layout(location = 0) out vec2 v2fTexCoord;
 layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
-	mat4 ViewMatrix;
-	mat4 ProjectionMatrix;
 	mat4 NormalMatrix;
 };
 

@@ -25,6 +25,7 @@ namespace Engine
 			FrameResources()
 				: m_pFrameBuffer(nullptr),
 				m_pTransformMatrices_UB(nullptr),
+				m_pCameraMatrices_UB(nullptr),
 				m_pDepthBuffer(nullptr),
 				m_pNormalOutput(nullptr),
 				m_pPositionOutput(nullptr)
@@ -35,6 +36,7 @@ namespace Engine
 			FrameBuffer* m_pFrameBuffer;
 
 			UniformBuffer* m_pTransformMatrices_UB;
+			UniformBuffer* m_pCameraMatrices_UB;
 
 			Texture2D* m_pDepthBuffer;
 			Texture2D* m_pNormalOutput;

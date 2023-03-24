@@ -175,6 +175,7 @@ namespace Engine
 		// Uniform blocks
 
 		m_paramBindings.emplace(ShaderParamNames::TRANSFORM_MATRICES, 14);
+		m_paramBindings.emplace(ShaderParamNames::CAMERA_MATRICES, 22);
 		m_paramBindings.emplace(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, 15);
 
 		m_paramBindings.emplace(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES, 16);
@@ -186,6 +187,6 @@ namespace Engine
 
 		m_paramBindings.emplace(ShaderParamNames::LIGHTSOURCE_PROPERTIES, 21);
 
-		// Next to be: 22
+		// Next to be: 23
 	}
 }

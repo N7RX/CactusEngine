@@ -92,8 +92,14 @@ namespace Engine
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
 
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
 		ubCreateInfo.maxSubAllocationCount = 1;
+		for (uint32_t i = 0; i < framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
@@ -322,13 +328,15 @@ namespace Engine
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DeferredLighting), pCommandBuffer);
 
 		UBTransformMatrices ubTransformMatrices{};
+		UBCameraMatrices ubCameraMatrices{};
 		UBCameraProperties ubCameraProperties{};
 		UBLightSourceProperties ubLightSourceProperties{};
 
 		pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
 
-		ubTransformMatrices.projectionMatrix = projectionMat;
-		ubTransformMatrices.viewMatrix = viewMat;
+		ubCameraMatrices.projectionMatrix = projectionMat;
+		ubCameraMatrices.viewMatrix = viewMat;
+		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
 		ubCameraProperties.cameraPosition = cameraPos;
 		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
@@ -371,7 +379,8 @@ namespace Engine
 			for (uint32_t i = 0; i < submeshCount; ++i)
 			{
 				shaderParamTable.Clear();
-					
+				
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
 				
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
@@ -391,6 +400,7 @@ namespace Engine
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
 		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pCameraMatrices_UB->FlushToDevice();
 		frameResources.m_pCameraProperties_UB->FlushToDevice();
 		frameResources.m_pLightSourceProperties_UB->FlushToDevice();
 

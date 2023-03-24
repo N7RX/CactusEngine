@@ -32,16 +32,20 @@ namespace Engine
 	};
 
 	// Uniform block structures
-	// Alert: the alignment should be set according to min device uniform buffer alignment requirement
+	// TODO: the alignment should be set according to min device uniform buffer alignment requirement
 
 	static const size_t UNIFORM_BUFFER_ALIGNMENT_CE = 64;
 
 	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBTransformMatrices
 	{
 		Matrix4x4 modelMatrix;
+		Matrix4x4 normalMatrix;
+	};
+
+	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBCameraMatrices
+	{
 		Matrix4x4 viewMatrix;
 		Matrix4x4 projectionMatrix;
-		Matrix4x4 normalMatrix;
 	};
 
 	struct alignas(UNIFORM_BUFFER_ALIGNMENT_CE) UBLightSpaceTransformMatrix
@@ -87,6 +91,7 @@ namespace Engine
 		// Uniform blocks
 
 		static const char* TRANSFORM_MATRICES = "TransformMatrices";
+		static const char* CAMERA_MATRICES = "CameraMatrices";
 		static const char* LIGHTSPACE_TRANSFORM_MATRIX = "LightSpaceTransformMatrix";
 
 		static const char* MATERIAL_NUMERICAL_PROPERTIES = "MaterialNumericalProperties";
@@ -129,6 +134,10 @@ namespace Engine
 		if (std::strcmp(ShaderParamNames::TRANSFORM_MATRICES, cstr) == 0)
 		{
 			return ShaderParamNames::TRANSFORM_MATRICES;
+		}
+		if (std::strcmp(ShaderParamNames::CAMERA_MATRICES, cstr) == 0)
+		{
+			return ShaderParamNames::CAMERA_MATRICES;
 		}
 		if (std::strcmp(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX, cstr) == 0)
 		{

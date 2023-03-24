@@ -11,12 +11,10 @@ layout(location = 6) in mat3 v2fTBNMatrix;
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outLineSpace;
 
-layout(std140, binding = 14) uniform TransformMatrices
+layout(std140, binding = 22) uniform CameraMatrices
 {
-	mat4 ModelMatrix;
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat4 NormalMatrix;
 };
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;

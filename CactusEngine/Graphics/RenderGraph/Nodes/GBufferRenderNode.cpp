@@ -129,6 +129,13 @@ namespace Engine
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
 
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
+		ubCreateInfo.maxSubAllocationCount = 1;
+		for (uint32_t i = 0; i < framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
+		}
+
 		// Pipeline object
 
 		// Vertex input state
@@ -285,8 +292,11 @@ namespace Engine
 		ShaderParameterTable shaderParamTable;
 
 		UBTransformMatrices ubTransformMatrices{};
-		ubTransformMatrices.projectionMatrix = projectionMat;
-		ubTransformMatrices.viewMatrix = viewMat;
+
+		UBCameraMatrices ubCameraMatrices{};
+		ubCameraMatrices.projectionMatrix = projectionMat;
+		ubCameraMatrices.viewMatrix = viewMat;
+		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{
@@ -315,6 +325,7 @@ namespace Engine
 			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
 
 			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
 
 			m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
@@ -337,6 +348,7 @@ namespace Engine
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
 		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pCameraMatrices_UB->FlushToDevice();
 
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}

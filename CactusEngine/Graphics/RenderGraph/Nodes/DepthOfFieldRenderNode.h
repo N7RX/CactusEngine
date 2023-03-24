@@ -24,7 +24,7 @@ namespace Engine
 		{
 			FrameResources()
 				: m_pFrameBuffer_Horizontal(nullptr),
-				m_pTransformMatrices_UB(nullptr),
+				m_pCameraMatrices_UB(nullptr),
 				m_pCameraProperties_UB(nullptr),
 				m_pControlVariables_UB(nullptr),
 				m_pHorizontalResult(nullptr)
@@ -34,7 +34,7 @@ namespace Engine
 
 			FrameBuffer* m_pFrameBuffer_Horizontal;
 
-			UniformBuffer* m_pTransformMatrices_UB;
+			UniformBuffer* m_pCameraMatrices_UB;
 			UniformBuffer* m_pCameraProperties_UB;
 			UniformBuffer* m_pControlVariables_UB;
 

@@ -134,8 +134,14 @@ namespace Engine
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
 		}
 
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
 		ubCreateInfo.maxSubAllocationCount = 1;
+		for (uint32_t i = 0; i < framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
 		for (uint32_t i = 0; i < framesInFlight; ++i)
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
@@ -324,12 +330,14 @@ namespace Engine
 		ShaderParameterTable shaderParamTable;
 
 		UBTransformMatrices ubTransformMatrices{};
+		UBCameraMatrices ubCameraMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
 		UBCameraProperties ubCameraProperties{};
 		UBMaterialNumericalProperties ubMaterialNumericalProperties{};
 
-		ubTransformMatrices.projectionMatrix = projectionMat;
-		ubTransformMatrices.viewMatrix = viewMat;
+		ubCameraMatrices.projectionMatrix = projectionMat;
+		ubCameraMatrices.viewMatrix = viewMat;
+		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
 		frameResources.m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
@@ -386,6 +394,7 @@ namespace Engine
 				shaderParamTable.Clear();
 
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
 
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
@@ -424,6 +433,7 @@ namespace Engine
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
 		frameResources.m_pTransformMatrices_UB->FlushToDevice();
+		frameResources.m_pCameraMatrices_UB->FlushToDevice();
 		frameResources.m_pLightSpaceTransformMatrix_UB->FlushToDevice();
 		frameResources.m_pCameraProperties_UB->FlushToDevice();
 		frameResources.m_pMaterialNumericalProperties_UB->FlushToDevice();

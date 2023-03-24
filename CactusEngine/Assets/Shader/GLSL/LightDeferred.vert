@@ -9,9 +9,13 @@ layout(location = 4) in vec3 inBitangent;
 layout(std140, binding = 14) uniform TransformMatrices
 {
 	mat4 ModelMatrix;
+	mat4 NormalMatrix;
+};
+
+layout(std140, binding = 22) uniform CameraMatrices
+{
 	mat4 ViewMatrix;
 	mat4 ProjectionMatrix;
-	mat4 NormalMatrix;
 };
 
 
