@@ -32,23 +32,6 @@ namespace Engine
 		m_height = height;
 	}
 
-	bool Texture2D_GL::HasSampler() const
-	{
-		LOG_ERROR("OpenGL: shouldn't call HasSampler on texture 2D.");
-		return false;
-	}
-
-	void Texture2D_GL::SetSampler(const TextureSampler* pSampler)
-	{
-		// "OpenGL: shouldn't call SetSampler on OpenGL texture 2D."
-	}
-
-	TextureSampler* Texture2D_GL::GetSampler() const
-	{
-		LOG_ERROR("OpenGL: shouldn't call GetSampler on texture 2D.");
-		return nullptr;
-	}
-
 	FrameBuffer_GL::~FrameBuffer_GL()
 	{
 		glDeleteFramebuffers(1, &m_glFrameBufferID);

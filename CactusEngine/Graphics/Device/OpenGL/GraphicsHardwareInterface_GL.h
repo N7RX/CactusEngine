@@ -64,7 +64,6 @@ namespace Engine
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
 
-		TextureSampler* GetDefaultTextureSampler(bool withDefaultAF = false) const override { return nullptr; }
 		TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const override { return nullptr; }
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override {}

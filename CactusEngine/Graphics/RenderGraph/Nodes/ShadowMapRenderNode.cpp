@@ -23,7 +23,7 @@ namespace Engine
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION;
 		texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION;
 		texCreateInfo.dataType = EDataType::Float32;
@@ -294,7 +294,7 @@ namespace Engine
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
 				{
-					pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
+					pAlbedoTexture->SetSampler(m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None));
 					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 				}
 

@@ -26,8 +26,10 @@ namespace Engine
 		m_appInfo{},
 		m_pMainDevice(nullptr),
 		m_pSwapchain(nullptr),
-		m_pDefaultSampler_0(nullptr),
-		m_pDefaultSampler_1(nullptr)
+		m_pDefaultSampler_NoAF(nullptr),
+		m_pDefaultSampler_4xAF(nullptr),
+		m_pDefaultSampler_8xAF(nullptr),
+		m_pDefaultSampler_16xAF(nullptr)
 	{
 
 	}
@@ -48,7 +50,7 @@ namespace Engine
 		SetupDescriptorAllocator();
 
 		SetupSwapchain();
-		CreateDefaultSampler();
+		CreateDefaultSamplers();
 
 		m_isRunning = true;
 	}
@@ -950,19 +952,18 @@ namespace Engine
 		m_pMainDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
 	}
 
-	TextureSampler* GraphicsHardwareInterface_VK::GetDefaultTextureSampler(bool withDefaultAF) const
-	{
-		return withDefaultAF ? m_pDefaultSampler_0 : m_pDefaultSampler_1;
-	}
-
 	TextureSampler* GraphicsHardwareInterface_VK::GetTextureSampler(ESamplerAnisotropyLevel level) const
 	{
 		switch (level)
 		{
 		case ESamplerAnisotropyLevel::None:
-			return m_pDefaultSampler_0;
-		case ESamplerAnisotropyLevel::AFx2:
-			return m_pDefaultSampler_1;
+			return m_pDefaultSampler_NoAF;
+		case ESamplerAnisotropyLevel::AFx4:
+			return m_pDefaultSampler_4xAF;
+		case ESamplerAnisotropyLevel::AFx8:
+			return m_pDefaultSampler_8xAF;
+		case ESamplerAnisotropyLevel::AFx16:
+			return m_pDefaultSampler_16xAF;
 		default:
 			LOG_ERROR("Vulkan: unsupported sampler anisotropy level.");
 		}
@@ -1434,7 +1435,7 @@ namespace Engine
 		return { VK_FORMAT_UNDEFINED, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 	}
 
-	void GraphicsHardwareInterface_VK::CreateDefaultSampler()
+	void GraphicsHardwareInterface_VK::CreateDefaultSamplers()
 	{
 		TextureSamplerCreateInfo createInfo{};
 		createInfo.magMode = ESamplerFilterMode::Linear;
@@ -1449,18 +1450,23 @@ namespace Engine
 		createInfo.maxLod = 12.0f; // Support up to 4096
 		createInfo.minLodBias = 0;
 
-		TextureSampler* pSampler_0 = nullptr;
-		CreateSampler(createInfo, pSampler_0);
-		m_pDefaultSampler_0 = (Sampler_VK*)pSampler_0;
+		TextureSampler* pSampler = nullptr;
+		CreateSampler(createInfo, pSampler);
+		m_pDefaultSampler_NoAF = (Sampler_VK*)pSampler;
 
 		createInfo.enableAnisotropy = true;
-		createInfo.maxAnisotropy = 4.0f;
 
-		TextureSampler* pSampler_1 = nullptr;
-		CreateSampler(createInfo, pSampler_1);
-		m_pDefaultSampler_1 = (Sampler_VK*)pSampler_1;
+		createInfo.maxAnisotropy = 4;
+		CreateSampler(createInfo, pSampler);
+		m_pDefaultSampler_4xAF = (Sampler_VK*)pSampler;
+		
+		createInfo.maxAnisotropy = 8;
+		CreateSampler(createInfo, pSampler);
+		m_pDefaultSampler_8xAF = (Sampler_VK*)pSampler;
 
-		// TODO: create another default sampler that does not include mipmap sampling
+		createInfo.maxAnisotropy = 16;
+		CreateSampler(createInfo, pSampler);
+		m_pDefaultSampler_16xAF = (Sampler_VK*)pSampler;
 	}
 
 	void GraphicsHardwareInterface_VK::CreateShaderModuleFromFile(const char* shaderFilePath, LogicalDevice_VK* pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode)

@@ -108,7 +108,6 @@ namespace Engine
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
 
-		TextureSampler* GetDefaultTextureSampler(bool withDefaultAF = false) const override;
 		TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const override;
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override;
@@ -130,7 +129,7 @@ namespace Engine
 		void CreateLogicalDevice();
 		void SetupSwapchain();
 		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		void CreateDefaultSampler();
+		void CreateDefaultSamplers();
 
 		// Shader-related functions
 		void CreateShaderModuleFromFile(const char* shaderFilePath, LogicalDevice_VK* pLogicalDevice, VkShaderModule& outModule, std::vector<char>& outRawCode);
@@ -174,9 +173,11 @@ namespace Engine
 		std::queue<Semaphore_VK*> m_renderFinishSemaphores;
 		ThreadSemaphore m_commandSubmissionSemaphore;
 
-		Sampler_VK* m_pDefaultSampler_0; // No AF
-		Sampler_VK* m_pDefaultSampler_1; // 4x AF
-		//... (Extend samplers)
+		Sampler_VK* m_pDefaultSampler_NoAF;
+		// No default 2AF as it's rarely used
+		Sampler_VK* m_pDefaultSampler_4xAF;
+		Sampler_VK* m_pDefaultSampler_8xAF;
+		Sampler_VK* m_pDefaultSampler_16xAF;
 	};
 
 	template<>

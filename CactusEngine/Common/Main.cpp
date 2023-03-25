@@ -100,6 +100,7 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetMaxFramesInFlight(3);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetTextureAnisotropyLevel(ESamplerAnisotropyLevel::AFx4);
 }
 
 void TestSetup(GraphicsApplication* pApp)

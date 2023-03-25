@@ -31,7 +31,7 @@ namespace Engine
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;

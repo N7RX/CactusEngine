@@ -80,7 +80,8 @@ namespace Engine
 			m_windowWidth(1280),
 			m_windowHeight(720),
 			m_maxFramesInFlight(3),
-			m_enableVSync(false)
+			m_enableVSync(false),
+			m_samplerAnisotropyLevel(ESamplerAnisotropyLevel::None)
 		{
 
 		}
@@ -156,6 +157,16 @@ namespace Engine
 			return m_enableVSync;
 		}
 
+		ESamplerAnisotropyLevel GetTextureAnisotropyLevel() const
+		{
+			return m_samplerAnisotropyLevel;
+		}
+
+		void SetTextureAnisotropyLevel(ESamplerAnisotropyLevel level)
+		{
+			m_samplerAnisotropyLevel = level;
+		}
+
 	private:
 		EGraphicsAPIType m_graphicsAPIType;
 		EGPUType m_preferredGPU;
@@ -166,5 +177,7 @@ namespace Engine
 		uint32_t m_maxFramesInFlight;
 
 		bool m_enableVSync;
+
+		ESamplerAnisotropyLevel m_samplerAnisotropyLevel;
 	};
 }

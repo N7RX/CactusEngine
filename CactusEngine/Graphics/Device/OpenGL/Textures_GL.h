@@ -16,9 +16,9 @@ namespace Engine
 		void MarkTextureSize(uint32_t width, uint32_t height);
 
 		// Not used in OpenGL device
-		bool HasSampler() const override;
-		void SetSampler(const TextureSampler* pSampler) override;
-		TextureSampler* GetSampler() const override;
+		bool HasSampler() const override { return false; }
+		void SetSampler(const TextureSampler* pSampler) override {}
+		TextureSampler* GetSampler() const override { return nullptr; }
 
 	private:
 		GLuint m_glTextureID;

@@ -29,7 +29,7 @@ namespace Engine
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetDefaultTextureSampler();
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
@@ -296,6 +296,8 @@ namespace Engine
 
 	void OpaqueContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
+		ESamplerAnisotropyLevel samplerAFLevel = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetTextureAnisotropyLevel();
+
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
@@ -413,14 +415,18 @@ namespace Engine
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
 				{
-					pAlbedoTexture->SetSampler(m_pDevice->GetDefaultTextureSampler(true));
+					pAlbedoTexture->SetSampler(m_pDevice->GetTextureSampler(samplerAFLevel));
 					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::ALBEDO_TEXTURE), EDescriptorType::CombinedImageSampler, pAlbedoTexture);
 				}
 
 				auto pToneTexture = pMaterial->GetTexture(EMaterialTextureType::Tone);
 				if (pToneTexture)
 				{
-					pToneTexture->SetSampler(m_pDevice->GetDefaultTextureSampler());
+					if (!pToneTexture->HasSampler())
+					{
+						pToneTexture->SetSampler(m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None));
+					}
+
 					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TONE_TEXTURE), EDescriptorType::CombinedImageSampler, pToneTexture);
 				}
 
