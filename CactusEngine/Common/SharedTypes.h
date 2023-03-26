@@ -297,6 +297,12 @@ namespace Engine
 		AFx16
 	};
 
+	enum class EAntialiasingLevel
+	{
+		None = 0,
+		FXAA
+	};
+
 	enum class EDataTransferBufferUsage
 	{
 		TransferSrc = 0x1,

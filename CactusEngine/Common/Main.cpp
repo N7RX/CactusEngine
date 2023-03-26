@@ -124,7 +124,7 @@ void TestSetup(GraphicsApplication* pApp)
 	// 121 point lights for deferred lighting test
 
 	LightComponent::Profile lightProfile{};
-	lightProfile.sourceType = LightComponent::SourceType::PointLight;
+	lightProfile.sourceType = LightComponent::SourceType::Point;
 	lightProfile.lightColor = Color3(1.0f);
 	lightProfile.lightIntensity = 10.0f;
 	lightProfile.radius = 1.0f;

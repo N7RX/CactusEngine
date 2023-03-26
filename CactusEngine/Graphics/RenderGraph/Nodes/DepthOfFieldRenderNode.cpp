@@ -21,27 +21,8 @@ namespace Engine
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
 	}
 
-	void DepthOfFieldRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
+	void DepthOfFieldRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
 	{
-		m_frameResources.resize(framesInFlight);
-
-		// Horizontal result
-
-		Texture2DCreateInfo texCreateInfo{};
-		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = width;
-		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::UByte;
-		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
-		texCreateInfo.textureType = ETextureType::ColorAttachment;
-		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pHorizontalResult);
-		}
-
 		// Render pass object
 
 		// Horizontal pass
@@ -85,71 +66,6 @@ namespace Engine
 		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Present);
-
-		// Frame buffers
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			FrameBufferCreateInfo fbCreateInfo_Horizontal{};
-			fbCreateInfo_Horizontal.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
-			fbCreateInfo_Horizontal.framebufferWidth = width;
-			fbCreateInfo_Horizontal.framebufferHeight = height;
-			fbCreateInfo_Horizontal.pRenderPass = m_pRenderPassObject_Horizontal;
-
-			m_pDevice->CreateFrameBuffer(fbCreateInfo_Horizontal, m_frameResources[i].m_pFrameBuffer_Horizontal);
-		}
-
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			// Create a framebuffer arround each swapchain image
-
-			std::vector<Texture2D*> swapchainImages;
-			m_pDevice->GetSwapchainImages(swapchainImages);
-
-			DEBUG_ASSERT_MESSAGE_CE(swapchainImages.size() == framesInFlight, "Available swapchain images number does not match frames in flight number.");
-
-			for (uint32_t i = 0; i < swapchainImages.size(); i++)
-			{
-				FrameBufferCreateInfo dofFBCreateInfo_Final{};
-				dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
-				dofFBCreateInfo_Final.framebufferWidth = width;
-				dofFBCreateInfo_Final.framebufferHeight = height;
-				dofFBCreateInfo_Final.pRenderPass = m_pRenderPassObject_Present;
-
-				FrameBuffer* pFrameBuffer = nullptr;
-				m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Final, pFrameBuffer);
-				m_frameBuffers_Present.frameBuffers.emplace_back(pFrameBuffer);
-			}
-		}
-		else
-		{
-			// Null framebuffer will set OpenGL write to backbuffer
-			m_frameBuffers_Present.frameBuffers.emplace_back(nullptr);
-		}
-
-		// Uniform buffers
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables);
-		ubCreateInfo.maxSubAllocationCount = 8;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pControlVariables_UB);
-		}
 
 		// Pipeline objects
 
@@ -217,8 +133,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = width;
-		viewportStateCreateInfo.height = height;
+		viewportStateCreateInfo.width = initInfo.width;
+		viewportStateCreateInfo.height = initInfo.height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -245,34 +161,127 @@ namespace Engine
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
 
 		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DOF, pPipeline_0);
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::NONE, pPipeline_1); // NONE for key only, it will still be using DOF shader
+		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::Present, pPipeline_1); // NONE for key only, it will still be using DOF shader
+	}
+
+	void DepthOfFieldRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	{
+		m_frameResources.resize(initInfo.framesInFlight);
+		CreateMutableTextures(initInfo);
+		CreateMutableBuffers(initInfo);
+	}
+
+	void DepthOfFieldRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	{
+		// Horizontal result
+
+		Texture2DCreateInfo texCreateInfo{};
+		texCreateInfo.generateMipmap = false;
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
+		texCreateInfo.textureWidth = initInfo.width;
+		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.dataType = EDataType::UByte;
+		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
+		texCreateInfo.textureType = ETextureType::ColorAttachment;
+		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pHorizontalResult);
+		}
+
+		// Frame buffers
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo_Horizontal{};
+			fbCreateInfo_Horizontal.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
+			fbCreateInfo_Horizontal.framebufferWidth = initInfo.width;
+			fbCreateInfo_Horizontal.framebufferHeight = initInfo.height;
+			fbCreateInfo_Horizontal.pRenderPass = m_pRenderPassObject_Horizontal;
+
+			m_pDevice->CreateFrameBuffer(fbCreateInfo_Horizontal, m_frameResources[i].m_pFrameBuffer_Horizontal);
+		}
+
+		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
+		{
+			// Create a framebuffer arround each swapchain image
+
+			std::vector<Texture2D*> swapchainImages;
+			m_pDevice->GetSwapchainImages(swapchainImages);
+
+			DEBUG_ASSERT_MESSAGE_CE(swapchainImages.size() == initInfo.framesInFlight, "Available swapchain images number does not match frames in flight number.");
+
+			for (uint32_t i = 0; i < swapchainImages.size(); i++)
+			{
+				FrameBufferCreateInfo dofFBCreateInfo_Final{};
+				dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
+				dofFBCreateInfo_Final.framebufferWidth = initInfo.width;
+				dofFBCreateInfo_Final.framebufferHeight = initInfo.height;
+				dofFBCreateInfo_Final.pRenderPass = m_pRenderPassObject_Present;
+
+				FrameBuffer* pFrameBuffer = nullptr;
+				m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Final, pFrameBuffer);
+				m_frameBuffers_Present.frameBuffers.emplace_back(pFrameBuffer);
+			}
+		}
+		else
+		{
+			// Null framebuffer will set OpenGL write to backbuffer
+			m_frameBuffers_Present.frameBuffers.emplace_back(nullptr);
+		}
+	}
+
+	void DepthOfFieldRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	{
+		// Uniform buffers
+
+		UniformBufferCreateInfo ubCreateInfo{};
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
+		ubCreateInfo.maxSubAllocationCount = 1;
+		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables);
+		ubCreateInfo.maxSubAllocationCount = 8;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pControlVariables_UB);
+		}
 	}
 
 	void DepthOfFieldRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		auto& frameResources = m_frameResources[m_frameIndex];
-
-		frameResources.m_pControlVariables_UB->ResetSubBufferAllocation();
-
 		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
 		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
 		}
-		Vector3 cameraPos = pCameraTransform->GetPosition();
-		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
+
+		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		ShaderParameterTable shaderParamTable{};
 
-		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
-		ShaderParameterTable shaderParamTable;
+		// Prepare shared uniform buffers
+
+		frameResources.m_pControlVariables_UB->ResetSubBufferAllocation();
 
 		UBCameraMatrices ubCameraMatrices{};
-		UBSystemVariables ubSystemVariables{};
 		UBCameraProperties ubCameraProperties{};
-		UBControlVariables ubControlVariables{};
 
+		Vector3 cameraPos = pCameraTransform->GetPosition();
+		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
 		ubCameraMatrices.viewMatrix = viewMat;
 		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
@@ -281,58 +290,14 @@ namespace Engine
 		ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
 		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
 
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DOF), pCommandBuffer);
+		// Execute internal passes
 
-		// Horizontal pass
-
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, frameResources.m_pFrameBuffer_Horizontal, pCommandBuffer);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		ubControlVariables.bool_1 = 1;
-		SubUniformBuffer subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
-
-		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
-		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
-
-		m_pDevice->EndRenderPass(pCommandBuffer);
-
-		// Vertical pass
-
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::NONE), pCommandBuffer);
-
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_frameBuffers_Present.frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
-
+		HorizontalPass(pGraphResources, pCommandBuffer, shaderParamTable);
 		shaderParamTable.Clear();
+		VerticalPass(pGraphResources, pCommandBuffer, shaderParamTable);
 
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+		// Submission
 
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pHorizontalResult);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		ubControlVariables.bool_1 = 0;
-
-		subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
-
-		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
-		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
-
-		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
 		frameResources.m_pCameraMatrices_UB->FlushToDevice();
@@ -342,18 +307,153 @@ namespace Engine
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
+	void DepthOfFieldRenderNode::HorizontalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
+	{
+		auto& frameResources = m_frameResources[m_frameIndex];
+		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+
+		// Prepare uniform
+		UBControlVariables ubControlVariables{};
+		ubControlVariables.bool_1 = 1;
+		SubUniformBuffer subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
+
+		// Begin pass
+		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, frameResources.m_pFrameBuffer_Horizontal, pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DOF), pCommandBuffer);
+
+		// Update shader resources
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
+			pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
+			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
+
+		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
+
+		// Draw
+		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+		m_pDevice->EndRenderPass(pCommandBuffer);
+	}
+
+	void DepthOfFieldRenderNode::VerticalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
+	{
+		auto& frameResources = m_frameResources[m_frameIndex];
+		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+
+		// Prepare uniform
+		UBControlVariables ubControlVariables{};
+		ubControlVariables.bool_1 = 0;
+		SubUniformBuffer subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
+		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
+
+		// Begin pass
+		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_frameBuffers_Present.frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::Present), pCommandBuffer);
+
+		// Update shader resources
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pHorizontalResult);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
+			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
+
+		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
+
+		// Draw
+		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+		m_pDevice->EndRenderPass(pCommandBuffer);
+	}
+
 	void DepthOfFieldRenderNode::UpdateResolution(uint32_t width, uint32_t height)
 	{
+		m_configuration.width = width;
+		m_configuration.height = height;
 
+		DestroyMutableTextures();
+		CreateMutableTextures(m_configuration);
 	}
 
 	void DepthOfFieldRenderNode::UpdateMaxDrawCallCount(uint32_t count)
 	{
+		m_configuration.maxDrawCall = count;
 
+		if (m_eGraphicsDeviceType != EGraphicsAPIType::OpenGL)
+		{
+			DestroyMutableBuffers();
+			CreateMutableBuffers(m_configuration);
+		}
 	}
 
 	void DepthOfFieldRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
 	{
+		if (m_configuration.framesInFlight != framesInFlight)
+		{
+			m_configuration.framesInFlight = framesInFlight;
 
+			if (framesInFlight < m_frameResources.size())
+			{
+				m_frameResources.resize(framesInFlight);
+			}
+			else
+			{
+				DestroyMutableResources();
+				CreateMutableResources(m_configuration);
+			}
+		}
+	}
+
+	void DepthOfFieldRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
+
+		for (auto pFrameBuffer : m_frameBuffers_Present.frameBuffers)
+		{
+			CE_SAFE_DELETE(pFrameBuffer);
+		}
+		m_frameBuffers_Present.frameBuffers.resize(0);
+	}
+
+	void DepthOfFieldRenderNode::DestroyConstantResources()
+	{
+		CE_DELETE(m_pRenderPassObject_Horizontal);
+		CE_DELETE(m_pRenderPassObject_Present);
+		DestroyGraphicsPipelines();
+	}
+
+	void DepthOfFieldRenderNode::DestroyMutableTextures()
+	{
+		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
+		{
+			CE_DELETE(m_frameResources[i].m_pFrameBuffer_Horizontal);
+			CE_DELETE(m_frameResources[i].m_pHorizontalResult);
+		}
+
+		for (auto pFrameBuffer : m_frameBuffers_Present.frameBuffers)
+		{
+			CE_SAFE_DELETE(pFrameBuffer);
+			// TODO: update Vulkan swapchain as well
+		}
+		m_frameBuffers_Present.frameBuffers.resize(0);
+	}
+
+	void DepthOfFieldRenderNode::DestroyMutableBuffers()
+	{
+		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
+		{
+			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
+			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
+			CE_DELETE(m_frameResources[i].m_pControlVariables_UB);
+		}
 	}
 }

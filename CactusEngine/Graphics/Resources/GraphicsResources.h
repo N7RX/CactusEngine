@@ -339,7 +339,6 @@ namespace Engine
 			EDescriptorType	type;
 			RawResource*	pResource;
 		};
-
 		std::vector<ShaderParameterTableEntry> m_table;
 
 		void AddEntry(uint32_t binding, EDescriptorType descType, RawResource* pRes)

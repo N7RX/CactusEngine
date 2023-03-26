@@ -13,8 +13,8 @@ namespace Engine
 		virtual ~GraphicsDevice() = default;
 
 		// Generic functions for all devices
-		virtual void Initialize() = 0;
-		virtual void ShutDown() = 0;
+		virtual void Initialize();
+		virtual void ShutDown();
 
 		virtual ShaderProgram* CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) = 0;
 
@@ -67,7 +67,7 @@ namespace Engine
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(GraphicsSemaphore* pSemaphore) = 0;
 
-		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const = 0;
+		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const;
 
 		virtual void GetSwapchainImages(std::vector<Texture2D*>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
@@ -78,12 +78,22 @@ namespace Engine
 		virtual void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) = 0;
 		virtual void CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc) = 0;
 
+	private:
+		void CreateDefaultSamplers();
+
 	public:
 		static const uint32_t ATTRIB_POSITION_LOCATION = 0;
 		static const uint32_t ATTRIB_NORMAL_LOCATION = 1;
 		static const uint32_t ATTRIB_TEXCOORD_LOCATION = 2;
 		static const uint32_t ATTRIB_TANGENT_LOCATION = 3;
 		static const uint32_t ATTRIB_BITANGENT_LOCATION = 4;
+
+	protected:
+		TextureSampler* m_pDefaultSampler_NoAF;
+		// No default 2xAF as it's rarely used
+		TextureSampler* m_pDefaultSampler_4xAF;
+		TextureSampler* m_pDefaultSampler_8xAF;
+		TextureSampler* m_pDefaultSampler_16xAF;
 	};
 
 	template<EGraphicsAPIType>

@@ -4,9 +4,21 @@
 
 namespace Engine
 {
+	Sampler_GL::Sampler_GL(const TextureSamplerCreateInfo& createInfo)
+		: m_enableAnisotropy(createInfo.enableAnisotropy),
+		m_anisotropyLevel(createInfo.maxAnisotropy),
+		m_magFilter(OpenGLTextureFilterMode(createInfo.magMode)),
+		m_minFilter(OpenGLTextureFilterMode(createInfo.minMode)),
+		m_minLod(createInfo.minLod),
+		m_maxLod(createInfo.maxLod)
+	{
+
+	}
+
 	Texture2D_GL::Texture2D_GL()
 		: Texture2D(ETexture2DSource::RawDeviceTexture),
-		m_glTextureID(-1)
+		m_glTextureID(-1),
+		m_pSampler(nullptr)
 	{
 
 	}
@@ -30,6 +42,35 @@ namespace Engine
 	{
 		m_width = width;
 		m_height = height;
+	}
+
+	bool Texture2D_GL::HasSampler() const
+	{
+		return m_pSampler != nullptr;
+	}
+
+	void Texture2D_GL::SetSampler(const TextureSampler* pSampler)
+	{
+		if (m_pSampler != pSampler)
+		{
+			m_pSampler = (Sampler_GL*)pSampler;
+
+			glBindTexture(GL_TEXTURE_2D, m_glTextureID);
+			if (m_pSampler->m_enableAnisotropy)
+			{
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, m_pSampler->m_anisotropyLevel);
+			}
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, m_pSampler->m_minFilter);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, m_pSampler->m_magFilter);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_LOD, m_pSampler->m_minLod);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LOD, m_pSampler->m_maxLod);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+	}
+
+	TextureSampler* Texture2D_GL::GetSampler() const
+	{
+		return m_pSampler;
 	}
 
 	FrameBuffer_GL::~FrameBuffer_GL()

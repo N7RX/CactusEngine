@@ -5,7 +5,6 @@ layout(location = 1) in vec3 v2fNormal;
 layout(location = 2) in vec3 v2fPosition;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outLineSpace;
 
 layout(binding = 1) uniform sampler2D AlbedoTexture;
 layout(binding = 3) uniform sampler2D GPositionTexture;
@@ -44,5 +43,4 @@ void main(void)
 	}
 
 	outColor = AlbedoColor * colorFromAlbedoTexture * LightColor * (clamp(dot(v2fNormal, LightDirection), 0.0f, 1e10) + AmbientIntensity) * LightIntensity;
-	outLineSpace = vec4(0.0);
 }

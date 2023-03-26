@@ -130,7 +130,7 @@ namespace Engine
 		// Right now this can only be set before render system initializes
 		void SetMaxFramesInFlight(uint32_t val)
 		{
-			if (val > 4) // Upper limit is 4
+			if (val > 4)
 			{
 				val = 4;
 			}
@@ -138,7 +138,7 @@ namespace Engine
 			{
 				val = 1;
 			}
-
+			// Allowed values: 1, 2, 3, 4
 			m_maxFramesInFlight = val;
 		}
 

@@ -38,7 +38,7 @@ namespace Engine
 
 		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput) override { return false; }
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput) override;
-		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput) override { return false; }
+		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput) override;
 		bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, PipelineVertexInputState*& pOutput) override { return false; }
 		bool CreatePipelineInputAssemblyState(const PipelineInputAssemblyStateCreateInfo& createInfo, PipelineInputAssemblyState*& pOutput) override;
 		bool CreatePipelineColorBlendState(const PipelineColorBlendStateCreateInfo& createInfo, PipelineColorBlendState*& pOutput) override;
@@ -63,8 +63,6 @@ namespace Engine
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
-
-		TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const override { return nullptr; }
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override {}
 		uint32_t GetSwapchainPresentImageIndex() const override { return 0; }

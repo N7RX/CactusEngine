@@ -8,7 +8,6 @@ namespace Engine
 {
 	const char* OpaqueContentRenderNode::OUTPUT_COLOR_TEXTURE = "OpaqueColorTexture";
 	const char* OpaqueContentRenderNode::OUTPUT_DEPTH_TEXTURE = "OpaqueDepthTexture";
-	const char* OpaqueContentRenderNode::OUTPUT_LINE_SPACE_TEXTURE = "OpaqueLineSpaceTexture";
 
 	const char* OpaqueContentRenderNode::INPUT_GBUFFER_NORMAL = "OpaqueInputGBufferNormal";
 	const char* OpaqueContentRenderNode::INPUT_SHADOW_MAP = "OpaqueInputShadowMap";
@@ -21,42 +20,8 @@ namespace Engine
 		m_inputResourceNames[INPUT_SHADOW_MAP] = nullptr;
 	}
 
-	void OpaqueContentRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
+	void OpaqueContentRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
 	{
-		m_frameResources.resize(framesInFlight);
-
-		// Color output and shadow mark output
-
-		Texture2DCreateInfo texCreateInfo{};
-		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = width;
-		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::UByte;
-		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
-		texCreateInfo.textureType = ETextureType::ColorAttachment;
-		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pLineSpaceOutput);
-		}
-
-		// Depth output
-
-		texCreateInfo.format = ETextureFormat::Depth;
-		texCreateInfo.textureType = ETextureType::DepthAttachment;
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthOutput);
-
-			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
-			m_graphResources[i]->Add(OUTPUT_LINE_SPACE_TEXTURE, m_frameResources[i].m_pLineSpaceOutput);
-			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
-		}
-
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
@@ -72,19 +37,6 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		RenderPassAttachmentDescription shadowDesc{};
-		shadowDesc.format = ETextureFormat::RGBA8_SRGB;
-		shadowDesc.sampleCount = 1;
-		shadowDesc.loadOp = EAttachmentOperation::Clear;
-		shadowDesc.storeOp = EAttachmentOperation::Store;
-		shadowDesc.stencilLoadOp = EAttachmentOperation::None;
-		shadowDesc.stencilStoreOp = EAttachmentOperation::None;
-		shadowDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		shadowDesc.usageLayout = EImageLayout::ColorAttachment;
-		shadowDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		shadowDesc.type = EAttachmentType::Color;
-		shadowDesc.index = 1;
-
 		RenderPassAttachmentDescription depthDesc{};
 		depthDesc.format = ETextureFormat::Depth;
 		depthDesc.sampleCount = 1;
@@ -96,70 +48,16 @@ namespace Engine
 		depthDesc.usageLayout = EImageLayout::DepthStencilAttachment;
 		depthDesc.finalLayout = EImageLayout::ShaderReadOnly;
 		depthDesc.type = EAttachmentType::Depth;
-		depthDesc.index = 2;
+		depthDesc.index = 1;
 
 		RenderPassCreateInfo passCreateInfo{};
 		passCreateInfo.clearColor = Color4(1);
 		passCreateInfo.clearDepth = 1.0f;
 		passCreateInfo.clearStencil = 0;
 		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
-		passCreateInfo.attachmentDescriptions.emplace_back(shadowDesc);
 		passCreateInfo.attachmentDescriptions.emplace_back(depthDesc);
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-
-		// Frame buffer
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pLineSpaceOutput);
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
-			fbCreateInfo.framebufferWidth = width;
-			fbCreateInfo.framebufferHeight = height;
-			fbCreateInfo.pRenderPass = m_pRenderPassObject;
-
-			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
-		}
-
-		// Uniform buffers
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
-		ubCreateInfo.maxSubAllocationCount = maxDrawCall;
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pMaterialNumericalProperties_UB);
-		}
 
 		// Pipeline objects
 
@@ -255,7 +153,6 @@ namespace Engine
 
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
-		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 
 		PipelineColorBlendState* pColorBlendState = nullptr;
 		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
@@ -263,8 +160,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = width;
-		viewportStateCreateInfo.height = height;
+		viewportStateCreateInfo.width = initInfo.width;
+		viewportStateCreateInfo.height = initInfo.height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -294,42 +191,128 @@ namespace Engine
 		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::Basic, pPipeline_1);
 	}
 
+	void OpaqueContentRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	{
+		m_frameResources.resize(initInfo.framesInFlight);
+		CreateMutableTextures(initInfo);
+		CreateMutableBuffers(initInfo);
+	}
+
+	void OpaqueContentRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	{
+		// Color output and shadow mark output
+
+		Texture2DCreateInfo texCreateInfo{};
+		texCreateInfo.generateMipmap = false;
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
+		texCreateInfo.textureWidth = initInfo.width;
+		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.dataType = EDataType::UByte;
+		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
+		texCreateInfo.textureType = ETextureType::ColorAttachment;
+		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+		}
+
+		// Depth output
+
+		texCreateInfo.format = ETextureFormat::Depth;
+		texCreateInfo.textureType = ETextureType::DepthAttachment;
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pDepthOutput);
+
+			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+			m_graphResources[i]->Add(OUTPUT_DEPTH_TEXTURE, m_frameResources[i].m_pDepthOutput);
+		}
+
+		// Frame buffer
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
+			fbCreateInfo.framebufferWidth = initInfo.width;
+			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
+
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
+	}
+
+	void OpaqueContentRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	{
+		// Uniform buffers
+
+		UniformBufferCreateInfo ubCreateInfo{};
+		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
+		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
+		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
+		ubCreateInfo.maxSubAllocationCount = 1;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
+		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
+		}
+
+		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
+		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pMaterialNumericalProperties_UB);
+		}
+	}
+
 	void OpaqueContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
-		ESamplerAnisotropyLevel samplerAFLevel = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetTextureAnisotropyLevel();
-
-		auto& frameResources = m_frameResources[m_frameIndex];
-
-		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
-		frameResources.m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
-
 		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
 		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
 		}
-		Vector3 cameraPos = pCameraTransform->GetPosition();
-		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
-		Matrix4x4 projectionMat = glm::perspective(pCameraComp->GetFOV(),
-			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
-			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		// Get resources
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
-
-		Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
-		Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
-		Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
-		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
+		auto& frameResources = m_frameResources[m_frameIndex];
 
 		auto pGBufferNormalTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_NORMAL));
 		auto pShadowMapTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MAP));
 
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
-		ShaderParameterTable shaderParamTable;
+		ShaderParameterTable shaderParamTable{};
+		ESamplerAnisotropyLevel samplerAFLevel = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetTextureAnisotropyLevel();
+
+		// Prepare uniform buffers
+
+		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		frameResources.m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
 
 		UBTransformMatrices ubTransformMatrices{};
 		UBCameraMatrices ubCameraMatrices{};
@@ -337,80 +320,99 @@ namespace Engine
 		UBCameraProperties ubCameraProperties{};
 		UBMaterialNumericalProperties ubMaterialNumericalProperties{};
 
+		Vector3 cameraPos = pCameraTransform->GetPosition();
+		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
+		Matrix4x4 projectionMat = glm::perspective(pCameraComp->GetFOV(),
+			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowAspect(),
+			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 		ubCameraMatrices.projectionMatrix = projectionMat;
 		ubCameraMatrices.viewMatrix = viewMat;
 		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
 
+		// TODO: remove these and get from light source
+		Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
+		Matrix4x4 lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
+		Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
+		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
 		frameResources.m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 		ubCameraProperties.cameraPosition = cameraPos;
 		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
 
+		// Begin drawing
+
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
+
 		for (auto& entity : *pRenderContext->pDrawList)
 		{
+			// Skip non-mesh entities
+
 			auto pMaterialComp = (MaterialComponent*)entity->GetComponent(EComponentType::Material);
 			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
 			auto pMeshFilterComp = (MeshFilterComponent*)entity->GetComponent(EComponentType::MeshFilter);
-
 			if (!pMaterialComp || pMaterialComp->GetMaterialCount() == 0 || !pTransformComp || !pMeshFilterComp)
 			{
 				continue;
 			}
 
-			auto pMesh = pMeshFilterComp->GetMesh();
+			// Get vertex buffer
 
+			auto pMesh = pMeshFilterComp->GetMesh();
 			if (!pMesh)
 			{
 				continue;
 			}
+			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
+
+			// Update per mesh uniforms
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-
 			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
 			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
 
-			shaderParamTable.Clear();
-
-			uint32_t submeshCount = pMesh->GetSubmeshCount();
-			auto subMeshes = pMesh->GetSubMeshes();
-
-			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
-
-			for (uint32_t i = 0; i < submeshCount; ++i)
+			// Draw submeshes
+			auto pSubMeshes = pMesh->GetSubMeshes();
+			uint32_t subMeshCount = pSubMeshes->size();
+			for (uint32_t i = 0; i < subMeshCount; ++i)
 			{
+				// Skip transparent meshes
 				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
-
 				if (pMaterial->IsTransparent())
 				{
 					continue;
 				}
 
+				// Bind pipeline
 				if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 				{
 					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
 					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 					lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 				}
-				shaderParamTable.Clear();
 
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
-
+				// Update per submesh uniforms
 				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 				ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
 				ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
-
 				SubUniformBuffer subMaterialNumericalPropertiesUB = frameResources.m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
 				frameResources.m_pMaterialNumericalProperties_UB->UpdateBufferData(&ubMaterialNumericalProperties, &subMaterialNumericalPropertiesUB);
 
+				// Update shader resources
+
+				shaderParamTable.Clear();
+				DEBUG_ASSERT_CE(pShaderProgram != nullptr);
+
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
+
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, &subMaterialNumericalPropertiesUB);
+
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
@@ -426,14 +428,17 @@ namespace Engine
 					{
 						pToneTexture->SetSampler(m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None));
 					}
-
 					shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TONE_TEXTURE), EDescriptorType::CombinedImageSampler, pToneTexture);
 				}
 
 				m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
-				m_pDevice->DrawPrimitive(subMeshes->at(i).m_numIndices, subMeshes->at(i).m_baseIndex, subMeshes->at(i).m_baseVertex, pCommandBuffer);
+
+				// Draw
+				m_pDevice->DrawPrimitive(pSubMeshes->at(i).m_numIndices, pSubMeshes->at(i).m_baseIndex, pSubMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 		}
+
+		// End pass and submit
 
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
@@ -449,16 +454,73 @@ namespace Engine
 
 	void OpaqueContentRenderNode::UpdateResolution(uint32_t width, uint32_t height)
 	{
+		m_configuration.width = width;
+		m_configuration.height = height;
 
+		DestroyMutableTextures();
+		CreateMutableTextures(m_configuration);
 	}
 
 	void OpaqueContentRenderNode::UpdateMaxDrawCallCount(uint32_t count)
 	{
+		m_configuration.maxDrawCall = count;
 
+		if (m_eGraphicsDeviceType != EGraphicsAPIType::OpenGL)
+		{
+			DestroyMutableBuffers();
+			CreateMutableBuffers(m_configuration);
+		}
 	}
 
 	void OpaqueContentRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
 	{
+		if (m_configuration.framesInFlight != framesInFlight)
+		{
+			m_configuration.framesInFlight = framesInFlight;
 
+			if (framesInFlight < m_frameResources.size())
+			{
+				m_frameResources.resize(framesInFlight);
+			}
+			else
+			{
+				DestroyMutableResources();
+				CreateMutableResources(m_configuration);
+			}
+		}
+	}
+
+	void OpaqueContentRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
+	}
+
+	void OpaqueContentRenderNode::DestroyConstantResources()
+	{
+		CE_DELETE(m_pRenderPassObject);
+		DestroyGraphicsPipelines();
+	}
+
+	void OpaqueContentRenderNode::DestroyMutableTextures()
+	{
+		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
+		{
+			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
+			CE_DELETE(m_frameResources[i].m_pColorOutput);
+			CE_DELETE(m_frameResources[i].m_pDepthOutput);
+		}
+	}
+
+	void OpaqueContentRenderNode::DestroyMutableBuffers()
+	{
+		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
+		{
+			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
+			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
+			CE_DELETE(m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
+			CE_DELETE(m_frameResources[i].m_pMaterialNumericalProperties_UB);
+			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
+		}
 	}
 }

@@ -17,10 +17,8 @@ namespace Engine
 
 	Sampler_VK::~Sampler_VK()
 	{
-		// TODO: add explicit sampler destroy function in GHI instead
 		DEBUG_ASSERT_CE(m_sampler != VK_NULL_HANDLE);
-		//vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
-		LOG_MESSAGE("Vulkan: Sampler destructor called");
+		vkDestroySampler(m_pDevice->logicalDevice, m_sampler, nullptr);
 	}
 
 	Texture2D_VK::Texture2D_VK(LogicalDevice_VK* pDevice, const Texture2DCreateInfo_VK& createInfo)

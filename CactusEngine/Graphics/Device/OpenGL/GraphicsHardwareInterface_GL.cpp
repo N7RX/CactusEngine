@@ -32,6 +32,8 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::Initialize()
 	{
+		GraphicsDevice::Initialize();
+
 		glGenVertexArrays(1, &m_attributeless_vao);
 
 		// Temporary solution for enabling sRGB support
@@ -40,7 +42,7 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::ShutDown()
 	{
-
+		GraphicsDevice::ShutDown();
 	}
 
 	ShaderProgram* GraphicsHardwareInterface_GL::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
@@ -331,6 +333,12 @@ namespace Engine
 			pRenderPass->m_clearColor = createInfo.clearColor;
 		}
 
+		return pOutput != nullptr;
+	}
+
+	bool GraphicsHardwareInterface_GL::CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput)
+	{
+		CE_NEW(pOutput, Sampler_GL, createInfo);
 		return pOutput != nullptr;
 	}
 

@@ -8,12 +8,24 @@ namespace Engine
 	public:
 		GBufferRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
 
-		void SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight) override;
+	protected:
+		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
 		void UpdateMaxDrawCallCount(uint32_t count) override;
 		void UpdateFramesInFlight(uint32_t framesInFlight) override;
+
+		void DestroyMutableResources() override;
+		void DestroyConstantResources() override;
+
+	private:
+		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
+		void CreateMutableBuffers(const RenderNodeInitInfo& initInfo);
+		void DestroyMutableTextures();
+		void DestroyMutableBuffers();
 
 	public:
 		static const char* OUTPUT_NORMAL_GBUFFER;
@@ -31,6 +43,16 @@ namespace Engine
 				m_pPositionOutput(nullptr)
 			{
 
+			}
+
+			~FrameResources()
+			{
+				CE_SAFE_DELETE(m_pFrameBuffer);
+				CE_SAFE_DELETE(m_pTransformMatrices_UB);
+				CE_SAFE_DELETE(m_pCameraMatrices_UB);
+				CE_SAFE_DELETE(m_pDepthBuffer);
+				CE_SAFE_DELETE(m_pNormalOutput);
+				CE_SAFE_DELETE(m_pPositionOutput);
 			}
 
 			FrameBuffer* m_pFrameBuffer;

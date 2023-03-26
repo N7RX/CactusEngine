@@ -37,26 +37,42 @@ namespace Engine
 		GraphicsCommandPool* pTransferCommandPool = nullptr;
 	};
 	
+	struct RenderNodeInitInfo
+	{
+		uint32_t width;
+		uint32_t height;
+		uint32_t maxDrawCall;
+		uint32_t framesInFlight;
+		// TODO: configure color and depth format etc.
+	};
+
 	class RenderNode
 	{
 	public:
 		RenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
-		virtual ~RenderNode() = default;
+		virtual ~RenderNode();
 
 		void ConnectNext(RenderNode* pNode);
 		void SetInputResource(const char* slot, const char* pResourceName);
 
 	protected:
-		void Setup(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight);
+		void Setup(const RenderNodeInitInfo& initInfo);
 		void ExecuteSequential(); // For OpenGL
 		void ExecuteParallel();	  // For Vulkan
 
-		virtual void SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight) = 0;
+		virtual void CreateConstantResources(const RenderNodeInitInfo& initInfo) = 0; // Pipeline objects that are constant
+		virtual void CreateMutableResources(const RenderNodeInitInfo& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
+
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
 
 		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
-		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // Affects the size of uniform buffers
+		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // May affect the size of uniform buffers
 		virtual void UpdateFramesInFlight(uint32_t framesInFlight) = 0;
+
+		virtual void DestroyMutableResources() {}
+		virtual void DestroyConstantResources() {}
+
+		void DestroyGraphicsPipelines();
 
 	protected:
 		const char*					m_pName;
@@ -76,6 +92,8 @@ namespace Engine
 		std::unordered_map<const char*, const char*> m_inputResourceNames;
 		std::unordered_map<EBuiltInShaderProgramType, GraphicsPipelineObject*> m_graphicsPipelines;
 
+		RenderNodeInitInfo m_configuration;
+
 		friend class RenderGraph;
 	};
 
@@ -94,6 +112,9 @@ namespace Engine
 
 		RenderNode* GetNodeByName(const char* name) const;
 		uint32_t GetRenderNodeCount() const;
+
+		void UpdateResolution(uint32_t width, uint32_t height);
+		void UpdateFramesInFlight(uint32_t framesInFlight);
 
 	private:
 		void ExecuteRenderNodesParallel();

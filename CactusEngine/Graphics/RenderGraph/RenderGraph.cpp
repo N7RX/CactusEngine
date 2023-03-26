@@ -43,9 +43,16 @@ namespace Engine
 		m_pCmdContext(nullptr),
 		m_graphResources(graphResources),
 		m_frameIndex(0),
-		m_pRenderContext(nullptr)
+		m_pRenderContext(nullptr),
+		m_configuration()
 	{
 		
+	}
+
+	RenderNode::~RenderNode()
+	{
+		DestroyMutableResources();
+		DestroyConstantResources();
 	}
 
 	void RenderNode::ConnectNext(RenderNode* pNode)
@@ -60,9 +67,12 @@ namespace Engine
 		m_inputResourceNames.at(slot) = pResourceName;
 	}
 
-	void RenderNode::Setup(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
+	void RenderNode::Setup(const RenderNodeInitInfo& initInfo)
 	{
-		SetupFunction(width, height, maxDrawCall, framesInFlight);
+		m_configuration = initInfo;
+
+		CreateConstantResources(initInfo);
+		CreateMutableResources(initInfo);
 	}
 
 	void RenderNode::ExecuteSequential()
@@ -88,6 +98,14 @@ namespace Engine
 	{
 		RenderPassFunction(m_graphResources[m_frameIndex], m_pRenderContext, m_pCmdContext);
 		m_finishedExecution = true;
+	}
+
+	void RenderNode::DestroyGraphicsPipelines()
+	{
+		for (auto pipeline : m_graphicsPipelines)
+		{
+			CE_DELETE(pipeline.second);
+		}
 	}
 
 	RenderGraph::RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount)
@@ -122,14 +140,16 @@ namespace Engine
 
 	void RenderGraph::SetupRenderNodes()
 	{
-		uint32_t screenWidth = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
-		uint32_t screenHeight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
-		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		uint32_t defaultMaxDrawCall = 256;
+		RenderNodeInitInfo initInfo{};
+
+		initInfo.width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+		initInfo.maxDrawCall = 256;
 
 		for (auto& node : m_nodes)
 		{
-			node.second->Setup(screenWidth, screenHeight, defaultMaxDrawCall, maxFramesInFlight);
+			node.second->Setup(initInfo);
 		}
 	}
 
@@ -256,6 +276,22 @@ namespace Engine
 	uint32_t RenderGraph::GetRenderNodeCount() const
 	{
 		return m_nodes.size();
+	}
+
+	void RenderGraph::UpdateResolution(uint32_t width, uint32_t height)
+	{
+		for (auto& pNode : m_nodes)
+		{
+			pNode.second->UpdateResolution(width, height);
+		}
+	}
+
+	void RenderGraph::UpdateFramesInFlight(uint32_t framesInFlight)
+	{
+		for (auto& pNode : m_nodes)
+		{
+			pNode.second->UpdateFramesInFlight(framesInFlight);
+		}
 	}
 
 	void RenderGraph::ExecuteRenderNodesParallel()

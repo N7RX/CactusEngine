@@ -23,28 +23,8 @@ namespace Engine
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void TransparencyBlendRenderNode::SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight)
+	void TransparencyBlendRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
 	{
-		m_frameResources.resize(framesInFlight);
-
-		// Color output
-
-		Texture2DCreateInfo texCreateInfo{};
-		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = width;
-		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::UByte;
-		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
-		texCreateInfo.textureType = ETextureType::ColorAttachment;
-		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
-			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
-		}
-
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
@@ -67,19 +47,6 @@ namespace Engine
 		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
-
-		// Frame buffer
-
-		for (uint32_t i = 0; i < framesInFlight; ++i)
-		{
-			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
-			fbCreateInfo.framebufferWidth = width;
-			fbCreateInfo.framebufferHeight = height;
-			fbCreateInfo.pRenderPass = m_pRenderPassObject;
-
-			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
-		}
 
 		// Pipeline objects
 
@@ -147,8 +114,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = width;
-		viewportStateCreateInfo.height = height;
+		viewportStateCreateInfo.width = initInfo.width;
+		viewportStateCreateInfo.height = initInfo.height;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -172,18 +139,60 @@ namespace Engine
 		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, pPipeline);
 	}
 
+	void TransparencyBlendRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	{
+		m_frameResources.resize(initInfo.framesInFlight);
+		CreateMutableTextures(initInfo);
+	}
+
+	void TransparencyBlendRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	{
+		// Color output
+
+		Texture2DCreateInfo texCreateInfo{};
+		texCreateInfo.generateMipmap = false;
+		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
+		texCreateInfo.textureWidth = initInfo.width;
+		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.dataType = EDataType::UByte;
+		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
+		texCreateInfo.textureType = ETextureType::ColorAttachment;
+		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+		}
+
+		// Frame buffer
+
+		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		{
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.framebufferWidth = initInfo.width;
+			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
+
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
+		}
+	}
+
 	void TransparencyBlendRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
 	{
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
 
-		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
+		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
+		ShaderParameterTable shaderParamTable{};
 
+		// Bind pipeline
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 
-		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
-		ShaderParameterTable shaderParamTable;
+		// Update shader resources
 
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_OPQAUE_DEPTH_TEXTURE)));
@@ -198,7 +207,11 @@ namespace Engine
 			pGraphResources->Get(m_inputResourceNames.at(INPUT_TRANSPARENCY_COLOR_TEXTURE)));
 
 		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
+
+		// Draw
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+
+		// End pass
 
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
@@ -208,16 +221,54 @@ namespace Engine
 
 	void TransparencyBlendRenderNode::UpdateResolution(uint32_t width, uint32_t height)
 	{
+		m_configuration.width = width;
+		m_configuration.height = height;
 
+		DestroyMutableTextures();
+		CreateMutableTextures(m_configuration);
 	}
 
 	void TransparencyBlendRenderNode::UpdateMaxDrawCallCount(uint32_t count)
 	{
-
+		m_configuration.maxDrawCall = count;
 	}
 
 	void TransparencyBlendRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
 	{
+		if (m_configuration.framesInFlight != framesInFlight)
+		{
+			m_configuration.framesInFlight = framesInFlight;
 
+			if (framesInFlight < m_frameResources.size())
+			{
+				m_frameResources.resize(framesInFlight);
+			}
+			else
+			{
+				DestroyMutableResources();
+				CreateMutableResources(m_configuration);
+			}
+		}
+	}
+
+	void TransparencyBlendRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
+	}
+
+	void TransparencyBlendRenderNode::DestroyConstantResources()
+	{
+		CE_DELETE(m_pRenderPassObject);
+		DestroyGraphicsPipelines();
+	}
+
+	void TransparencyBlendRenderNode::DestroyMutableTextures()
+	{
+		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
+		{
+			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
+			CE_DELETE(m_frameResources[i].m_pColorOutput);
+		}
 	}
 }

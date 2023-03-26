@@ -9,7 +9,6 @@ layout(location = 5) in vec3 v2fBitangent;
 layout(location = 6) in mat3 v2fTBNMatrix;
 
 layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec4 outLineSpace;
 
 layout(std140, binding = 22) uniform CameraMatrices
 {
@@ -232,5 +231,4 @@ void main(void)
 
 	outColor = (I * toneColor * colorFromAlbedoTexture + specularColor) * (1.8f - shadowValue);
 	outColor.a = min(shadowValue, (1.0f - toonCoord.x));
-	outLineSpace = vec4(texture(GNormalTexture, screenCoord).rgb, toonCoord.x);
 }

@@ -8,12 +8,22 @@ namespace Engine
 	public:
 		TransparencyBlendRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer);
 
-		void SetupFunction(uint32_t width, uint32_t height, uint32_t maxDrawCall, uint32_t framesInFlight) override;
+	protected:
+		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
 		void UpdateMaxDrawCallCount(uint32_t count) override;
 		void UpdateFramesInFlight(uint32_t framesInFlight) override;
+
+		void DestroyMutableResources() override;
+		void DestroyConstantResources() override;
+
+	private:
+		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
+		void DestroyMutableTextures();
 
 	public:
 		static const char* OUTPUT_COLOR_TEXTURE;
@@ -31,6 +41,12 @@ namespace Engine
 				m_pColorOutput(nullptr)
 			{
 
+			}
+
+			~FrameResources()
+			{
+				CE_SAFE_DELETE(m_pFrameBuffer);
+				CE_SAFE_DELETE(m_pColorOutput);
 			}
 
 			FrameBuffer* m_pFrameBuffer;

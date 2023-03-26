@@ -201,4 +201,19 @@ namespace Engine
 		}
 		return -1;
 	}
+
+	inline GLenum OpenGLTextureFilterMode(ESamplerFilterMode mode)
+	{
+		switch (mode)
+		{
+			case ESamplerFilterMode::Nearest:
+				return GL_NEAREST;
+			case ESamplerFilterMode::Linear:
+				return GL_LINEAR;
+			default:
+				LOG_ERROR("OpenGL: Unhandled sampler filter mode.");
+				break;
+		}
+		return -1;
+	}
 }

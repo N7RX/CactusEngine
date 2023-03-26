@@ -11,7 +11,10 @@ namespace Engine
 		enum class SourceType
 		{
 			Directional = 0,
-			PointLight,
+			Point,
+			Cone,
+			Area,
+			Ambient,
 			COUNT
 		};
 		
