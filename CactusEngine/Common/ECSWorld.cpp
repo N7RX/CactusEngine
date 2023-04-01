@@ -44,6 +44,20 @@ namespace Engine
 		}
 	}
 
+	BaseSystem* ECSWorld::GetSystem(ESystemType type) const
+	{
+		for (auto system : m_systemList)
+		{
+			if (system->GetSystemID() == (uint32_t)type)
+			{
+				return system;
+			}
+		}
+
+		LOG_ERROR("Requested system does not exist in current environment.");
+		return nullptr;
+	}
+
 	void ECSWorld::RemoveEntity(uint32_t entityID)
 	{
 		m_entityList.erase(entityID);

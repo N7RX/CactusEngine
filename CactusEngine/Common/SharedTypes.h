@@ -37,6 +37,8 @@ namespace Engine
 	enum class ERendererType
 	{
 		Standard = 0,
+		Simple,
+		Advanced,
 		COUNT
 	};
 

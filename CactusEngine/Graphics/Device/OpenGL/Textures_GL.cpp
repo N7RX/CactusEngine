@@ -73,6 +73,14 @@ namespace Engine
 		return m_pSampler;
 	}
 
+	FrameBuffer_GL::FrameBuffer_GL()
+		: FrameBuffer(),
+		m_glFrameBufferID(-1),
+		m_isRenderToBackbuffer(false)
+	{
+
+	}
+
 	FrameBuffer_GL::~FrameBuffer_GL()
 	{
 		glDeleteFramebuffers(1, &m_glFrameBufferID);
@@ -118,5 +126,15 @@ namespace Engine
 	const GLenum* FrameBuffer_GL::GetColorAttachments() const
 	{
 		return m_bufferAttachments.data();
+	}
+
+	bool FrameBuffer_GL::IsRenderToBackbuffer() const
+	{
+		return m_isRenderToBackbuffer;
+	}
+
+	void FrameBuffer_GL::MarkRenderToBackbuffer()
+	{
+		m_isRenderToBackbuffer = true;
 	}
 }

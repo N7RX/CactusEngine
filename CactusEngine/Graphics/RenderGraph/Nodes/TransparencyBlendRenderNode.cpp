@@ -23,20 +23,20 @@ namespace Engine
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
 	}
 
-	void TransparencyBlendRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void TransparencyBlendRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = ETextureFormat::RGBA8_SRGB;
+		colorDesc.format = m_outputToSwapchain ? ETextureFormat::BGRA8_UNORM : ETextureFormat::RGBA8_SRGB;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+		colorDesc.initialLayout = m_outputToSwapchain ? EImageLayout::PresentSrc : EImageLayout::ShaderReadOnly;
 		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+		colorDesc.finalLayout = colorDesc.initialLayout;
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
@@ -114,8 +114,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = initInfo.width;
-		viewportStateCreateInfo.height = initInfo.height;
+		viewportStateCreateInfo.width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		viewportStateCreateInfo.height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -136,33 +136,39 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DepthBased_ColorBlend_2, pPipeline);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2, pPipeline);
 	}
 
-	void TransparencyBlendRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void TransparencyBlendRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 	}
 
-	void TransparencyBlendRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void TransparencyBlendRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
+		uint32_t width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		uint32_t height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
+
 		// Color output
 
-		Texture2DCreateInfo texCreateInfo{};
-		texCreateInfo.generateMipmap = false;
-		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = initInfo.width;
-		texCreateInfo.textureHeight = initInfo.height;
-		texCreateInfo.dataType = EDataType::UByte;
-		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
-		texCreateInfo.textureType = ETextureType::ColorAttachment;
-		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
-
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		if (!m_outputToSwapchain)
 		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
-			m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+			Texture2DCreateInfo texCreateInfo{};
+			texCreateInfo.generateMipmap = false;
+			texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
+			texCreateInfo.textureWidth = width;
+			texCreateInfo.textureHeight = height;
+			texCreateInfo.dataType = EDataType::UByte;
+			texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
+			texCreateInfo.textureType = ETextureType::ColorAttachment;
+			texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
+
+			for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+			{
+				m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+				m_graphResources[i]->Add(OUTPUT_COLOR_TEXTURE, m_frameResources[i].m_pColorOutput);
+			}
 		}
 
 		// Frame buffer
@@ -170,10 +176,11 @@ namespace Engine
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
-			fbCreateInfo.framebufferWidth = initInfo.width;
-			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.attachments.emplace_back(m_outputToSwapchain ? m_pSwapchainImages->at(i) : m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
+			fbCreateInfo.renderToSwapchain = m_outputToSwapchain;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
@@ -190,7 +197,7 @@ namespace Engine
 
 		// Bind pipeline
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2), pCommandBuffer);
 
 		// Update shader resources
 
@@ -268,7 +275,7 @@ namespace Engine
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
 		{
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
-			CE_DELETE(m_frameResources[i].m_pColorOutput);
+			CE_SAFE_DELETE(m_frameResources[i].m_pColorOutput);
 		}
 	}
 }

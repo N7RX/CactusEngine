@@ -46,6 +46,7 @@ namespace Engine
 	class FrameBuffer_GL : public FrameBuffer
 	{
 	public:
+		FrameBuffer_GL();
 		~FrameBuffer_GL();
 
 		GLuint GetGLFrameBufferID() const;
@@ -59,8 +60,13 @@ namespace Engine
 		GLenum GetColorAttachment(uint32_t index) const;
 		const GLenum* GetColorAttachments() const;
 
+		bool IsRenderToBackbuffer() const;
+		void MarkRenderToBackbuffer();
+
 	private:
-		GLuint m_glFrameBufferID = -1;
+		GLuint m_glFrameBufferID;
 		std::vector<GLenum> m_bufferAttachments;
+
+		bool m_isRenderToBackbuffer;
 	};
 }

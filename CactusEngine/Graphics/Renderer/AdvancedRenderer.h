@@ -3,11 +3,11 @@
 
 namespace Engine
 {
-	class StandardRenderer : public BaseRenderer
+	class AdvancedRenderer : public BaseRenderer
 	{
 	public:
-		StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem);
-		~StandardRenderer() = default;
+		AdvancedRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem);
+		~AdvancedRenderer() = default;
 
 		void BuildRenderGraph() override;
 

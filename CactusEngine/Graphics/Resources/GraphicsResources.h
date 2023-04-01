@@ -203,6 +203,8 @@ namespace Engine
 		std::vector<Texture2D*> attachments;
 
 		RenderPassObject* pRenderPass;
+
+		bool renderToSwapchain;
 	};
 
 	class FrameBuffer : public RawResource
@@ -216,22 +218,11 @@ namespace Engine
 		virtual uint32_t GetFrameBufferID() const = 0;
 
 	protected:
-		FrameBuffer()
-			: m_width(0),
-			m_height(0)
-		{
-
-		}
+		FrameBuffer();
 
 	protected:
 		uint32_t m_width;
 		uint32_t m_height;
-	};
-
-	// For low-level APIs like Vulkan
-	struct SwapchainFrameBuffers : public RawResource
-	{
-		std::vector<FrameBuffer*> frameBuffers;
 	};
 
 	struct UniformBufferCreateInfo

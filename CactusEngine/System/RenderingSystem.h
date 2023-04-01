@@ -37,9 +37,9 @@ namespace Engine
 
 	private:
 		bool CreateDevice();
-		bool RegisterRenderers();
+		void RegisterRenderers();
 		bool LoadShaders();
-		void BuildRenderGraphs();
+		void InitializeActiveRenderer();
 		void BuildRenderTask();
 		void ExecuteRenderTask();
 

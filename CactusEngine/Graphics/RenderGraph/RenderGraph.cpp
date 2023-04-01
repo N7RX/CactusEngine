@@ -43,6 +43,8 @@ namespace Engine
 		m_pCmdContext(nullptr),
 		m_graphResources(graphResources),
 		m_frameIndex(0),
+		m_pSwapchainImages(nullptr),
+		m_outputToSwapchain(false),
 		m_pRenderContext(nullptr),
 		m_configuration()
 	{
@@ -67,7 +69,14 @@ namespace Engine
 		m_inputResourceNames.at(slot) = pResourceName;
 	}
 
-	void RenderNode::Setup(const RenderNodeInitInfo& initInfo)
+	void RenderNode::UseSwapchainImages(std::vector<Texture2D*>* pSwapchainImages)
+	{
+		DEBUG_ASSERT_CE(pSwapchainImages != nullptr);
+		m_pSwapchainImages = pSwapchainImages;
+		m_outputToSwapchain = true;
+	}
+
+	void RenderNode::Setup(const RenderNodeConfiguration& initInfo)
 	{
 		m_configuration = initInfo;
 
@@ -140,12 +149,13 @@ namespace Engine
 
 	void RenderGraph::SetupRenderNodes()
 	{
-		RenderNodeInitInfo initInfo{};
+		RenderNodeConfiguration initInfo{};
 
 		initInfo.width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		initInfo.maxDrawCall = 256;
+		initInfo.maxDrawCall = 256; // TODO: This should be updated according to scene complexity
+		initInfo.renderScale = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetRenderScale();
 
 		for (auto& node : m_nodes)
 		{

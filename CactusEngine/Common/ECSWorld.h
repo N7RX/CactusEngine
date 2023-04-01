@@ -49,6 +49,8 @@ namespace Engine
 			m_systemList.push_back(pSystem);
 		}
 
+		BaseSystem* GetSystem(ESystemType type) const;
+
 		void RemoveEntity(uint32_t entityID);
 		void RemoveSystem(ESystemType type);
 

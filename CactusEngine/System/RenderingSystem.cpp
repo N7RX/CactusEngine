@@ -1,5 +1,7 @@
 #include "RenderingSystem.h"
 #include "StandardRenderer.h"
+#include "SimpleRenderer.h"
+#include "AdvancedRenderer.h"
 #include "GraphicsHardwareInterface_GL.h"
 #include "GraphicsHardwareInterface_VK.h"
 #include "MeshFilterComponent.h"
@@ -13,10 +15,11 @@ namespace Engine
 {
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
 		: m_pECSWorld(pWorld),
-		m_activeRenderer(ERendererType::Standard),
 		m_frameIndex(0),
 		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight())
 	{
+		m_activeRenderer = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer();
+
 		CreateDevice();
 		RegisterRenderers();
 
@@ -26,7 +29,7 @@ namespace Engine
 	void RenderingSystem::Initialize()
 	{
 		LoadShaders();
-		BuildRenderGraphs();
+		InitializeActiveRenderer();
 	}
 
 	void RenderingSystem::ShutDown()
@@ -68,6 +71,7 @@ namespace Engine
 
 	void RenderingSystem::RemoveRenderer(ERendererType type)
 	{
+		DEBUG_ASSERT_CE((uint32_t)type < (uint32_t)ERendererType::COUNT);
 		DEBUG_ASSERT_MESSAGE_CE(m_rendererTable[(uint32_t)type], "Trying to remove a renderer that is not loaded.");
 
 		//... Unload renderer
@@ -77,10 +81,15 @@ namespace Engine
 
 	void RenderingSystem::SetActiveRenderer(ERendererType type)
 	{
-		if ((uint32_t)type < (uint32_t)ERendererType::COUNT && m_rendererTable[(uint32_t)type])
+		DEBUG_ASSERT_CE((uint32_t)type < (uint32_t)ERendererType::COUNT);
+		if (m_rendererTable[(uint32_t)type])
+		{
 			m_activeRenderer = type;
+		}
 		else
+		{
 			LOG_ERROR("RenderingSystem: Trying to set a renderer that is not registered");
+		}
 	}
 
 	bool RenderingSystem::CreateDevice()
@@ -104,11 +113,11 @@ namespace Engine
 		return true;
 	}
 
-	bool RenderingSystem::RegisterRenderers()
+	void RenderingSystem::RegisterRenderers()
 	{
-		RegisterRenderer<StandardRenderer>(ERendererType::Standard, 1);
-
-		return true;
+		RegisterRenderer<SimpleRenderer>(ERendererType::Simple, 1);
+		RegisterRenderer<StandardRenderer>(ERendererType::Standard, 0);
+		RegisterRenderer<AdvancedRenderer>(ERendererType::Advanced, 2);
 	}
 
 	bool RenderingSystem::LoadShaders()
@@ -151,12 +160,9 @@ namespace Engine
 		return true;
 	}
 
-	void RenderingSystem::BuildRenderGraphs()
+	void RenderingSystem::InitializeActiveRenderer()
 	{
-		for (auto& pRenderer : m_rendererTable)
-		{
-			pRenderer->BuildRenderGraph();
-		}
+		m_rendererTable[(uint32_t)m_activeRenderer]->BuildRenderGraph();
 	}
 
 	void RenderingSystem::BuildRenderTask()

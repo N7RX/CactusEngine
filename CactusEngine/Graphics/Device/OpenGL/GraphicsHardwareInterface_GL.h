@@ -64,7 +64,7 @@ namespace Engine
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
 
-		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override {}
+		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override { return 0; }
 
 		void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) override {}

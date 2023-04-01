@@ -15,8 +15,10 @@ namespace Engine
 
 	}
 
-	void ShadowMapRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void ShadowMapRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
+		DEBUG_ASSERT_MESSAGE_CE(!m_outputToSwapchain, "Shadow map render node cannot output directly to swapchain.");
+
 		// Render pass object
 
 		RenderPassAttachmentDescription depthDesc{};
@@ -137,8 +139,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = SHADOW_MAP_RESOLUTION;
-		viewportStateCreateInfo.height = SHADOW_MAP_RESOLUTION;
+		viewportStateCreateInfo.width = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
+		viewportStateCreateInfo.height = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -159,25 +161,25 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::ShadowMap, pPipeline);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::ShadowMap, pPipeline);
 	}
 
-	void ShadowMapRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void ShadowMapRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 		CreateMutableBuffers(initInfo);
 	}
 
-	void ShadowMapRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void ShadowMapRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
 		// Depth texture
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION;
-		texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION;
+		texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
+		texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
 		texCreateInfo.dataType = EDataType::Float32;
 		texCreateInfo.format = ETextureFormat::Depth;
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
@@ -195,15 +197,15 @@ namespace Engine
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
-			fbCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION;
-			fbCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION;
+			fbCreateInfo.framebufferWidth = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
+			fbCreateInfo.framebufferHeight = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
 	}
 
-	void ShadowMapRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	void ShadowMapRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
 	{
 		// Uniform buffers
 
@@ -263,7 +265,7 @@ namespace Engine
 		// Bind pipeline and begin draw
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{

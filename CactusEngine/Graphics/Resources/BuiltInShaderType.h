@@ -17,7 +17,6 @@ namespace Engine
 		DOF,
 		DeferredLighting,
 		DeferredLighting_Directional,
-		Present,
 		COUNT
 	};
 

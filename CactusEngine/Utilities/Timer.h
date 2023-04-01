@@ -11,10 +11,10 @@ namespace Engine
 		static void FrameEnd();
 
 		static int64_t TimeSinceStartUp(); // In nanoseconds
-		static float Now();					 // In seconds
+		static float Now();				   // In seconds
 		static uint32_t GetCurrentFPS();
-		static uint32_t GetAverageFPS(); // Average FPS in approximately 1 second
-		static float GetFrameDeltaTime();	 // In seconds
+		static uint32_t GetAverageFPS();   // Average FPS in approximately 1 second
+		static float GetFrameDeltaTime();  // In seconds
 		static uint64_t GetCurrentFrame();
 
 	private:

@@ -9,8 +9,8 @@ namespace Engine
 		ShadowMapRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer);
 
 	protected:
-		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
-		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
+		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
@@ -22,8 +22,8 @@ namespace Engine
 		void DestroyConstantResources() override;
 
 	private:
-		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
-		void CreateMutableBuffers(const RenderNodeInitInfo& initInfo);
+		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
+		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
 		void DestroyMutableBuffers();
 
@@ -38,9 +38,9 @@ namespace Engine
 		{
 			FrameResources()
 				: m_pFrameBuffer(nullptr),
+				m_pDepthOutput(nullptr),
 				m_pTransformMatrices_UB(nullptr),
-				m_pLightSpaceTransformMatrix_UB(nullptr),
-				m_pDepthOutput(nullptr)
+				m_pLightSpaceTransformMatrix_UB(nullptr)
 			{
 
 			}
@@ -48,17 +48,17 @@ namespace Engine
 			~FrameResources()
 			{
 				CE_SAFE_DELETE(m_pFrameBuffer);
+				CE_SAFE_DELETE(m_pDepthOutput);
 				CE_SAFE_DELETE(m_pTransformMatrices_UB);
 				CE_SAFE_DELETE(m_pLightSpaceTransformMatrix_UB);
-				CE_SAFE_DELETE(m_pDepthOutput);
 			}
 
 			FrameBuffer* m_pFrameBuffer;
 
+			Texture2D* m_pDepthOutput;
+
 			UniformBuffer* m_pTransformMatrices_UB;
 			UniformBuffer* m_pLightSpaceTransformMatrix_UB;
-
-			Texture2D* m_pDepthOutput;
 		};
 		std::vector<FrameResources> m_frameResources;
 

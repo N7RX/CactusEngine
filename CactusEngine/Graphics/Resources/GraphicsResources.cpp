@@ -26,6 +26,13 @@ namespace Engine
 		m_sizeInBytes = size;
 	}
 
+	FrameBuffer::FrameBuffer()
+		: m_width(0),
+		m_height(0)
+	{
+
+	}
+
 	uint32_t FrameBuffer::GetWidth() const
 	{
 		return m_width;

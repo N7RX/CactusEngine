@@ -1,20 +1,20 @@
-#include "StandardRenderer.h"
+#include "AdvancedRenderer.h"
 #include "AllRenderNodes.h"
 #include "RenderGraph.h"
 
 namespace Engine
 {
-	StandardRenderer::StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem)
-		: BaseRenderer(ERendererType::Standard, pDevice, pSystem),
+	AdvancedRenderer::AdvancedRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem)
+		: BaseRenderer(ERendererType::Advanced, pDevice, pSystem),
 		m_renderThreadsCount(4)
 	{
 
 	}
 
-	void StandardRenderer::BuildRenderGraph()
+	void AdvancedRenderer::BuildRenderGraph()
 	{
 #if defined(DEVELOPMENT_MODE_CE)
-		LOG_MESSAGE("Building standard render graph...");
+		LOG_MESSAGE("Building advanced render graph...");
 #endif
 		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice, m_renderThreadsCount);
 
@@ -32,6 +32,8 @@ namespace Engine
 		CE_NEW(pTransparencyNode, TransparentContentRenderNode, m_graphResources, this);
 		TransparencyBlendRenderNode* pBlendNode;
 		CE_NEW(pBlendNode, TransparencyBlendRenderNode, m_graphResources, this);
+		DepthOfFieldRenderNode* pDOFNode;
+		CE_NEW(pDOFNode, DepthOfFieldRenderNode, m_graphResources, this);
 
 		m_pRenderGraph->AddRenderNode("ShadowMapNode", pShadowMapNode);
 		m_pRenderGraph->AddRenderNode("GBufferNode", pGBufferNode);
@@ -39,12 +41,14 @@ namespace Engine
 		m_pRenderGraph->AddRenderNode("DeferredLightingNode", pDeferredLightingNode);
 		m_pRenderGraph->AddRenderNode("TransparencyNode", pTransparencyNode);
 		m_pRenderGraph->AddRenderNode("BlendNode", pBlendNode);
+		m_pRenderGraph->AddRenderNode("DOFNode", pDOFNode);
 
 		pShadowMapNode->ConnectNext(pOpaqueNode);
 		pGBufferNode->ConnectNext(pOpaqueNode);
 		pOpaqueNode->ConnectNext(pDeferredLightingNode);
 		pDeferredLightingNode->ConnectNext(pTransparencyNode);
 		pTransparencyNode->ConnectNext(pBlendNode);
+		pBlendNode->ConnectNext(pDOFNode);
 
 		// Define resource dependencies
 
@@ -66,7 +70,10 @@ namespace Engine
 		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_TRANSPARENCY_COLOR_TEXTURE, TransparentContentRenderNode::OUTPUT_COLOR_TEXTURE);
 		pBlendNode->SetInputResource(TransparencyBlendRenderNode::INPUT_TRANSPARENCY_DEPTH_TEXTURE, TransparentContentRenderNode::OUTPUT_DEPTH_TEXTURE);
 
-		pBlendNode->UseSwapchainImages(&m_swapchainImages);
+		pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_COLOR_TEXTURE, TransparencyBlendRenderNode::OUTPUT_COLOR_TEXTURE);
+		pDOFNode->SetInputResource(DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION, GBufferRenderNode::OUTPUT_POSITION_GBUFFER);
+
+		pDOFNode->UseSwapchainImages(&m_swapchainImages);
 
 		// Initialize render graph
 
@@ -80,7 +87,7 @@ namespace Engine
 		}
 
 #if defined(DEVELOPMENT_MODE_CE)
-		LOG_MESSAGE("Build standard render graph completed.");
+		LOG_MESSAGE("Build advanced render graph completed.");
 #endif
 	}
 }

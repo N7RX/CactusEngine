@@ -16,8 +16,10 @@ namespace Engine
 
 	}
 
-	void GBufferRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void GBufferRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
+		DEBUG_ASSERT_MESSAGE_CE(!m_outputToSwapchain, "GBuffer render node cannot output directly to swapchain.");
+
 		// Render pass object
 
 		RenderPassAttachmentDescription normalDesc{};
@@ -171,8 +173,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = initInfo.width;
-		viewportStateCreateInfo.height = initInfo.height;
+		viewportStateCreateInfo.width = initInfo.width * initInfo.renderScale;
+		viewportStateCreateInfo.height = initInfo.height * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -193,25 +195,28 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::GBuffer, pPipeline);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::GBuffer, pPipeline);
 	}
 
-	void GBufferRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void GBufferRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 		CreateMutableBuffers(initInfo);
 	}
 
-	void GBufferRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void GBufferRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
+		uint32_t width = initInfo.width * initInfo.renderScale;
+		uint32_t height = initInfo.height * initInfo.renderScale;
+
 		// GBuffer color textures
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = initInfo.width;
-		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::Float32;
 		texCreateInfo.format = ETextureFormat::RGBA32F;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
@@ -245,15 +250,15 @@ namespace Engine
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pNormalOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pPositionOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthBuffer);
-			fbCreateInfo.framebufferWidth = initInfo.width;
-			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
 	}
 
-	void GBufferRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	void GBufferRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
 	{
 		// Uniform buffer
 
@@ -309,7 +314,7 @@ namespace Engine
 
 		// Bind pipeline and draw
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 
 		for (auto& entity : *pRenderContext->pDrawList)
 		{

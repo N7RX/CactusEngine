@@ -176,6 +176,12 @@ namespace Engine
 
 		auto pFrameBuffer = (FrameBuffer_GL*)pOutput;
 
+		if (createInfo.renderToSwapchain)
+		{
+			pFrameBuffer->MarkRenderToBackbuffer();
+			return true;
+		}
+
 		GLuint frameBufferID = -1;
 		glGenFramebuffers(1, &frameBufferID);
 
@@ -412,7 +418,14 @@ namespace Engine
 
 	void GraphicsHardwareInterface_GL::BeginRenderPass(const RenderPassObject* pRenderPass, const FrameBuffer* pFrameBuffer, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		SetRenderTarget(pFrameBuffer);
+		if (!((FrameBuffer_GL*)pFrameBuffer)->IsRenderToBackbuffer())
+		{
+			SetRenderTarget(pFrameBuffer);
+		}
+		else
+		{
+			SetRenderTarget(nullptr);
+		}
 		((RenderPass_GL*)pRenderPass)->Initialize();
 	}
 
@@ -441,6 +454,15 @@ namespace Engine
 	{
 		LOG_WARNING("OpenGL: shouldn't call WaitSemaphore on OpenGL device.");
 		glFinish();
+	}
+
+	void GraphicsHardwareInterface_GL::GetSwapchainImages(std::vector<Texture2D*>& outImages) const
+	{
+		uint32_t framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+		for (uint32_t i = 0; i < framesInFlight; ++i)
+		{
+			outImages.push_back(nullptr);
+		}
 	}
 
 	void GraphicsHardwareInterface_GL::SetPrimitiveTopology(GLenum mode)

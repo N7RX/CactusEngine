@@ -37,13 +37,14 @@ namespace Engine
 		GraphicsCommandPool* pTransferCommandPool = nullptr;
 	};
 	
-	struct RenderNodeInitInfo
+	struct RenderNodeConfiguration
 	{
 		uint32_t width;
 		uint32_t height;
 		uint32_t maxDrawCall;
 		uint32_t framesInFlight;
 		// TODO: configure color and depth format etc.
+		float renderScale;
 	};
 
 	class RenderNode
@@ -55,13 +56,16 @@ namespace Engine
 		void ConnectNext(RenderNode* pNode);
 		void SetInputResource(const char* slot, const char* pResourceName);
 
+		void UseSwapchainImages(std::vector<Texture2D*>* pSwapchainImages);
+
 	protected:
-		void Setup(const RenderNodeInitInfo& initInfo);
+		void Setup(const RenderNodeConfiguration& initInfo);
+
 		void ExecuteSequential(); // For OpenGL
 		void ExecuteParallel();	  // For Vulkan
 
-		virtual void CreateConstantResources(const RenderNodeInitInfo& initInfo) = 0; // Pipeline objects that are constant
-		virtual void CreateMutableResources(const RenderNodeInitInfo& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
+		virtual void CreateConstantResources(const RenderNodeConfiguration& initInfo) = 0; // Pipeline objects that are constant
+		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
 
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
 
@@ -87,12 +91,16 @@ namespace Engine
 		std::vector<RenderGraphResource*> m_graphResources;
 		uint32_t m_frameIndex;
 
+		std::vector<Texture2D*>* m_pSwapchainImages;
+		bool m_outputToSwapchain;
+
 		RenderContext* m_pRenderContext;
 		CommandContext*	m_pCmdContext;
 		std::unordered_map<const char*, const char*> m_inputResourceNames;
-		std::unordered_map<EBuiltInShaderProgramType, GraphicsPipelineObject*> m_graphicsPipelines;
+		std::unordered_map<uint32_t, GraphicsPipelineObject*> m_graphicsPipelines; // Key usually is the shader type, but ultimately it's determined by each render node
+																				   // (e.g. might reuse same shader with a different render pass)
 
-		RenderNodeInitInfo m_configuration;
+		RenderNodeConfiguration m_configuration;
 
 		friend class RenderGraph;
 	};

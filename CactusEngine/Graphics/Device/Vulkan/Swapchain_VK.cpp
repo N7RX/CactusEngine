@@ -14,10 +14,11 @@ namespace Engine
 		m_maxFramesInFlight(createInfo.maxFramesInFlight), // Or maybe actual imageCount?
 		m_swapExtent(createInfo.swapExtent)
 	{
-		uint32_t imageCount = createInfo.supportDetails.capabilities.minImageCount - 1 + createInfo.maxFramesInFlight;
+		uint32_t imageCount = createInfo.maxFramesInFlight;
 		if (createInfo.supportDetails.capabilities.maxImageCount > 0 && imageCount > createInfo.supportDetails.capabilities.maxImageCount)
 		{
 			imageCount = createInfo.supportDetails.capabilities.maxImageCount;
+			LOG_WARNING("Vulkan: Requested frames in flight value cannot be fulfilled by swapchain.");
 		}
 
 		VkSwapchainCreateInfoKHR createInfoKHR{};

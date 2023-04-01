@@ -81,7 +81,9 @@ namespace Engine
 			m_windowHeight(720),
 			m_maxFramesInFlight(3),
 			m_enableVSync(false),
-			m_samplerAnisotropyLevel(ESamplerAnisotropyLevel::None)
+			m_samplerAnisotropyLevel(ESamplerAnisotropyLevel::None),
+			m_activeRenderer(ERendererType::Standard),
+			m_renderScale(1.0f)
 		{
 
 		}
@@ -130,15 +132,15 @@ namespace Engine
 		// Right now this can only be set before render system initializes
 		void SetMaxFramesInFlight(uint32_t val)
 		{
-			if (val > 4)
+			if (val > 3)
 			{
-				val = 4;
+				val = 3;
 			}
 			else if (val == 0)
 			{
 				val = 1;
 			}
-			// Allowed values: 1, 2, 3, 4
+			// Allowed values: 1, 2, 3
 			m_maxFramesInFlight = val;
 		}
 
@@ -157,14 +159,34 @@ namespace Engine
 			return m_enableVSync;
 		}
 
-		ESamplerAnisotropyLevel GetTextureAnisotropyLevel() const
+		void SetActiveRenderer(ERendererType type)
 		{
-			return m_samplerAnisotropyLevel;
+			m_activeRenderer = type;
+		}
+
+		ERendererType GetActiveRenderer() const
+		{
+			return m_activeRenderer;
 		}
 
 		void SetTextureAnisotropyLevel(ESamplerAnisotropyLevel level)
 		{
 			m_samplerAnisotropyLevel = level;
+		}
+
+		ESamplerAnisotropyLevel GetTextureAnisotropyLevel() const
+		{
+			return m_samplerAnisotropyLevel;
+		}
+
+		void SetRenderScale(float scale)
+		{
+			m_renderScale = scale;
+		}
+
+		float GetRenderScale() const
+		{
+			return m_renderScale;
 		}
 
 	private:
@@ -178,6 +200,9 @@ namespace Engine
 
 		bool m_enableVSync;
 
+		ERendererType m_activeRenderer;
 		ESamplerAnisotropyLevel m_samplerAnisotropyLevel;
+
+		float m_renderScale;
 	};
 }

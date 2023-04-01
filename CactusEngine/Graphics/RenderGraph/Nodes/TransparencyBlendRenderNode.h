@@ -9,8 +9,8 @@ namespace Engine
 		TransparencyBlendRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer);
 
 	protected:
-		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
-		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
+		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
@@ -22,7 +22,7 @@ namespace Engine
 		void DestroyConstantResources() override;
 
 	private:
-		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
+		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
 
 	public:

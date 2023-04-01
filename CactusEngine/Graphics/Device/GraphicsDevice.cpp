@@ -21,6 +21,9 @@ namespace Engine
 		{
 		case ESamplerAnisotropyLevel::None:
 			return m_pDefaultSampler_NoAF;
+		case ESamplerAnisotropyLevel::AFx2:
+			LOG_WARNING("2xAF sampler is unsupported, falling back to no AF.");
+			return m_pDefaultSampler_NoAF;
 		case ESamplerAnisotropyLevel::AFx4:
 			return m_pDefaultSampler_4xAF;
 		case ESamplerAnisotropyLevel::AFx8:

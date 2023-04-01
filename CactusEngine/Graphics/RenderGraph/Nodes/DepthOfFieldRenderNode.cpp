@@ -14,14 +14,13 @@ namespace Engine
 	DepthOfFieldRenderNode::DepthOfFieldRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer),
 		m_pRenderPassObject_Horizontal(nullptr),
-		m_pRenderPassObject_Present(nullptr),
-		m_frameBuffers_Present{}
+		m_pRenderPassObject_Vertical(nullptr)
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
 	}
 
-	void DepthOfFieldRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void DepthOfFieldRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
 		// Render pass object
 
@@ -50,22 +49,22 @@ namespace Engine
 
 		// Vertical + present pass
 
-		colorDesc.format = ETextureFormat::BGRA8_UNORM;
+		colorDesc.format = m_outputToSwapchain ? ETextureFormat::BGRA8_UNORM : ETextureFormat::RGBA8_SRGB;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::PresentSrc;
+		colorDesc.initialLayout = m_outputToSwapchain ? EImageLayout::PresentSrc : EImageLayout::ShaderReadOnly;
 		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::PresentSrc;
+		colorDesc.finalLayout = colorDesc.initialLayout;
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
 		passCreateInfo.attachmentDescriptions.clear();
 		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Present);
+		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Vertical);
 
 		// Pipeline objects
 
@@ -133,8 +132,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = initInfo.width;
-		viewportStateCreateInfo.height = initInfo.height;
+		viewportStateCreateInfo.width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		viewportStateCreateInfo.height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -155,31 +154,34 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline_0 = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_0);
 
-		pipelineCreateInfo.pRenderPass = m_pRenderPassObject_Present;
+		pipelineCreateInfo.pRenderPass = m_pRenderPassObject_Vertical;
 
 		GraphicsPipelineObject* pPipeline_1 = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::DOF, pPipeline_0);
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::Present, pPipeline_1); // NONE for key only, it will still be using DOF shader
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DOF, pPipeline_0);
+		m_graphicsPipelines.emplace(VERTICAL_PASS_PIPELINE_KEY, pPipeline_1);
 	}
 
-	void DepthOfFieldRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void DepthOfFieldRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 		CreateMutableBuffers(initInfo);
 	}
 
-	void DepthOfFieldRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void DepthOfFieldRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
+		uint32_t width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		uint32_t height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
+
 		// Horizontal result
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = initInfo.width;
-		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
@@ -190,49 +192,41 @@ namespace Engine
 			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pHorizontalResult);
 		}
 
+		if (!m_outputToSwapchain)
+		{
+			for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+			{
+				m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pVerticalResult);
+			}
+		}
+
 		// Frame buffers
 
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 		{
-			FrameBufferCreateInfo fbCreateInfo_Horizontal{};
-			fbCreateInfo_Horizontal.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
-			fbCreateInfo_Horizontal.framebufferWidth = initInfo.width;
-			fbCreateInfo_Horizontal.framebufferHeight = initInfo.height;
-			fbCreateInfo_Horizontal.pRenderPass = m_pRenderPassObject_Horizontal;
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject_Horizontal;
 
-			m_pDevice->CreateFrameBuffer(fbCreateInfo_Horizontal, m_frameResources[i].m_pFrameBuffer_Horizontal);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer_Horizontal);
 		}
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
+		for (uint32_t i = 0; i < initInfo.framesInFlight; i++)
 		{
-			// Create a framebuffer arround each swapchain image
+			FrameBufferCreateInfo fbCreateInfo{};
+			fbCreateInfo.attachments.emplace_back(m_outputToSwapchain ? m_pSwapchainImages->at(i) : m_frameResources[i].m_pVerticalResult);
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject_Vertical;
+			fbCreateInfo.renderToSwapchain = m_outputToSwapchain;
 
-			std::vector<Texture2D*> swapchainImages;
-			m_pDevice->GetSwapchainImages(swapchainImages);
-
-			DEBUG_ASSERT_MESSAGE_CE(swapchainImages.size() == initInfo.framesInFlight, "Available swapchain images number does not match frames in flight number.");
-
-			for (uint32_t i = 0; i < swapchainImages.size(); i++)
-			{
-				FrameBufferCreateInfo dofFBCreateInfo_Final{};
-				dofFBCreateInfo_Final.attachments.emplace_back(swapchainImages[i]);
-				dofFBCreateInfo_Final.framebufferWidth = initInfo.width;
-				dofFBCreateInfo_Final.framebufferHeight = initInfo.height;
-				dofFBCreateInfo_Final.pRenderPass = m_pRenderPassObject_Present;
-
-				FrameBuffer* pFrameBuffer = nullptr;
-				m_pDevice->CreateFrameBuffer(dofFBCreateInfo_Final, pFrameBuffer);
-				m_frameBuffers_Present.frameBuffers.emplace_back(pFrameBuffer);
-			}
-		}
-		else
-		{
-			// Null framebuffer will set OpenGL write to backbuffer
-			m_frameBuffers_Present.frameBuffers.emplace_back(nullptr);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer_Vertical);
 		}
 	}
 
-	void DepthOfFieldRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	void DepthOfFieldRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
 	{
 		// Uniform buffers
 
@@ -320,7 +314,7 @@ namespace Engine
 
 		// Begin pass
 		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, frameResources.m_pFrameBuffer_Horizontal, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::DOF), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DOF), pCommandBuffer);
 
 		// Update shader resources
 
@@ -353,8 +347,8 @@ namespace Engine
 		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
 
 		// Begin pass
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Present, m_frameBuffers_Present.frameBuffers[m_pDevice->GetSwapchainPresentImageIndex()], pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(EBuiltInShaderProgramType::Present), pCommandBuffer);
+		m_pDevice->BeginRenderPass(m_pRenderPassObject_Vertical, frameResources.m_pFrameBuffer_Vertical, pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(VERTICAL_PASS_PIPELINE_KEY), pCommandBuffer);
 
 		// Update shader resources
 
@@ -416,18 +410,12 @@ namespace Engine
 	{
 		m_frameResources.clear();
 		m_frameResources.resize(0);
-
-		for (auto pFrameBuffer : m_frameBuffers_Present.frameBuffers)
-		{
-			CE_SAFE_DELETE(pFrameBuffer);
-		}
-		m_frameBuffers_Present.frameBuffers.resize(0);
 	}
 
 	void DepthOfFieldRenderNode::DestroyConstantResources()
 	{
 		CE_DELETE(m_pRenderPassObject_Horizontal);
-		CE_DELETE(m_pRenderPassObject_Present);
+		CE_DELETE(m_pRenderPassObject_Vertical);
 		DestroyGraphicsPipelines();
 	}
 
@@ -437,14 +425,10 @@ namespace Engine
 		{
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer_Horizontal);
 			CE_DELETE(m_frameResources[i].m_pHorizontalResult);
-		}
 
-		for (auto pFrameBuffer : m_frameBuffers_Present.frameBuffers)
-		{
-			CE_SAFE_DELETE(pFrameBuffer);
-			// TODO: update Vulkan swapchain as well
+			CE_DELETE(m_frameResources[i].m_pFrameBuffer_Vertical);
+			CE_SAFE_DELETE(m_frameResources[i].m_pVerticalResult);
 		}
-		m_frameBuffers_Present.frameBuffers.resize(0);
 	}
 
 	void DepthOfFieldRenderNode::DestroyMutableBuffers()

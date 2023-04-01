@@ -9,8 +9,8 @@ namespace Engine
 		DeferredLightingRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
 
 	protected:
-		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
-		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
+		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
@@ -25,8 +25,8 @@ namespace Engine
 		void DirectionalLighting(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 		void RegularLighting(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 
-		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
-		void CreateMutableBuffers(const RenderNodeInitInfo& initInfo);
+		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
+		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
 		void DestroyMutableBuffers();
 
@@ -43,11 +43,11 @@ namespace Engine
 		{
 			FrameResources()
 				: m_pFrameBuffer(nullptr),
+				m_pColorOutput(nullptr),
 				m_pTransformMatrices_UB(nullptr),
 				m_pCameraMatrices_UB(nullptr),
 				m_pCameraProperties_UB(nullptr),
-				m_pLightSourceProperties_UB(nullptr),
-				m_pColorOutput(nullptr)
+				m_pLightSourceProperties_UB(nullptr)
 			{
 
 			}
@@ -55,21 +55,21 @@ namespace Engine
 			~FrameResources()
 			{
 				CE_SAFE_DELETE(m_pFrameBuffer);
+				CE_SAFE_DELETE(m_pColorOutput);
 				CE_SAFE_DELETE(m_pTransformMatrices_UB);
 				CE_SAFE_DELETE(m_pCameraMatrices_UB);
 				CE_SAFE_DELETE(m_pCameraProperties_UB);
-				CE_SAFE_DELETE(m_pLightSourceProperties_UB);
-				CE_SAFE_DELETE(m_pColorOutput);
+				CE_SAFE_DELETE(m_pLightSourceProperties_UB);	
 			}
 
 			FrameBuffer* m_pFrameBuffer;
+
+			Texture2D* m_pColorOutput;
 
 			UniformBuffer* m_pTransformMatrices_UB;
 			UniformBuffer* m_pCameraMatrices_UB;
 			UniformBuffer* m_pCameraProperties_UB;
 			UniformBuffer* m_pLightSourceProperties_UB;
-
-			Texture2D* m_pColorOutput;
 		};
 		std::vector<FrameResources> m_frameResources;
 

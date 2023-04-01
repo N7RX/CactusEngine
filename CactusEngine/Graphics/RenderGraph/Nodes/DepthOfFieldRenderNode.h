@@ -9,8 +9,8 @@ namespace Engine
 		DepthOfFieldRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer);
 
 	protected:
-		void CreateConstantResources(const RenderNodeInitInfo& initInfo) override;
-		void CreateMutableResources(const RenderNodeInitInfo& initInfo) override;
+		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
+		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
 
@@ -25,8 +25,8 @@ namespace Engine
 		void HorizontalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 		void VerticalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 
-		void CreateMutableTextures(const RenderNodeInitInfo& initInfo);
-		void CreateMutableBuffers(const RenderNodeInitInfo& initInfo);
+		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
+		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
 		void DestroyMutableBuffers();
 
@@ -35,14 +35,18 @@ namespace Engine
 		static const char* INPUT_GBUFFER_POSITION;
 
 	private:
+		const uint32_t VERTICAL_PASS_PIPELINE_KEY = 165536; // Just a value that ensures we don't have a collision with the horizontal pass pipeline key
+
 		struct FrameResources
 		{
 			FrameResources()
 				: m_pFrameBuffer_Horizontal(nullptr),
+				m_pFrameBuffer_Vertical(nullptr),
+				m_pHorizontalResult(nullptr),
+				m_pVerticalResult(nullptr),
 				m_pCameraMatrices_UB(nullptr),
 				m_pCameraProperties_UB(nullptr),
-				m_pControlVariables_UB(nullptr),
-				m_pHorizontalResult(nullptr)
+				m_pControlVariables_UB(nullptr)
 			{
 
 			}
@@ -50,25 +54,27 @@ namespace Engine
 			~FrameResources()
 			{
 				CE_SAFE_DELETE(m_pFrameBuffer_Horizontal);
+				CE_SAFE_DELETE(m_pFrameBuffer_Vertical);
+				CE_SAFE_DELETE(m_pHorizontalResult);
+				CE_SAFE_DELETE(m_pVerticalResult);
 				CE_SAFE_DELETE(m_pCameraMatrices_UB);
 				CE_SAFE_DELETE(m_pCameraProperties_UB);
 				CE_SAFE_DELETE(m_pControlVariables_UB);
-				CE_SAFE_DELETE(m_pHorizontalResult);
 			}
 
 			FrameBuffer* m_pFrameBuffer_Horizontal;
+			FrameBuffer* m_pFrameBuffer_Vertical;
+
+			Texture2D* m_pHorizontalResult;
+			Texture2D* m_pVerticalResult;
 
 			UniformBuffer* m_pCameraMatrices_UB;
 			UniformBuffer* m_pCameraProperties_UB;
 			UniformBuffer* m_pControlVariables_UB;
-
-			Texture2D* m_pHorizontalResult;
 		};
 		std::vector<FrameResources> m_frameResources;
 
 		RenderPassObject* m_pRenderPassObject_Horizontal;
-		RenderPassObject* m_pRenderPassObject_Present;
-
-		SwapchainFrameBuffers m_frameBuffers_Present;
+		RenderPassObject* m_pRenderPassObject_Vertical;
 	};
 }

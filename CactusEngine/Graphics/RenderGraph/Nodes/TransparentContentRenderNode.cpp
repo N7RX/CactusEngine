@@ -21,8 +21,10 @@ namespace Engine
 		m_inputResourceNames[INPUT_BACKGROUND_DEPTH] = nullptr;
 	}
 
-	void TransparentContentRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void TransparentContentRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
+		DEBUG_ASSERT_MESSAGE_CE(!m_outputToSwapchain, "Transparent content render node cannot output directly to swapchain.");
+
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
@@ -161,8 +163,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = initInfo.width;
-		viewportStateCreateInfo.height = initInfo.height;
+		viewportStateCreateInfo.width = initInfo.width * initInfo.renderScale;
+		viewportStateCreateInfo.height = initInfo.height * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -188,26 +190,29 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline_1 = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::Basic_Transparent, pPipeline_0);
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::WaterBasic, pPipeline_1);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::Basic_Transparent, pPipeline_0);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::WaterBasic, pPipeline_1);
 	}
 
-	void TransparentContentRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void TransparentContentRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 		CreateMutableBuffers(initInfo);
 	}
 
-	void TransparentContentRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void TransparentContentRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
+		uint32_t width = initInfo.width * initInfo.renderScale;
+		uint32_t height = initInfo.height * initInfo.renderScale;
+
 		// Color and depth texture
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = initInfo.width;
-		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
@@ -235,15 +240,15 @@ namespace Engine
 			FrameBufferCreateInfo fbCreateInfo{};
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
-			fbCreateInfo.framebufferWidth = initInfo.width;
-			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
 	}
 
-	void TransparentContentRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	void TransparentContentRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
 	{
 		// Uniform buffers
 
@@ -370,7 +375,7 @@ namespace Engine
 				// Bind pipeline
 				if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 				{
-					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
+					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)pMaterial->GetShaderProgramType()), pCommandBuffer);
 					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 					lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 				}
@@ -397,7 +402,6 @@ namespace Engine
 
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::DEPTH_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 					pGraphResources->Get(m_inputResourceNames.at(INPUT_BACKGROUND_DEPTH)));
-
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
 					pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
 

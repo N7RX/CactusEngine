@@ -216,7 +216,9 @@
     <ClInclude Include="Graphics\Device\Vulkan\UploadAllocator_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\VulkanIncludes.h" />
+    <ClInclude Include="Graphics\Renderer\AdvancedRenderer.h" />
     <ClInclude Include="Graphics\Renderer\BaseRenderer.h" />
+    <ClInclude Include="Graphics\Renderer\SimpleRenderer.h" />
     <ClInclude Include="Graphics\Renderer\StandardRenderer.h" />
     <ClInclude Include="Graphics\RenderGraph\AllRenderNodes.h" />
     <ClInclude Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.h" />
@@ -307,7 +309,9 @@
     <ClCompile Include="Graphics\Device\Vulkan\SyncObjectManager_VK.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\Textures_VK.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\UploadAllocator_VK.cpp" />
+    <ClCompile Include="Graphics\Renderer\AdvancedRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\BaseRenderer.cpp" />
+    <ClCompile Include="Graphics\Renderer\SimpleRenderer.cpp" />
     <ClCompile Include="Graphics\Renderer\StandardRenderer.cpp" />
     <ClCompile Include="Graphics\RenderGraph\Nodes\DeferredLightingRenderNode.cpp" />
     <ClCompile Include="Graphics\RenderGraph\Nodes\DepthOfFieldRenderNode.cpp" />

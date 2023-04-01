@@ -516,6 +516,12 @@
     <ClInclude Include="Third-party\volk\volk.h">
       <Filter>Third-party\Volk</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Renderer\SimpleRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Renderer\AdvancedRenderer.h">
+      <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -745,6 +751,12 @@
     </ClCompile>
     <ClCompile Include="Common\MemoryAllocator.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\SimpleRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\Renderer\AdvancedRenderer.cpp">
+      <Filter>Graphics\Renderer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

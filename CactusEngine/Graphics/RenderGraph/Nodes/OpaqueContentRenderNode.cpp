@@ -20,20 +20,20 @@ namespace Engine
 		m_inputResourceNames[INPUT_SHADOW_MAP] = nullptr;
 	}
 
-	void OpaqueContentRenderNode::CreateConstantResources(const RenderNodeInitInfo& initInfo)
+	void OpaqueContentRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
 	{
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = ETextureFormat::RGBA8_SRGB;
+		colorDesc.format = m_outputToSwapchain ? ETextureFormat::BGRA8_UNORM : ETextureFormat::RGBA8_SRGB;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::Clear;
 		colorDesc.storeOp = EAttachmentOperation::Store;
 		colorDesc.stencilLoadOp = EAttachmentOperation::None;
 		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
+		colorDesc.initialLayout = m_outputToSwapchain ? EImageLayout::PresentSrc : EImageLayout::ShaderReadOnly;
 		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
+		colorDesc.finalLayout = colorDesc.initialLayout;
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
@@ -160,8 +160,8 @@ namespace Engine
 		// Viewport state
 
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
-		viewportStateCreateInfo.width = initInfo.width;
-		viewportStateCreateInfo.height = initInfo.height;
+		viewportStateCreateInfo.width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		viewportStateCreateInfo.height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
 
 		PipelineViewportState* pViewportState = nullptr;
 		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
@@ -187,34 +187,40 @@ namespace Engine
 		GraphicsPipelineObject* pPipeline_1 = nullptr;
 		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
 
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::AnimeStyle, pPipeline_0);
-		m_graphicsPipelines.emplace(EBuiltInShaderProgramType::Basic, pPipeline_1);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::AnimeStyle, pPipeline_0);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::Basic, pPipeline_1);
 	}
 
-	void OpaqueContentRenderNode::CreateMutableResources(const RenderNodeInitInfo& initInfo)
+	void OpaqueContentRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
 		CreateMutableBuffers(initInfo);
 	}
 
-	void OpaqueContentRenderNode::CreateMutableTextures(const RenderNodeInitInfo& initInfo)
+	void OpaqueContentRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
+		uint32_t width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
+		uint32_t height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
+
 		// Color output and shadow mark output
 
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
-		texCreateInfo.textureWidth = initInfo.width;
-		texCreateInfo.textureHeight = initInfo.height;
+		texCreateInfo.textureWidth = width;
+		texCreateInfo.textureHeight = height;
 		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+		if (!m_outputToSwapchain)
 		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+			for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
+			{
+				m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
+			}
 		}
 
 		// Depth output
@@ -235,17 +241,18 @@ namespace Engine
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pColorOutput);
+			fbCreateInfo.attachments.emplace_back(m_outputToSwapchain ? m_pSwapchainImages->at(i) : m_frameResources[i].m_pColorOutput);
 			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pDepthOutput);
-			fbCreateInfo.framebufferWidth = initInfo.width;
-			fbCreateInfo.framebufferHeight = initInfo.height;
+			fbCreateInfo.framebufferWidth = width;
+			fbCreateInfo.framebufferHeight = height;
 			fbCreateInfo.pRenderPass = m_pRenderPassObject;
+			fbCreateInfo.renderToSwapchain = m_outputToSwapchain;
 
 			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
 	}
 
-	void OpaqueContentRenderNode::CreateMutableBuffers(const RenderNodeInitInfo& initInfo)
+	void OpaqueContentRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
 	{
 		// Uniform buffers
 
@@ -387,7 +394,8 @@ namespace Engine
 				// Bind pipeline
 				if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 				{
-					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(pMaterial->GetShaderProgramType()), pCommandBuffer);
+					// TODO: implement missing pipeline building
+					m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)pMaterial->GetShaderProgramType()), pCommandBuffer);
 					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
 					lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
 				}
@@ -507,7 +515,7 @@ namespace Engine
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
 		{
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
-			CE_DELETE(m_frameResources[i].m_pColorOutput);
+			CE_SAFE_DELETE(m_frameResources[i].m_pColorOutput);
 			CE_DELETE(m_frameResources[i].m_pDepthOutput);
 		}
 	}
