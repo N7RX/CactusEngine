@@ -38,7 +38,6 @@ namespace Engine
 		createInfo.textureWidth = texWidth;
 		createInfo.textureHeight = texHeight;
 		createInfo.pTextureData = imageData;
-		createInfo.dataType = EDataType::UByte;
 		createInfo.format = ETextureFormat::RGBA8_SRGB; // Alert: this format might not be universal
 		createInfo.textureType = ETextureType::SampledImage;
 		createInfo.generateMipmap = true;

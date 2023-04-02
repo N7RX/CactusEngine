@@ -22,7 +22,7 @@ namespace Engine
 		// Render pass object
 
 		RenderPassAttachmentDescription depthDesc{};
-		depthDesc.format = ETextureFormat::Depth;
+		depthDesc.format = initInfo.depthFormat;
 		depthDesc.sampleCount = 1;
 		depthDesc.loadOp = EAttachmentOperation::Clear;
 		depthDesc.storeOp = EAttachmentOperation::Store;
@@ -180,8 +180,7 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
 		texCreateInfo.textureHeight = SHADOW_MAP_RESOLUTION * initInfo.renderScale;
-		texCreateInfo.dataType = EDataType::Float32;
-		texCreateInfo.format = ETextureFormat::Depth;
+		texCreateInfo.format = initInfo.depthFormat;
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 

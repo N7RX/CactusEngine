@@ -43,7 +43,9 @@ namespace Engine
 		uint32_t height;
 		uint32_t maxDrawCall;
 		uint32_t framesInFlight;
-		// TODO: configure color and depth format etc.
+		ETextureFormat colorFormat;
+		ETextureFormat swapSurfaceFormat;
+		ETextureFormat depthFormat;
 		float renderScale;
 	};
 

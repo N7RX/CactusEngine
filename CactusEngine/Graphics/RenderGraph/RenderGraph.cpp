@@ -155,6 +155,9 @@ namespace Engine
 		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
 		initInfo.maxDrawCall = 256; // TODO: This should be updated according to scene complexity
+		initInfo.colorFormat = ETextureFormat::RGBA8_SRGB;
+		initInfo.swapSurfaceFormat = ETextureFormat::BGRA8_SRGB;
+		initInfo.depthFormat = ETextureFormat::D32;
 		initInfo.renderScale = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetRenderScale();
 
 		for (auto& node : m_nodes)

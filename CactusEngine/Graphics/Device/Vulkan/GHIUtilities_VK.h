@@ -196,14 +196,23 @@ namespace Engine
 		case ETextureFormat::RGBA32F:
 			return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-		case ETextureFormat::Depth:
-			return VK_FORMAT_D32_SFLOAT; // Alert: this could be incompatible with current device without checking
-
 		case ETextureFormat::RGBA8_SRGB:
 			return VK_FORMAT_R8G8B8A8_SRGB;
 
 		case ETextureFormat::BGRA8_UNORM:
 			return VK_FORMAT_B8G8R8A8_UNORM;
+
+		case ETextureFormat::BGRA8_SRGB:
+			return VK_FORMAT_B8G8R8A8_SRGB;
+
+		case ETextureFormat::D16:
+			return VK_FORMAT_D16_UNORM;
+
+		case ETextureFormat::D24:
+			return VK_FORMAT_X8_D24_UNORM_PACK32;
+
+		case ETextureFormat::D32:
+			return VK_FORMAT_D32_SFLOAT;
 
 		case ETextureFormat::RGB32F:
 			return VK_FORMAT_R32G32B32_SFLOAT;
@@ -223,11 +232,15 @@ namespace Engine
 		case ETextureFormat::RGBA32F:
 			return 16U;
 
-		case ETextureFormat::Depth:
-			return 4U;
-
 		case ETextureFormat::RGBA8_SRGB:
 		case ETextureFormat::BGRA8_UNORM:
+			return 4U;
+
+		case ETextureFormat::D16:
+			return 2U;
+
+		case ETextureFormat::D24:
+		case ETextureFormat::D32:
 			return 4U;
 
 		default:
@@ -243,11 +256,15 @@ namespace Engine
 		case VK_FORMAT_R32G32B32A32_SFLOAT:
 			return 16U;
 
-		case VK_FORMAT_D32_SFLOAT:
-			return 4U;
-
 		case VK_FORMAT_R8G8B8A8_SRGB:
 		case VK_FORMAT_B8G8R8A8_UNORM:
+			return 4U;
+
+		case VK_FORMAT_D16_UNORM:
+			return 2U;
+
+		case VK_FORMAT_X8_D24_UNORM_PACK32:
+		case VK_FORMAT_D32_SFLOAT:
 			return 4U;
 
 		default:

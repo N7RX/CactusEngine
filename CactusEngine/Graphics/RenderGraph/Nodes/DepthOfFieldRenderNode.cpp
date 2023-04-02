@@ -27,7 +27,7 @@ namespace Engine
 		// Horizontal pass
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = ETextureFormat::RGBA8_SRGB;
+		colorDesc.format = initInfo.colorFormat;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
@@ -47,9 +47,9 @@ namespace Engine
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Horizontal);
 
-		// Vertical + present pass
+		// Vertical pass
 
-		colorDesc.format = m_outputToSwapchain ? ETextureFormat::BGRA8_UNORM : ETextureFormat::RGBA8_SRGB;
+		colorDesc.format = m_outputToSwapchain ? initInfo.swapSurfaceFormat : initInfo.colorFormat;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
 		colorDesc.storeOp = EAttachmentOperation::Store;
@@ -182,8 +182,7 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::UByte;
-		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
+		texCreateInfo.format = initInfo.colorFormat;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 

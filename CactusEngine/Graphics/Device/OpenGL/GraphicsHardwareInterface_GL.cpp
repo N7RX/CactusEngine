@@ -36,8 +36,9 @@ namespace Engine
 
 		glGenVertexArrays(1, &m_attributeless_vao);
 
-		// Temporary solution for enabling sRGB support
+		// Temporary solution for enabling sRGB; need to check if sRGB is used and supported by the hardware
 		glEnable(GL_FRAMEBUFFER_SRGB);
+		glEnable(GL_SRGB);
 	}
 
 	void GraphicsHardwareInterface_GL::ShutDown()
@@ -134,12 +135,12 @@ namespace Engine
 		GLuint texID = -1;
 		glGenTextures(1, &texID);
 		glBindTexture(GL_TEXTURE_2D, texID);
-		glTexImage2D(GL_TEXTURE_2D, 0, OpenGLFormat(createInfo.format), createInfo.textureWidth, createInfo.textureHeight, 0, OpenGLPixelFormat(OpenGLFormat(createInfo.format)), OpenGLDataType(createInfo.dataType), createInfo.pTextureData);
+		glTexImage2D(GL_TEXTURE_2D, 0, OpenGLFormat(createInfo.format), createInfo.textureWidth, createInfo.textureHeight, 0, OpenGLPixelFormat(OpenGLFormat(createInfo.format)), OpenGLDataType(createInfo.format), createInfo.pTextureData);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if (createInfo.format == ETextureFormat::Depth)
+		if (createInfo.format == ETextureFormat::D32 || createInfo.format == ETextureFormat::D24 || createInfo.format == ETextureFormat::D16)
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 		}
@@ -153,7 +154,7 @@ namespace Engine
 		pTexture->SetGLTextureID(texID);
 		pTexture->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
 		pTexture->SetTextureType(createInfo.textureType);
-		pTexture->MarkSizeInByte(static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(createInfo.dataType)));
+		pTexture->MarkSizeInByte(static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(OpenGLDataType(createInfo.format))));
 
 		return texID != -1;
 	}

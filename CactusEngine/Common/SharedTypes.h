@@ -111,9 +111,12 @@ namespace Engine
 	{
 		// For texture
 		RGBA32F = 0,
-		Depth,
 		RGBA8_SRGB,
 		BGRA8_UNORM,
+		BGRA8_SRGB,
+		D16,
+		D24,
+		D32,
 		UNDEFINED,
 
 		// For attribute input
@@ -122,6 +125,11 @@ namespace Engine
 
 		COUNT
 	};
+
+	inline bool IsDepthFormat(ETextureFormat format)
+	{
+		return format == ETextureFormat::D16 || format == ETextureFormat::D24 || format == ETextureFormat::D32;
+	}
 
 	enum class EDataType
 	{

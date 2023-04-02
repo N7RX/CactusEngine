@@ -25,7 +25,7 @@ namespace Engine
 		// Render pass object
 
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = m_outputToSwapchain ? ETextureFormat::BGRA8_UNORM : ETextureFormat::RGBA8_SRGB;
+		colorDesc.format = m_outputToSwapchain ? initInfo.swapSurfaceFormat : initInfo.colorFormat;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::Clear;
 		colorDesc.storeOp = EAttachmentOperation::Store;
@@ -38,7 +38,7 @@ namespace Engine
 		colorDesc.index = 0;
 
 		RenderPassAttachmentDescription depthDesc{};
-		depthDesc.format = ETextureFormat::Depth;
+		depthDesc.format = initInfo.depthFormat;
 		depthDesc.sampleCount = 1;
 		depthDesc.loadOp = EAttachmentOperation::Clear;
 		depthDesc.storeOp = EAttachmentOperation::Store;
@@ -210,7 +210,6 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::UByte;
 		texCreateInfo.format = ETextureFormat::RGBA8_SRGB;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
@@ -225,7 +224,7 @@ namespace Engine
 
 		// Depth output
 
-		texCreateInfo.format = ETextureFormat::Depth;
+		texCreateInfo.format = initInfo.depthFormat;
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)

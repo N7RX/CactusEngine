@@ -13,20 +13,29 @@ namespace Engine
 		m_height = height;
 	}
 
-	void RenderTexture::FlushData(const void* pData, EDataType dataType, ETextureFormat format)
+	void RenderTexture::FlushData(const void* pData, ETextureFormat format)
 	{
 		if (!m_pDevice)
 		{
 			return;
 		}
 
+		if (m_pTextureImpl)
+		{
+			// TODO:
+			// 1. destroy by device
+			// 2. check if in use
+			// 3. overwrite via staging buffer instead of destroy
+			CE_DELETE(m_pTextureImpl);
+			// This currently will cause GPU memory leak
+		}
+
 		Texture2DCreateInfo createInfo{};
 		createInfo.textureWidth = m_width;
 		createInfo.textureHeight = m_height;
 		createInfo.pTextureData = pData;
-		createInfo.dataType = dataType;
 		createInfo.format = format;
-		createInfo.generateMipmap = false; // TODO: test out the effect
+		createInfo.generateMipmap = false; // TODO: test the effect
 		createInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 		m_pDevice->CreateTexture2D(createInfo, m_pTextureImpl);

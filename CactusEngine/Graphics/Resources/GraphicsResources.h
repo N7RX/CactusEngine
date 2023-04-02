@@ -101,7 +101,6 @@ namespace Engine
 		const void*	   pTextureData;
 		uint32_t	   textureWidth;
 		uint32_t	   textureHeight;
-		EDataType	   dataType;
 		ETextureFormat format;
 		ETextureType   textureType;
 		bool		   generateMipmap;

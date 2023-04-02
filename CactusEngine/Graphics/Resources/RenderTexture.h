@@ -9,7 +9,7 @@ namespace Engine
 		RenderTexture(uint32_t width, uint32_t height);
 		~RenderTexture() = default;
 
-		void FlushData(const void* pData, EDataType dataType, ETextureFormat format);
+		void FlushData(const void* pData, ETextureFormat format);
 
 		Texture2D* GetTexture() const;
 

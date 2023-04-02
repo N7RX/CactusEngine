@@ -55,10 +55,15 @@ namespace Engine
 		{
 		case ETextureFormat::RGBA32F:
 			return GL_RGBA32F;
-		case ETextureFormat::Depth:
-			return GL_DEPTH_COMPONENT32F;
 		case ETextureFormat::RGBA8_SRGB:
+		case ETextureFormat::BGRA8_SRGB:
 			return GL_SRGB8_ALPHA8;
+		case ETextureFormat::D16:
+			return GL_DEPTH_COMPONENT16;
+		case ETextureFormat::D24:
+			return GL_DEPTH_COMPONENT24;
+		case ETextureFormat::D32:
+			return GL_DEPTH_COMPONENT32F;
 		default:
 			LOG_ERROR("OpenGL: Unhandled format.");
 			break;
@@ -74,6 +79,7 @@ namespace Engine
 		case GL_RGBA16F:
 		case GL_SRGB8_ALPHA8:
 			return GL_RGBA;
+		case GL_DEPTH_COMPONENT16:
 		case GL_DEPTH_COMPONENT24:
 		case GL_DEPTH_COMPONENT32F:
 			return GL_DEPTH_COMPONENT;
@@ -82,6 +88,23 @@ namespace Engine
 			break;
 		}
 		return 0;
+	}
+
+	inline int32_t OpenGLDataType(ETextureFormat format)
+	{
+		switch (format)
+		{
+		case ETextureFormat::RGBA32F:
+		case ETextureFormat::RGB32F:
+		case ETextureFormat::D32:
+			return GL_FLOAT;
+		case ETextureFormat::RGBA8_SRGB:
+		case ETextureFormat::BGRA8_UNORM:
+			return GL_UNSIGNED_BYTE;
+		}
+
+		LOG_ERROR("OpenGL: Unsupported conversion from texture format to data type.");
+		return GL_UNSIGNED_BYTE;
 	}
 
 	inline int32_t OpenGLDataType(EDataType type)
@@ -120,6 +143,24 @@ namespace Engine
 		case EDataType::UByte:
 			return 4;
 		case EDataType::SByte:
+			return 4;
+		default:
+			LOG_ERROR("OpenGL: Unhandled data type.");
+			break;
+		}
+		return 0;
+	}
+
+	inline uint32_t OpenGLTypeSize(int32_t type)
+	{
+		switch (type)
+		{
+		case GL_FLOAT:
+		case GL_UNSIGNED_INT:
+		case GL_INT:
+			return 16;
+		case GL_UNSIGNED_BYTE:
+		case GL_BYTE:
 			return 4;
 		default:
 			LOG_ERROR("OpenGL: Unhandled data type.");

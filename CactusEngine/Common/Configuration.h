@@ -181,6 +181,15 @@ namespace Engine
 
 		void SetRenderScale(float scale)
 		{
+			if (scale > 2.0f)
+			{
+				scale = 2.0f;
+			}
+			else if (scale < 0.5f)
+			{
+				scale = 0.5f;
+			}
+			// Allowed range: 0.5 - 2.0
 			m_renderScale = scale;
 		}
 

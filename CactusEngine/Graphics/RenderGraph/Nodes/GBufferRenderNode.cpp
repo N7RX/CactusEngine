@@ -9,6 +9,8 @@ namespace Engine
 	const char* GBufferRenderNode::OUTPUT_NORMAL_GBUFFER = "NormalGBufferTexture";
 	const char* GBufferRenderNode::OUTPUT_POSITION_GBUFFER = "PositionGBufferTexture";
 
+	const ETextureFormat GBUFFER_COLOR_FORMAT = ETextureFormat::RGBA32F;
+
 	GBufferRenderNode::GBufferRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer),
 		m_pRenderPassObject(nullptr)
@@ -23,7 +25,7 @@ namespace Engine
 		// Render pass object
 
 		RenderPassAttachmentDescription normalDesc{};
-		normalDesc.format = ETextureFormat::RGBA32F;
+		normalDesc.format = GBUFFER_COLOR_FORMAT;
 		normalDesc.sampleCount = 1;
 		normalDesc.loadOp = EAttachmentOperation::Clear;
 		normalDesc.storeOp = EAttachmentOperation::Store;
@@ -36,7 +38,7 @@ namespace Engine
 		normalDesc.index = 0;
 
 		RenderPassAttachmentDescription positionDesc{};
-		positionDesc.format = ETextureFormat::RGBA32F;
+		positionDesc.format = GBUFFER_COLOR_FORMAT;
 		positionDesc.sampleCount = 1;
 		positionDesc.loadOp = EAttachmentOperation::Clear;
 		positionDesc.storeOp = EAttachmentOperation::Store;
@@ -49,7 +51,7 @@ namespace Engine
 		positionDesc.index = 1;
 
 		RenderPassAttachmentDescription depthDesc{};
-		depthDesc.format = ETextureFormat::Depth;
+		depthDesc.format = initInfo.depthFormat;
 		depthDesc.sampleCount = 1;
 		depthDesc.loadOp = EAttachmentOperation::Clear;
 		depthDesc.storeOp = EAttachmentOperation::Store;
@@ -217,8 +219,7 @@ namespace Engine
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
-		texCreateInfo.dataType = EDataType::Float32;
-		texCreateInfo.format = ETextureFormat::RGBA32F;
+		texCreateInfo.format = GBUFFER_COLOR_FORMAT;
 		texCreateInfo.textureType = ETextureType::ColorAttachment;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
@@ -233,7 +234,7 @@ namespace Engine
 
 		// Depth attachment
 
-		texCreateInfo.format = ETextureFormat::Depth;
+		texCreateInfo.format = initInfo.depthFormat;
 		texCreateInfo.textureType = ETextureType::DepthAttachment;
 		texCreateInfo.initialLayout = EImageLayout::DepthStencilAttachment;
 
