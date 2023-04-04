@@ -140,7 +140,7 @@ namespace Engine
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if (createInfo.format == ETextureFormat::D32 || createInfo.format == ETextureFormat::D24 || createInfo.format == ETextureFormat::D16)
+		if (IsDepthFormat(createInfo.format))
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 		}

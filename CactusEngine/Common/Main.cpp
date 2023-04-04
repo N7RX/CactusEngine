@@ -9,12 +9,12 @@
 #include "ECSSceneReader.h"
 #include "LogUtility.h"
 
-#include "LightComponent.h"
-#include "TransformComponent.h"
-#include "ScriptComponent.h"
+// Temporary includes
+#include "AllComponents.h"
 #include "ExternalMesh.h"
+#include "ImageTexture.h"
 #include "StandardEntity.h"
-
+#include "ScriptSelector.h"
 #include "SampleScript/LightScript.h"
 
 // This is the entry of the program
@@ -105,24 +105,8 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetRenderScale(1.0f);
 }
 
-void TestSetup(GraphicsApplication* pApp)
+void TestAddLights(ECSWorld* pWorld)
 {
-	auto pWorld = pApp->GetECSWorld();
-
-	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
-	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
-	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
-	pWorld->SortSystems();
-
-	// Read scene from file
-	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
-	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
-	//ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
-
-	// Or manually add contents here
-	// ...
-
 	// 121 point lights for deferred lighting test
 
 	LightComponent::Profile lightProfile{};
@@ -147,7 +131,7 @@ void TestSetup(GraphicsApplication* pApp)
 	{
 		for (int32_t j = -5; j < 6; j++)
 		{
-			auto pTransformComp = pWorld->CreateComponent<TransformComponent>();		
+			auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
 			auto pLightComp = pWorld->CreateComponent<LightComponent>();
 			auto pScriptComp = pWorld->CreateComponent<ScriptComponent>();
 
@@ -165,7 +149,224 @@ void TestSetup(GraphicsApplication* pApp)
 			pScriptComp->BindScript(pSript);
 		}
 	}
+}
 
-	// Write scene to file
+void TestBuildCornellBox(ECSWorld* pWorld)
+{
+	// Camera
+
+	{
+		auto pCameraComponent = pWorld->CreateComponent<CameraComponent>();
+		pCameraComponent->SetClearColor(Color4(0.2f, 0.2f, 0.3f, 1.0f));
+
+		auto pCameraTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pCameraTransformComp->SetPosition(Vector3(0, 0, 7.0f));
+
+		auto pCamera = pWorld->CreateEntity<StandardEntity>();
+		pCamera->AttachComponent(pCameraComponent);
+		pCamera->AttachComponent(pCameraTransformComp);
+		pCamera->SetEntityTag(EEntityTag::MainCamera);
+
+		auto pScriptComp = pWorld->CreateComponent<ScriptComponent>();
+		pScriptComp->BindScript(SampleScript::GenerateScriptByID(SampleScript::EScriptID::Camera, pCamera));
+		pCamera->AttachComponent(pScriptComp);
+	}
+
+	ExternalMesh* pCubeMesh;
+	CE_NEW(pCubeMesh, ExternalMesh, "Assets/Models/Cube.obj");
+
+	ImageTexture* pDefaultTexture;
+	CE_NEW(pDefaultTexture, ImageTexture, "Assets/Textures/Default.png");
+
+	ImageTexture* pToneTexture;
+	CE_NEW(pToneTexture, ImageTexture, "Assets/Textures/XToon_BW.png");
+
+	// Red wall
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(-3.0f, 0, 0));
+		pTransformComp->SetScale(Vector3(5.0f, 5.0f, 1.0f));
+
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pCubeMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(1.0f, 0, 0, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::Basic);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// Green wall
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(3.0f, 0, 0));
+		pTransformComp->SetScale(Vector3(5.0f, 5.0f, 1.0f));
+
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pCubeMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(0, 1.0f, 0, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::Basic);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// White wall - back
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(0, 0, -3.0f));
+		pTransformComp->SetScale(Vector3(1.0f, 5.0f, 5.0f));
+
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pCubeMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::Basic);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// White wall - top
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(0.0f, 3.0f, 0));
+		pTransformComp->SetScale(Vector3(5.0f, 1.0f, 5.0f));
+
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pCubeMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::Basic);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// White wall - down
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(0.0f, -3.0f, 0));
+		pTransformComp->SetScale(Vector3(5.0f, 1.0f, 5.0f));
+
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pCubeMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::Basic);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// Statue
+	{
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		pTransformComp->SetPosition(Vector3(0.0f, -2.5f, 0.0f));
+		pTransformComp->SetRotation(Vector3(0, 90, 0));
+		pTransformComp->SetScale(Vector3(0.005f, 0.005f, 0.005f));
+
+		ExternalMesh* pStatueMesh;
+		CE_NEW(pStatueMesh, ExternalMesh, "Assets/Models/Lucy.obj");
+		auto pMeshFilterComp = pWorld->CreateComponent<MeshFilterComponent>();
+		pMeshFilterComp->SetMesh(pStatueMesh);
+
+		auto pMaterialComp = pWorld->CreateComponent<MaterialComponent>();
+		Material* pMaterial;
+		CE_NEW(pMaterial, Material);
+		pMaterial->SetAlbedoColor(Color4(1.0f, 1.0f, 1.0f, 1.0f));
+		pMaterial->SetShaderProgram(EBuiltInShaderProgramType::AnimeStyle);
+		pMaterial->SetTexture(EMaterialTextureType::Albedo, pDefaultTexture);
+		pMaterial->SetTexture(EMaterialTextureType::Tone, pToneTexture);
+		pMaterialComp->AddMaterial(0, pMaterial);
+
+		auto pCube = pWorld->CreateEntity<StandardEntity>();
+		pCube->AttachComponent(pTransformComp);
+		pCube->AttachComponent(pMeshFilterComp);
+		pCube->AttachComponent(pMaterialComp);
+	}
+
+	// Light
+	{
+		LightComponent::Profile lightProfile{};
+		lightProfile.sourceType = LightComponent::SourceType::Point;
+		lightProfile.lightColor = Color3(1.0f);
+		lightProfile.lightIntensity = 15.0f;
+		lightProfile.radius = 10.0f;
+		CE_NEW(lightProfile.pVolumeMesh, ExternalMesh, "Assets/Models/light_sphere.obj");
+
+		auto pTransformComp = pWorld->CreateComponent<TransformComponent>();
+		auto pLightComp = pWorld->CreateComponent<LightComponent>();
+
+		pTransformComp->SetPosition(Vector3(0, 1.95f, 0));
+		lightProfile.lightColor = Color3(1.0f, 1.0f, 1.0f);
+
+		auto pLight = pWorld->CreateEntity<StandardEntity>();
+		pLight->AttachComponent(pTransformComp);
+		pLight->AttachComponent(pLightComp);
+
+		pLightComp->UpdateProfile(lightProfile);
+	}
+}
+
+void TestSetup(GraphicsApplication* pApp)
+{
+	auto pWorld = pApp->GetECSWorld();
+
+	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
+	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
+	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
+	pWorld->SortSystems();
+
+	// Read scene from file
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
+	//ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
+
+	// Or manually add contents here
+	// ...
+	TestBuildCornellBox(pWorld);
+
+	//TestAddLights(pWorld);
+
+	// Save scene to file
 	//WriteECSWorldToJson(pWorld, "Assets/Scene/NewScene.json");
 }

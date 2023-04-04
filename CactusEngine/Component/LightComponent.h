@@ -34,7 +34,7 @@ namespace Engine
 		LightComponent(const Profile& profile);
 		~LightComponent() = default;
 
-		void UpdateProfile(const Profile& profile);
+		void UpdateProfile(const Profile& profile); // Alert: must have been attached to a valid entity
 		const Profile& GetProfile() const;
 
 	private:

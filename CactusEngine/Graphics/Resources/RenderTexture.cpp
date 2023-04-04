@@ -23,11 +23,10 @@ namespace Engine
 		if (m_pTextureImpl)
 		{
 			// TODO:
-			// 1. destroy by device
-			// 2. check if in use
-			// 3. overwrite via staging buffer instead of destroy
+			// 1. check if in use
+			// 2. overwrite via staging buffer instead of destroy
 			CE_DELETE(m_pTextureImpl);
-			// This currently will cause GPU memory leak
+			// This currently is slow and unsafe
 		}
 
 		Texture2DCreateInfo createInfo{};
