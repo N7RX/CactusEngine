@@ -15,6 +15,7 @@ namespace Engine
 	class GraphicsCommandBuffer;
 	class RenderGraphResource;
 	class Texture2D;
+	struct RenderContext;
 
 	class BaseRenderer
 	{
@@ -27,7 +28,7 @@ namespace Engine
 
 		virtual void BuildRenderGraph() = 0;
 
-		void Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex);
+		void Draw(const RenderContext& renderContext, uint32_t frameIndex);
 		void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer);
 
 		ERendererType GetRendererType() const;

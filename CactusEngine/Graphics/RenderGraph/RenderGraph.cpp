@@ -40,12 +40,10 @@ namespace Engine
 		m_eGraphicsDeviceType(m_pDevice->GetGraphicsAPIType()),
 		m_finishedExecution(false),
 		m_pName(nullptr),
-		m_pCmdContext(nullptr),
 		m_graphResources(graphResources),
 		m_frameIndex(0),
 		m_pSwapchainImages(nullptr),
 		m_outputToSwapchain(false),
-		m_pRenderContext(nullptr),
 		m_configuration()
 	{
 		
@@ -94,7 +92,7 @@ namespace Engine
 			}
 		}
 
-		RenderPassFunction(m_graphResources[m_frameIndex], m_pRenderContext, m_pCmdContext);
+		RenderPassFunction(m_graphResources[m_frameIndex], m_renderContext, m_cmdContext);
 		m_finishedExecution = true;
 
 		for (auto& pNode : m_nextNodes)
@@ -105,7 +103,7 @@ namespace Engine
 
 	void RenderNode::ExecuteParallel()
 	{
-		RenderPassFunction(m_graphResources[m_frameIndex], m_pRenderContext, m_pCmdContext);
+		RenderPassFunction(m_graphResources[m_frameIndex], m_renderContext, m_cmdContext);
 		m_finishedExecution = true;
 	}
 
@@ -216,18 +214,14 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesSequential(RenderContext* pContext, uint32_t frameIndex)
+	void RenderGraph::BeginRenderPassesSequential(const RenderContext& context, uint32_t frameIndex)
 	{
-		static CommandContext* pEmptyCmdContext;
-		if (!pEmptyCmdContext)
-		{
-			CE_NEW(pEmptyCmdContext, CommandContext);
-		}
+		static CommandContext emptyCmdContext{};
 
 		for (auto& pNode : m_nodes)
 		{
-			pNode.second->m_pRenderContext = pContext;
-			pNode.second->m_pCmdContext = pEmptyCmdContext;
+			pNode.second->m_renderContext = context;
+			pNode.second->m_cmdContext = emptyCmdContext;
 			pNode.second->m_finishedExecution = false;
 			pNode.second->m_frameIndex = frameIndex;
 
@@ -244,11 +238,11 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesParallel(RenderContext* pContext, uint32_t frameIndex)
+	void RenderGraph::BeginRenderPassesParallel(const RenderContext& context, uint32_t frameIndex)
 	{
 		for (auto& pNode : m_nodes)
 		{
-			pNode.second->m_pRenderContext = pContext;
+			pNode.second->m_renderContext = context;
 			pNode.second->m_finishedExecution = false;
 			pNode.second->m_frameIndex = frameIndex;
 
@@ -309,10 +303,9 @@ namespace Engine
 
 	void RenderGraph::ExecuteRenderNodesParallel()
 	{
-		CommandContext* pCmdContext;
-		CE_NEW(pCmdContext, CommandContext);
-		pCmdContext->pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
-		pCmdContext->pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
+		CommandContext cmdContext{};
+		cmdContext.pCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Graphics);
+		cmdContext.pTransferCommandPool = m_pDevice->RequestExternalCommandPool(EQueueType::Transfer);
 
 		RenderNode* pNode = nullptr;
 		while (m_isRunning)
@@ -324,7 +317,7 @@ namespace Engine
 
 			while (m_executionNodeQueue.TryPop(pNode))
 			{
-				pNode->m_pCmdContext = pCmdContext;
+				pNode->m_cmdContext = cmdContext;
 				pNode->ExecuteParallel();
 
 				std::this_thread::yield();

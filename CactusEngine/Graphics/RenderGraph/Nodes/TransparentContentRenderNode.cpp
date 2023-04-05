@@ -288,10 +288,10 @@ namespace Engine
 		}
 	}
 
-	void TransparentContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
+	void TransparentContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
-		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
-		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
+		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
+		auto pCameraComp = (CameraComponent*)renderContext.pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
@@ -299,7 +299,7 @@ namespace Engine
 
 		auto& frameResources = m_frameResources[m_frameIndex];
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
@@ -336,7 +336,7 @@ namespace Engine
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
-		for (auto& entity : *pRenderContext->pDrawList)
+		for (auto& entity : *renderContext.pTransparentDrawList)
 		{
 			auto pMaterialComp = (MaterialComponent*)entity->GetComponent(EComponentType::Material);
 			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
@@ -366,7 +366,7 @@ namespace Engine
 			for (uint32_t i = 0; i < subMeshCount; ++i)
 			{
 				auto pMaterial = pMaterialComp->GetMaterialBySubmeshIndex(i);
-				if (!pMaterial->IsTransparent()) // TODO: use a list to record transparent objects instead of checking one-by-one
+				if (!pMaterial->IsTransparent())
 				{
 					continue;
 				}

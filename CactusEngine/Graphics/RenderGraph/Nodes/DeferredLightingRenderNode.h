@@ -12,7 +12,7 @@ namespace Engine
 		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
 		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
-		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
+		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
 		void UpdateMaxDrawCallCount(uint32_t count) override;
@@ -23,7 +23,7 @@ namespace Engine
 
 	private:
 		void DirectionalLighting(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
-		void RegularLighting(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
+		void RegularLighting(RenderGraphResource* pGraphResources, const RenderContext& renderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 
 		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
 		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);

@@ -81,35 +81,65 @@ namespace Engine
 	}
 
 	MaterialComponent::MaterialComponent()
-		: BaseComponent(EComponentType::Material)
+		: BaseComponent(EComponentType::Material),
+		m_hasTransparency(false),
+		m_hasTransparencyChecked(false)
 	{
 	}
 
 	void MaterialComponent::AddMaterial(uint32_t submeshIndex, Material* pMaterialComp)
 	{
+		if (submeshIndex >= m_materialList.size())
+		{
+			m_materialList.resize(submeshIndex + 1);
+		}
 		m_materialList[submeshIndex] = pMaterialComp;
 	}
 
-	const MaterialList& MaterialComponent::GetMaterialList() const
+	const std::vector<Material*>& MaterialComponent::GetMaterialList() const
 	{
 		return m_materialList;
 	}
 
 	Material* MaterialComponent::GetMaterialBySubmeshIndex(uint32_t submeshIndex) const
 	{
-		if (m_materialList.find(submeshIndex) != m_materialList.end())
+		if (submeshIndex < m_materialList.size())
 		{
-			return m_materialList.at(submeshIndex);
+			return m_materialList[submeshIndex];
 		}
 		if (m_materialList.size() > 0)
 		{
-			return m_materialList.begin()->second; // Pick a material as default
+			return m_materialList[0]; // Pick first material as default
 		}
+
+		LOG_ERROR("No material can be found in the material component.");
 		return nullptr;
 	}
 
 	uint32_t MaterialComponent::GetMaterialCount() const
 	{
 		return (uint32_t)m_materialList.size();
+	}
+
+	bool MaterialComponent::HasTransparency()
+	{
+		if (!m_hasTransparencyChecked)
+		{
+			RecheckTransparency();
+		}
+		return m_hasTransparency;
+	}
+
+	void MaterialComponent::RecheckTransparency()
+	{
+		for (auto& pMaterial : m_materialList)
+		{
+			if (pMaterial->IsTransparent())
+			{
+				m_hasTransparency = true;
+				break;
+			}
+		}
+		m_hasTransparencyChecked = true;
 	}
 }

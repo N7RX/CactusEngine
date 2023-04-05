@@ -112,12 +112,14 @@ namespace Engine
 
 					component["materialCount"] = materialList.size();
 
-					for (auto& material : materialList)
+					for (uint32_t materialIndex = 0; materialIndex < materialList.size(); ++materialIndex)
 					{
-						Json::Value subComponent;
-						subComponent["shaderType"] = (uint32_t)material.second->GetShaderProgramType();
+						auto& pMaterial = materialList[materialIndex];
 
-						auto textureList = material.second->GetTextureList();
+						Json::Value subComponent;
+						subComponent["shaderType"] = (uint32_t)pMaterial->GetShaderProgramType();
+
+						auto textureList = pMaterial->GetTextureList();
 						for (auto& textureEntry : textureList)
 						{
 							switch (textureEntry.first)
@@ -146,19 +148,19 @@ namespace Engine
 							}
 						}
 
-						Color4 albedoColor = material.second->GetAlbedoColor();
+						Color4 albedoColor = pMaterial->GetAlbedoColor();
 						subComponent["albedoColor"]["r"] = albedoColor.x;
 						subComponent["albedoColor"]["g"] = albedoColor.y;
 						subComponent["albedoColor"]["b"] = albedoColor.z;
 						subComponent["albedoColor"]["a"] = albedoColor.w;
 
-						subComponent["transparent"] = material.second->IsTransparent();
+						subComponent["transparent"] = pMaterial->IsTransparent();
 
-						subComponent["anisotropy"] = material.second->GetAnisotropy();
-						subComponent["roughness"] = material.second->GetRoughness();
+						subComponent["anisotropy"] = pMaterial->GetAnisotropy();
+						subComponent["roughness"] = pMaterial->GetRoughness();
 
 						std::stringstream materialName;
-						materialName << "materialImpl" << material.first;
+						materialName << "materialImpl" << materialIndex;
 						component[materialName.str()] = subComponent;
 					}
 

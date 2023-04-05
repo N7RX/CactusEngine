@@ -280,10 +280,10 @@ namespace Engine
 		}
 	}
 
-	void GBufferRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
+	void GBufferRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
-		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
-		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
+		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
+		auto pCameraComp = (CameraComponent*)renderContext.pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
@@ -291,7 +291,7 @@ namespace Engine
 
 		auto& frameResources = m_frameResources[m_frameIndex];
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 		// Use normal-only shader for all meshes. Alert: This will invalidate vertex shader animation
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
 		ShaderParameterTable shaderParamTable{};
@@ -317,7 +317,7 @@ namespace Engine
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 
-		for (auto& entity : *pRenderContext->pDrawList)
+		for (auto& entity : *renderContext.pOpaqueDrawList)
 		{
 			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
 			auto pMeshFilterComp = (MeshFilterComponent*)entity->GetComponent(EComponentType::MeshFilter);

@@ -50,7 +50,11 @@ namespace Engine
 
 		ERendererType m_activeRenderer;
 		BaseRenderer* m_rendererTable[(uint32_t)ERendererType::COUNT];
-		std::vector<BaseEntity*> m_renderTaskTable;
+
+		std::vector<BaseEntity*> m_opaqueDrawList;
+		std::vector<BaseEntity*> m_transparentDrawList;
+		std::vector<BaseEntity*> m_lightDrawList;
+		
 		uint32_t m_frameIndex;
 		uint32_t m_maxFramesInFlight;
 	};

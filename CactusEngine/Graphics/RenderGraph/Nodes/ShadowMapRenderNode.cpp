@@ -225,11 +225,11 @@ namespace Engine
 		}
 	}
 
-	void ShadowMapRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
+	void ShadowMapRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
 		auto& frameResources = m_frameResources[m_frameIndex];
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 		ShaderParameterTable shaderParamTable{};
@@ -266,7 +266,7 @@ namespace Engine
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::ShadowMap), pCommandBuffer);
 
-		for (auto& entity : *pRenderContext->pDrawList)
+		for (auto& entity : *renderContext.pOpaqueDrawList)
 		{
 			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
 			auto pMeshFilterComp = (MeshFilterComponent*)entity->GetComponent(EComponentType::MeshFilter);

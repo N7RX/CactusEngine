@@ -1,15 +1,17 @@
 #include "RenderingSystem.h"
+#include "GraphicsApplication.h"
+#include "BuiltInResourcesPath.h"
+#include "LogUtility.h"
+#include "RenderGraph.h"
 #include "StandardRenderer.h"
 #include "SimpleRenderer.h"
 #include "AdvancedRenderer.h"
 #include "GraphicsHardwareInterface_GL.h"
 #include "GraphicsHardwareInterface_VK.h"
 #include "MeshFilterComponent.h"
+#include "MaterialComponent.h"
 #include "CameraComponent.h"
 #include "LightComponent.h"
-#include "GraphicsApplication.h"
-#include "BuiltInResourcesPath.h"
-#include "LogUtility.h"
 
 namespace Engine
 {
@@ -50,8 +52,9 @@ namespace Engine
 
 	void RenderingSystem::FrameEnd()
 	{
-		// TODO: implement clear only on scene content chage
-		m_renderTaskTable.clear();
+		m_opaqueDrawList.clear();
+		m_transparentDrawList.clear();
+		m_lightDrawList.clear();
 
 		m_pDevice->Present(m_frameIndex);
 
@@ -171,15 +174,22 @@ namespace Engine
 		for (auto itr = pEntityList->begin(); itr != pEntityList->end(); ++itr)
 		{
 			auto pMeshFilterComp = (MeshFilterComponent*)itr->second->GetComponent(EComponentType::MeshFilter);
+			auto pMaterialComp = (MaterialComponent*)itr->second->GetComponent(EComponentType::Material);
 			auto pLightComp = (LightComponent*)itr->second->GetComponent(EComponentType::Light);
 
-			if (pMeshFilterComp)
+			if (pMeshFilterComp && pMaterialComp)
 			{
-				m_renderTaskTable.emplace_back(itr->second);
+				if (pMaterialComp->HasTransparency())
+				{
+					m_transparentDrawList.emplace_back(itr->second);
+					// TODO: sort transparency
+				}
+				// In case of partial transparency, we need to add it to opaque list as well. This might be optimized later
+				m_opaqueDrawList.emplace_back(itr->second);
 			}
-			if (pLightComp && !pMeshFilterComp)
+			if (pLightComp)
 			{
-				m_renderTaskTable.emplace_back(itr->second);
+				m_lightDrawList.emplace_back(itr->second);
 			}
 		}
 	}
@@ -187,12 +197,18 @@ namespace Engine
 	void RenderingSystem::ExecuteRenderTask()
 	{
 		auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
-		auto pCameraComp = pCamera ? (CameraComponent*)pCamera->GetComponent(EComponentType::Camera) : nullptr;
 
-		if (!m_renderTaskTable.empty())
+		if (!m_opaqueDrawList.empty() || !m_transparentDrawList.empty() || !m_lightDrawList.empty())
 		{
 			DEBUG_ASSERT_CE(m_rendererTable[(uint32_t)m_activeRenderer]);
-			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(m_renderTaskTable, pCamera, m_frameIndex);
+
+			RenderContext context{};
+			context.pOpaqueDrawList = &m_opaqueDrawList;
+			context.pTransparentDrawList = &m_transparentDrawList;
+			context.pLightDrawList = &m_lightDrawList;
+			context.pCamera = pCamera;
+
+			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(context, m_frameIndex);
 		}
 	}
 }

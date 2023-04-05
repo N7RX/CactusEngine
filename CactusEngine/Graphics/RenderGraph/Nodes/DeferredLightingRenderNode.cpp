@@ -299,17 +299,17 @@ namespace Engine
 		}
 	}
 
-	void DeferredLightingRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
+	void DeferredLightingRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
 		auto& frameResources = m_frameResources[m_frameIndex];
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 		ShaderParameterTable shaderParamTable{};
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
 		DirectionalLighting(pGraphResources, pCommandBuffer, shaderParamTable);
-		RegularLighting(pGraphResources, pRenderContext, pCommandBuffer, shaderParamTable);
+		RegularLighting(pGraphResources, renderContext, pCommandBuffer, shaderParamTable);
 
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
@@ -330,10 +330,10 @@ namespace Engine
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 	}
 
-	void DeferredLightingRenderNode::RegularLighting(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
+	void DeferredLightingRenderNode::RegularLighting(RenderGraphResource* pGraphResources, const RenderContext& renderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
 	{
-		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
-		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
+		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
+		auto pCameraComp = (CameraComponent*)renderContext.pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
@@ -377,16 +377,12 @@ namespace Engine
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
 
 		// Draw light volume meshes
-		for (auto& entity : *pRenderContext->pDrawList)
+		for (auto& entity : *renderContext.pLightDrawList)
 		{
 			// Process only light components
 
 			auto pLightComp = (LightComponent*)entity->GetComponent(EComponentType::Light);
 			auto pTransformComp = (TransformComponent*)entity->GetComponent(EComponentType::Transform);
-			if (!pLightComp || !pTransformComp)
-			{
-				continue;
-			}
 
 			auto lightProfile = pLightComp->GetProfile();
 			if (lightProfile.sourceType != LightComponent::SourceType::Directional && !lightProfile.pVolumeMesh)

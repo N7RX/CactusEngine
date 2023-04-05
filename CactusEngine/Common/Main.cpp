@@ -16,6 +16,7 @@
 #include "StandardEntity.h"
 #include "ScriptSelector.h"
 #include "SampleScript/LightScript.h"
+#include "Timer.h"
 
 // This is the entry of the program
 
@@ -92,10 +93,11 @@ void ConfigSetup()
 	gpGlobal->CreateConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics);
 
 	// TODO: read settings from file
+
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppVersion("0.0.1");
 
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::Vulkan);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::OpenGL);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetPreferredGPUType(EGPUType::Discrete);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetMaxFramesInFlight(3);
@@ -317,10 +319,25 @@ void TestBuildCornellBox(ECSWorld* pWorld)
 		pMaterial->SetTexture(EMaterialTextureType::Tone, pToneTexture);
 		pMaterialComp->AddMaterial(0, pMaterial);
 
-		auto pCube = pWorld->CreateEntity<StandardEntity>();
-		pCube->AttachComponent(pTransformComp);
-		pCube->AttachComponent(pMeshFilterComp);
-		pCube->AttachComponent(pMaterialComp);
+		auto pAnimationComp = pWorld->CreateComponent<AnimationComponent>();
+		pAnimationComp->SetAnimFunction(
+			[](BaseEntity* pEntity)
+			{
+				auto pTransform = (TransformComponent*)pEntity->GetComponent(EComponentType::Transform);
+				Vector3 currRotation = pTransform->GetRotation();
+				currRotation.y += Timer::GetFrameDeltaTime() * 100.0f;
+				if (currRotation.y >= 360)
+				{
+					currRotation.y = 0;
+				}
+				pTransform->SetRotation(currRotation);
+			});
+
+		auto pStatue = pWorld->CreateEntity<StandardEntity>();
+		pStatue->AttachComponent(pTransformComp);
+		pStatue->AttachComponent(pMeshFilterComp);
+		pStatue->AttachComponent(pMaterialComp);
+		pStatue->AttachComponent(pAnimationComp);
 	}
 
 	// Light
@@ -357,15 +374,14 @@ void TestSetup(GraphicsApplication* pApp)
 	pWorld->SortSystems();
 
 	// Read scene from file
-	//ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
+	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");
 	//ReadECSWorldFromJson(pWorld, "Assets/Scene/LucyScene.json");
 	//ReadECSWorldFromJson(pWorld, "Assets/Scene/SerapisScene.json");
 
 	// Or manually add contents here
 	// ...
-	TestBuildCornellBox(pWorld);
-
-	//TestAddLights(pWorld);
+	//TestBuildCornellBox(pWorld);
+	TestAddLights(pWorld);
 
 	// Save scene to file
 	//WriteECSWorldToJson(pWorld, "Assets/Scene/NewScene.json");

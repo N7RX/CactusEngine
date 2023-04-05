@@ -12,7 +12,7 @@ namespace Engine
 		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
 		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
 
-		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) override;
+		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
 		void UpdateMaxDrawCallCount(uint32_t count) override;

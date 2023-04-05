@@ -1,6 +1,7 @@
 #include "BaseRenderer.h"
 #include "GraphicsDevice.h"
 #include "RenderGraph.h"
+#include "RenderingSystem.h"
 
 namespace Engine
 {
@@ -21,16 +22,12 @@ namespace Engine
 		}
 	}
 
-	void BaseRenderer::Draw(const std::vector<BaseEntity*>& drawList, BaseEntity* pCamera, uint32_t frameIndex)
+	void BaseRenderer::Draw(const RenderContext& renderContext, uint32_t frameIndex)
 	{
-		if (!pCamera)
+		if (!renderContext.pCamera)
 		{
 			return;
 		}
-
-		RenderContext currentContext{};
-		currentContext.pCamera = pCamera;
-		currentContext.pDrawList = &drawList;
 
 		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
 		{
@@ -40,7 +37,7 @@ namespace Engine
 				m_commandRecordReadyListFlag[item.first] = false;
 			}
 
-			m_pRenderGraph->BeginRenderPassesParallel(&currentContext, frameIndex);
+			m_pRenderGraph->BeginRenderPassesParallel(renderContext, frameIndex);
 
 			// Submit async recorded command buffers by correct sequence
 
@@ -114,7 +111,7 @@ namespace Engine
 		}
 		else // OpenGL
 		{
-			m_pRenderGraph->BeginRenderPassesSequential(&currentContext, frameIndex);
+			m_pRenderGraph->BeginRenderPassesSequential(renderContext, frameIndex);
 		}
 	}
 

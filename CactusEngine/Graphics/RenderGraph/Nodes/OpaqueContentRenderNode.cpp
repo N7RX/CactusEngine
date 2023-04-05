@@ -292,10 +292,10 @@ namespace Engine
 		}
 	}
 
-	void OpaqueContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext)
+	void OpaqueContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
-		auto pCameraTransform = (TransformComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Transform);
-		auto pCameraComp = (CameraComponent*)pRenderContext->pCamera->GetComponent(EComponentType::Camera);
+		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
+		auto pCameraComp = (CameraComponent*)renderContext.pCamera->GetComponent(EComponentType::Camera);
 		if (!pCameraComp || !pCameraTransform)
 		{
 			return;
@@ -308,7 +308,7 @@ namespace Engine
 		auto pGBufferNormalTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_NORMAL));
 		auto pShadowMapTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_SHADOW_MAP));
 
-		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(pCmdContext->pCommandPool);
+		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 
 		ShaderProgram* pShaderProgram = nullptr;
 		EBuiltInShaderProgramType lastUsedShaderProgramType = EBuiltInShaderProgramType::NONE;
@@ -350,7 +350,7 @@ namespace Engine
 
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
 
-		for (auto& entity : *pRenderContext->pDrawList)
+		for (auto& entity : *renderContext.pOpaqueDrawList)
 		{
 			// Skip non-mesh entities
 

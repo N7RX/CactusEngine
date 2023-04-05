@@ -13,6 +13,7 @@ namespace Engine
 	class BaseEntity;
 	class BaseRenderer;
 	class RenderGraph;
+	struct RenderContext;
 
 	class RenderGraphResource
 	{
@@ -27,14 +28,16 @@ namespace Engine
 
 	struct RenderContext
 	{
-		const std::vector<BaseEntity*>* pDrawList = nullptr;
-		BaseEntity* pCamera;
+		const std::vector<BaseEntity*>* pOpaqueDrawList;
+		const std::vector<BaseEntity*>* pTransparentDrawList;
+		const std::vector<BaseEntity*>* pLightDrawList;
+		const BaseEntity* pCamera;
 	};
 
 	struct CommandContext
 	{
-		GraphicsCommandPool* pCommandPool = nullptr;
-		GraphicsCommandPool* pTransferCommandPool = nullptr;
+		GraphicsCommandPool* pCommandPool;
+		GraphicsCommandPool* pTransferCommandPool;
 	};
 	
 	struct RenderNodeConfiguration
@@ -69,7 +72,7 @@ namespace Engine
 		virtual void CreateConstantResources(const RenderNodeConfiguration& initInfo) = 0; // Pipeline objects that are constant
 		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
 
-		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext* pRenderContext, const CommandContext* pCmdContext) = 0;
+		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) = 0;
 
 		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
 		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // May affect the size of uniform buffers
@@ -96,8 +99,9 @@ namespace Engine
 		std::vector<Texture2D*>* m_pSwapchainImages;
 		bool m_outputToSwapchain;
 
-		RenderContext* m_pRenderContext;
-		CommandContext*	m_pCmdContext;
+		RenderContext  m_renderContext;
+		CommandContext m_cmdContext;
+
 		std::unordered_map<const char*, const char*> m_inputResourceNames;
 		std::unordered_map<uint32_t, GraphicsPipelineObject*> m_graphicsPipelines; // Key usually is the shader type, but ultimately it's determined by each render node
 																				   // (e.g. might reuse same shader with a different render pass)
@@ -117,8 +121,8 @@ namespace Engine
 		void SetupRenderNodes();
 		void BuildRenderNodePriorities();
 
-		void BeginRenderPassesSequential(RenderContext* pContext, uint32_t frameIndex);
-		void BeginRenderPassesParallel(RenderContext* pContext, uint32_t frameIndex);
+		void BeginRenderPassesSequential(const RenderContext& context, uint32_t frameIndex);
+		void BeginRenderPassesParallel(const RenderContext& context, uint32_t frameIndex);
 
 		RenderNode* GetNodeByName(const char* name) const;
 		uint32_t GetRenderNodeCount() const;

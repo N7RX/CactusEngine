@@ -43,8 +43,6 @@ namespace Engine
 		float m_roughness;
 	};
 
-	typedef std::unordered_map<uint32_t, Material*> MaterialList;
-
 	class MaterialComponent : public BaseComponent
 	{
 	public:
@@ -52,11 +50,17 @@ namespace Engine
 		~MaterialComponent() = default;
 
 		void AddMaterial(uint32_t submeshIndex, Material* pMaterialComp);
-		const MaterialList& GetMaterialList() const;
+		const std::vector<Material*>& GetMaterialList() const;
 		Material* GetMaterialBySubmeshIndex(uint32_t submeshIndex) const;
 		uint32_t GetMaterialCount() const;
 
+		bool HasTransparency();
+		void RecheckTransparency();
+
 	private:
-		MaterialList m_materialList; // This is a temporary solution, a better way is to implement auto sub-entity creation
+		bool m_hasTransparency;
+		bool m_hasTransparencyChecked;
+
+		std::vector<Material*> m_materialList;
 	};
 }
