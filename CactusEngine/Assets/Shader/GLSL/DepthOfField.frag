@@ -13,11 +13,6 @@ layout(std140, binding = 22) uniform CameraMatrices
 	mat4 ProjectionMatrix;
 };
 
-layout(std140, binding = 19) uniform ControlVariables
-{
-	int Bool_1;
-};
-
 layout(std140, binding = 17) uniform CameraProperties
 {
 	vec3  CameraPosition;
@@ -26,48 +21,17 @@ layout(std140, binding = 17) uniform CameraProperties
 	float ImageDistance;
 };
 
-const int   SampleRadius = 2;
-const float Weight[10] = float[](0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216, 0.007, 0.003, 0.0012, 0.0005, 0.0003);
-const float PI = 3.1415926536f;
 
-
-vec3 LevelBlur(int level)
+vec3 LevelBlur(float level)
 {
-	//return vec3(float(level)*0.1); // Visualize blur level
-	//return texture(ColorTexture_1, v2fTexCoord).rgb;
+	//return vec3(level*0.1); // Visualize blur level
+	
+	// Convert to visually acceptable mipmap level; use natural logarithm to map the level
+	level = log(level);
+	level = clamp(level, 0.0f, 10.0f);
 
-	vec2 pixelOffset = 1.0 / textureSize(ColorTexture_1, 0);
-
-	if (level <= 0)
-	{
-		return texture(ColorTexture_1, v2fTexCoord).rgb * 1.025; // 1.025 is an empirical compensation to level-0
-	}
-
-	float initWeight = Weight[0];
-	for (int i = level; i < 10; i += 1)
-	{
-		initWeight += 2 * Weight[i]; // Maintain the same color strength
-	}
-	vec3 result = texture(ColorTexture_1, v2fTexCoord).rgb * initWeight; // current fragment's contribution
-
-	if (Bool_1 == 1)
-	{
-		for (int i = SampleRadius; i < SampleRadius * level; i += SampleRadius)
-		{
-			result += texture(ColorTexture_1, v2fTexCoord + vec2(pixelOffset.x * i, 0.0)).rgb * Weight[i / SampleRadius];
-			result += texture(ColorTexture_1, v2fTexCoord - vec2(pixelOffset.x * i, 0.0)).rgb * Weight[i / SampleRadius];
-		}
-	}
-	else
-	{
-		for (int i = SampleRadius; i < SampleRadius * level; i += SampleRadius)
-		{
-			result += texture(ColorTexture_1, v2fTexCoord + vec2(0.0, pixelOffset.y * i)).rgb * Weight[i / SampleRadius];
-			result += texture(ColorTexture_1, v2fTexCoord - vec2(0.0, pixelOffset.y * i)).rgb * Weight[i / SampleRadius];
-		}
-	}
-
-	return result;
+	// Utilize mipmap instead of Gaussian blur
+	return textureLod(ColorTexture_1, v2fTexCoord, level).rgb;
 }
 
 // Adapted from two-pass Gaussian blur
@@ -76,11 +40,10 @@ void main(void)
 	float sceneDepth = abs((ViewMatrix * vec4(texture(GPositionTexture, v2fTexCoord).xyz, 1.0)).z);
 
 	// Determine which level of blur should be applied
-	// Currently 10 is max level
-	highp int level = 0;
+	
 	// CoC formula from http://fileadmin.cs.lth.se/cs/education/edan35/lectures/12dof.pdf
 	float focalLength = sceneDepth * ImageDistance / (sceneDepth + ImageDistance);
-	level = int(clamp(abs(Aperture * focalLength * (FocalDistance - sceneDepth) / (sceneDepth * (FocalDistance - focalLength))), 0.0, 10.0f));
+	float level = abs(Aperture * focalLength * (FocalDistance - sceneDepth) / (sceneDepth * (FocalDistance - focalLength)));
 
 	vec3 result = LevelBlur(level);
 

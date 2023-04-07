@@ -35,7 +35,7 @@ namespace Engine
 		AppConfiguration()
 			: m_appName("CE_Application"),
 			m_appVersion("1.0.0"),
-			m_engineVersion("0.1.3")
+			m_engineVersion("0.1.4")
 		{
 
 		}

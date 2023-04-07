@@ -130,7 +130,7 @@ namespace Engine
 			CE_NEW(pOutput, Texture2D_GL);
 		}
 
-		auto pTexture = (Texture2D_GL*)pOutput;
+		auto pTextureGL = (Texture2D_GL*)pOutput;
 
 		GLuint texID = -1;
 		glGenTextures(1, &texID);
@@ -140,21 +140,29 @@ namespace Engine
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
 		if (IsDepthFormat(createInfo.format))
 		{
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 		}
 		if (createInfo.generateMipmap)
 		{
+			DEBUG_ASSERT_CE(createInfo.pTextureData != nullptr);
+
 			glGenerateMipmap(GL_TEXTURE_2D);
+			pTextureGL->MarkHasMipmap();
+		}
+		if (createInfo.pSampler != nullptr)
+		{
+			pTextureGL->SetSampler(createInfo.pSampler);
 		}
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
-		pTexture->SetGLTextureID(texID);
-		pTexture->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
-		pTexture->SetTextureType(createInfo.textureType);
-		pTexture->MarkSizeInByte(static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(OpenGLDataType(createInfo.format))));
+		pTextureGL->SetGLTextureID(texID);
+		pTextureGL->MarkTextureSize(createInfo.textureWidth, createInfo.textureHeight);
+		pTextureGL->SetTextureType(createInfo.textureType);
+		pTextureGL->MarkSizeInByte(static_cast<uint32_t>(createInfo.textureWidth * createInfo.textureHeight * OpenGLTypeSize(OpenGLDataType(createInfo.format))));
 
 		return texID != -1;
 	}
@@ -233,6 +241,34 @@ namespace Engine
 		pBuffer->MarkSizeInByte(createInfo.sizeInBytes);
 
 		return bufferID != -1;
+	}
+
+	void GraphicsHardwareInterface_GL::GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer)
+	{
+		auto pTextureGL = (Texture2D_GL*)pTexture;
+		glGenerateTextureMipmap(pTextureGL->GetGLTextureID());
+
+		if (!pTextureGL->HasMipmap())
+		{
+			pTextureGL->MarkHasMipmap();
+
+			// Re-apply sampler to update mipmap filter
+			TextureSampler* pExistingSampler = pTextureGL->GetSampler();
+			if (pExistingSampler)
+			{
+				pTextureGL->SetSampler(nullptr);
+				pTextureGL->SetSampler(pExistingSampler);
+			}
+		}
+	}
+
+	void GraphicsHardwareInterface_GL::CopyTexture2D(Texture2D* pSrcTexture, Texture2D* pDstTexture, GraphicsCommandBuffer* pCmdBuffer)
+	{
+		auto pSrc = (Texture2D_GL*)pSrcTexture;
+		auto pDst = (Texture2D_GL*)pDstTexture;
+		DEBUG_ASSERT_MESSAGE_CE(pSrc->GetWidth() == pDst->GetWidth() && pSrc->GetHeight() == pDst->GetHeight(), "CopyTexture2D textures dimension(s) mismatch.");
+
+		glCopyImageSubData(pSrc->GetGLTextureID(), GL_TEXTURE_2D, 0, 0, 0, 0, pDst->GetGLTextureID(), GL_TEXTURE_2D, 0, 0, 0, 0, pSrc->GetWidth(), pSrc->GetHeight(), 1);
 	}
 
 	void GraphicsHardwareInterface_GL::SetRenderTarget(const FrameBuffer* pFrameBuffer)

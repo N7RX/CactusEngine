@@ -104,6 +104,8 @@ namespace Engine
 		ETextureFormat format;
 		ETextureType   textureType;
 		bool		   generateMipmap;
+		bool		   reserveMipmapMemory; // Reserve memory space for mipmap, but not generate at creation. Useful for render textures
+											// If generateMipmap is true, this will be ignored as if always true. Also always ignored by OpenGL
 		TextureSampler* pSampler;
 		EImageLayout   initialLayout;
 	};

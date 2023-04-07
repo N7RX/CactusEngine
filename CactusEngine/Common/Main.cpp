@@ -97,12 +97,12 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppName("Cactus Engine");
 	gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->SetAppVersion("0.0.1");
 
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::OpenGL);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::Vulkan);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetPreferredGPUType(EGPUType::Discrete);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetMaxFramesInFlight(3);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
-	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetActiveRenderer(ERendererType::Standard);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetActiveRenderer(ERendererType::Advanced);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetTextureAnisotropyLevel(ESamplerAnisotropyLevel::AFx4);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetRenderScale(1.0f);
 }

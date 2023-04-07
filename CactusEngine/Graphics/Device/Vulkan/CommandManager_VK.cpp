@@ -249,11 +249,10 @@ namespace Engine
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
-		VkPipelineStageFlags srcStage, dstStage;
+		VkPipelineStageFlags srcStage = 0, dstStage = 0;
 
 		GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
 		GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
-
 		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier); // TODO: offer a batch version
 
 		pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
@@ -268,7 +267,7 @@ namespace Engine
 		vkGetPhysicalDeviceFormatProperties(pImage->m_pDevice->physicalDevice, pImage->m_format, &formatProperties);
 		DEBUG_ASSERT_CE(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT);
 #endif
-
+		DEBUG_ASSERT_CE(m_isRecording);
 		DEBUG_ASSERT_CE(newLayout != VK_IMAGE_LAYOUT_UNDEFINED);
 
 		VkImageMemoryBarrier barrier{};
@@ -290,11 +289,10 @@ namespace Engine
 			barrier.oldLayout = pImage->m_layout;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
-			VkPipelineStageFlags srcStage, dstStage;
+			VkPipelineStageFlags srcStage = 0, dstStage = 0;
 
 			GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
 			GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.dstAccessMask, dstStage, 0);
-
 			vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 			VkImageBlit blitRegion{};
@@ -321,7 +319,6 @@ namespace Engine
 
 			GetAccessAndStageFromImageLayout_VK(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, barrier.srcAccessMask, srcStage, 0);
 			GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
-
 			vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 			if (mipWidth > 1)
@@ -338,11 +335,10 @@ namespace Engine
 		barrier.oldLayout = pImage->m_layout;
 		barrier.newLayout = newLayout;
 
-		VkPipelineStageFlags srcStage, dstStage;
+		VkPipelineStageFlags srcStage = 0, dstStage = 0;
 
 		GetAccessAndStageFromImageLayout_VK(pImage->m_layout, barrier.srcAccessMask, srcStage, pImage->m_appliedStages);
 		GetAccessAndStageFromImageLayout_VK(newLayout, barrier.dstAccessMask, dstStage, appliedStages);
-
 		vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
 		pImage->m_layout = newLayout; // Alert: the transition may not be completed in this moment
@@ -365,6 +361,12 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_isRecording);
 		vkCmdCopyImageToBuffer(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstBuffer->m_buffer, (uint32_t)regions.size(), regions.data());
+	}
+
+	void CommandBuffer_VK::CopyTexture2DToTexture2D(Texture2D_VK* pSrcImage, Texture2D_VK* pDstImage, const std::vector<VkImageCopy>& regions)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		vkCmdCopyImage(m_commandBuffer, pSrcImage->m_image, pSrcImage->m_layout, pDstImage->m_image, pDstImage->m_layout, (uint32_t)regions.size(), regions.data());
 	}
 
 	void CommandBuffer_VK::WaitPresentationSemaphore(Semaphore_VK* pSemaphore)

@@ -257,4 +257,19 @@ namespace Engine
 		}
 		return -1;
 	}
+
+	inline GLenum OpenGLTextureMipmapMode(ESamplerMipmapMode mode)
+	{
+		switch (mode)
+		{
+		case ESamplerMipmapMode::Nearest:
+			return GL_NEAREST_MIPMAP_NEAREST;
+		case ESamplerMipmapMode::Linear:
+			return GL_LINEAR_MIPMAP_LINEAR;
+		default:
+			LOG_ERROR("OpenGL: Unhandled sampler mipmap mode.");
+			break;
+		}
+		return -1;
+	}
 }

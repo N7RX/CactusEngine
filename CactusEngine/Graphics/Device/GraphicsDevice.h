@@ -23,10 +23,15 @@ namespace Engine
 		virtual bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, FrameBuffer*& pOutput) = 0;
 		virtual bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput) = 0;
 
+		virtual void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
+		virtual void CopyTexture2D(Texture2D* pSrcTexture, Texture2D*pDstTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
+
 		virtual void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
 		virtual void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
 		virtual void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+
 		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
 
 		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
@@ -72,9 +77,10 @@ namespace Engine
 		virtual void GetSwapchainImages(std::vector<Texture2D*>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
 
+		// For host-device data transfer
+
 		virtual void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) = 0;
-		virtual void CopyDataTransferBuffer(DataTransferBuffer* pSrcBuffer, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) = 0;
 		virtual void CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc) = 0;
 

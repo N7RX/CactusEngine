@@ -15,9 +15,10 @@ namespace Engine
 		float m_anisotropyLevel;
 		GLenum m_magFilter;
 		GLenum m_minFilter;
+		GLenum m_mipmapMode;
 		float m_minLod;
 		float m_maxLod;
-		// Support more properties if needed
+		float m_baseLod;
 
 		friend class Texture2D_GL;
 	};
@@ -37,8 +38,12 @@ namespace Engine
 		void SetSampler(const TextureSampler* pSampler) override;
 		TextureSampler* GetSampler() const override;
 
+		void MarkHasMipmap();
+		bool HasMipmap() const;
+
 	private:
 		GLuint m_glTextureID;
+		bool m_hasMipmap;
 
 		Sampler_GL* m_pSampler;
 	};

@@ -13,8 +13,7 @@ namespace Engine
 
 	DepthOfFieldRenderNode::DepthOfFieldRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer),
-		m_pRenderPassObject_Horizontal(nullptr),
-		m_pRenderPassObject_Vertical(nullptr)
+		m_pRenderPassObject(nullptr)
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
@@ -24,31 +23,7 @@ namespace Engine
 	{
 		// Render pass object
 
-		// Horizontal pass
-
 		RenderPassAttachmentDescription colorDesc{};
-		colorDesc.format = initInfo.colorFormat;
-		colorDesc.sampleCount = 1;
-		colorDesc.loadOp = EAttachmentOperation::None;
-		colorDesc.storeOp = EAttachmentOperation::Store;
-		colorDesc.stencilLoadOp = EAttachmentOperation::None;
-		colorDesc.stencilStoreOp = EAttachmentOperation::None;
-		colorDesc.initialLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.usageLayout = EImageLayout::ColorAttachment;
-		colorDesc.finalLayout = EImageLayout::ShaderReadOnly;
-		colorDesc.type = EAttachmentType::Color;
-		colorDesc.index = 0;
-
-		RenderPassCreateInfo passCreateInfo{};
-		passCreateInfo.clearColor = Color4(1);
-		passCreateInfo.clearDepth = 1.0f;
-		passCreateInfo.clearStencil = 0;
-		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
-
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Horizontal);
-
-		// Vertical pass
-
 		colorDesc.format = m_outputToSwapchain ? initInfo.swapSurfaceFormat : initInfo.colorFormat;
 		colorDesc.sampleCount = 1;
 		colorDesc.loadOp = EAttachmentOperation::None;
@@ -61,10 +36,13 @@ namespace Engine
 		colorDesc.type = EAttachmentType::Color;
 		colorDesc.index = 0;
 
-		passCreateInfo.attachmentDescriptions.clear();
+		RenderPassCreateInfo passCreateInfo{};
+		passCreateInfo.clearColor = Color4(1);
+		passCreateInfo.clearDepth = 1.0f;
+		passCreateInfo.clearStencil = 0;
 		passCreateInfo.attachmentDescriptions.emplace_back(colorDesc);
 
-		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject_Vertical);
+		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
 		// Pipeline objects
 
@@ -149,18 +127,12 @@ namespace Engine
 		pipelineCreateInfo.pDepthStencilState = pDepthStencilState;
 		pipelineCreateInfo.pMultisampleState = pMultisampleState;
 		pipelineCreateInfo.pViewportState = pViewportState;
-		pipelineCreateInfo.pRenderPass = m_pRenderPassObject_Horizontal;
+		pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
 
-		GraphicsPipelineObject* pPipeline_0 = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_0);
+		GraphicsPipelineObject* pPipeline = nullptr;
+		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
 
-		pipelineCreateInfo.pRenderPass = m_pRenderPassObject_Vertical;
-
-		GraphicsPipelineObject* pPipeline_1 = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline_1);
-
-		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DOF, pPipeline_0);
-		m_graphicsPipelines.emplace(VERTICAL_PASS_PIPELINE_KEY, pPipeline_1);
+		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DOF, pPipeline);
 	}
 
 	void DepthOfFieldRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
@@ -175,27 +147,29 @@ namespace Engine
 		uint32_t width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
 		uint32_t height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
 
-		// Horizontal result
-
 		Texture2DCreateInfo texCreateInfo{};
 		texCreateInfo.generateMipmap = false;
+		texCreateInfo.reserveMipmapMemory = true;
 		texCreateInfo.pSampler = m_pDevice->GetTextureSampler(ESamplerAnisotropyLevel::None);
 		texCreateInfo.textureWidth = width;
 		texCreateInfo.textureHeight = height;
 		texCreateInfo.format = initInfo.colorFormat;
-		texCreateInfo.textureType = ETextureType::ColorAttachment;
+		texCreateInfo.textureType = ETextureType::SampledImage;
 		texCreateInfo.initialLayout = EImageLayout::ShaderReadOnly;
 
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 		{
-			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pHorizontalResult);
+			m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorInputMipmap);
 		}
 
 		if (!m_outputToSwapchain)
 		{
+			texCreateInfo.reserveMipmapMemory = false;
+			texCreateInfo.textureType = ETextureType::ColorAttachment;
+
 			for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 			{
-				m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pVerticalResult);
+				m_pDevice->CreateTexture2D(texCreateInfo, m_frameResources[i].m_pColorOutput);
 			}
 		}
 
@@ -204,24 +178,13 @@ namespace Engine
 		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
 		{
 			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_frameResources[i].m_pHorizontalResult);
+			fbCreateInfo.attachments.emplace_back(m_outputToSwapchain ? m_pSwapchainImages->at(i) : m_frameResources[i].m_pColorOutput);
 			fbCreateInfo.framebufferWidth = width;
 			fbCreateInfo.framebufferHeight = height;
-			fbCreateInfo.pRenderPass = m_pRenderPassObject_Horizontal;
-
-			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer_Horizontal);
-		}
-
-		for (uint32_t i = 0; i < initInfo.framesInFlight; i++)
-		{
-			FrameBufferCreateInfo fbCreateInfo{};
-			fbCreateInfo.attachments.emplace_back(m_outputToSwapchain ? m_pSwapchainImages->at(i) : m_frameResources[i].m_pVerticalResult);
-			fbCreateInfo.framebufferWidth = width;
-			fbCreateInfo.framebufferHeight = height;
-			fbCreateInfo.pRenderPass = m_pRenderPassObject_Vertical;
+			fbCreateInfo.pRenderPass = m_pRenderPassObject;
 			fbCreateInfo.renderToSwapchain = m_outputToSwapchain;
 
-			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer_Vertical);
+			m_pDevice->CreateFrameBuffer(fbCreateInfo, m_frameResources[i].m_pFrameBuffer);
 		}
 	}
 
@@ -243,13 +206,6 @@ namespace Engine
 		{
 			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
 		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBControlVariables);
-		ubCreateInfo.maxSubAllocationCount = 8;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pControlVariables_UB);
-		}
 	}
 
 	void DepthOfFieldRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
@@ -266,9 +222,7 @@ namespace Engine
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
 		ShaderParameterTable shaderParamTable{};
 
-		// Prepare shared uniform buffers
-
-		frameResources.m_pControlVariables_UB->ResetSubBufferAllocation();
+		// Prepare uniform buffers
 
 		UBCameraMatrices ubCameraMatrices{};
 		UBCameraProperties ubCameraProperties{};
@@ -283,11 +237,31 @@ namespace Engine
 		ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
 		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
 
-		// Execute internal passes
+		// Generate color input mipmap
+		m_pDevice->CopyTexture2D((Texture2D*)(pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE))), frameResources.m_pColorInputMipmap, pCommandBuffer);
+		m_pDevice->GenerateMipmap(frameResources.m_pColorInputMipmap, pCommandBuffer);
 
-		HorizontalPass(pGraphResources, pCommandBuffer, shaderParamTable);
-		shaderParamTable.Clear();
-		VerticalPass(pGraphResources, pCommandBuffer, shaderParamTable);
+		// Execute render pass
+
+		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DOF), pCommandBuffer);
+
+		// Update shader resources
+
+		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pColorInputMipmap);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
+			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
+
+		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
+
+		// Draw
+		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
+		m_pDevice->EndRenderPass(pCommandBuffer);
 
 		// Submission
 
@@ -295,76 +269,8 @@ namespace Engine
 
 		frameResources.m_pCameraMatrices_UB->FlushToDevice();
 		frameResources.m_pCameraProperties_UB->FlushToDevice();
-		frameResources.m_pControlVariables_UB->FlushToDevice();
 
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
-	}
-
-	void DepthOfFieldRenderNode::HorizontalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
-	{
-		auto& frameResources = m_frameResources[m_frameIndex];
-		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
-
-		// Prepare uniform
-		UBControlVariables ubControlVariables{};
-		ubControlVariables.bool_1 = 1;
-		SubUniformBuffer subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
-
-		// Begin pass
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Horizontal, frameResources.m_pFrameBuffer_Horizontal, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DOF), pCommandBuffer);
-
-		// Update shader resources
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE)));
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
-
-		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
-
-		// Draw
-		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
-		m_pDevice->EndRenderPass(pCommandBuffer);
-	}
-
-	void DepthOfFieldRenderNode::VerticalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable)
-	{
-		auto& frameResources = m_frameResources[m_frameIndex];
-		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
-
-		// Prepare uniform
-		UBControlVariables ubControlVariables{};
-		ubControlVariables.bool_1 = 0;
-		SubUniformBuffer subControlVariablesUB = frameResources.m_pControlVariables_UB->AllocateSubBuffer(sizeof(UBControlVariables));
-		frameResources.m_pControlVariables_UB->UpdateBufferData(&ubControlVariables, &subControlVariablesUB);
-
-		// Begin pass
-		m_pDevice->BeginRenderPass(m_pRenderPassObject_Vertical, frameResources.m_pFrameBuffer_Vertical, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at(VERTICAL_PASS_PIPELINE_KEY), pCommandBuffer);
-
-		// Update shader resources
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pHorizontalResult);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
-			pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION)));
-
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CONTROL_VARIABLES), EDescriptorType::SubUniformBuffer, &subControlVariablesUB);
-
-		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
-
-		// Draw
-		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
-		m_pDevice->EndRenderPass(pCommandBuffer);
 	}
 
 	void DepthOfFieldRenderNode::UpdateResolution(uint32_t width, uint32_t height)
@@ -413,8 +319,7 @@ namespace Engine
 
 	void DepthOfFieldRenderNode::DestroyConstantResources()
 	{
-		CE_DELETE(m_pRenderPassObject_Horizontal);
-		CE_DELETE(m_pRenderPassObject_Vertical);
+		CE_DELETE(m_pRenderPassObject);
 		DestroyGraphicsPipelines();
 	}
 
@@ -422,11 +327,9 @@ namespace Engine
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
 		{
-			CE_DELETE(m_frameResources[i].m_pFrameBuffer_Horizontal);
-			CE_DELETE(m_frameResources[i].m_pHorizontalResult);
-
-			CE_DELETE(m_frameResources[i].m_pFrameBuffer_Vertical);
-			CE_SAFE_DELETE(m_frameResources[i].m_pVerticalResult);
+			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
+			CE_DELETE(m_frameResources[i].m_pColorInputMipmap);
+			CE_DELETE(m_frameResources[i].m_pColorOutput);
 		}
 	}
 
@@ -436,7 +339,6 @@ namespace Engine
 		{
 			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
 			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
-			CE_DELETE(m_frameResources[i].m_pControlVariables_UB);
 		}
 	}
 }

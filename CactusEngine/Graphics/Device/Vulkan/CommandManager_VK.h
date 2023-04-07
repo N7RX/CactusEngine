@@ -73,6 +73,7 @@ namespace Engine
 		void CopyBufferToBuffer(const RawBuffer_VK* pSrcBuffer, const RawBuffer_VK* pDstBuffer, const VkBufferCopy& region);
 		void CopyBufferToTexture2D(const RawBuffer_VK* pSrcBuffer, Texture2D_VK* pDstImage, const std::vector<VkBufferImageCopy>& regions);
 		void CopyTexture2DToBuffer(Texture2D_VK* pSrcImage, const RawBuffer_VK* pDstBuffer, const std::vector<VkBufferImageCopy>& regions);
+		void CopyTexture2DToTexture2D(Texture2D_VK* pSrcImage, Texture2D_VK* pDstImage, const std::vector<VkImageCopy>& regions);
 
 		// For presentation only
 		void WaitPresentationSemaphore(Semaphore_VK* pSemaphore);

@@ -173,6 +173,9 @@ namespace Engine
 
 		m_pMainDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 
+		CE_DELETE(pVertexStagingBuffer);
+		CE_DELETE(pIndexStagingBuffer);
+
 		return true;
 	}
 
@@ -186,7 +189,7 @@ namespace Engine
 		tex2dCreateInfo.memoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 		tex2dCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		tex2dCreateInfo.aspect = createInfo.textureType == ETextureType::DepthAttachment ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-		tex2dCreateInfo.mipLevels = createInfo.generateMipmap ? DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight)) : 1;
+		tex2dCreateInfo.mipLevels = (createInfo.generateMipmap || createInfo.reserveMipmapMemory) ? DetermineMipmapLevels_VK(std::max<uint32_t>(createInfo.textureWidth, createInfo.textureHeight)) : 1;
 	
 		auto pDevice = m_pMainDevice;
 
@@ -248,6 +251,8 @@ namespace Engine
 			pOutput->SetSampler(createInfo.pSampler);
 		}
 
+		CE_SAFE_DELETE(pStagingBuffer);
+
 		return true;
 	}
 
@@ -294,6 +299,55 @@ namespace Engine
 		CE_NEW(pOutput, UniformBuffer_VK, m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
 
 		return pOutput != nullptr;
+	}
+
+	void GraphicsHardwareInterface_VK::GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer)
+	{
+		auto pTextureVK = (Texture2D_VK*)pTexture;
+		auto pCmdBufferVK = (CommandBuffer_VK*)pCmdBuffer;
+
+		DEBUG_ASSERT_CE(pTextureVK->m_layout != VK_IMAGE_LAYOUT_UNDEFINED);
+
+		VkImageLayout oldLayout = pTextureVK->m_layout;
+		uint32_t oldStages = pTextureVK->m_appliedStages;
+
+		pCmdBufferVK->TransitionImageLayout(pTextureVK, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
+		pCmdBufferVK->GenerateMipmap(pTextureVK, oldLayout, oldStages);
+	}
+
+	void GraphicsHardwareInterface_VK::CopyTexture2D(Texture2D* pSrcTexture, Texture2D* pDstTexture, GraphicsCommandBuffer* pCmdBuffer)
+	{
+		auto pSrc = (Texture2D_VK*)pSrcTexture;
+		auto pDst = (Texture2D_VK*)pDstTexture;
+		auto pCmdBufferVK = (CommandBuffer_VK*)pCmdBuffer;
+		DEBUG_ASSERT_MESSAGE_CE(pSrc->GetWidth() == pDst->GetWidth() && pSrc->GetHeight() == pDst->GetHeight(), "CopyTexture2D textures dimension(s) mismatch.");
+
+		std::vector<VkImageCopy> copyRegions;
+		VkImageCopy region{};
+		region.srcOffset = { 0, 0, 0 };
+		region.dstOffset = { 0, 0, 0 };
+		region.extent = { pSrc->GetWidth(), pDst->GetHeight(), 1 };
+		region.srcSubresource.aspectMask = (pSrc->GetTextureType() == ETextureType::DepthAttachment) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.mipLevel = 0;
+		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.layerCount = 1;
+		region.dstSubresource.aspectMask = (pDst->GetTextureType() == ETextureType::DepthAttachment) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		region.dstSubresource.mipLevel = 0;
+		region.dstSubresource.baseArrayLayer = 0;
+		region.dstSubresource.layerCount = 1;
+		copyRegions.emplace_back(region);
+		// Mipmap levels are not copied; will need to update this function if needed
+
+		VkImageLayout oldSrcLayout = pSrc->m_layout;
+		VkImageLayout oldDstLayout = pDst->m_layout;
+		uint32_t oldSrcStages = pSrc->m_appliedStages;
+		uint32_t oldDstStages = pDst->m_appliedStages;
+
+		pCmdBufferVK->TransitionImageLayout(pSrc, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 0);
+		pCmdBufferVK->TransitionImageLayout(pDst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
+		pCmdBufferVK->CopyTexture2DToTexture2D(pSrc, pDst, copyRegions);
+		pCmdBufferVK->TransitionImageLayout(pSrc, oldSrcLayout, oldSrcStages);
+		pCmdBufferVK->TransitionImageLayout(pDst, oldDstLayout, oldDstStages);
 	}
 
 	void GraphicsHardwareInterface_VK::UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer)
@@ -981,7 +1035,7 @@ namespace Engine
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;  // Tightly packed
 		region.bufferImageHeight = 0;// Tightly packed
-		region.imageSubresource.aspectMask = pVkTexture->m_format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.aspectMask = (pVkTexture->GetTextureType() == ETextureType::DepthAttachment) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
 		region.imageSubresource.layerCount = 1;
@@ -1005,7 +1059,7 @@ namespace Engine
 		region.bufferOffset = 0;
 		region.bufferRowLength = 0;  // Tightly packed
 		region.bufferImageHeight = 0;// Tightly packed
-		region.imageSubresource.aspectMask = pVkTexture->m_format == VK_FORMAT_D32_SFLOAT ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.aspectMask = (pVkTexture->GetTextureType() == ETextureType::DepthAttachment) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		region.imageSubresource.mipLevel = 0;
 		region.imageSubresource.baseArrayLayer = 0;
 		region.imageSubresource.layerCount = 1;
@@ -1019,21 +1073,6 @@ namespace Engine
 		pVkCmdBuffer->TransitionImageLayout(pVkTexture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0);
 		pVkCmdBuffer->CopyBufferToTexture2D(pVkBuffer->m_pBufferImpl, pVkTexture, copyRegions);
 		pVkCmdBuffer->TransitionImageLayout(pVkTexture, originalLayout, originalAppliedStages);
-	}
-
-	void GraphicsHardwareInterface_VK::CopyDataTransferBuffer(DataTransferBuffer* pSrcBuffer, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		auto pSrcVkBuffer = (DataTransferBuffer_VK*)pSrcBuffer;
-		auto pDstVkBuffer = (DataTransferBuffer_VK*)pDstBuffer;
-
-		DEBUG_ASSERT_CE(pSrcVkBuffer->m_sizeInBytes <= pDstVkBuffer->m_sizeInBytes);
-
-		VkBufferCopy region{};
-		region.srcOffset = 0;
-		region.dstOffset = 0;
-		region.size = pSrcVkBuffer->m_sizeInBytes;
-
-		((CommandBuffer_VK*)pCommandBuffer)->CopyBufferToBuffer(pSrcVkBuffer->m_pBufferImpl, pDstVkBuffer->m_pBufferImpl, region);
 	}
 
 	void GraphicsHardwareInterface_VK::CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size)

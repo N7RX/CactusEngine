@@ -63,15 +63,19 @@ namespace Engine
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, FrameBuffer*& pOutput) override;
 		bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput) override;
 
+		void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) override;
+		void CopyTexture2D(Texture2D* pSrcTexture, Texture2D* pDstTexture, GraphicsCommandBuffer* pCmdBuffer) override;
+
 		void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
 		void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
+
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
 		void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer) override;
+
 		void ResizeViewPort(uint32_t width, uint32_t height) override;
 
 		EGraphicsAPIType GetGraphicsAPIType() const override;
 
-		// Low-level functions exclusive to Vulkan device
 		void SetupDevice();
 		LogicalDevice_VK* GetLogicalDevice() const;
 
@@ -113,7 +117,6 @@ namespace Engine
 
 		void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) override;
 		void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) override;
-		void CopyDataTransferBuffer(DataTransferBuffer* pSrcBuffer, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) override;
 		void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) override;
 		void CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc) override;
 

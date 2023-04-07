@@ -22,9 +22,6 @@ namespace Engine
 		void DestroyConstantResources() override;
 
 	private:
-		void HorizontalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
-		void VerticalPass(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
-
 		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
 		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
@@ -35,46 +32,37 @@ namespace Engine
 		static const char* INPUT_GBUFFER_POSITION;
 
 	private:
-		const uint32_t VERTICAL_PASS_PIPELINE_KEY = 165536; // Just a value that ensures we don't have a collision with the horizontal pass pipeline key
-
 		struct FrameResources
 		{
 			FrameResources()
-				: m_pFrameBuffer_Horizontal(nullptr),
-				m_pFrameBuffer_Vertical(nullptr),
-				m_pHorizontalResult(nullptr),
-				m_pVerticalResult(nullptr),
+				: m_pFrameBuffer(nullptr),
+				m_pColorInputMipmap(nullptr),
+				m_pColorOutput(nullptr),
 				m_pCameraMatrices_UB(nullptr),
-				m_pCameraProperties_UB(nullptr),
-				m_pControlVariables_UB(nullptr)
+				m_pCameraProperties_UB(nullptr)
 			{
 
 			}
 
 			~FrameResources()
 			{
-				CE_SAFE_DELETE(m_pFrameBuffer_Horizontal);
-				CE_SAFE_DELETE(m_pFrameBuffer_Vertical);
-				CE_SAFE_DELETE(m_pHorizontalResult);
-				CE_SAFE_DELETE(m_pVerticalResult);
+				CE_SAFE_DELETE(m_pFrameBuffer);
+				CE_SAFE_DELETE(m_pColorInputMipmap);
+				CE_SAFE_DELETE(m_pColorOutput);
 				CE_SAFE_DELETE(m_pCameraMatrices_UB);
 				CE_SAFE_DELETE(m_pCameraProperties_UB);
-				CE_SAFE_DELETE(m_pControlVariables_UB);
 			}
 
-			FrameBuffer* m_pFrameBuffer_Horizontal;
-			FrameBuffer* m_pFrameBuffer_Vertical;
+			FrameBuffer* m_pFrameBuffer;
 
-			Texture2D* m_pHorizontalResult;
-			Texture2D* m_pVerticalResult;
+			Texture2D* m_pColorInputMipmap; // Copy of the color input texture with mipmap
+			Texture2D* m_pColorOutput;
 
 			UniformBuffer* m_pCameraMatrices_UB;
 			UniformBuffer* m_pCameraProperties_UB;
-			UniformBuffer* m_pControlVariables_UB;
 		};
 		std::vector<FrameResources> m_frameResources;
 
-		RenderPassObject* m_pRenderPassObject_Horizontal;
-		RenderPassObject* m_pRenderPassObject_Vertical;
+		RenderPassObject* m_pRenderPassObject;
 	};
 }
