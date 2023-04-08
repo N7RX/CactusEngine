@@ -227,6 +227,6 @@ void main(void)
 	// Applying shadow map
 	float shadowValue = ComputeShadow(vec4(v2fLightSpacePosition, 1.0f), v2fNormal);
 
-	outColor = (I * toneColor * colorFromAlbedoTexture + specularColor) * (1.8f - shadowValue);
+	outColor = (I * toneColor * colorFromAlbedoTexture + specularColor) * (1.4f - shadowValue);
 	outColor.a = min(shadowValue, (1.0f - toonCoord.x));
 }

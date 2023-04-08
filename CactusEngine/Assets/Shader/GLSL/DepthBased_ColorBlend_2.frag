@@ -9,8 +9,7 @@ layout(binding = 4) uniform sampler2D DepthTexture_1;
 layout(binding = 7) uniform sampler2D ColorTexture_2;
 layout(binding = 5) uniform sampler2D DepthTexture_2;
 
-const float CameraGamma = 1.04f;
-const float Exposure = 3.6f;
+const float CameraGamma = 2.2f;
 
 
 void main(void)
@@ -25,7 +24,6 @@ void main(void)
 
 	outColor = colorFromTransp * alpha + (1.0f - alpha) * colorFromOpaque;
 
-	// HDR tone mapping with gamma correction
-	outColor.xyz = vec3(1.02, 1.01, 1.0) - exp(-outColor.xyz * Exposure);
+	// Gamma correction
 	outColor.xyz = pow(outColor.xyz, vec3(1.0 / CameraGamma));
 }
