@@ -77,10 +77,10 @@ namespace Engine
 		virtual void UpdateFramesInFlight(uint32_t framesInFlight) = 0;
 
 		virtual void DestroyMutableResources() {}
-		virtual void DestroyConstantResources() {}
+		virtual void DestroyConstantResources();
 
 		virtual void PrebuildGraphicsPipelines() = 0;
-		virtual GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) = 0;
+		virtual GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key);
 		void DestroyGraphicsPipelines();
 
 	protected:
@@ -134,6 +134,8 @@ namespace Engine
 
 		RenderContext  m_renderContext;
 		CommandContext m_cmdContext;
+
+		RenderPassObject* m_pRenderPassObject; // This can be null if a node is compute only
 
 		std::unordered_map<const char*, const char*> m_inputResourceNames;
 		std::unordered_map<uint32_t, GraphicsPipelineObject*> m_graphicsPipelines; // Key usually is the shader type, but ultimately it's determined by each render node

@@ -19,7 +19,6 @@ namespace Engine
 		void UpdateFramesInFlight(uint32_t framesInFlight) override;
 
 		void DestroyMutableResources() override;
-		void DestroyConstantResources() override;
 
 		void PrebuildGraphicsPipelines() override;
 		GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) override;
@@ -75,8 +74,6 @@ namespace Engine
 			UniformBuffer* m_pLightSourceProperties_UB;
 		};
 		std::vector<FrameResources> m_frameResources;
-
-		RenderPassObject* m_pRenderPassObject;
 
 		PipelineVertexInputState* m_pVertexInputState_Empty;
 		PipelineInputAssemblyState* m_pInputAssemblyState_Strip;

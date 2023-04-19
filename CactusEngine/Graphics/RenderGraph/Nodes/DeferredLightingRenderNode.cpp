@@ -15,7 +15,6 @@ namespace Engine
 
 	DeferredLightingRenderNode::DeferredLightingRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer),
-		m_pRenderPassObject(nullptr),
 		m_pVertexInputState_Empty(nullptr),
 		m_pInputAssemblyState_Strip(nullptr),
 		m_pRasterizationState_CullFront(nullptr),
@@ -456,12 +455,6 @@ namespace Engine
 	{
 		m_frameResources.clear();
 		m_frameResources.resize(0);
-	}
-
-	void DeferredLightingRenderNode::DestroyConstantResources()
-	{
-		CE_DELETE(m_pRenderPassObject);
-		DestroyGraphicsPipelines();
 	}
 
 	void DeferredLightingRenderNode::DestroyMutableTextures()

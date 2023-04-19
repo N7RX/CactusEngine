@@ -4,6 +4,7 @@
 #include "BaseRenderer.h"
 #include "GraphicsDevice.h"
 #include "LogUtility.h"
+#include "RenderingSystem.h"
 
 namespace Engine
 {
@@ -35,6 +36,7 @@ namespace Engine
 		m_defaultPipelineStates{},
 		m_renderContext{},
 		m_cmdContext{},
+		m_pRenderPassObject(nullptr),
 		m_configuration()
 	{
 		
@@ -96,6 +98,40 @@ namespace Engine
 	{
 		RenderPassFunction(m_graphResources[m_frameIndex], m_renderContext, m_cmdContext);
 		m_finishedExecution = true;
+	}
+
+	void RenderNode::DestroyConstantResources()
+	{
+		CE_SAFE_DELETE(m_pRenderPassObject);
+		DestroyGraphicsPipelines();
+	}
+
+	GraphicsPipelineObject* RenderNode::GetGraphicsPipeline(uint32_t key)
+	{
+		if (m_graphicsPipelines.find(key) != m_graphicsPipelines.end())
+		{
+			return m_graphicsPipelines.at(key);
+		}
+		else
+		{
+			GraphicsPipelineCreateInfo pipelineCreateInfo{};
+
+			pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType((EBuiltInShaderProgramType)key);
+			pipelineCreateInfo.pVertexInputState = m_defaultPipelineStates.pVertexInputState;
+			pipelineCreateInfo.pInputAssemblyState = m_defaultPipelineStates.pInputAssemblyState;
+			pipelineCreateInfo.pColorBlendState = m_defaultPipelineStates.pColorBlendState;
+			pipelineCreateInfo.pRasterizationState = m_defaultPipelineStates.pRasterizationState;
+			pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
+			pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
+			pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
+			pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
+
+			GraphicsPipelineObject* pPipeline = nullptr;
+			m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
+			m_graphicsPipelines.emplace(key, pPipeline);
+
+			return pPipeline;
+		}
 	}
 
 	void RenderNode::DestroyGraphicsPipelines()

@@ -19,10 +19,8 @@ namespace Engine
 		void UpdateFramesInFlight(uint32_t framesInFlight) override;
 
 		void DestroyMutableResources() override;
-		void DestroyConstantResources() override;
 
 		void PrebuildGraphicsPipelines() override;
-		GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) override;
 
 	private:
 		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
@@ -57,7 +55,5 @@ namespace Engine
 			Texture2D* m_pColorOutput;
 		};
 		std::vector<FrameResources> m_frameResources;
-
-		RenderPassObject* m_pRenderPassObject;
 	};
 }

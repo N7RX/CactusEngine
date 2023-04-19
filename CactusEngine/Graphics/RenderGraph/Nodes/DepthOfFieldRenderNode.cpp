@@ -12,8 +12,7 @@ namespace Engine
 	const char* DepthOfFieldRenderNode::INPUT_GBUFFER_POSITION = "DOFInputGBufferPosition";
 
 	DepthOfFieldRenderNode::DepthOfFieldRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
-		: RenderNode(graphResources, pRenderer),
-		m_pRenderPassObject(nullptr)
+		: RenderNode(graphResources, pRenderer)
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
@@ -301,12 +300,6 @@ namespace Engine
 		m_frameResources.resize(0);
 	}
 
-	void DepthOfFieldRenderNode::DestroyConstantResources()
-	{
-		CE_DELETE(m_pRenderPassObject);
-		DestroyGraphicsPipelines();
-	}
-
 	void DepthOfFieldRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
@@ -329,45 +322,5 @@ namespace Engine
 	void DepthOfFieldRenderNode::PrebuildGraphicsPipelines()
 	{
 		GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::DOF);
-	}
-
-	GraphicsPipelineObject* DepthOfFieldRenderNode::GetGraphicsPipeline(uint32_t key)
-	{
-		if (m_graphicsPipelines.find(key) != m_graphicsPipelines.end())
-		{
-			return m_graphicsPipelines.at(key);
-		}
-		else
-		{
-			GraphicsPipelineCreateInfo pipelineCreateInfo{};
-
-			switch (key)
-			{
-			case (uint32_t)EBuiltInShaderProgramType::DOF:
-			{
-				pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
-				pipelineCreateInfo.pVertexInputState = m_defaultPipelineStates.pVertexInputState;
-				pipelineCreateInfo.pInputAssemblyState = m_defaultPipelineStates.pInputAssemblyState;
-				pipelineCreateInfo.pColorBlendState = m_defaultPipelineStates.pColorBlendState;
-				pipelineCreateInfo.pRasterizationState = m_defaultPipelineStates.pRasterizationState;
-				pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
-				pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
-				pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
-				pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
-				break;
-			}
-			default:
-			{
-				LOG_ERROR("Requested graphics pipeline cannot be found and cannot be created.");
-				return nullptr;
-			}
-			}
-
-			GraphicsPipelineObject* pPipeline = nullptr;
-			m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
-			m_graphicsPipelines.emplace(key, pPipeline);
-
-			return pPipeline;
-		}
 	}
 }

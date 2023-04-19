@@ -9,8 +9,7 @@ namespace Engine
 	const char* ShadowMapRenderNode::OUTPUT_DEPTH_TEXTURE = "ShadowMapDepthTexture";
 
 	ShadowMapRenderNode::ShadowMapRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer)
-		: RenderNode(graphResources, pRenderer),
-		m_pRenderPassObject(nullptr)
+		: RenderNode(graphResources, pRenderer)
 	{
 
 	}
@@ -354,12 +353,6 @@ namespace Engine
 		m_frameResources.resize(0);
 	}
 
-	void ShadowMapRenderNode::DestroyConstantResources()
-	{
-		CE_DELETE(m_pRenderPassObject);
-		DestroyGraphicsPipelines();
-	}
-
 	void ShadowMapRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
@@ -381,45 +374,5 @@ namespace Engine
 	void ShadowMapRenderNode::PrebuildGraphicsPipelines()
 	{
 		GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::ShadowMap);
-	}
-
-	GraphicsPipelineObject* ShadowMapRenderNode::GetGraphicsPipeline(uint32_t key)
-	{
-		if (m_graphicsPipelines.find(key) != m_graphicsPipelines.end())
-		{
-			return m_graphicsPipelines.at(key);
-		}
-		else
-		{
-			GraphicsPipelineCreateInfo pipelineCreateInfo{};
-
-			switch (key)
-			{
-			case (uint32_t)EBuiltInShaderProgramType::ShadowMap:
-			{
-				pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
-				pipelineCreateInfo.pVertexInputState = m_defaultPipelineStates.pVertexInputState;
-				pipelineCreateInfo.pInputAssemblyState = m_defaultPipelineStates.pInputAssemblyState;
-				pipelineCreateInfo.pColorBlendState = m_defaultPipelineStates.pColorBlendState;
-				pipelineCreateInfo.pRasterizationState = m_defaultPipelineStates.pRasterizationState;
-				pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
-				pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
-				pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
-				pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
-				break;
-			}
-			default:
-			{
-				LOG_ERROR("Requested graphics pipeline cannot be found and cannot be created.");
-				return nullptr;
-			}
-			}
-
-			GraphicsPipelineObject* pPipeline = nullptr;
-			m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
-			m_graphicsPipelines.emplace(key, pPipeline);
-
-			return pPipeline;
-		}
 	}
 }
