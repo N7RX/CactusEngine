@@ -80,6 +80,11 @@ namespace Engine
 		m_pRenderGraph->SetupRenderNodes();
 		m_pRenderGraph->BuildRenderNodePriorities();
 
+		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPrebuildShadersAndPipelines())
+		{
+			m_pRenderGraph->PrebuildPipelines();
+		}
+
 		for (uint32_t i = 0; i < m_pRenderGraph->GetRenderNodeCount(); i++)
 		{
 			m_commandRecordReadyList.emplace(i, nullptr);

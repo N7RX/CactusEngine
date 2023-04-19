@@ -6,6 +6,7 @@ namespace Engine
 {
 	struct LogicalDevice_VK;
 	class ShaderProgram_VK;
+	class PipelineViewportState_VK;
 
 	class RenderPass_VK : public RenderPassObject
 	{
@@ -27,13 +28,19 @@ namespace Engine
 		GraphicsPipeline_VK(LogicalDevice_VK* pDevice, ShaderProgram_VK* pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo);
 		~GraphicsPipeline_VK();
 
+		void UpdateViewportState(const PipelineViewportState* pNewState) override;
+
 		VkPipeline GetPipeline() const;
 		VkPipelineLayout GetPipelineLayout() const;
 		VkPipelineBindPoint GetBindPoint() const;
 
+		const VkViewport* GetViewport() const;
+		const VkRect2D* GetScissor() const;
+
 	private:
 		LogicalDevice_VK* m_pDevice;
 		ShaderProgram_VK* m_pShaderProgram;
+		PipelineViewportState_VK* m_pViewportState;
 
 		VkPipeline m_pipeline;
 		VkPipelineLayout m_pipelineLayout;
@@ -124,7 +131,11 @@ namespace Engine
 		PipelineViewportState_VK(const PipelineViewportStateCreateInfo& createInfo);
 		~PipelineViewportState_VK() = default;
 
+		void UpdateResolution(uint32_t width, uint32_t height) override;
+
 		const VkPipelineViewportStateCreateInfo* GetViewportStateCreateInfo() const;
+		const VkViewport* GetViewport() const;
+		const VkRect2D* GetScissor() const;
 
 	private:
 		// Currently only one viewport is supported

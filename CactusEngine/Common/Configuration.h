@@ -35,7 +35,7 @@ namespace Engine
 		AppConfiguration()
 			: m_appName("CE_Application"),
 			m_appVersion("1.0.0"),
-			m_engineVersion("0.1.4")
+			m_engineVersion("0.1.5")
 		{
 
 		}
@@ -81,6 +81,7 @@ namespace Engine
 			m_windowHeight(720),
 			m_maxFramesInFlight(3),
 			m_enableVSync(false),
+			m_prebuildShadersAndPipelines(true),
 			m_samplerAnisotropyLevel(ESamplerAnisotropyLevel::None),
 			m_activeRenderer(ERendererType::Standard),
 			m_renderScale(1.0f)
@@ -159,6 +160,16 @@ namespace Engine
 			return m_enableVSync;
 		}
 
+		void SetPrebuildShadersAndPipelines(bool val)
+		{
+			m_prebuildShadersAndPipelines = val;
+		}
+
+		bool GetPrebuildShadersAndPipelines() const
+		{
+			return m_prebuildShadersAndPipelines;
+		}
+
 		void SetActiveRenderer(ERendererType type)
 		{
 			m_activeRenderer = type;
@@ -199,19 +210,34 @@ namespace Engine
 		}
 
 	private:
+		// Graphics API to use
 		EGraphicsAPIType m_graphicsAPIType;
+
+		// Select to use discrete or integrated GPU (Vulkan only)
 		EGPUType m_preferredGPU;
 
+		// Window size
 		uint32_t m_windowWidth;
 		uint32_t m_windowHeight;
 
+		// How many frames CPU can buffer ahead of GPU
+		// Higher value consumes more memory and creates more input latency, but may also reduce stuttering
 		uint32_t m_maxFramesInFlight;
 
+		// If true, vsync will be enabled
 		bool m_enableVSync;
 
+		// If true, shaders and pipelines will be prebuilt at startup, may result in longer startup time and higher memory usage
+		// If false, they will be built on demand, may result in frame stuttering
+		bool m_prebuildShadersAndPipelines;
+
+		// Type of renderer currently being used
 		ERendererType m_activeRenderer;
+
+		// Global texture anisotropic filtering level
 		ESamplerAnisotropyLevel m_samplerAnisotropyLevel;
 
+		// Internal render resolution multiplier
 		float m_renderScale;
 	};
 }

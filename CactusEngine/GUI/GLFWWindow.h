@@ -23,9 +23,11 @@ namespace Engine
 		void SetWindowSize(uint32_t width, uint32_t height) override;
 
 	private:
+		void UpdateWindowSizeInternal();
+
+	private:
 		GLFWwindow* m_pGLFWWindowHandle;
 	};
 
-	extern void GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int32_t width, int32_t height);
-	extern void GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int32_t width, int32_t height);
+	extern void GLFWFramebufferSizeCallback(GLFWwindow* pWindow, int32_t width, int32_t height);
 }

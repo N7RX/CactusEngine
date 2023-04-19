@@ -17,20 +17,25 @@ namespace Engine
 {
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
 		: m_pECSWorld(pWorld),
+		m_pDevice(nullptr),
 		m_frameIndex(0),
-		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight())
+		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight()),
+		m_activeRenderer(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer()),
+		m_pendingResolutionUpdate(false)
 	{
-		m_activeRenderer = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer();
-
 		CreateDevice();
 		RegisterRenderers();
 
-		m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT);
+		m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT, nullptr);
 	}
 
 	void RenderingSystem::Initialize()
 	{
-		LoadShaders();
+		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPrebuildShadersAndPipelines())
+		{
+			LoadAllShaders();
+		}
+
 		InitializeActiveRenderer();
 	}
 
@@ -41,7 +46,11 @@ namespace Engine
 
 	void RenderingSystem::FrameBegin()
 	{
-
+		if (m_pendingResolutionUpdate)
+		{
+			UpdateResolutionImpl();
+			m_pendingResolutionUpdate = false;
+		}
 	}
 
 	void RenderingSystem::Tick()
@@ -66,9 +75,16 @@ namespace Engine
 		return m_pDevice->GetGraphicsAPIType();
 	}
 
-	ShaderProgram* RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type) const
+	ShaderProgram* RenderingSystem::GetShaderProgramByType(EBuiltInShaderProgramType type)
 	{
 		DEBUG_ASSERT_CE((uint32_t)type < m_shaderPrograms.size());
+
+		if (m_shaderPrograms[(uint32_t)type] == nullptr)
+		{
+			bool result = LoadShader(type);
+			DEBUG_ASSERT_CE(result);
+		}
+
 		return m_shaderPrograms[(uint32_t)type];
 	}
 
@@ -88,11 +104,18 @@ namespace Engine
 		if (m_rendererTable[(uint32_t)type])
 		{
 			m_activeRenderer = type;
+			// TODO: initialize new renderer resources and tear down old resources
 		}
 		else
 		{
 			LOG_ERROR("RenderingSystem: Trying to set a renderer that is not registered");
 		}
+	}
+
+	void RenderingSystem::UpdateResolution()
+	{
+		m_pendingResolutionUpdate = true;
+		// We need to wait until rendering is finished because resources might still be in use
 	}
 
 	bool RenderingSystem::CreateDevice()
@@ -123,49 +146,144 @@ namespace Engine
 		RegisterRenderer<AdvancedRenderer>(ERendererType::Advanced, 2);
 	}
 
-	bool RenderingSystem::LoadShaders()
+	void RenderingSystem::InitializeActiveRenderer()
 	{
+		m_rendererTable[(uint32_t)m_activeRenderer]->BuildRenderGraph();
+	}
+
+	void RenderingSystem::LoadAllShaders()
+	{
+		LoadShader(EBuiltInShaderProgramType::Basic);
+		LoadShader(EBuiltInShaderProgramType::Basic_Transparent);
+		LoadShader(EBuiltInShaderProgramType::WaterBasic);
+		LoadShader(EBuiltInShaderProgramType::DepthBased_ColorBlend_2);
+		LoadShader(EBuiltInShaderProgramType::GBuffer);
+		LoadShader(EBuiltInShaderProgramType::AnimeStyle);
+		LoadShader(EBuiltInShaderProgramType::ShadowMap);
+		LoadShader(EBuiltInShaderProgramType::DOF);
+		LoadShader(EBuiltInShaderProgramType::DeferredLighting);
+		LoadShader(EBuiltInShaderProgramType::DeferredLighting_Directional);
+	}
+
+	bool RenderingSystem::LoadShader(EBuiltInShaderProgramType type)
+	{
+		std::lock_guard<std::mutex> guard(m_shaderProgramsMutex);
+
+		if (m_shaderPrograms[(uint32_t)type] != nullptr)
+		{
+			return true;
+		}
+
 		switch (m_pDevice->GetGraphicsAPIType())
 		{
 		case EGraphicsAPIType::OpenGL:
 		{
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::GBuffer] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_GBUFFER_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GBUFFER_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DeferredLighting] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_DEFERRED_LIGHTING_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_OPENGL);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL);
-			break;
+			switch (type)
+			{
+			case EBuiltInShaderProgramType::Basic:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::Basic_Transparent:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::WaterBasic:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::DepthBased_ColorBlend_2:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::GBuffer:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_GBUFFER_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GBUFFER_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::AnimeStyle:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::ShadowMap:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::DOF:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::DeferredLighting:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_DEFERRED_LIGHTING_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_OPENGL);
+				break;
+
+			case EBuiltInShaderProgramType::DeferredLighting_Directional:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL);
+				break;
+
+			default:
+			{
+				throw std::runtime_error("Unhandled built-in shader type.");
+				return false;
+			}
+			}
+			return true;
 		}
 		case EGraphicsAPIType::Vulkan:
 		{
-			// TODO: load pipeline cache instead
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::Basic_Transparent] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::WaterBasic] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DepthBased_ColorBlend_2] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::GBuffer] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_GBUFFER_VK, BuiltInResourcesPath::SHADER_FRAGMENT_GBUFFER_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::AnimeStyle] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_VK, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::ShadowMap] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_VK, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DOF] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DeferredLighting] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_DEFERRED_LIGHTING_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_VK);
-			m_shaderPrograms[(uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_VK);
-			break;
+			switch (type)
+			{
+			case EBuiltInShaderProgramType::Basic:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_VK);
+				break;
+
+			case EBuiltInShaderProgramType::Basic_Transparent:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_TRANSPARENT_VK, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_VK);
+				break;
+
+			case EBuiltInShaderProgramType::WaterBasic:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_VK, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_VK);
+				break;
+
+			case EBuiltInShaderProgramType::DepthBased_ColorBlend_2:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_VK);
+				break;
+
+			case EBuiltInShaderProgramType::GBuffer:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_GBUFFER_VK, BuiltInResourcesPath::SHADER_FRAGMENT_GBUFFER_VK);
+				break;
+
+			case EBuiltInShaderProgramType::AnimeStyle:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_VK, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_VK);
+				break;
+
+			case EBuiltInShaderProgramType::ShadowMap:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_VK, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_VK);
+				break;
+
+			case EBuiltInShaderProgramType::DOF:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_VK);
+				break;
+
+			case EBuiltInShaderProgramType::DeferredLighting:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_DEFERRED_LIGHTING_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_VK);
+				break;
+
+			case EBuiltInShaderProgramType::DeferredLighting_Directional:
+				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_VK, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_VK);
+				break;
+
+			default:
+			{
+				throw std::runtime_error("Unhandled built-in shader type.");
+				return false;
+			}
+			}
+			return true;
 		}
 		default:
 			throw std::runtime_error("Unhandled graphics device type.");
 			return false;
 		}
-		return true;
-	}
-
-	void RenderingSystem::InitializeActiveRenderer()
-	{
-		m_rendererTable[(uint32_t)m_activeRenderer]->BuildRenderGraph();
 	}
 
 	void RenderingSystem::BuildRenderTask()
@@ -210,5 +328,17 @@ namespace Engine
 
 			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(context, m_frameIndex);
 		}
+	}
+
+	void RenderingSystem::UpdateResolutionImpl()
+	{
+		m_pDevice->WaitIdle();
+
+		uint32_t width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
+		uint32_t height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		m_pDevice->ResizeSwapchain(width, height);
+
+		m_rendererTable[(uint32_t)m_activeRenderer]->UpdateResolution(width, height);
 	}
 }

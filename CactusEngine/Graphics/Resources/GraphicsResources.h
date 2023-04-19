@@ -167,18 +167,18 @@ namespace Engine
 	struct RenderPassAttachmentDescription
 	{
 		// This is strictly modeled after Vulkan specification, may not be versatile
-		ETextureFormat			format;
-		uint32_t				sampleCount;
-		EAttachmentOperation	loadOp;
-		EAttachmentOperation	storeOp;
-		EAttachmentOperation	stencilLoadOp;
-		EAttachmentOperation	stencilStoreOp;
-		EImageLayout			initialLayout;
-		EImageLayout			usageLayout;
-		EImageLayout			finalLayout;
+		ETextureFormat		 format;
+		uint32_t			 sampleCount;
+		EAttachmentOperation loadOp;
+		EAttachmentOperation storeOp;
+		EAttachmentOperation stencilLoadOp;
+		EAttachmentOperation stencilStoreOp;
+		EImageLayout		 initialLayout;
+		EImageLayout		 usageLayout;
+		EImageLayout		 finalLayout;
 
-		EAttachmentType			type;
-		uint32_t				index;
+		EAttachmentType		 type;
+		uint32_t			 index;
 	};
 
 	struct RenderPassCreateInfo
@@ -277,12 +277,18 @@ namespace Engine
 
 	class VertexShader : public Shader
 	{
+	public:
+		virtual ~VertexShader() = default;
+
 	protected:
 		VertexShader();
 	};
 
 	class FragmentShader : public Shader
 	{
+	public:
+		virtual ~FragmentShader() = default;
+
 	protected:
 		FragmentShader();
 	};
@@ -327,7 +333,7 @@ namespace Engine
 
 			}
 
-			uint32_t	binding;
+			uint32_t		binding;
 			EDescriptorType	type;
 			RawResource*	pResource;
 		};
@@ -346,9 +352,9 @@ namespace Engine
 
 	struct VertexInputBindingDescription
 	{
-		uint32_t			binding;
-		uint32_t			stride;
-		EVertexInputRate	inputRate;
+		uint32_t		 binding;
+		uint32_t		 stride;
+		EVertexInputRate inputRate;
 	};
 
 	struct VertexInputAttributeDescription
@@ -367,25 +373,31 @@ namespace Engine
 
 	class PipelineVertexInputState
 	{
+	public:
+		virtual ~PipelineVertexInputState() = default;
+
 	protected:
 		PipelineVertexInputState() = default;
 	};
 
 	struct PipelineInputAssemblyStateCreateInfo
 	{
-		EAssemblyTopology	topology;
-		bool				enablePrimitiveRestart;
+		EAssemblyTopology topology;
+		bool			  enablePrimitiveRestart;
 	};
 
 	class PipelineInputAssemblyState
 	{
+	public:
+		virtual ~PipelineInputAssemblyState() = default;
+
 	protected:
 		PipelineInputAssemblyState() = default;
 	};
 
 	struct AttachmentColorBlendStateDescription
 	{
-		bool enableBlend;
+		bool			enableBlend;
 		EBlendFactor	srcColorBlendFactor;
 		EBlendFactor	dstColorBlendFactor;
 		EBlendOperation	colorBlendOp;
@@ -403,6 +415,9 @@ namespace Engine
 
 	class PipelineColorBlendState
 	{
+	public:
+		virtual ~PipelineColorBlendState() = default;
+
 	protected:
 		PipelineColorBlendState() = default;
 	};
@@ -418,6 +433,9 @@ namespace Engine
 
 	class PipelineRasterizationState
 	{
+	public:
+		virtual ~PipelineRasterizationState() = default;
+
 	protected:
 		PipelineRasterizationState() = default;
 	};
@@ -433,6 +451,9 @@ namespace Engine
 
 	class PipelineDepthStencilState
 	{
+	public:
+		virtual ~PipelineDepthStencilState() = default;
+
 	protected:
 		PipelineDepthStencilState() = default;
 	};
@@ -445,6 +466,9 @@ namespace Engine
 
 	class PipelineMultisampleState
 	{
+	public:
+		virtual ~PipelineMultisampleState() = default;
+
 	protected:
 		PipelineMultisampleState() = default;
 	};
@@ -453,12 +477,16 @@ namespace Engine
 	{
 		uint32_t width;
 		uint32_t height;
-
-		// TODO: add support for multi-viewport and scissor control
+		// Optional: add support for multi-viewport and scissor control
 	};
 
 	class PipelineViewportState
 	{
+	public:
+		virtual ~PipelineViewportState() = default;
+
+		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
+
 	protected:
 		PipelineViewportState() = default;
 	};
@@ -479,6 +507,11 @@ namespace Engine
 
 	class GraphicsPipelineObject : public RawResource
 	{
+	public:
+		virtual ~GraphicsPipelineObject() = default;
+
+		virtual void UpdateViewportState(const PipelineViewportState* pNewState) = 0;
+
 	protected:
 		GraphicsPipelineObject() = default;
 	};

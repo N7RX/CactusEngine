@@ -2,15 +2,16 @@
 #include "ECSWorld.h"
 #include "Timer.h"
 #include "MemoryAllocator.h"
+#if defined(GLFW_IMPLEMENTATION_CE)
+#include "GLFWWindow.h"
+#endif
 
 namespace Engine
 {
 	GraphicsApplication::GraphicsApplication()
 		: m_pECSWorld(nullptr),
 		m_pDevice(nullptr),
-#if defined(GLFW_IMPLEMENTATION_CE)
 		m_pWindow(nullptr),
-#endif
 		m_pSetupFunc(nullptr)
 	{
 
@@ -28,6 +29,8 @@ namespace Engine
 		}
 
 		InitECS();
+
+		m_pWindow->SetRenderingSystem((RenderingSystem*)(m_pECSWorld->GetSystem(ESystemType::Rendering)));
 
 		Timer::Initialize();
 	}
@@ -85,16 +88,18 @@ namespace Engine
 
 	void GraphicsApplication::InitWindow()
 	{
+#if defined(GLFW_IMPLEMENTATION_CE)
 		CE_NEW(m_pWindow, GLFWWindow_CE,
 			gpGlobal->GetConfiguration<AppConfiguration>(EConfigurationType::App)->GetAppName(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
 			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight()
 			);
-
+#endif
 		if (!m_pWindow)
 		{
-			throw std::runtime_error("Failed to create GFLW window.");
+			throw std::runtime_error("Failed to create window.");
 		}
+
 		m_pWindow->Initialize();
 	}
 

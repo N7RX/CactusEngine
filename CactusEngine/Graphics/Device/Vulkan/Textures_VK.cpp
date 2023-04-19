@@ -86,14 +86,23 @@ namespace Engine
 
 	Texture2D_VK::~Texture2D_VK()
 	{
-		if (m_allocatorType == EAllocatorType_VK::VMA)
+		if (m_image != VK_NULL_HANDLE)
 		{
-			m_pDevice->pUploadAllocator->FreeImage(m_image, m_allocation);
+			if (m_allocatorType == EAllocatorType_VK::VMA)
+			{
+				m_pDevice->pUploadAllocator->FreeImage(m_image, m_allocation);
+			}
+			else if (m_allocatorType == EAllocatorType_VK::VK)
+			{
+				vkDestroyImage(m_pDevice->logicalDevice, m_image, nullptr);
+			}
+			m_image = VK_NULL_HANDLE;
 		}
 
 		if (m_imageView != VK_NULL_HANDLE)
 		{
 			vkDestroyImageView(m_pDevice->logicalDevice, m_imageView, nullptr);
+			m_imageView = VK_NULL_HANDLE;
 		}
 	}
 
@@ -112,7 +121,8 @@ namespace Engine
 		return m_pSampler;
 	}
 
-	RenderTarget2D_VK::RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat)
+	RenderTarget2D_VK::RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat, bool isSwapchainImage)
+		: m_isSwapchainImage(isSwapchainImage)
 	{
 		m_pDevice = pDevice;
 
@@ -127,13 +137,22 @@ namespace Engine
 
 	RenderTarget2D_VK::~RenderTarget2D_VK()
 	{
+		if (m_isSwapchainImage)
+		{
+			m_image = VK_NULL_HANDLE;
+		}
+
 		if (m_image != VK_NULL_HANDLE)
 		{
-			vkDestroyImage(m_pDevice->logicalDevice, m_image, nullptr);
-		}
-		if (m_imageView != VK_NULL_HANDLE)
-		{
-			vkDestroyImageView(m_pDevice->logicalDevice, m_imageView, nullptr);
+			if (m_allocatorType == EAllocatorType_VK::VMA)
+			{
+				m_pDevice->pUploadAllocator->FreeImage(m_image, m_allocation);
+			}
+			else if (m_allocatorType == EAllocatorType_VK::VK)
+			{
+				vkDestroyImage(m_pDevice->logicalDevice, m_image, nullptr);
+			}
+			m_image = VK_NULL_HANDLE;
 		}
 	}
 

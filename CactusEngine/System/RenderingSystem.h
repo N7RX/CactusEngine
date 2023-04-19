@@ -21,7 +21,7 @@ namespace Engine
 		void FrameEnd() override;
 
 		EGraphicsAPIType GetGraphicsAPIType() const;
-		ShaderProgram* GetShaderProgramByType(EBuiltInShaderProgramType type) const;
+		ShaderProgram* GetShaderProgramByType(EBuiltInShaderProgramType type);
 
 		template<typename T>
 		inline void RegisterRenderer(ERendererType type, uint32_t priority = 0)
@@ -35,18 +35,28 @@ namespace Engine
 		void RemoveRenderer(ERendererType type);
 		void SetActiveRenderer(ERendererType type);
 
+		void UpdateResolution();
+
 	private:
 		bool CreateDevice();
+
 		void RegisterRenderers();
-		bool LoadShaders();
 		void InitializeActiveRenderer();
+
+		void LoadAllShaders();
+		bool LoadShader(EBuiltInShaderProgramType type);
+
 		void BuildRenderTask();
 		void ExecuteRenderTask();
+
+		void UpdateResolutionImpl();
 
 	private:
 		ECSWorld* m_pECSWorld;
 		GraphicsDevice* m_pDevice;
+
 		std::vector<ShaderProgram*> m_shaderPrograms;
+		std::mutex m_shaderProgramsMutex;
 
 		ERendererType m_activeRenderer;
 		BaseRenderer* m_rendererTable[(uint32_t)ERendererType::COUNT];
@@ -57,5 +67,7 @@ namespace Engine
 		
 		uint32_t m_frameIndex;
 		uint32_t m_maxFramesInFlight;
+
+		bool m_pendingResolutionUpdate;
 	};
 }

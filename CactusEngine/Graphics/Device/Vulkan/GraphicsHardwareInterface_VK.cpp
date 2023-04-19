@@ -463,11 +463,6 @@ namespace Engine
 		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitive(4, 1);
 	}
 
-	void GraphicsHardwareInterface_VK::ResizeViewPort(uint32_t width, uint32_t height)
-	{
-		LOG_ERROR("Vulkan: Shouldn't call ResizeViewPort on Vulkan device.");
-	}
-
 	EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
 	{
 		return EGraphicsAPIType::Vulkan;
@@ -779,6 +774,9 @@ namespace Engine
 			return false;
 		}
 
+		std::vector<VkDynamicState> dynamicStates { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, (uint32_t)dynamicStates.size(), dynamicStates.data() };
+
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
@@ -787,13 +785,13 @@ namespace Engine
 
 		pipelineCreateInfo.pVertexInputState = ((PipelineVertexInputState_VK*)createInfo.pVertexInputState)->GetVertexInputStateCreateInfo();
 		pipelineCreateInfo.pInputAssemblyState = ((PipelineInputAssemblyState_VK*)createInfo.pInputAssemblyState)->GetInputAssemblyStateCreateInfo();
-		// ...(Tessellation State)
+		// (No tessellation state yet)
 		pipelineCreateInfo.pViewportState = ((PipelineViewportState_VK*)createInfo.pViewportState)->GetViewportStateCreateInfo();
 		pipelineCreateInfo.pRasterizationState = ((PipelineRasterizationState_VK*)createInfo.pRasterizationState)->GetRasterizationStateCreateInfo();
 		pipelineCreateInfo.pMultisampleState = ((PipelineMultisampleState_VK*)createInfo.pMultisampleState)->GetMultisampleStateCreateInfo();
 		pipelineCreateInfo.pColorBlendState = ((PipelineColorBlendState_VK*)createInfo.pColorBlendState)->GetColorBlendStateCreateInfo();
 		pipelineCreateInfo.pDepthStencilState = ((PipelineDepthStencilState_VK*)createInfo.pDepthStencilState)->GetDepthStencilStateCreateInfo();
-		// ...(Dynamics State)
+		pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
 		pipelineCreateInfo.layout = pipelineLayout;
 		pipelineCreateInfo.renderPass = ((RenderPass_VK*)createInfo.pRenderPass)->m_renderPass;	
@@ -803,10 +801,20 @@ namespace Engine
 
 		CE_NEW(pOutput, GraphicsPipeline_VK, m_pMainDevice, pShaderProgram, pipelineCreateInfo);
 
+		if (pOutput != nullptr)
+		{
+			pOutput->UpdateViewportState(createInfo.pViewportState);
+		}
+
 		return pOutput != nullptr;
 	}
 
 	void GraphicsHardwareInterface_VK::TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
+	{
+		TransitionImageLayout(m_pMainDevice->pImplicitCmdBuffer, pImage, newLayout, appliedStages);
+	}
+
+	void GraphicsHardwareInterface_VK::TransitionImageLayout(GraphicsCommandBuffer* pCommandBuffer, Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
 	{
 		Texture2D_VK* pVkImage = nullptr;
 		switch (((Texture2D*)pImage)->QuerySource())
@@ -828,7 +836,7 @@ namespace Engine
 			return;
 		}
 
-		m_pMainDevice->pImplicitCmdBuffer->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
+		((CommandBuffer_VK*)pCommandBuffer)->TransitionImageLayout(pVkImage, VulkanImageLayout(newLayout), appliedStages);
 	}
 
 	void GraphicsHardwareInterface_VK::TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages)
@@ -861,15 +869,18 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::ResizeSwapchain(uint32_t width, uint32_t height)
 	{
-		// TODO: recreate swapchain
+		DestroySwapchain();
+		SetupSwapchain(width, height);
 	}
 
 	void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		auto pVkPipeline = (GraphicsPipeline_VK*)pPipeline;
+		auto pPipelineVK = (GraphicsPipeline_VK*)pPipeline;
+		auto pCommandBufferVK = (CommandBuffer_VK*)pCommandBuffer;
 
-		((CommandBuffer_VK*)pCommandBuffer)->BindPipelineLayout(pVkPipeline->GetPipelineLayout());
-		((CommandBuffer_VK*)pCommandBuffer)->BindPipeline(pVkPipeline->GetBindPoint(), pVkPipeline->GetPipeline());
+		pCommandBufferVK->BindPipelineLayout(pPipelineVK->GetPipelineLayout());
+		pCommandBufferVK->BindPipeline(pPipelineVK->GetBindPoint(), pPipelineVK->GetPipeline());
+		pCommandBufferVK->SetViewport(pPipelineVK->GetViewport(), pPipelineVK->GetScissor());
 	}
 
 	void GraphicsHardwareInterface_VK::BeginRenderPass(const RenderPassObject* pRenderPass, const FrameBuffer* pFrameBuffer, GraphicsCommandBuffer* pCommandBuffer)
@@ -944,14 +955,17 @@ namespace Engine
 		m_commandSubmissionSemaphore.Wait();
 
 		std::vector<Semaphore_VK*> presentWaitSemaphores = { pRenderFinishSemaphore };
-		m_pSwapchain->Present(presentWaitSemaphores);
+		bool presentSuccess = m_pSwapchain->Present(presentWaitSemaphores);
 
 		// Preparation for next frame
 
 		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
 
-		m_pSwapchain->UpdateBackBuffer(frameIndex);
-		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(frameIndex));
+		if (presentSuccess)
+		{
+			m_pSwapchain->UpdateBackBuffer(frameIndex);
+			m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(frameIndex));
+		}
 	}
 
 	void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -1003,6 +1017,11 @@ namespace Engine
 		auto pVkSemaphore = (TimelineSemaphore_VK*)pSemaphore;
 		pVkSemaphore->Wait(FRAME_TIMEOUT);
 		m_pMainDevice->pSyncObjectManager->ReturnTimelineSemaphore(pVkSemaphore);
+	}
+
+	void GraphicsHardwareInterface_VK::WaitIdle()
+	{
+		m_pMainDevice->pGraphicsCommandManager->WaitWorkingQueueIdle();
 	}
 
 	void GraphicsHardwareInterface_VK::GetSwapchainImages(std::vector<Texture2D*>& outImages) const
@@ -1419,20 +1438,42 @@ namespace Engine
 
 	void GraphicsHardwareInterface_VK::SetupSwapchain()
 	{
+		SetupSwapchain(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
+			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight());
+	}
+
+	void GraphicsHardwareInterface_VK::SetupSwapchain(uint32_t width, uint32_t height)
+	{
 		SwapchainCreateInfo_VK createInfo{};
 		createInfo.maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		createInfo.presentMode = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync() ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 		createInfo.queueFamilyIndices = FindQueueFamilies_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
 		createInfo.supportDetails = QuerySwapchainSupport_VK(m_pMainDevice->physicalDevice, m_presentationSurface);
 		createInfo.surface = m_presentationSurface;
 		createInfo.surfaceFormat = ChooseSwapSurfaceFormat(createInfo.supportDetails.formats);
-		createInfo.swapExtent = { gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth(),
-			gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight() };
+		createInfo.swapExtent = { width, height };
+
+		createInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+		if (!gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetVSync())
+		{
+			for (const auto& availablePresentMode : createInfo.supportDetails.presentModes)
+			{
+				if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+				{
+					createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+					break;
+				}
+			}
+		}
 
 		CE_NEW(m_pSwapchain, Swapchain_VK, m_pMainDevice, createInfo);
 
 		m_pSwapchain->UpdateBackBuffer(0);
 		m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(0));
+	}
+
+	void GraphicsHardwareInterface_VK::DestroySwapchain()
+	{
+		CE_DELETE(m_pSwapchain);
 	}
 
 	VkSurfaceFormatKHR GraphicsHardwareInterface_VK::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -1491,7 +1532,7 @@ namespace Engine
 
 		if (m_pMainDevice->transferQueue.isValid)
 		{
-		CE_NEW(m_pMainDevice->pTransferCommandManager, CommandManager_VK, m_pMainDevice, m_pMainDevice->transferQueue);
+			CE_NEW(m_pMainDevice->pTransferCommandManager, CommandManager_VK, m_pMainDevice, m_pMainDevice->transferQueue);
 		}
 		else
 		{

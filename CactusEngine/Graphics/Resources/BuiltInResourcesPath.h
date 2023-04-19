@@ -4,7 +4,6 @@ namespace Engine
 {
 	namespace BuiltInResourcesPath
 	{
-		//========
 		// OpenGL
 
 		static const char* SHADER_VERTEX_BASIC_OPENGL = "Assets/Shader/GLSL/Basic.vert";
@@ -31,7 +30,6 @@ namespace Engine
 		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_OPENGL = "Assets/Shader/GLSL/LightDeferred.frag";
 		static const char* SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL = "Assets/Shader/GLSL/LightDeferred_Directional.frag";
 
-		//========
 		// Vulkan
 
 		static const char* SHADER_VERTEX_BASIC_VK = "Assets/Shader/SPIRV/Basic_vert.spv";

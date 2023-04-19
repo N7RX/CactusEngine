@@ -1,9 +1,14 @@
 #include "GLFWWindow.h"
 #include "Global.h"
 #include "ImGuiOverlay.h"
+#include "RenderingSystem.h"
 
 namespace Engine
 {
+	static bool s_windowSizeUpdated = false;
+	static uint32_t s_newWindowWidth = 0;
+	static uint32_t s_newWindowHeight = 0;
+
 	GLFWWindow_CE::GLFWWindow_CE(const char* name, uint32_t width, uint32_t height)
 		: BaseWindow(name, width, height),
 		m_pGLFWWindowHandle(nullptr)
@@ -16,14 +21,11 @@ namespace Engine
 		ShutDown();
 	}
 
-	void GLFWFramebufferSizeCallback_GL(GLFWwindow* pWindow, int32_t width, int32_t height)
+	void GLFWFramebufferSizeCallback(GLFWwindow* pWindow, int32_t width, int32_t height)
 	{
-		glViewport(0, 0, width, height);
-	}
-
-	void GLFWFramebufferSizeCallback_VK(GLFWwindow* pWindow, int32_t width, int32_t height)
-	{
-		LOG_ERROR("Vulkan window resized but not handled.");
+		s_windowSizeUpdated = true;
+		s_newWindowWidth = width;
+		s_newWindowHeight = height;
 	}
 
 	void GLFWWindow_CE::Initialize()
@@ -46,7 +48,7 @@ namespace Engine
 				glfwTerminate();
 			}
 			glfwMakeContextCurrent(m_pGLFWWindowHandle);
-			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback_GL);
+			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
 
 			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 			{
@@ -67,7 +69,7 @@ namespace Engine
 				glfwTerminate();
 			}
 
-			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback_VK);
+			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
 
 			gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
 			break;
@@ -94,10 +96,18 @@ namespace Engine
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
 		{
 			DrawImGui();
+			glfwSwapBuffers(m_pGLFWWindowHandle);
+		}
+
+		if (s_windowSizeUpdated)
+		{
+			SetWindowSize(s_newWindowWidth, s_newWindowHeight);
+			UpdateWindowSizeInternal();
+			s_windowSizeUpdated = false;
 		}
 
 		m_shouldQuit = glfwWindowShouldClose(m_pGLFWWindowHandle);
-		glfwSwapBuffers(m_pGLFWWindowHandle);
+
 		glfwPollEvents();
 	}
 
@@ -119,6 +129,15 @@ namespace Engine
 	void GLFWWindow_CE::SetWindowSize(uint32_t width, uint32_t height)
 	{
 		BaseWindow::SetWindowSize(width, height);
-		glViewport(0, 0, width, height);
+
+		s_windowSizeUpdated = true;
+		s_newWindowWidth = width;
+		s_newWindowHeight = height;
+	}
+
+	void GLFWWindow_CE::UpdateWindowSizeInternal()
+	{
+		DEBUG_ASSERT_CE(m_pRenderingSystem != nullptr);
+		m_pRenderingSystem->UpdateResolution();
 	}
 }

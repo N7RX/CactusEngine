@@ -8,7 +8,8 @@ namespace Engine
 		m_windowWidth(width),
 		m_windowHeight(height),
 		m_shouldQuit(false),
-		m_windowID(-1)
+		m_windowID(-1),
+		m_pRenderingSystem(nullptr)
 	{
 
 	}
@@ -54,5 +55,10 @@ namespace Engine
 	bool BaseWindow::ShouldQuit() const
 	{
 		return m_shouldQuit;
+	}
+
+	void BaseWindow::SetRenderingSystem(RenderingSystem* pSystem)
+	{
+		m_pRenderingSystem = pSystem;
 	}
 }

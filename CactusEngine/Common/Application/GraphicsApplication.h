@@ -1,12 +1,10 @@
 #pragma once
 #include "BaseApplication.h"
-#if defined(GLFW_IMPLEMENTATION_CE)
-#include "GLFWWindow.h"
-#endif
 
 namespace Engine
 {
 	class ECSWorld;
+	class BaseWindow;
 	class GraphicsDevice;
 
 	class GraphicsApplication : public BaseApplication
@@ -36,9 +34,9 @@ namespace Engine
 	private:
 		ECSWorld* m_pECSWorld;
 		GraphicsDevice* m_pDevice;
-#if defined(GLFW_IMPLEMENTATION_CE)
-		GLFWWindow_CE* m_pWindow;
-#endif
+
+		BaseWindow* m_pWindow;
+
 		void(*m_pSetupFunc)(GraphicsApplication* pApp);
 	};
 }

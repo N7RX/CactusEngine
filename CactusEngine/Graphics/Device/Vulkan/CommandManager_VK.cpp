@@ -147,6 +147,16 @@ namespace Engine
 		// Alert: dynamic offset is not handled
 	}
 
+	void CommandBuffer_VK::SetViewport(const VkViewport* pViewport, const VkRect2D* pScissor)
+	{
+		DEBUG_ASSERT_CE(m_isRecording);
+		DEBUG_ASSERT_CE(pViewport != nullptr);
+		DEBUG_ASSERT_CE(pScissor != nullptr);
+
+		vkCmdSetViewport(m_commandBuffer, 0, 1, pViewport);
+		vkCmdSetScissor(m_commandBuffer, 0, 1, pScissor);
+	}
+
 	void CommandBuffer_VK::DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 	{
 		DEBUG_ASSERT_CE(m_inRenderPass);
@@ -481,6 +491,11 @@ namespace Engine
 	EQueueType CommandManager_VK::GetWorkingQueueType() const
 	{
 		return m_workingQueue.type;
+	}
+
+	void CommandManager_VK::WaitWorkingQueueIdle()
+	{
+		vkQueueWaitIdle(m_workingQueue.queue);
 	}
 
 	CommandBuffer_VK* CommandManager_VK::RequestPrimaryCommandBuffer()

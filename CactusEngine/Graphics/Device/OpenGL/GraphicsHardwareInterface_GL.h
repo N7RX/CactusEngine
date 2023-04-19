@@ -32,8 +32,6 @@ namespace Engine
 		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
 		void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
 
-		void ResizeViewPort(uint32_t width, uint32_t height) override;
-
 		EGraphicsAPIType GetGraphicsAPIType() const override;
 
 		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override { return nullptr; }
@@ -54,6 +52,7 @@ namespace Engine
 		bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, GraphicsPipelineObject*& pOutput) override;
 
 		void TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override {}
+		void TransitionImageLayout(GraphicsCommandBuffer* pCommandBuffer, Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override {}
 		void TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override {}
 		void ResizeSwapchain(uint32_t width, uint32_t height) override {}
 
@@ -64,10 +63,11 @@ namespace Engine
 		void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override {}
 		void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override {}
 
-		void Present(uint32_t frameIndex) override {}
+		void Present(uint32_t frameIndex) override {} // Handled by glfwSwapBuffers in the window class
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
+		void WaitIdle() override;
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override { return 0; }

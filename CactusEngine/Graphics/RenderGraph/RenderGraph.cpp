@@ -9,7 +9,7 @@ namespace Engine
 {
 	void RenderGraphResource::Add(const char* name, RawResource* pResource)
 	{
-		m_renderResources.emplace(name, pResource);
+		m_renderResources[name] = pResource;
 	}
 
 	RawResource* RenderGraphResource::Get(const char* name) const
@@ -22,18 +22,6 @@ namespace Engine
 		return nullptr;
 	}
 
-	void RenderGraphResource::Swap(const char* name, RawResource* pResource)
-	{
-		if (m_renderResources.find(name) != m_renderResources.end())
-		{
-			m_renderResources.at(name) = pResource;
-		}
-		else
-		{
-			LOG_ERROR((std::string)"Couldn't find the resource to be swapped: " + name);
-		}
-	}
-
 	RenderNode::RenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: m_pRenderer(pRenderer),
 		m_pDevice(m_pRenderer->GetGraphicsDevice()),
@@ -44,6 +32,9 @@ namespace Engine
 		m_frameIndex(0),
 		m_pSwapchainImages(nullptr),
 		m_outputToSwapchain(false),
+		m_defaultPipelineStates{},
+		m_renderContext{},
+		m_cmdContext{},
 		m_configuration()
 	{
 		
@@ -211,6 +202,14 @@ namespace Engine
 			{
 				m_nodePriorityDependencies[m_renderNodePriorities[traverseResult[i]->m_pName]].emplace_back(m_renderNodePriorities[pNode->m_pName]);
 			}
+		}
+	}
+
+	void RenderGraph::PrebuildPipelines()
+	{
+		for (auto& node : m_nodes)
+		{
+			node.second->PrebuildGraphicsPipelines();
 		}
 	}
 

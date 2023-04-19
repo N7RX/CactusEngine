@@ -89,7 +89,7 @@ namespace Engine
 			}
 
 			RenderTarget2D_VK* pRenderTarget;
-			CE_NEW(pRenderTarget, RenderTarget2D_VK, m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format);
+			CE_NEW(pRenderTarget, RenderTarget2D_VK, m_pDevice, swapchainImages[i], swapchainImageView, createInfo.swapExtent, createInfo.surfaceFormat.format, true);
 			m_renderTargets.emplace_back(pRenderTarget);
 		}
 
@@ -111,7 +111,15 @@ namespace Engine
 
 	Swapchain_VK::~Swapchain_VK()
 	{
-		m_renderTargets.clear();
+		for (auto pSemaphore : m_imageAvailableSemaphores)
+		{
+			m_pDevice->pSyncObjectManager->ReturnSemaphore(pSemaphore);
+		}
+
+		for (auto pRenderTarget : m_renderTargets)
+		{
+			CE_DELETE(pRenderTarget);
+		}
 
 		vkDestroySwapchainKHR(m_pDevice->logicalDevice, m_swapchain, nullptr);
 	}

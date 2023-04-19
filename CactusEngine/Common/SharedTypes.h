@@ -300,11 +300,11 @@ namespace Engine
 
 	enum class ESamplerAnisotropyLevel
 	{
-		None = 0,
-		AFx2,
-		AFx4,
-		AFx8,
-		AFx16
+		None = 1,
+		AFx2 = 2,
+		AFx4 = 4,
+		AFx8 = 8,
+		AFx16 = 16
 	};
 
 	enum class EAntialiasingLevel

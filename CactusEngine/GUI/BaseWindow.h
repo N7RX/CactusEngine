@@ -5,6 +5,8 @@
 
 namespace Engine
 {
+	class RenderingSystem;
+
 	class BaseWindow : public NoCopy
 	{
 	public:
@@ -27,6 +29,8 @@ namespace Engine
 
 		virtual bool ShouldQuit() const;
 
+		void SetRenderingSystem(RenderingSystem* pSystem);
+
 	protected:
 		BaseWindow() = default;
 		BaseWindow(const char* name, uint32_t width, uint32_t height);
@@ -37,5 +41,7 @@ namespace Engine
 		uint32_t m_windowWidth;
 		uint32_t m_windowHeight;
 		bool m_shouldQuit;
+
+		RenderingSystem* m_pRenderingSystem;
 	};
 }

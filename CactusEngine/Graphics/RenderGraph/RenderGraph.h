@@ -13,14 +13,12 @@ namespace Engine
 	class BaseEntity;
 	class BaseRenderer;
 	class RenderGraph;
-	struct RenderContext;
 
 	class RenderGraphResource
 	{
 	public:
 		void Add(const char* name, RawResource* pResource);
 		RawResource* Get(const char* name) const;
-		void Swap(const char* name, RawResource* pResource);
 
 	private:
 		std::unordered_map<const char*, RawResource*> m_renderResources;
@@ -81,6 +79,8 @@ namespace Engine
 		virtual void DestroyMutableResources() {}
 		virtual void DestroyConstantResources() {}
 
+		virtual void PrebuildGraphicsPipelines() = 0;
+		virtual GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) = 0;
 		void DestroyGraphicsPipelines();
 
 	protected:
@@ -98,6 +98,39 @@ namespace Engine
 
 		std::vector<Texture2D*>* m_pSwapchainImages;
 		bool m_outputToSwapchain;
+
+		struct DefaultGraphicsPipelineStates
+		{
+			DefaultGraphicsPipelineStates()
+				: pVertexInputState(nullptr)
+				, pInputAssemblyState(nullptr)
+				, pRasterizationState(nullptr)
+				, pMultisampleState(nullptr)
+				, pDepthStencilState(nullptr)
+				, pColorBlendState(nullptr)
+				, pViewportState(nullptr)
+			{}
+
+			~DefaultGraphicsPipelineStates()
+			{
+				CE_SAFE_DELETE(pVertexInputState);
+				CE_SAFE_DELETE(pInputAssemblyState);
+				CE_SAFE_DELETE(pRasterizationState);
+				CE_SAFE_DELETE(pMultisampleState);
+				CE_SAFE_DELETE(pDepthStencilState);
+				CE_SAFE_DELETE(pColorBlendState);
+				CE_SAFE_DELETE(pViewportState);
+			}
+
+			PipelineVertexInputState*	pVertexInputState;
+			PipelineInputAssemblyState*	pInputAssemblyState;
+			PipelineRasterizationState* pRasterizationState;
+			PipelineMultisampleState*	pMultisampleState;
+			PipelineDepthStencilState*	pDepthStencilState;
+			PipelineColorBlendState*	pColorBlendState;
+			PipelineViewportState*		pViewportState;
+		};
+		DefaultGraphicsPipelineStates m_defaultPipelineStates;
 
 		RenderContext  m_renderContext;
 		CommandContext m_cmdContext;
@@ -120,6 +153,7 @@ namespace Engine
 		void AddRenderNode(const char* name, RenderNode* pNode);
 		void SetupRenderNodes();
 		void BuildRenderNodePriorities();
+		void PrebuildPipelines();
 
 		void BeginRenderPassesSequential(const RenderContext& context, uint32_t frameIndex);
 		void BeginRenderPassesParallel(const RenderContext& context, uint32_t frameIndex);

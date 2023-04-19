@@ -102,6 +102,7 @@ void ConfigSetup()
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetWindowSize(1920, 1080);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetMaxFramesInFlight(3);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetVSync(false);
+	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetPrebuildShadersAndPipelines(false);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetActiveRenderer(ERendererType::Advanced);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetTextureAnisotropyLevel(ESamplerAnisotropyLevel::AFx4);
 	gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetRenderScale(1.0f);
@@ -367,10 +368,10 @@ void TestSetup(GraphicsApplication* pApp)
 {
 	auto pWorld = pApp->GetECSWorld();
 
-	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Script, 0);
+	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Rendering, 2);
 	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
 	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Rendering, 2);
+	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Script, 0);
 	pWorld->SortSystems();
 
 	// Read scene from file

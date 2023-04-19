@@ -65,8 +65,11 @@ namespace Engine
 	class RenderTarget2D_VK : public Texture2D_VK
 	{
 	public:
-		RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat);
+		RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat, bool isSwapchainImage = false);
 		~RenderTarget2D_VK();
+
+	private:
+		bool m_isSwapchainImage;
 	};
 
 	class FrameBuffer_VK : public FrameBuffer

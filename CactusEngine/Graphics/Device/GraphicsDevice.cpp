@@ -9,32 +9,39 @@ namespace Engine
 
 	void GraphicsDevice::ShutDown()
 	{
-		CE_DELETE(m_pDefaultSampler_NoAF);
-		CE_DELETE(m_pDefaultSampler_4xAF);
-		CE_DELETE(m_pDefaultSampler_8xAF);
-		CE_DELETE(m_pDefaultSampler_16xAF);
+		for (auto& pSampler : m_DefaultSamplers)
+		{
+			CE_DELETE(pSampler.second);
+		}
 	}
 
-	TextureSampler* GraphicsDevice::GetTextureSampler(ESamplerAnisotropyLevel level) const
+	TextureSampler* GraphicsDevice::GetTextureSampler(ESamplerAnisotropyLevel level)
 	{
-		switch (level)
+		if (m_DefaultSamplers.find(level) != m_DefaultSamplers.end())
 		{
-		case ESamplerAnisotropyLevel::None:
-			return m_pDefaultSampler_NoAF;
-		case ESamplerAnisotropyLevel::AFx2:
-			LOG_WARNING("2xAF sampler is unsupported, falling back to no AF.");
-			return m_pDefaultSampler_NoAF;
-		case ESamplerAnisotropyLevel::AFx4:
-			return m_pDefaultSampler_4xAF;
-		case ESamplerAnisotropyLevel::AFx8:
-			return m_pDefaultSampler_8xAF;
-		case ESamplerAnisotropyLevel::AFx16:
-			return m_pDefaultSampler_16xAF;
-		default:
-			LOG_ERROR("Unsupported texture sampler anisotropy level.");
+			return m_DefaultSamplers.at(level);
 		}
 
-		return nullptr;
+		DEBUG_ASSERT_CE(level == ESamplerAnisotropyLevel::AFx2 || level == ESamplerAnisotropyLevel::AFx4 || level == ESamplerAnisotropyLevel::AFx8 || level == ESamplerAnisotropyLevel::AFx16);
+
+		TextureSamplerCreateInfo createInfo{};
+		createInfo.magMode = ESamplerFilterMode::Linear;
+		createInfo.minMode = ESamplerFilterMode::Linear;
+		createInfo.addressMode = ESamplerAddressMode::Repeat;
+		createInfo.enableAnisotropy = true; // Non-AF sampler should already exsit
+		createInfo.maxAnisotropy = (float)level;
+		createInfo.enableCompareOp = false;
+		createInfo.compareOp = ECompareOperation::Always;
+		createInfo.mipmapMode = ESamplerMipmapMode::Linear;
+		createInfo.minLod = 0;
+		createInfo.maxLod = 12.0f; // Support up to 4096
+		createInfo.minLodBias = 0;
+
+		TextureSampler* pSampler = nullptr;
+		CreateSampler(createInfo, pSampler);
+		m_DefaultSamplers[level] = pSampler;
+
+		return pSampler;
 	}
 
 	void GraphicsDevice::CreateDefaultSamplers()
@@ -49,20 +56,12 @@ namespace Engine
 		createInfo.compareOp = ECompareOperation::Always;
 		createInfo.mipmapMode = ESamplerMipmapMode::Linear;
 		createInfo.minLod = 0;
-		createInfo.maxLod = 12.0f; // Support up to 4096
+		createInfo.maxLod = 12.0f;
 		createInfo.minLodBias = 0;
 
-		CreateSampler(createInfo, m_pDefaultSampler_NoAF);
+		TextureSampler* pSamplerNoAF = nullptr;
+		CreateSampler(createInfo, pSamplerNoAF);
 
-		createInfo.enableAnisotropy = true;
-
-		createInfo.maxAnisotropy = 4;
-		CreateSampler(createInfo, m_pDefaultSampler_4xAF);
-
-		createInfo.maxAnisotropy = 8;
-		CreateSampler(createInfo, m_pDefaultSampler_8xAF);
-
-		createInfo.maxAnisotropy = 16;
-		CreateSampler(createInfo, m_pDefaultSampler_16xAF);
+		m_DefaultSamplers[ESamplerAnisotropyLevel::None] = pSamplerNoAF;
 	}
 }

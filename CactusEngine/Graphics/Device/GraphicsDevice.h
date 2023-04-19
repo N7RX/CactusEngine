@@ -32,8 +32,6 @@ namespace Engine
 		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
 		virtual void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
 
-		virtual void ResizeViewPort(uint32_t width, uint32_t height) = 0;
-
 		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
 
 		// For low-level devices, e.g. Vulkan
@@ -57,6 +55,7 @@ namespace Engine
 		virtual bool CreateGraphicsPipelineObject(const GraphicsPipelineCreateInfo& createInfo, GraphicsPipelineObject*& pOutput) = 0;
 
 		virtual void TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
+		virtual void TransitionImageLayout(GraphicsCommandBuffer* pCommandBuffer, Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void ResizeSwapchain(uint32_t width, uint32_t height) = 0;
 
@@ -71,8 +70,9 @@ namespace Engine
 		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands) = 0;
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(GraphicsSemaphore* pSemaphore) = 0;
+		virtual void WaitIdle() = 0;
 
-		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level) const;
+		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level);
 
 		virtual void GetSwapchainImages(std::vector<Texture2D*>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
@@ -95,11 +95,7 @@ namespace Engine
 		static const uint32_t ATTRIB_BITANGENT_LOCATION = 4;
 
 	protected:
-		TextureSampler* m_pDefaultSampler_NoAF;
-		// No default 2xAF as it's rarely used
-		TextureSampler* m_pDefaultSampler_4xAF;
-		TextureSampler* m_pDefaultSampler_8xAF;
-		TextureSampler* m_pDefaultSampler_16xAF;
+		std::unordered_map<ESamplerAnisotropyLevel, TextureSampler*> m_DefaultSamplers;
 	};
 
 	template<EGraphicsAPIType>

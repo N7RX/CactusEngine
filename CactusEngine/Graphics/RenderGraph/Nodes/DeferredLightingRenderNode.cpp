@@ -15,7 +15,11 @@ namespace Engine
 
 	DeferredLightingRenderNode::DeferredLightingRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer),
-		m_pRenderPassObject(nullptr)
+		m_pRenderPassObject(nullptr),
+		m_pVertexInputState_Empty(nullptr),
+		m_pInputAssemblyState_Strip(nullptr),
+		m_pRasterizationState_CullFront(nullptr),
+		m_pColorBlendState_NoBlend(nullptr)
 	{
 		m_inputResourceNames[INPUT_GBUFFER_COLOR] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_NORMAL] = nullptr;
@@ -48,7 +52,7 @@ namespace Engine
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
-		// Pipeline object
+		// Pipeline states
 
 		// Vertex input states
 
@@ -91,15 +95,13 @@ namespace Engine
 		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
 		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
 
-		PipelineVertexInputState* pVertexInputState = nullptr;
-		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, pVertexInputState);
+		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, m_defaultPipelineStates.pVertexInputState);
 
 		PipelineVertexInputStateCreateInfo emptyVertexInputStateCreateInfo{};
 		emptyVertexInputStateCreateInfo.bindingDescs = {};
 		emptyVertexInputStateCreateInfo.attributeDescs = {};
 
-		PipelineVertexInputState* pEmptyVertexInputState = nullptr;
-		m_pDevice->CreatePipelineVertexInputState(emptyVertexInputStateCreateInfo, pEmptyVertexInputState);
+		m_pDevice->CreatePipelineVertexInputState(emptyVertexInputStateCreateInfo, m_pVertexInputState_Empty);
 
 		// Input assembly states
 
@@ -107,13 +109,11 @@ namespace Engine
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleStrip;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
-		PipelineInputAssemblyState* pInputAssemblyState_Strip = nullptr;
-		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState_Strip);
+		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, m_pInputAssemblyState_Strip);
 
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleList;
 
-		PipelineInputAssemblyState* pInputAssemblyState_List = nullptr;
-		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState_List);
+		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, m_defaultPipelineStates.pInputAssemblyState);
 
 		// Rasterization states
 
@@ -124,13 +124,11 @@ namespace Engine
 		rasterizationStateCreateInfo.cullMode = ECullMode::Front;
 		rasterizationStateCreateInfo.frontFaceCounterClockwise = true;
 
-		PipelineRasterizationState* pCullFrontRasterizationState = nullptr;
-		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pCullFrontRasterizationState);
+		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, m_pRasterizationState_CullFront);
 
 		rasterizationStateCreateInfo.cullMode = ECullMode::Back;
 
-		PipelineRasterizationState* pCullBackRasterizationState = nullptr;
-		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pCullBackRasterizationState);
+		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, m_defaultPipelineStates.pRasterizationState);
 
 		// Depth stencil state
 
@@ -140,8 +138,7 @@ namespace Engine
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
 		depthStencilStateCreateInfo.enableStencilTest = false;
 
-		PipelineDepthStencilState* pDepthStencilState = nullptr;
-		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, pDepthStencilState);
+		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, m_defaultPipelineStates.pDepthStencilState);
 
 		// Multisample state
 
@@ -149,8 +146,7 @@ namespace Engine
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
-		PipelineMultisampleState* pMultisampleState = nullptr;
-		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, pMultisampleState);
+		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, m_defaultPipelineStates.pMultisampleState);
 
 		// Color blend state
 
@@ -165,8 +161,7 @@ namespace Engine
 		PipelineColorBlendStateCreateInfo colorBlendStateCreateInfo{};
 		colorBlendStateCreateInfo.blendStateDescs.push_back(attachmentBlendDesc);
 
-		PipelineColorBlendState* pColorBlendState = nullptr;
-		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, m_defaultPipelineStates.pColorBlendState);
 
 		AttachmentColorBlendStateDescription attachmentNoBlendDesc{};
 		attachmentNoBlendDesc.enableBlend = false;
@@ -174,47 +169,15 @@ namespace Engine
 		PipelineColorBlendStateCreateInfo colorNoBlendStateCreateInfo{};
 		colorNoBlendStateCreateInfo.blendStateDescs.push_back(attachmentNoBlendDesc);
 
-		PipelineColorBlendState* pColorNoBlendState = nullptr;
-		m_pDevice->CreatePipelineColorBlendState(colorNoBlendStateCreateInfo, pColorNoBlendState);
+		m_pDevice->CreatePipelineColorBlendState(colorNoBlendStateCreateInfo, m_pColorBlendState_NoBlend);
 
 		// Viewport state
 
-		// TODO: use dynamic viewport state
 		PipelineViewportStateCreateInfo viewportStateCreateInfo{};
 		viewportStateCreateInfo.width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
 		viewportStateCreateInfo.height = m_outputToSwapchain ? initInfo.height : initInfo.height * initInfo.renderScale;
 
-		PipelineViewportState* pViewportState = nullptr;
-		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
-
-		// Pipeline creation
-
-		GraphicsPipelineCreateInfo pipelineCreateInfo{};
-		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
-		pipelineCreateInfo.pVertexInputState = pVertexInputState;
-		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_List;
-		pipelineCreateInfo.pColorBlendState = pColorBlendState;
-		pipelineCreateInfo.pRasterizationState = pCullFrontRasterizationState;
-		pipelineCreateInfo.pDepthStencilState = pDepthStencilState;
-		pipelineCreateInfo.pMultisampleState = pMultisampleState;
-		pipelineCreateInfo.pViewportState = pViewportState;
-		pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
-
-		GraphicsPipelineObject* pPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
-
-		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DeferredLighting, pPipeline);
-
-		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
-		pipelineCreateInfo.pVertexInputState = pEmptyVertexInputState;
-		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState_Strip;
-		pipelineCreateInfo.pColorBlendState = pColorNoBlendState;
-		pipelineCreateInfo.pRasterizationState = pCullBackRasterizationState;
-
-		GraphicsPipelineObject* pDirPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pDirPipeline);
-
-		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional, pDirPipeline);
+		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, m_defaultPipelineStates.pViewportState);
 	}
 
 	void DeferredLightingRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
@@ -325,7 +288,7 @@ namespace Engine
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
 
 		// Draw
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional), pCommandBuffer);
 		m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 		m_pDevice->DrawFullScreenQuad(pCommandBuffer);
 	}
@@ -372,7 +335,7 @@ namespace Engine
 
 		// Bind pipeline and get shader
 
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::DeferredLighting), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::DeferredLighting), pCommandBuffer);
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
 
@@ -447,6 +410,15 @@ namespace Engine
 
 		DestroyMutableTextures();
 		CreateMutableTextures(m_configuration);
+
+		if (m_outputToSwapchain)
+		{
+			m_defaultPipelineStates.pViewportState->UpdateResolution(width, height);
+		}
+		else
+		{
+			m_defaultPipelineStates.pViewportState->UpdateResolution(width * m_configuration.renderScale, height * m_configuration.renderScale);
+		}
 	}
 
 	void DeferredLightingRenderNode::UpdateMaxDrawCallCount(uint32_t count)
@@ -509,6 +481,65 @@ namespace Engine
 			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
 			CE_DELETE(m_frameResources[i].m_pLightSourceProperties_UB);
 			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
+		}
+	}
+
+	void DeferredLightingRenderNode::PrebuildGraphicsPipelines()
+	{
+		GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::DeferredLighting);
+		GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional);
+	}
+
+	GraphicsPipelineObject* DeferredLightingRenderNode::GetGraphicsPipeline(uint32_t key)
+	{
+		if (m_graphicsPipelines.find(key) != m_graphicsPipelines.end())
+		{
+			return m_graphicsPipelines.at(key);
+		}
+		else
+		{
+			GraphicsPipelineCreateInfo pipelineCreateInfo{};
+
+			switch (key)
+			{
+				case (uint32_t)EBuiltInShaderProgramType::DeferredLighting:
+				{
+					pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting);
+					pipelineCreateInfo.pVertexInputState = m_defaultPipelineStates.pVertexInputState;
+					pipelineCreateInfo.pInputAssemblyState = m_defaultPipelineStates.pInputAssemblyState;
+					pipelineCreateInfo.pColorBlendState = m_defaultPipelineStates.pColorBlendState;
+					pipelineCreateInfo.pRasterizationState = m_pRasterizationState_CullFront;
+					pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
+					pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
+					pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
+					pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
+					break;
+				}
+				case (uint32_t)EBuiltInShaderProgramType::DeferredLighting_Directional:
+				{
+					pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::DeferredLighting_Directional);
+					pipelineCreateInfo.pVertexInputState = m_pVertexInputState_Empty;
+					pipelineCreateInfo.pInputAssemblyState = m_pInputAssemblyState_Strip;
+					pipelineCreateInfo.pColorBlendState = m_pColorBlendState_NoBlend;
+					pipelineCreateInfo.pRasterizationState = m_defaultPipelineStates.pRasterizationState;
+					pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
+					pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
+					pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
+					pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
+					break;
+				}
+				default:
+				{
+					LOG_ERROR("Requested graphics pipeline cannot be found and cannot be created.");
+					return nullptr;
+				}
+			}
+
+			GraphicsPipelineObject* pPipeline = nullptr;
+			m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
+			m_graphicsPipelines.emplace(key, pPipeline);
+
+			return pPipeline;
 		}
 	}
 }

@@ -5,6 +5,7 @@
 namespace Engine
 {
 	class ShaderProgram_GL;
+	class PipelineViewportState_GL;
 
 	// OpenGL render pass object is simply an attachment clear state record
 	class RenderPass_GL : public RenderPassObject
@@ -37,8 +38,7 @@ namespace Engine
 
 		bool				enableMultisampling;
 
-		uint32_t			viewportWidth;
-		uint32_t			viewportHeight;
+		PipelineViewportState_GL* pViewportState;
 	};
 
 	// OpenGL graphics pipeline object is simply abstracted as a state record
@@ -47,6 +47,8 @@ namespace Engine
 	public:
 		GraphicsPipeline_GL(GraphicsHardwareInterface_GL* pDevice, ShaderProgram_GL* pShaderProgram, GraphicsPipelineCreateInfo_GL& createInfo);
 		~GraphicsPipeline_GL() = default;
+
+		void UpdateViewportState(const PipelineViewportState* pNewState) override;
 
 		void Apply() const;
 
@@ -70,8 +72,7 @@ namespace Engine
 
 		bool   m_enableMultisampling;
 
-		uint32_t m_viewportWidth;
-		uint32_t m_viewportHeight;
+		PipelineViewportState_GL* m_pViewportState;
 	};
 
 	class PipelineInputAssemblyState_GL : public PipelineInputAssemblyState
@@ -124,6 +125,8 @@ namespace Engine
 	{
 	public:
 		PipelineViewportState_GL(const PipelineViewportStateCreateInfo& createInfo);
+
+		void UpdateResolution(uint32_t width, uint32_t height) override;
 
 		uint32_t viewportWidth;
 		uint32_t viewportHeight;

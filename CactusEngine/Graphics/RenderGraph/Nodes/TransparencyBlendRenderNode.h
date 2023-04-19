@@ -21,6 +21,9 @@ namespace Engine
 		void DestroyMutableResources() override;
 		void DestroyConstantResources() override;
 
+		void PrebuildGraphicsPipelines() override;
+		GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) override;
+
 	private:
 		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();

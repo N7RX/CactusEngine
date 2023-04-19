@@ -71,8 +71,7 @@ namespace Engine
 		m_enableDepthTest(createInfo.enableDepthTest),
 		m_enableDepthMask(createInfo.enableDepthMask),
 		m_enableMultisampling(createInfo.enableMultisampling),
-		m_viewportWidth(createInfo.viewportWidth),
-		m_viewportHeight(createInfo.viewportHeight)
+		m_pViewportState(createInfo.pViewportState)
 	{
 		if (m_enableBlend)
 		{
@@ -84,6 +83,11 @@ namespace Engine
 		{
 			m_cullMode = OpenGLCullMode(createInfo.cullMode);
 		}
+	}
+
+	void GraphicsPipeline_GL::UpdateViewportState(const PipelineViewportState* pNewState)
+	{
+		m_pViewportState = (PipelineViewportState_GL*)pNewState;
 	}
 
 	void GraphicsPipeline_GL::Apply() const
@@ -140,7 +144,7 @@ namespace Engine
 			glDisable(GL_MULTISAMPLE);
 		}
 
-		glViewport(0, 0, m_viewportWidth, m_viewportHeight);
+		glViewport(0, 0, m_pViewportState->viewportWidth, m_pViewportState->viewportHeight);
 	}
 
 	PipelineInputAssemblyState_GL::PipelineInputAssemblyState_GL(const PipelineInputAssemblyStateCreateInfo& createInfo)
@@ -193,5 +197,11 @@ namespace Engine
 		viewportHeight(createInfo.height)
 	{
 
+	}
+
+	void PipelineViewportState_GL::UpdateResolution(uint32_t width, uint32_t height)
+	{
+		viewportWidth = width;
+		viewportHeight = height;
 	}
 }

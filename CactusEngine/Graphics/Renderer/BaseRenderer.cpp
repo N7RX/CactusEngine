@@ -149,6 +149,11 @@ namespace Engine
 		return m_renderPriority;
 	}
 
+	RenderGraph* BaseRenderer::GetRenderGraph() const
+	{
+		return m_pRenderGraph;
+	}
+
 	GraphicsDevice* BaseRenderer::GetGraphicsDevice() const
 	{
 		return m_pDevice;
@@ -157,6 +162,12 @@ namespace Engine
 	RenderingSystem* BaseRenderer::GetRenderingSystem() const
 	{
 		return m_pSystem;
+	}
+
+	void BaseRenderer::UpdateResolution(uint32_t width, uint32_t height)
+	{
+		ObtainSwapchainImages();
+		m_pRenderGraph->UpdateResolution(width, height);
 	}
 
 	void BaseRenderer::ObtainSwapchainImages()

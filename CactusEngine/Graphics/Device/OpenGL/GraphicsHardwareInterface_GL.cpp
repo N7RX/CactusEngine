@@ -344,11 +344,6 @@ namespace Engine
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
-	void GraphicsHardwareInterface_GL::ResizeViewPort(uint32_t width, uint32_t height)
-	{
-		glViewport(0, 0, width, height);
-	}
-
 	EGraphicsAPIType GraphicsHardwareInterface_GL::GetGraphicsAPIType() const
 	{
 		return EGraphicsAPIType::OpenGL;
@@ -440,8 +435,7 @@ namespace Engine
 
 		glCreateInfo.enableMultisampling = ((PipelineMultisampleState_GL*)createInfo.pMultisampleState)->enableMultisampling;
 
-		glCreateInfo.viewportWidth = ((PipelineViewportState_GL*)createInfo.pViewportState)->viewportWidth;
-		glCreateInfo.viewportHeight = ((PipelineViewportState_GL*)createInfo.pViewportState)->viewportHeight;
+		glCreateInfo.pViewportState = (PipelineViewportState_GL*)createInfo.pViewportState;
 
 		CE_NEW(pOutput, GraphicsPipeline_GL, this, (ShaderProgram_GL*)createInfo.pShaderProgram, glCreateInfo);
 
@@ -490,6 +484,11 @@ namespace Engine
 	void GraphicsHardwareInterface_GL::WaitSemaphore(GraphicsSemaphore* pSemaphore)
 	{
 		LOG_WARNING("OpenGL: shouldn't call WaitSemaphore on OpenGL device.");
+		glFinish();
+	}
+
+	void GraphicsHardwareInterface_GL::WaitIdle()
+	{
 		glFinish();
 	}
 

@@ -73,7 +73,7 @@ namespace Engine
 
 		m_pDevice->CreateRenderPassObject(passCreateInfo, m_pRenderPassObject);
 
-		// Pipeline object
+		// Pipeline states
 
 		// Vertex input state
 
@@ -116,8 +116,7 @@ namespace Engine
 		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
 		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
 
-		PipelineVertexInputState* pVertexInputState = nullptr;
-		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, pVertexInputState);
+		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, m_defaultPipelineStates.pVertexInputState);
 
 		// Input assembly state
 
@@ -125,8 +124,7 @@ namespace Engine
 		inputAssemblyStateCreateInfo.topology = EAssemblyTopology::TriangleList;
 		inputAssemblyStateCreateInfo.enablePrimitiveRestart = false;
 
-		PipelineInputAssemblyState* pInputAssemblyState = nullptr;
-		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, pInputAssemblyState);
+		m_pDevice->CreatePipelineInputAssemblyState(inputAssemblyStateCreateInfo, m_defaultPipelineStates.pInputAssemblyState);
 
 		// Rasterization state
 
@@ -137,8 +135,7 @@ namespace Engine
 		rasterizationStateCreateInfo.cullMode = ECullMode::Back;
 		rasterizationStateCreateInfo.frontFaceCounterClockwise = true;
 
-		PipelineRasterizationState* pRasterizationState = nullptr;
-		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, pRasterizationState);
+		m_pDevice->CreatePipelineRasterizationState(rasterizationStateCreateInfo, m_defaultPipelineStates.pRasterizationState);
 
 		// Depth stencil state
 
@@ -148,8 +145,7 @@ namespace Engine
 		depthStencilStateCreateInfo.depthCompareOP = ECompareOperation::Less;
 		depthStencilStateCreateInfo.enableStencilTest = false;
 
-		PipelineDepthStencilState* pDepthStencilState = nullptr;
-		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, pDepthStencilState);
+		m_pDevice->CreatePipelineDepthStencilState(depthStencilStateCreateInfo, m_defaultPipelineStates.pDepthStencilState);
 
 		// Multisample state
 
@@ -157,8 +153,7 @@ namespace Engine
 		multisampleStateCreateInfo.enableSampleShading = false;
 		multisampleStateCreateInfo.sampleCount = 1;
 
-		PipelineMultisampleState* pMultisampleState = nullptr;
-		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, pMultisampleState);
+		m_pDevice->CreatePipelineMultisampleState(multisampleStateCreateInfo, m_defaultPipelineStates.pMultisampleState);
 
 		// Color blend state
 
@@ -169,8 +164,7 @@ namespace Engine
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 		colorBlendStateCreateInfo.blendStateDescs.emplace_back(attachmentNoBlendDesc);
 
-		PipelineColorBlendState* pColorBlendState = nullptr;
-		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, pColorBlendState);
+		m_pDevice->CreatePipelineColorBlendState(colorBlendStateCreateInfo, m_defaultPipelineStates.pColorBlendState);
 
 		// Viewport state
 
@@ -178,26 +172,7 @@ namespace Engine
 		viewportStateCreateInfo.width = initInfo.width * initInfo.renderScale;
 		viewportStateCreateInfo.height = initInfo.height * initInfo.renderScale;
 
-		PipelineViewportState* pViewportState = nullptr;
-		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, pViewportState);
-
-		// Pipeline creation
-
-		GraphicsPipelineCreateInfo pipelineCreateInfo{};
-		pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
-		pipelineCreateInfo.pVertexInputState = pVertexInputState;
-		pipelineCreateInfo.pInputAssemblyState = pInputAssemblyState;
-		pipelineCreateInfo.pColorBlendState = pColorBlendState;
-		pipelineCreateInfo.pRasterizationState = pRasterizationState;
-		pipelineCreateInfo.pDepthStencilState = pDepthStencilState;
-		pipelineCreateInfo.pMultisampleState = pMultisampleState;
-		pipelineCreateInfo.pViewportState = pViewportState;
-		pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
-
-		GraphicsPipelineObject* pPipeline = nullptr;
-		m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
-
-		m_graphicsPipelines.emplace((uint32_t)EBuiltInShaderProgramType::GBuffer, pPipeline);
+		m_pDevice->CreatePipelineViewportState(viewportStateCreateInfo, m_defaultPipelineStates.pViewportState);
 	}
 
 	void GBufferRenderNode::CreateMutableResources(const RenderNodeConfiguration& initInfo)
@@ -315,7 +290,7 @@ namespace Engine
 
 		// Bind pipeline and draw
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
-		m_pDevice->BindGraphicsPipeline(m_graphicsPipelines.at((uint32_t)EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
+		m_pDevice->BindGraphicsPipeline(GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::GBuffer), pCommandBuffer);
 
 		for (auto& entity : *renderContext.pOpaqueDrawList)
 		{
@@ -384,6 +359,8 @@ namespace Engine
 
 		DestroyMutableTextures();
 		CreateMutableTextures(m_configuration);
+
+		m_defaultPipelineStates.pViewportState->UpdateResolution(width * m_configuration.renderScale, height * m_configuration.renderScale);
 	}
 
 	void GBufferRenderNode::UpdateMaxDrawCallCount(uint32_t count)
@@ -444,6 +421,51 @@ namespace Engine
 		{
 			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
 			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
+		}
+	}
+
+	void GBufferRenderNode::PrebuildGraphicsPipelines()
+	{
+		GetGraphicsPipeline((uint32_t)EBuiltInShaderProgramType::GBuffer);
+	}
+
+	GraphicsPipelineObject* GBufferRenderNode::GetGraphicsPipeline(uint32_t key)
+	{
+		if (m_graphicsPipelines.find(key) != m_graphicsPipelines.end())
+		{
+			return m_graphicsPipelines.at(key);
+		}
+		else
+		{
+			GraphicsPipelineCreateInfo pipelineCreateInfo{};
+
+			switch (key)
+			{
+			case (uint32_t)EBuiltInShaderProgramType::GBuffer:
+			{
+				pipelineCreateInfo.pShaderProgram = m_pRenderer->GetRenderingSystem()->GetShaderProgramByType(EBuiltInShaderProgramType::GBuffer);
+				pipelineCreateInfo.pVertexInputState = m_defaultPipelineStates.pVertexInputState;
+				pipelineCreateInfo.pInputAssemblyState = m_defaultPipelineStates.pInputAssemblyState;
+				pipelineCreateInfo.pColorBlendState = m_defaultPipelineStates.pColorBlendState;
+				pipelineCreateInfo.pRasterizationState = m_defaultPipelineStates.pRasterizationState;
+				pipelineCreateInfo.pDepthStencilState = m_defaultPipelineStates.pDepthStencilState;
+				pipelineCreateInfo.pMultisampleState = m_defaultPipelineStates.pMultisampleState;
+				pipelineCreateInfo.pViewportState = m_defaultPipelineStates.pViewportState;
+				pipelineCreateInfo.pRenderPass = m_pRenderPassObject;
+				break;
+			}
+			default:
+			{
+				LOG_ERROR("Requested graphics pipeline cannot be found and cannot be created.");
+				return nullptr;
+			}
+			}
+
+			GraphicsPipelineObject* pPipeline = nullptr;
+			m_pDevice->CreateGraphicsPipelineObject(pipelineCreateInfo, pPipeline);
+			m_graphicsPipelines.emplace(key, pPipeline);
+
+			return pPipeline;
 		}
 	}
 }

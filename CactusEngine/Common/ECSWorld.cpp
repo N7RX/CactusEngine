@@ -46,7 +46,7 @@ namespace Engine
 
 	BaseSystem* ECSWorld::GetSystem(ESystemType type) const
 	{
-		for (auto system : m_systemList)
+		for (auto& system : m_systemList)
 		{
 			if (system->GetSystemID() == (uint32_t)type)
 			{

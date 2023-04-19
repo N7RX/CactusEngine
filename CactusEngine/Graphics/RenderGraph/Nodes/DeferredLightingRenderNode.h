@@ -21,6 +21,9 @@ namespace Engine
 		void DestroyMutableResources() override;
 		void DestroyConstantResources() override;
 
+		void PrebuildGraphicsPipelines() override;
+		GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key) override;
+
 	private:
 		void DirectionalLighting(RenderGraphResource* pGraphResources, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
 		void RegularLighting(RenderGraphResource* pGraphResources, const RenderContext& renderContext, GraphicsCommandBuffer* pCommandBuffer, ShaderParameterTable& shaderParamTable);
@@ -74,5 +77,10 @@ namespace Engine
 		std::vector<FrameResources> m_frameResources;
 
 		RenderPassObject* m_pRenderPassObject;
+
+		PipelineVertexInputState* m_pVertexInputState_Empty;
+		PipelineInputAssemblyState* m_pInputAssemblyState_Strip;
+		PipelineRasterizationState* m_pRasterizationState_CullFront;
+		PipelineColorBlendState* m_pColorBlendState_NoBlend;
 	};
 }

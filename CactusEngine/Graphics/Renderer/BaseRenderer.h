@@ -36,8 +36,11 @@ namespace Engine
 		void SetRendererPriority(uint32_t priority);
 		uint32_t GetRendererPriority() const;	
 
+		RenderGraph* GetRenderGraph() const;
 		GraphicsDevice* GetGraphicsDevice() const;
 		RenderingSystem* GetRenderingSystem() const;
+
+		void UpdateResolution(uint32_t width, uint32_t height);
 
 	protected:
 		void ObtainSwapchainImages();

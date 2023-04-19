@@ -19,9 +19,10 @@ namespace Engine
 
 	GraphicsPipeline_VK::GraphicsPipeline_VK(LogicalDevice_VK* pDevice, ShaderProgram_VK* pShaderProgram, VkGraphicsPipelineCreateInfo& createInfo)
 		: m_pDevice(pDevice),
-		m_pShaderProgram(pShaderProgram)
+		m_pShaderProgram(pShaderProgram),
+		m_pViewportState(nullptr)
 	{
-		// TODO: support creation from cache & batched creations to reduce startup time
+		// TODO: support creation from cache to reduce startup time
 		m_pipelineLayout = createInfo.layout;
 		m_pipeline = VK_NULL_HANDLE;
 
@@ -39,6 +40,11 @@ namespace Engine
 		vkDestroyPipeline(m_pDevice->logicalDevice, m_pipeline, nullptr);
 	}
 
+	void GraphicsPipeline_VK::UpdateViewportState(const PipelineViewportState* pNewState)
+	{
+		m_pViewportState = (PipelineViewportState_VK*)pNewState;
+	}
+
 	VkPipeline GraphicsPipeline_VK::GetPipeline() const
 	{
 		return m_pipeline;
@@ -52,6 +58,18 @@ namespace Engine
 	VkPipelineBindPoint GraphicsPipeline_VK::GetBindPoint() const
 	{
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;
+	}
+
+	const VkViewport* GraphicsPipeline_VK::GetViewport() const
+	{
+		DEBUG_ASSERT_CE(m_pViewportState != nullptr);
+		return m_pViewportState->GetViewport();
+	}
+
+	const VkRect2D* GraphicsPipeline_VK::GetScissor() const
+	{
+		DEBUG_ASSERT_CE(m_pViewportState != nullptr);
+		return m_pViewportState->GetScissor();
 	}
 
 	PipelineVertexInputState_VK::PipelineVertexInputState_VK(const std::vector<VkVertexInputBindingDescription>& bindingDescs, const std::vector<VkVertexInputAttributeDescription>& attributeDescs)
@@ -191,8 +209,27 @@ namespace Engine
 		m_pipelineViewportStateCreateInfo.pScissors = &m_scissor;
 	}
 
+	void PipelineViewportState_VK::UpdateResolution(uint32_t width, uint32_t height)
+	{
+		m_viewport.y = height;
+		m_viewport.width = (float)width;
+		m_viewport.height = -(float)height;
+
+		m_scissor.extent = { width, height };
+	}
+
 	const VkPipelineViewportStateCreateInfo* PipelineViewportState_VK::GetViewportStateCreateInfo() const
 	{
 		return &m_pipelineViewportStateCreateInfo;
+	}
+
+	const VkViewport* PipelineViewportState_VK::GetViewport() const
+	{
+		return &m_viewport;
+	}
+
+	const VkRect2D* PipelineViewportState_VK::GetScissor() const
+	{
+		return &m_scissor;
 	}
 }
