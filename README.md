@@ -8,38 +8,20 @@
 
 Engine features:
 
-- OpenGL and Vulkan support
 - Entity-Component-System structure
+- OpenGL and Vulkan support
+- Multi-thread rendering
 - Deferred shading
-- Multi-thread rendering (Vulkan only)
+- Render graph
 - Scene saving and reading
-- ImGUI support (OpenGL only)
-- Basic render graph
+- ImGUI support
 
-Work in progress:
+Working in progress:
 
-* ImGUI support for Vulkan
 * Vulkan pipeline caching
-* Vulkan sub-pass support
-* Improved render graph
-* Compute pipeline support and GPU particles
-
-Planned features:
-
-* Frustum culling
+* ImGUI support for Vulkan
 * PBR render graph
-* Audio support (possibly through OpenAL)
-* Enhanced GUI
-
-Ideas under consideration, may not put into work:
-
-* Physics system support (possibly through Bullet Physics)
-* Texture compression
-* LOD system
-* SPIR-V optimization
-* Bone animation system
-* Vulkan ray tracing
-* Video decoding support
+* (and more...)
 
 <br/>
 
