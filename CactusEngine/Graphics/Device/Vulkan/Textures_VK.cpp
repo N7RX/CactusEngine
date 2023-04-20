@@ -122,7 +122,8 @@ namespace Engine
 	}
 
 	RenderTarget2D_VK::RenderTarget2D_VK(LogicalDevice_VK* pDevice, const VkImage targetImage, const VkImageView targetView, const VkExtent2D& targetExtent, const VkFormat targetFormat, bool isSwapchainImage)
-		: m_isSwapchainImage(isSwapchainImage)
+		: Texture2D_VK(),
+		m_isSwapchainImage(isSwapchainImage)
 	{
 		m_pDevice = pDevice;
 

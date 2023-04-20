@@ -130,7 +130,6 @@ namespace Engine
 			return float(m_windowWidth) / float(m_windowHeight);
 		}
 
-		// Right now this can only be set before render system initializes
 		void SetMaxFramesInFlight(uint32_t val)
 		{
 			if (val > 3)
@@ -141,7 +140,6 @@ namespace Engine
 			{
 				val = 1;
 			}
-			// Allowed values: 1, 2, 3
 			m_maxFramesInFlight = val;
 		}
 
@@ -200,7 +198,6 @@ namespace Engine
 			{
 				scale = 0.5f;
 			}
-			// Allowed range: 0.5 - 2.0
 			m_renderScale = scale;
 		}
 
@@ -221,7 +218,9 @@ namespace Engine
 		uint32_t m_windowHeight;
 
 		// How many frames CPU can buffer ahead of GPU
+		// Allowed values: 1, 2, 3
 		// Higher value consumes more memory and creates more input latency, but may also reduce stuttering
+		// Right now this can only be set before render system initializes
 		uint32_t m_maxFramesInFlight;
 
 		// If true, vsync will be enabled
@@ -238,6 +237,7 @@ namespace Engine
 		ESamplerAnisotropyLevel m_samplerAnisotropyLevel;
 
 		// Internal render resolution multiplier
+		// Allowed range: 0.5 - 2.0
 		float m_renderScale;
 	};
 }

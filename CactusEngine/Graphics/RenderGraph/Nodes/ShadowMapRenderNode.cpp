@@ -329,24 +329,6 @@ namespace Engine
 		}
 	}
 
-	void ShadowMapRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
-	{
-		if (m_configuration.framesInFlight != framesInFlight)
-		{
-			m_configuration.framesInFlight = framesInFlight;
-
-			if (framesInFlight < m_frameResources.size())
-			{
-				m_frameResources.resize(framesInFlight);
-			}
-			else
-			{
-				DestroyMutableResources();
-				CreateMutableResources(m_configuration);
-			}
-		}
-	}
-
 	void ShadowMapRenderNode::DestroyMutableResources()
 	{
 		m_frameResources.clear();

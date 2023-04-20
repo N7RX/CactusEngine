@@ -74,7 +74,6 @@ namespace Engine
 
 		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
 		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // May affect the size of uniform buffers
-		virtual void UpdateFramesInFlight(uint32_t framesInFlight) = 0;
 
 		virtual void DestroyMutableResources() {}
 		virtual void DestroyConstantResources();
@@ -164,7 +163,8 @@ namespace Engine
 		uint32_t GetRenderNodeCount() const;
 
 		void UpdateResolution(uint32_t width, uint32_t height);
-		void UpdateFramesInFlight(uint32_t framesInFlight);
+		void UpdateMaxDrawCallCount(uint32_t count);
+		void ResetMaxDrawCall();
 
 	private:
 		void ExecuteRenderNodesParallel();
@@ -187,5 +187,7 @@ namespace Engine
 		std::mutex m_nodeExecutionMutex;
 		std::condition_variable m_nodeExecutionCv;
 		SafeQueue<RenderNode*> m_executionNodeQueue;
+
+		uint32_t m_estimatedMaxDrawCall;
 	};
 }

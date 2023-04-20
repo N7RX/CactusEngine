@@ -315,10 +315,50 @@ namespace Engine
 	void RenderingSystem::ExecuteRenderTask()
 	{
 		auto pCamera = m_pECSWorld->FindEntityWithTag(EEntityTag::MainCamera);
+		auto pRenderer = m_rendererTable[(uint32_t)m_activeRenderer];
 
 		if (!m_opaqueDrawList.empty() || !m_transparentDrawList.empty() || !m_lightDrawList.empty())
 		{
-			DEBUG_ASSERT_CE(m_rendererTable[(uint32_t)m_activeRenderer]);
+			DEBUG_ASSERT_CE(pRenderer);
+
+			// Estimate max draw call count
+
+			uint32_t maxEstimatedDrawCall = 0;
+			{
+				uint32_t estimatedDrawCall = 0;
+				for (auto& pEntity : m_opaqueDrawList)
+				{
+					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
+				}
+				if (estimatedDrawCall > estimatedDrawCall)
+				{
+					maxEstimatedDrawCall = estimatedDrawCall;
+				}
+
+				estimatedDrawCall = 0;
+				for (auto& pEntity : m_transparentDrawList)
+				{
+					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
+				}
+				if (estimatedDrawCall > maxEstimatedDrawCall)
+				{
+					maxEstimatedDrawCall = estimatedDrawCall;
+				}
+
+				estimatedDrawCall = 0;
+				for (auto& pEntity : m_lightDrawList)
+				{
+					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
+				}
+				if (estimatedDrawCall > maxEstimatedDrawCall)
+				{
+					maxEstimatedDrawCall = estimatedDrawCall;
+				}
+			}
+
+			pRenderer->UpdateMaxDrawCallCount(maxEstimatedDrawCall);
+
+			// Fill context
 
 			RenderContext context{};
 			context.pOpaqueDrawList = &m_opaqueDrawList;
@@ -326,7 +366,7 @@ namespace Engine
 			context.pLightDrawList = &m_lightDrawList;
 			context.pCamera = pCamera;
 
-			m_rendererTable[(uint32_t)m_activeRenderer]->Draw(context, m_frameIndex);
+			pRenderer->Draw(context, m_frameIndex);
 		}
 	}
 

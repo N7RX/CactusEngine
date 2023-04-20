@@ -41,6 +41,7 @@ namespace Engine
 		RenderingSystem* GetRenderingSystem() const;
 
 		void UpdateResolution(uint32_t width, uint32_t height);
+		void UpdateMaxDrawCallCount(uint32_t count);
 
 	protected:
 		void ObtainSwapchainImages();

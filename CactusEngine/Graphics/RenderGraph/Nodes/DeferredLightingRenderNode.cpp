@@ -432,25 +432,6 @@ namespace Engine
 		}
 	}
 
-	void DeferredLightingRenderNode::UpdateFramesInFlight(uint32_t framesInFlight)
-	{
-		if (m_configuration.framesInFlight != framesInFlight)
-		{
-			m_configuration.framesInFlight = framesInFlight;
-
-			if (framesInFlight < m_frameResources.size())
-			{
-				m_frameResources.resize(framesInFlight);
-			}
-			else
-			{
-				// TODO: increamental create instead of destroy and recreate
-				DestroyMutableResources();
-				CreateMutableResources(m_configuration);
-			}
-		}
-	}
-
 	void DeferredLightingRenderNode::DestroyMutableResources()
 	{
 		m_frameResources.clear();

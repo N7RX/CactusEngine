@@ -7,7 +7,7 @@ namespace Engine
 {
 	LightComponent::LightComponent()
 		: BaseComponent(EComponentType::Light),
-		m_profile()
+		m_profile{}
 	{
 
 	}
@@ -27,7 +27,7 @@ namespace Engine
 
 		auto pTransformComp = (TransformComponent*)m_pParentEntity->GetComponent(EComponentType::Transform);
 		DEBUG_ASSERT_CE(pTransformComp != nullptr);
-		pTransformComp->SetScale(Vector3(m_profile.radius / 19.5f));
+		pTransformComp->SetScale(Vector3(m_profile.radius / 19.5f)); // TODO: remove this hack
 	}
 
 	const LightComponent::Profile& LightComponent::GetProfile() const

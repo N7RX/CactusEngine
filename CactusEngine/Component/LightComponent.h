@@ -20,14 +20,14 @@ namespace Engine
 		
 		struct Profile
 		{
-			SourceType				sourceType;
+			SourceType	sourceType;
 
-			Color3					lightColor;
-			float					lightIntensity;
-			Mesh*	pVolumeMesh;
+			Color3		lightColor;
+			float		lightIntensity;
+			Mesh*		pVolumeMesh;
 
-			Vector3					direction;
-			float					radius;
+			Vector3		direction;
+			float		radius;
 		};
 
 		LightComponent();

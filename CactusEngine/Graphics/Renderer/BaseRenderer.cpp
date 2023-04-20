@@ -107,6 +107,8 @@ namespace Engine
 					finishedNodeCount += buffersToReturn.size();
 					m_pDevice->FlushCommands(false, false);
 				}
+
+				std::this_thread::yield();
 			}
 		}
 		else // OpenGL
@@ -168,6 +170,12 @@ namespace Engine
 	{
 		ObtainSwapchainImages();
 		m_pRenderGraph->UpdateResolution(width, height);
+	}
+
+	void BaseRenderer::UpdateMaxDrawCallCount(uint32_t count)
+	{
+		m_pDevice->WaitIdle();
+		m_pRenderGraph->UpdateMaxDrawCallCount(count);
 	}
 
 	void BaseRenderer::ObtainSwapchainImages()

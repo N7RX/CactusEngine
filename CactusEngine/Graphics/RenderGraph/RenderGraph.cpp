@@ -145,7 +145,8 @@ namespace Engine
 	RenderGraph::RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount)
 		: m_pDevice(pDevice),
 		m_isRunning(true),
-		m_executionThreadCount(executionThreadCount)
+		m_executionThreadCount(executionThreadCount),
+		m_estimatedMaxDrawCall(256)
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 		{
@@ -179,7 +180,8 @@ namespace Engine
 		initInfo.width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		initInfo.maxDrawCall = 256; // TODO: This should be updated according to scene complexity
+		// TODO: read these from configuration
+		initInfo.maxDrawCall = m_estimatedMaxDrawCall;
 		initInfo.colorFormat = ETextureFormat::RGBA8_SRGB;
 		initInfo.swapSurfaceFormat = ETextureFormat::BGRA8_SRGB;
 		initInfo.depthFormat = ETextureFormat::D32;
@@ -328,11 +330,30 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::UpdateFramesInFlight(uint32_t framesInFlight)
+	void RenderGraph::UpdateMaxDrawCallCount(uint32_t count)
 	{
-		for (auto& pNode : m_nodes)
+		if (count > m_estimatedMaxDrawCall)
 		{
-			pNode.second->UpdateFramesInFlight(framesInFlight);
+			// This is empirical
+			m_estimatedMaxDrawCall = count + 128;
+
+			for (auto& pNode : m_nodes)
+			{
+				pNode.second->UpdateMaxDrawCallCount(m_estimatedMaxDrawCall);
+			}
+		}
+	}
+
+	void RenderGraph::ResetMaxDrawCall()
+	{
+		if (m_estimatedMaxDrawCall != 256)
+		{
+			m_estimatedMaxDrawCall = 256;
+
+			for (auto& pNode : m_nodes)
+			{
+				pNode.second->UpdateMaxDrawCallCount(m_estimatedMaxDrawCall);
+			}
 		}
 	}
 

@@ -720,9 +720,9 @@ namespace Engine
 					m_commandBufferRecycleFlag = true;
 				}
 				m_commandBufferRecycleCv.notify_one();
-
-				std::this_thread::yield();
 			}
+
+			std::this_thread::yield();
 		}
 	}
 

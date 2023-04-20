@@ -39,6 +39,8 @@ namespace Engine
 		EEntityTag GetEntityTag() const;
 		void SetEntityTag(EEntityTag tag);
 
+		virtual uint32_t EstimateMaxDrawCallCount() = 0;
+
 	protected:
 		uint32_t m_entityID;
 		EEntityTag m_tag;

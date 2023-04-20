@@ -107,6 +107,7 @@ namespace Engine
 		if (m_eType == EUniformBufferType_VK::Uniform)
 		{
 			m_pBufferImpl->m_pAllocator->UnmapMemory(m_pBufferImpl->m_allocation);
+			CE_DELETE(m_pBufferImpl);
 		}
 	}
 
