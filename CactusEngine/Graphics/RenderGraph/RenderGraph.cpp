@@ -8,6 +8,8 @@
 
 namespace Engine
 {
+	const uint32_t DEFAULT_MAXDRAWCALL = 256;
+
 	void RenderGraphResource::Add(const char* name, RawResource* pResource)
 	{
 		m_renderResources[name] = pResource;
@@ -146,7 +148,7 @@ namespace Engine
 		: m_pDevice(pDevice),
 		m_isRunning(true),
 		m_executionThreadCount(executionThreadCount),
-		m_estimatedMaxDrawCall(256)
+		m_estimatedMaxDrawCall(DEFAULT_MAXDRAWCALL)
 	{
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
 		{
@@ -180,11 +182,11 @@ namespace Engine
 		initInfo.width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		// TODO: read these from configuration
 		initInfo.maxDrawCall = m_estimatedMaxDrawCall;
+		// TODO: read these from configuration
 		initInfo.colorFormat = ETextureFormat::RGBA8_SRGB;
 		initInfo.swapSurfaceFormat = ETextureFormat::BGRA8_SRGB;
-		initInfo.depthFormat = ETextureFormat::D32;
+		initInfo.depthFormat = ETextureFormat::D24;
 		initInfo.renderScale = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetRenderScale();
 
 		for (auto& node : m_nodes)
@@ -346,9 +348,9 @@ namespace Engine
 
 	void RenderGraph::ResetMaxDrawCall()
 	{
-		if (m_estimatedMaxDrawCall != 256)
+		if (m_estimatedMaxDrawCall != DEFAULT_MAXDRAWCALL)
 		{
-			m_estimatedMaxDrawCall = 256;
+			m_estimatedMaxDrawCall = DEFAULT_MAXDRAWCALL;
 
 			for (auto& pNode : m_nodes)
 			{

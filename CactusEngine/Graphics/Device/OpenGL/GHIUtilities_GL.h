@@ -96,6 +96,8 @@ namespace Engine
 		{
 		case ETextureFormat::RGBA32F:
 		case ETextureFormat::RGB32F:
+		case ETextureFormat::D16:
+		case ETextureFormat::D24:
 		case ETextureFormat::D32:
 			return GL_FLOAT;
 		case ETextureFormat::RGBA8_SRGB:
@@ -131,6 +133,8 @@ namespace Engine
 		}
 		return -1;
 	}
+
+	// Alert: these two functions correspond to format element size, not the actual size of the data type.
 
 	inline uint32_t OpenGLTypeSize(EDataType type)
 	{

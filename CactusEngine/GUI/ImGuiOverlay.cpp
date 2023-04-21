@@ -7,11 +7,23 @@ namespace Engine
 {
 	void InitImGui(GLFWwindow* window)
 	{
-		const char* glsl_version = "#version 130";
+		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
+		{
+			const char* glsl_version = "#version 130";
 
-		ImGui::SetCurrentContext(ImGui::CreateContext());
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
-		ImGui_ImplOpenGL3_Init(glsl_version);
+			ImGui::SetCurrentContext(ImGui::CreateContext());
+			ImGui_ImplGlfw_InitForOpenGL(window, true);
+			ImGui_ImplOpenGL3_Init(glsl_version);
+		}
+		else
+		{
+
+		}
+	}
+
+	void DestroyImGui()
+	{
+		LOG_WARNING("DestroyImGui not implemented.");
 	}
 
 	void DrawImGui()

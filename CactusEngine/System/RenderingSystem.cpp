@@ -21,7 +21,8 @@ namespace Engine
 		m_frameIndex(0),
 		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight()),
 		m_activeRenderer(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer()),
-		m_pendingResolutionUpdate(false)
+		m_pendingResolutionUpdate(false),
+		m_pauseRendering(false)
 	{
 		CreateDevice();
 		RegisterRenderers();
@@ -55,6 +56,11 @@ namespace Engine
 
 	void RenderingSystem::Tick()
 	{
+		if (m_pauseRendering)
+		{
+			return;
+		}
+
 		BuildRenderTask();
 		ExecuteRenderTask();
 	}
@@ -330,30 +336,21 @@ namespace Engine
 				{
 					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
 				}
-				if (estimatedDrawCall > estimatedDrawCall)
-				{
-					maxEstimatedDrawCall = estimatedDrawCall;
-				}
+				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
 
 				estimatedDrawCall = 0;
 				for (auto& pEntity : m_transparentDrawList)
 				{
 					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
 				}
-				if (estimatedDrawCall > maxEstimatedDrawCall)
-				{
-					maxEstimatedDrawCall = estimatedDrawCall;
-				}
+				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
 
 				estimatedDrawCall = 0;
 				for (auto& pEntity : m_lightDrawList)
 				{
 					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
 				}
-				if (estimatedDrawCall > maxEstimatedDrawCall)
-				{
-					maxEstimatedDrawCall = estimatedDrawCall;
-				}
+				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
 			}
 
 			pRenderer->UpdateMaxDrawCallCount(maxEstimatedDrawCall);
@@ -372,10 +369,21 @@ namespace Engine
 
 	void RenderingSystem::UpdateResolutionImpl()
 	{
-		m_pDevice->WaitIdle();
-
 		uint32_t width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		uint32_t height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
+
+		// Window is minimized
+		if (width == 0 && height == 0)
+		{
+			m_pauseRendering = true;
+			return;
+		}
+		else
+		{
+			m_pauseRendering = false;
+		}
+
+		m_pDevice->WaitIdle();
 
 		m_pDevice->ResizeSwapchain(width, height);
 

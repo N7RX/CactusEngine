@@ -21,7 +21,7 @@ namespace Engine
 	{
 		CE_NEW(m_pECSWorld, ECSWorld);
 
-		InitWindow(); // Because we are binding the init of GLAD with GLFW, this has to be done before InitECS()
+		InitWindow(); // Because part of platform initialization is done in GLFW, this has to be called before InitECS()
 
 		if (m_pSetupFunc)
 		{

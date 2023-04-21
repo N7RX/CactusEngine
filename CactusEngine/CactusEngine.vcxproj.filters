@@ -408,9 +408,6 @@
     <ClInclude Include="Graphics\Device\Vulkan\ExtensionLoader_VK.h">
       <Filter>Graphics\Device\Vulkan\Header</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h">
-      <Filter>Graphics\Device\Vulkan\Header</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Device\Vulkan\Pipelines_VK.h">
       <Filter>Graphics\Device\Vulkan\Header</Filter>
     </ClInclude>
@@ -430,9 +427,6 @@
       <Filter>Graphics\Device\Vulkan\Header</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h">
-      <Filter>Graphics\Device\OpenGL\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
       <Filter>Graphics\Device\OpenGL\Header</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h">
@@ -521,6 +515,12 @@
     </ClInclude>
     <ClInclude Include="Graphics\Renderer\AdvancedRenderer.h">
       <Filter>Graphics\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h">
+      <Filter>Graphics\Device\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
+      <Filter>Graphics\Device\OpenGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

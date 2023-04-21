@@ -32,6 +32,15 @@ namespace Engine
 	{
 		glfwInit();
 
+		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
+		{
+			if (!glfwVulkanSupported())
+			{
+				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::OpenGL);
+				LOG_WARNING("Vulkan is not supported on current device. Fall back to OpenGL.");
+			}
+		}
+
 		switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType())
 		{
 		case EGraphicsAPIType::OpenGL:
@@ -84,15 +93,12 @@ namespace Engine
 			glfwSwapInterval(0);
 		}
 
-		// TODO: Vulkan backend support
-		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
-		{
-			InitImGui(m_pGLFWWindowHandle);
-		}
+		InitImGui(m_pGLFWWindowHandle);
 	}
 
 	void GLFWWindow_CE::Tick()
 	{
+		// TODO: Vulkan backend support
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
 		{
 			DrawImGui();

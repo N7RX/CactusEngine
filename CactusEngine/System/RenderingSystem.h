@@ -69,5 +69,6 @@ namespace Engine
 		uint32_t m_maxFramesInFlight;
 
 		bool m_pendingResolutionUpdate;
+		bool m_pauseRendering;
 	};
 }

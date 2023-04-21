@@ -18,7 +18,6 @@ Engine features:
 
 Working in progress:
 
-* Vulkan pipeline caching
 * ImGUI support for Vulkan
 * PBR render graph
 * (and more...)
