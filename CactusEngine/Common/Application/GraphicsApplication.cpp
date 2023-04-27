@@ -5,6 +5,11 @@
 #if defined(GLFW_IMPLEMENTATION_CE)
 #include "GLFWWindow.h"
 #endif
+#include "RenderingSystem.h"
+#include "InputSystem.h"
+#include "AnimationSystem.h"
+#include "ScriptSystem.h"
+#include "AudioSystem.h"
 
 namespace Engine
 {
@@ -21,16 +26,25 @@ namespace Engine
 	{
 		CE_NEW(m_pECSWorld, ECSWorld);
 
+		InitSystems();
+
 		InitWindow(); // Because part of platform initialization is done in GLFW, this has to be called before InitECS()
+
+		auto pRenderingSystem = (RenderingSystem*)(m_pECSWorld->GetSystem(ESystemType::Rendering));
+		DEBUG_ASSERT_CE(pRenderingSystem);
+		m_pWindow->SetRenderingSystem(pRenderingSystem);
+		pRenderingSystem->SetDeviceWindow(m_pWindow);
+
+		InitECS();
+
+		pRenderingSystem->AcquireRenderContextOwnership();
 
 		if (m_pSetupFunc)
 		{
 			m_pSetupFunc(this);
 		}
 
-		InitECS();
-
-		m_pWindow->SetRenderingSystem((RenderingSystem*)(m_pECSWorld->GetSystem(ESystemType::Rendering)));
+		pRenderingSystem->ReleaseRenderContextOwnership();
 
 		Timer::Initialize();
 	}
@@ -101,6 +115,16 @@ namespace Engine
 		}
 
 		m_pWindow->Initialize();
+	}
+
+	void GraphicsApplication::InitSystems()
+	{
+		m_pECSWorld->RegisterSystem<RenderingSystem>(ESystemType::Rendering, 2);
+		m_pECSWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
+		m_pECSWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
+		m_pECSWorld->RegisterSystem<ScriptSystem>(ESystemType::Script, 0);
+		m_pECSWorld->RegisterSystem<AudioSystem>(ESystemType::Audio, 3); // Right now this is only for performance simulation
+		m_pECSWorld->SortSystems();
 	}
 
 	void GraphicsApplication::InitECS()

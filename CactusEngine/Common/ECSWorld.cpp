@@ -10,6 +10,11 @@ namespace Engine
 		m_IDAssignments.resize((size_t)EECSType::COUNT, 0);
 	}
 
+	ECSWorld::~ECSWorld()
+	{
+		ShutDown();
+	}
+
 	void ECSWorld::Initialize()
 	{
 		for (auto& system : m_systemList)
@@ -41,6 +46,11 @@ namespace Engine
 		for (auto& system : m_systemList)
 		{
 			system->FrameEnd();
+		}
+
+		for (auto& system : m_systemList)
+		{
+			system->WaitUntilFinish();
 		}
 	}
 

@@ -26,6 +26,8 @@ namespace Engine
 		virtual void Tick() = 0;
 		virtual void FrameEnd() = 0;
 
+		virtual void WaitUntilFinish() {}
+
 	protected:
 		uint32_t m_systemID;
 		uint32_t m_systemPriority;

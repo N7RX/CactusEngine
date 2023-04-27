@@ -74,9 +74,6 @@ namespace Engine
 
 		EGraphicsAPIType GetGraphicsAPIType() const override;
 
-		void SetupDevice();
-		LogicalDevice_VK* GetLogicalDevice() const;
-
 		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override;
 		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override;
 		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override;
@@ -119,6 +116,10 @@ namespace Engine
 		void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) override;
 		void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) override;
 		void CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc) override;
+
+	public:
+		void SetupDevice();
+		LogicalDevice_VK* GetLogicalDevice() const;
 
 	private:
 		// Initialization functions

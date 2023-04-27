@@ -522,6 +522,9 @@
     <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
       <Filter>Graphics\Device\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="System\AudioSystem.h">
+      <Filter>System\Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Common\Application\BaseApplication.cpp">
@@ -757,6 +760,9 @@
     </ClCompile>
     <ClCompile Include="Graphics\Renderer\AdvancedRenderer.cpp">
       <Filter>Graphics\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="System\AudioSystem.cpp">
+      <Filter>System\Source</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

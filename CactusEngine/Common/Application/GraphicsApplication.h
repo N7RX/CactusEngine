@@ -29,6 +29,7 @@ namespace Engine
 
 	private:
 		void InitWindow();
+		void InitSystems();
 		void InitECS();
 
 	private:

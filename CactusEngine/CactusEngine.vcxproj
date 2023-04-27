@@ -252,6 +252,7 @@
     <ClInclude Include="Script\ScriptIDList.h" />
     <ClInclude Include="Script\ScriptSelector.h" />
     <ClInclude Include="System\AnimationSystem.h" />
+    <ClInclude Include="System\AudioSystem.h" />
     <ClInclude Include="System\BaseSystem.h" />
     <ClInclude Include="System\RenderingSystem.h" />
     <ClInclude Include="System\EventSystem.h" />
@@ -338,6 +339,7 @@
     <ClCompile Include="Script\SampleScript\CubeScript.cpp" />
     <ClCompile Include="Script\SampleScript\LightScript.cpp" />
     <ClCompile Include="System\AnimationSystem.cpp" />
+    <ClCompile Include="System\AudioSystem.cpp" />
     <ClCompile Include="System\BaseSystem.cpp" />
     <ClCompile Include="System\RenderingSystem.cpp" />
     <ClCompile Include="System\EventSystem.cpp" />

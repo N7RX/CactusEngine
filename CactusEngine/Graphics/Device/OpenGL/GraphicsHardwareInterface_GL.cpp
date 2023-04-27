@@ -19,10 +19,13 @@ extern "C" {
 namespace Engine
 {
 	GraphicsHardwareInterface_GL::GraphicsHardwareInterface_GL()
-		: m_attributeless_vao(-1),
-		m_primitiveTopologyMode(GL_TRIANGLES)
+		: GraphicsDevice(),
+		m_attributeless_vao(-1),
+		m_primitiveTopologyMode(GL_TRIANGLES),
+		m_contextThreadID(std::thread::id()),
+		m_canClaimContextOwnership(true)
 	{
-
+		std::thread::id;
 	}
 
 	GraphicsHardwareInterface_GL::~GraphicsHardwareInterface_GL()
@@ -33,6 +36,8 @@ namespace Engine
 	void GraphicsHardwareInterface_GL::Initialize()
 	{
 		GraphicsDevice::Initialize();
+
+		AcquireContextThreadOwnership();
 
 		glGenVertexArrays(1, &m_attributeless_vao);
 
@@ -349,6 +354,42 @@ namespace Engine
 		return EGraphicsAPIType::OpenGL;
 	}
 
+	void GraphicsHardwareInterface_GL::AcquireContextThreadOwnership()
+	{
+#if defined(GLFW_IMPLEMENTATION_CE)
+		if (std::this_thread::get_id() != m_contextThreadID)
+		{
+			{
+				std::unique_lock<std::mutex> lock(m_contextMutex);
+				m_contextCv.wait(lock, [this]() { return m_canClaimContextOwnership; });
+				m_canClaimContextOwnership = false;
+			}
+
+			DEBUG_ASSERT_CE(m_pCurrentWindow);
+			auto glfwWindowHandle = (GLFWwindow*)(m_pCurrentWindow->GetWindowHandle());
+			glfwMakeContextCurrent(glfwWindowHandle);
+			m_contextThreadID = std::this_thread::get_id();
+		}
+#endif
+	}
+
+	void GraphicsHardwareInterface_GL::ReleaseContextThreadOwnership()
+	{
+#if defined(GLFW_IMPLEMENTATION_CE)
+		if (std::this_thread::get_id() == m_contextThreadID)
+		{
+			glfwMakeContextCurrent(nullptr);
+			m_contextThreadID = std::thread::id();
+
+			{
+				std::lock_guard<std::mutex> guard(m_contextMutex);
+				m_canClaimContextOwnership = true;
+				m_contextCv.notify_one();
+			}
+		}
+#endif
+	}
+
 	bool GraphicsHardwareInterface_GL::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput)
 	{
 		CE_NEW(pOutput, RenderPass_GL);
@@ -463,6 +504,15 @@ namespace Engine
 	void GraphicsHardwareInterface_GL::EndRenderPass(GraphicsCommandBuffer* pCommandBuffer)
 	{
 		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	void GraphicsHardwareInterface_GL::Present(uint32_t frameIndex)
+	{
+#if defined(GLFW_IMPLEMENTATION_CE)
+		DEBUG_ASSERT_CE(m_pCurrentWindow);
+		auto glfwWindowHandle = (GLFWwindow*)(m_pCurrentWindow->GetWindowHandle());
+		glfwSwapBuffers(glfwWindowHandle);
+#endif
 	}
 
 	void GraphicsHardwareInterface_GL::FlushCommands(bool waitExecution, bool flushImplicitCommands)

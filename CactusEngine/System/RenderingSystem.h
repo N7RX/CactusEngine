@@ -2,10 +2,12 @@
 #include "BaseRenderer.h"
 #include "ECSWorld.h"
 #include "BuiltInShaderType.h"
+#include "SafeQueue.h"
 
 namespace Engine
 {
 	class ShaderProgram;
+	class BaseWindow;
 
 	class RenderingSystem : public BaseSystem
 	{
@@ -19,6 +21,8 @@ namespace Engine
 		void FrameBegin() override;
 		void Tick() override;
 		void FrameEnd() override;
+
+		void WaitUntilFinish() override;
 
 		EGraphicsAPIType GetGraphicsAPIType() const;
 		ShaderProgram* GetShaderProgramByType(EBuiltInShaderProgramType type);
@@ -35,6 +39,12 @@ namespace Engine
 		void RemoveRenderer(ERendererType type);
 		void SetActiveRenderer(ERendererType type);
 
+		void SetDeviceWindow(BaseWindow* pWindow);
+
+		// For OpenGL only; takes context ownership from render thread and may cause a stall
+		void AcquireRenderContextOwnership();
+		void ReleaseRenderContextOwnership();
+
 		void UpdateResolution();
 
 	private:
@@ -46,6 +56,7 @@ namespace Engine
 		void LoadAllShaders();
 		bool LoadShader(EBuiltInShaderProgramType type);
 
+		void RenderThreadFunction();
 		void BuildRenderTask();
 		void ExecuteRenderTask();
 
@@ -54,12 +65,25 @@ namespace Engine
 	private:
 		ECSWorld* m_pECSWorld;
 		GraphicsDevice* m_pDevice;
+		bool m_isRunning;
 
 		std::vector<ShaderProgram*> m_shaderPrograms;
 		std::mutex m_shaderProgramsMutex;
 
 		ERendererType m_activeRenderer;
 		BaseRenderer* m_rendererTable[(uint32_t)ERendererType::COUNT];
+
+		enum class ERenderPhaseType
+		{
+			Invalid = 0,
+			Tick,
+			FrameEnd
+		};
+		std::thread m_renderThread;
+		ThreadSemaphore m_renderFinishSemaphore;
+		std::mutex m_renderThreadMutex;
+		std::condition_variable m_renderThreadCv;
+		SafeQueue<ERenderPhaseType> m_renderPhaseQueue;
 
 		std::vector<BaseEntity*> m_opaqueDrawList;
 		std::vector<BaseEntity*> m_transparentDrawList;
@@ -70,5 +94,7 @@ namespace Engine
 
 		bool m_pendingResolutionUpdate;
 		bool m_pauseRendering;
+
+		BaseWindow* m_pCurrentWindow;
 	};
 }

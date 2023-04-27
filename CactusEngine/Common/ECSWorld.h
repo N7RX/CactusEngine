@@ -13,7 +13,7 @@ namespace Engine
 	{
 	public:
 		ECSWorld();
-		virtual ~ECSWorld() = default;
+		virtual ~ECSWorld();
 
 		void Initialize();
 		void ShutDown();

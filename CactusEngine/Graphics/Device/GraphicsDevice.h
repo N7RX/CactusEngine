@@ -4,17 +4,21 @@
 #include "NoCopy.h"
 #include "GraphicsResources.h"
 #include "CommandResources.h"
+#include "BaseWindow.h"
 
 namespace Engine
 {
 	class GraphicsDevice : public NoCopy
 	{
 	public:
-		virtual ~GraphicsDevice() = default;
+		virtual ~GraphicsDevice();
 
 		// Generic functions for all devices
+
 		virtual void Initialize();
 		virtual void ShutDown();
+
+		virtual void SetCurrentWindow(BaseWindow* pWindow);
 
 		virtual ShaderProgram* CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) = 0;
 
@@ -33,6 +37,11 @@ namespace Engine
 		virtual void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
 
 		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
+
+		// For legacy devices, e.g. OpenGL
+
+		virtual void AcquireContextThreadOwnership() {};
+		virtual void ReleaseContextThreadOwnership() {};
 
 		// For low-level devices, e.g. Vulkan
 
@@ -78,11 +87,13 @@ namespace Engine
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
 
 		// For host-device data transfer
-
 		virtual void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) = 0;
 		virtual void CopyDataTransferBufferToHostDataLocation(DataTransferBuffer* pSrcBuffer, void* pDataLoc) = 0;
+
+	protected:
+		GraphicsDevice();
 
 	private:
 		void CreateDefaultSamplers();
@@ -96,6 +107,8 @@ namespace Engine
 
 	protected:
 		std::unordered_map<ESamplerAnisotropyLevel, TextureSampler*> m_DefaultSamplers;
+
+		BaseWindow* m_pCurrentWindow;
 	};
 
 	template<EGraphicsAPIType>

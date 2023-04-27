@@ -209,12 +209,12 @@ namespace Engine
 		std::thread m_commandBufferSubmissionThread;
 		std::mutex m_commandBufferSubmissionMutex;
 		std::condition_variable m_commandBufferSubmissionCv;
-		std::atomic<bool> m_commandBufferSubmissionFlag;
+		bool m_commandBufferSubmissionFlag;
 
 		// Asyn command buffer recycle
 		std::thread m_commandBufferRecycleThread;
 		std::mutex m_commandBufferRecycleMutex;
 		std::condition_variable m_commandBufferRecycleCv;
-		std::atomic<bool> m_commandBufferRecycleFlag;
+		bool m_commandBufferRecycleFlag;
 	};
 }

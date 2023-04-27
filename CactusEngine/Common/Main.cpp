@@ -1,10 +1,6 @@
 #include "GraphicsApplication.h"
 #include "Global.h"
 #include "MemoryAllocator.h"
-#include "RenderingSystem.h"
-#include "InputSystem.h"
-#include "AnimationSystem.h"
-#include "ScriptSystem.h"
 #include "ECSSceneWriter.h"
 #include "ECSSceneReader.h"
 #include "LogUtility.h"
@@ -367,12 +363,6 @@ void TestBuildCornellBox(ECSWorld* pWorld)
 void TestSetup(GraphicsApplication* pApp)
 {
 	auto pWorld = pApp->GetECSWorld();
-
-	pWorld->RegisterSystem<RenderingSystem>(ESystemType::Rendering, 2);
-	pWorld->RegisterSystem<AnimationSystem>(ESystemType::Animation, 1);
-	pWorld->RegisterSystem<InputSystem>(ESystemType::Input, 1);
-	pWorld->RegisterSystem<ScriptSystem>(ESystemType::Script, 0);
-	pWorld->SortSystems();
 
 	// Read scene from file
 	ReadECSWorldFromJson(pWorld, "Assets/Scene/UnityChanScene.json");

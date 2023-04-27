@@ -9,14 +9,14 @@ namespace Engine
 
 	InputSystem::InputSystem(ECSWorld* pWorld)
 	{
-#if defined(GLFW_IMPLEMENTATION_CE)
-		m_pGLFWWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());
-#endif
+
 	}
 
 	void InputSystem::Initialize()
 	{
-
+#if defined(GLFW_IMPLEMENTATION_CE)
+		m_pGLFWWindow = reinterpret_cast<GLFWwindow*>(gpGlobal->GetWindowHandle());
+#endif
 	}
 
 	void InputSystem::ShutDown()

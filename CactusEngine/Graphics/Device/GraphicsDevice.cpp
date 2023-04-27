@@ -2,6 +2,17 @@
 
 namespace Engine
 {
+	GraphicsDevice::GraphicsDevice()
+		: m_pCurrentWindow(nullptr)
+	{
+
+	}
+
+	GraphicsDevice::~GraphicsDevice()
+	{
+		ShutDown();
+	}
+
 	void GraphicsDevice::Initialize()
 	{
 		CreateDefaultSamplers();
@@ -13,6 +24,11 @@ namespace Engine
 		{
 			CE_DELETE(pSampler.second);
 		}
+	}
+
+	void GraphicsDevice::SetCurrentWindow(BaseWindow* pWindow)
+	{
+		m_pCurrentWindow = pWindow;
 	}
 
 	TextureSampler* GraphicsDevice::GetTextureSampler(ESamplerAnisotropyLevel level)

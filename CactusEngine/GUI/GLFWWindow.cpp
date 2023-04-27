@@ -56,6 +56,7 @@ namespace Engine
 				throw std::runtime_error("Failed to create GLFW window");
 				glfwTerminate();
 			}
+
 			glfwMakeContextCurrent(m_pGLFWWindowHandle);
 			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
 
@@ -93,17 +94,16 @@ namespace Engine
 			glfwSwapInterval(0);
 		}
 
-		InitImGui(m_pGLFWWindowHandle);
+		//InitImGui(m_pGLFWWindowHandle);
 	}
 
 	void GLFWWindow_CE::Tick()
 	{
 		// TODO: Vulkan backend support
-		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
-		{
-			DrawImGui();
-			glfwSwapBuffers(m_pGLFWWindowHandle);
-		}
+		//if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
+		//{
+		//	DrawImGui();
+		//}
 
 		if (s_windowSizeUpdated)
 		{

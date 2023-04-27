@@ -689,7 +689,7 @@ namespace Engine
 		{
 			{
 				std::unique_lock<std::mutex> lock(m_commandBufferSubmissionMutex);
-				m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag == true; });
+				m_commandBufferSubmissionCv.wait(lock, [this]() { return m_commandBufferSubmissionFlag; });
 				m_commandBufferSubmissionFlag = false;
 			}
 
@@ -734,7 +734,7 @@ namespace Engine
 		{
 			{
 				std::unique_lock<std::mutex> lock(m_commandBufferRecycleMutex);
-				m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag == true; });
+				m_commandBufferRecycleCv.wait(lock, [this]() { return m_commandBufferRecycleFlag; });
 				m_commandBufferRecycleFlag = false;
 			}
 

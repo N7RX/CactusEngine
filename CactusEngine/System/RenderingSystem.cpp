@@ -18,31 +18,37 @@ namespace Engine
 	RenderingSystem::RenderingSystem(ECSWorld* pWorld)
 		: m_pECSWorld(pWorld),
 		m_pDevice(nullptr),
+		m_isRunning(true),
+		m_activeRenderer(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer()),
+		m_rendererTable{},
 		m_frameIndex(0),
 		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight()),
-		m_activeRenderer(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetActiveRenderer()),
 		m_pendingResolutionUpdate(false),
-		m_pauseRendering(false)
+		m_pauseRendering(false),
+		m_pCurrentWindow(nullptr)
 	{
-		CreateDevice();
-		RegisterRenderers();
-
 		m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT, nullptr);
 	}
 
 	void RenderingSystem::Initialize()
 	{
+		CreateDevice();
+		
 		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetPrebuildShadersAndPipelines())
 		{
 			LoadAllShaders();
 		}
 
+		RegisterRenderers();
 		InitializeActiveRenderer();
+
+		m_renderThread = std::thread(&RenderingSystem::RenderThreadFunction, this);
 	}
 
 	void RenderingSystem::ShutDown()
 	{
-
+		m_isRunning = false;
+		m_renderThread.join();
 	}
 
 	void RenderingSystem::FrameBegin()
@@ -61,19 +67,35 @@ namespace Engine
 			return;
 		}
 
-		BuildRenderTask();
-		ExecuteRenderTask();
+		{
+			std::unique_lock<std::mutex> lock(m_renderThreadMutex);
+			m_renderPhaseQueue.Push(ERenderPhaseType::Tick);
+		}
+		m_renderThreadCv.notify_one();
 	}
 
 	void RenderingSystem::FrameEnd()
 	{
-		m_opaqueDrawList.clear();
-		m_transparentDrawList.clear();
-		m_lightDrawList.clear();
+		if (m_pauseRendering)
+		{
+			return;
+		}
 
-		m_pDevice->Present(m_frameIndex);
+		{
+			std::unique_lock<std::mutex> lock(m_renderThreadMutex);
+			m_renderPhaseQueue.Push(ERenderPhaseType::FrameEnd);
+		}
+		m_renderThreadCv.notify_one();
+	}
 
-		m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;
+	void RenderingSystem::WaitUntilFinish()
+	{
+		if (m_pauseRendering || !m_isRunning)
+		{
+			return;
+		}
+
+		m_renderFinishSemaphore.Wait();
 	}
 
 	EGraphicsAPIType RenderingSystem::GetGraphicsAPIType() const
@@ -118,6 +140,22 @@ namespace Engine
 		}
 	}
 
+	void RenderingSystem::SetDeviceWindow(BaseWindow* pWindow)
+	{
+		DEBUG_ASSERT_MESSAGE_CE(!m_pCurrentWindow, "Changing active window at runtime is currently not supported.");
+		m_pCurrentWindow = pWindow;
+	}
+
+	void RenderingSystem::AcquireRenderContextOwnership()
+	{
+		m_pDevice->AcquireContextThreadOwnership();
+	}
+
+	void RenderingSystem::ReleaseRenderContextOwnership()
+	{
+		m_pDevice->ReleaseContextThreadOwnership();
+	}
+
 	void RenderingSystem::UpdateResolution()
 	{
 		m_pendingResolutionUpdate = true;
@@ -139,6 +177,8 @@ namespace Engine
 			return false;
 		}
 
+		DEBUG_ASSERT_CE(m_pCurrentWindow);
+		m_pDevice->SetCurrentWindow(m_pCurrentWindow);
 		m_pDevice->Initialize();
 		((GraphicsApplication*)gpGlobal->GetCurrentApplication())->SetGraphicsDevice(m_pDevice);
 
@@ -289,6 +329,53 @@ namespace Engine
 		default:
 			throw std::runtime_error("Unhandled graphics device type.");
 			return false;
+		}
+	}
+
+	void RenderingSystem::RenderThreadFunction()
+	{
+		while (m_isRunning)
+		{
+			ERenderPhaseType phase = ERenderPhaseType::Invalid;
+
+			{
+				std::unique_lock<std::mutex> lock(m_renderThreadMutex);
+				m_renderThreadCv.wait(lock, [this]() { return !m_renderPhaseQueue.Empty(); });
+				m_renderPhaseQueue.TryPop(phase);
+			}
+
+			m_pDevice->AcquireContextThreadOwnership();
+
+			switch (phase)
+			{
+			case ERenderPhaseType::Tick:
+			{
+				BuildRenderTask();
+				ExecuteRenderTask();
+
+				break;
+			}
+			case ERenderPhaseType::FrameEnd:
+			{
+				m_opaqueDrawList.clear();
+				m_transparentDrawList.clear();
+				m_lightDrawList.clear();
+
+				m_pDevice->Present(m_frameIndex);
+				m_frameIndex = (m_frameIndex + 1) % m_maxFramesInFlight;
+
+				m_renderFinishSemaphore.Signal();
+
+				break;
+			}
+			default:
+			{
+				LOG_ERROR("Unhandled render phase type.");
+				break;
+			}
+			}
+
+			std::this_thread::yield();
 		}
 	}
 

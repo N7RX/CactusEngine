@@ -19,7 +19,8 @@
 namespace Engine
 {
 	GraphicsHardwareInterface_VK::GraphicsHardwareInterface_VK()
-		: m_instance(VK_NULL_HANDLE),
+		: GraphicsDevice(),
+		m_instance(VK_NULL_HANDLE),
 		m_presentationSurface(VK_NULL_HANDLE),
 		m_debugMessenger(VK_NULL_HANDLE),
 		m_isRunning(false),
@@ -466,22 +467,6 @@ namespace Engine
 	EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
 	{
 		return EGraphicsAPIType::Vulkan;
-	}
-
-	void GraphicsHardwareInterface_VK::SetupDevice()
-	{
-		GetRequiredExtensions();
-		CreateInstance();
-		SetupDebugMessenger();
-		CreatePresentationSurface();
-		SelectPhysicalDevice();
-		CreateLogicalDevice();
-	}
-
-	LogicalDevice_VK* GraphicsHardwareInterface_VK::GetLogicalDevice() const
-	{
-		// GPU type specification is ignored in this branch
-		return m_pMainDevice;
 	}
 
 	GraphicsCommandPool* GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
@@ -1128,6 +1113,21 @@ namespace Engine
 		{
 			pSrcVkBuffer->m_pAllocator->UnmapMemory(pSrcVkBuffer->m_pBufferImpl->m_allocation);
 		}
+	}
+
+	void GraphicsHardwareInterface_VK::SetupDevice()
+	{
+		GetRequiredExtensions();
+		CreateInstance();
+		SetupDebugMessenger();
+		CreatePresentationSurface();
+		SelectPhysicalDevice();
+		CreateLogicalDevice();
+	}
+
+	LogicalDevice_VK* GraphicsHardwareInterface_VK::GetLogicalDevice() const
+	{
+		return m_pMainDevice;
 	}
 
 	void GraphicsHardwareInterface_VK::GetRequiredExtensions()

@@ -3,7 +3,11 @@
 #include "MemoryAllocator.h"
 #include "OpenGLIncludes.h"
 
+#if defined(GLFW_IMPLEMENTATION_CE)
 #include <GLFW/glfw3.h>
+#endif
+#include <thread>
+#include <mutex>
 
 namespace Engine
 {
@@ -34,6 +38,9 @@ namespace Engine
 
 		EGraphicsAPIType GetGraphicsAPIType() const override;
 
+		void AcquireContextThreadOwnership() override;
+		void ReleaseContextThreadOwnership() override;
+
 		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override { return nullptr; }
 		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override { return nullptr; }
 		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override {}
@@ -63,7 +70,7 @@ namespace Engine
 		void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override {}
 		void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override {}
 
-		void Present(uint32_t frameIndex) override {} // Handled by glfwSwapBuffers in the window class
+		void Present(uint32_t frameIndex) override;
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
@@ -86,6 +93,11 @@ namespace Engine
 	private:
 		GLuint m_attributeless_vao;
 		GLenum m_primitiveTopologyMode;
+
+		std::thread::id m_contextThreadID;
+		std::mutex m_contextMutex;
+		std::condition_variable m_contextCv;
+		bool m_canClaimContextOwnership;
 	};
 
 	template<>
