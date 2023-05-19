@@ -1,6 +1,6 @@
 # Cactus Engine
-*(It will feel like hugging a cactus when using this engine.)*<br/><br/>A tiny game engine built for small-scale personal projects, targeting desktop platform. As of now it is still only a rendering engine and is WIP.
-<br/><br/><img src="/README_pix/Screenshot_0.png" width="640" height="360">
+*(It feels like hugging a cactus when using this engine.)*<br/><br/>A tiny game engine built for small-scale personal projects, targeting desktop platform. As of now it is still only a rendering engine and is WIP.
+<br/><br/><img src="/README_pix/Screenshot_0.png" width="600" height="400">
 <br/>
 <br/>
 
@@ -17,7 +17,6 @@ Engine features:
 
 Working in progress:
 
-* D3D12 support
 * ImGUI support
 * PBR render graph
 
@@ -25,7 +24,8 @@ Working in progress:
 
 Deprecated feature(s):
 
-- Heterogeneous-GPU rendering (Vulkan only). Available in `heterogeneous` branch.
+- Heterogeneous-GPU rendering
+- OpenGL support
 
 <br/>
 
@@ -41,10 +41,8 @@ Deprecated feature(s):
 - [Volk (Vulkan loader)](https://github.com/zeux/volk)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [SPIRV-Cross (SPIR-V utility)](https://github.com/KhronosGroup/SPIRV-Cross)
-- OpenGL 4.6
-- [GLAD (OpenGL loader)](https://github.com/Dav1dde/glad/tree/master)
 - C++ 17
-- Visual Studio 2022
+- [Visual Studio 2022 (IDE)](https://visualstudio.microsoft.com/vs/)
 
 <br/>
 
