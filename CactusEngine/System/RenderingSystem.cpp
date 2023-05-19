@@ -6,8 +6,8 @@
 #include "StandardRenderer.h"
 #include "SimpleRenderer.h"
 #include "AdvancedRenderer.h"
-#include "GraphicsHardwareInterface_GL.h"
 #include "GraphicsHardwareInterface_VK.h"
+#include "GraphicsHardwareInterface_D3D12.h"
 #include "MeshFilterComponent.h"
 #include "MaterialComponent.h"
 #include "CameraComponent.h"
@@ -24,8 +24,7 @@ namespace Engine
 		m_frameIndex(0),
 		m_maxFramesInFlight(gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight()),
 		m_pendingResolutionUpdate(false),
-		m_pauseRendering(false),
-		m_pCurrentWindow(nullptr)
+		m_pauseRendering(false)
 	{
 		m_shaderPrograms.resize((uint32_t)EBuiltInShaderProgramType::COUNT, nullptr);
 	}
@@ -140,22 +139,6 @@ namespace Engine
 		}
 	}
 
-	void RenderingSystem::SetDeviceWindow(BaseWindow* pWindow)
-	{
-		DEBUG_ASSERT_MESSAGE_CE(!m_pCurrentWindow, "Changing active window at runtime is currently not supported.");
-		m_pCurrentWindow = pWindow;
-	}
-
-	void RenderingSystem::AcquireRenderContextOwnership()
-	{
-		m_pDevice->AcquireContextThreadOwnership();
-	}
-
-	void RenderingSystem::ReleaseRenderContextOwnership()
-	{
-		m_pDevice->ReleaseContextThreadOwnership();
-	}
-
 	void RenderingSystem::UpdateResolution()
 	{
 		m_pendingResolutionUpdate = true;
@@ -166,19 +149,17 @@ namespace Engine
 	{
 		switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType())
 		{
-		case EGraphicsAPIType::OpenGL:
-			m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::OpenGL>();
-			break;
 		case EGraphicsAPIType::Vulkan:
 			m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::Vulkan>();
+			break;
+		case EGraphicsAPIType::D3D12:
+			m_pDevice = CreateGraphicsDevice<EGraphicsAPIType::D3D12>();
 			break;
 		default:
 			throw std::runtime_error("Unsupported graphics device type.");
 			return false;
 		}
 
-		DEBUG_ASSERT_CE(m_pCurrentWindow);
-		m_pDevice->SetCurrentWindow(m_pCurrentWindow);
 		m_pDevice->Initialize();
 		((GraphicsApplication*)gpGlobal->GetCurrentApplication())->SetGraphicsDevice(m_pDevice);
 
@@ -222,58 +203,6 @@ namespace Engine
 
 		switch (m_pDevice->GetGraphicsAPIType())
 		{
-		case EGraphicsAPIType::OpenGL:
-		{
-			switch (type)
-			{
-			case EBuiltInShaderProgramType::Basic:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::Basic_Transparent:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_BASIC_TRANSPARENT_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::WaterBasic:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_WATER_BASIC_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_WATER_BASIC_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::DepthBased_ColorBlend_2:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_COLORBLEND_2_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::GBuffer:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_GBUFFER_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_GBUFFER_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::AnimeStyle:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_ANIMESTYLE_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_ANIMESTYLE_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::ShadowMap:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_SHADOWMAP_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_SHADOWMAP_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::DOF:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEPTH_OF_FIELD_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::DeferredLighting:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_DEFERRED_LIGHTING_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_OPENGL);
-				break;
-
-			case EBuiltInShaderProgramType::DeferredLighting_Directional:
-				m_shaderPrograms[(uint32_t)type] = m_pDevice->CreateShaderProgramFromFile(BuiltInResourcesPath::SHADER_VERTEX_FULLSCREEN_QUAD_OPENGL, BuiltInResourcesPath::SHADER_FRAGMENT_DEFERRED_LIGHTING_DIR_OPENGL);
-				break;
-
-			default:
-			{
-				throw std::runtime_error("Unhandled built-in shader type.");
-				return false;
-			}
-			}
-			return true;
-		}
 		case EGraphicsAPIType::Vulkan:
 		{
 			switch (type)
@@ -326,6 +255,18 @@ namespace Engine
 			}
 			return true;
 		}
+		case EGraphicsAPIType::D3D12:
+		{
+			switch (type)
+			{
+			default:
+			{
+				throw std::runtime_error("D3D12 device is not implemented.");
+				return false;
+			}
+			}
+			return true;
+		}
 		default:
 			throw std::runtime_error("Unhandled graphics device type.");
 			return false;
@@ -343,8 +284,6 @@ namespace Engine
 				m_renderThreadCv.wait(lock, [this]() { return !m_renderPhaseQueue.Empty(); });
 				m_renderPhaseQueue.TryPop(phase);
 			}
-
-			m_pDevice->AcquireContextThreadOwnership();
 
 			switch (phase)
 			{

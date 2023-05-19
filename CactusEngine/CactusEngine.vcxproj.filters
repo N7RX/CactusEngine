@@ -2,42 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Assets\Shader\GLSL\Basic.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\Basic.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\Water_Basic.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\Water_Basic.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\FullScreenQuad.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\AnimeStyle.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\AnimeStyle.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\Basic_Transparent.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\ShadowMap.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\ShadowMap.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\DepthOfField.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
     <None Include="Assets\Shader\SPIRV-Source\AnimeStyle.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
@@ -77,29 +41,11 @@
     <None Include="Assets\Shader\SPIRV-Source\Basic_Transparent.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
-    <None Include="Assets\Shader\GLSL\GBuffer.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\GBuffer.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
     <None Include="Assets\Shader\SPIRV-Source\GBuffer.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\GBuffer.vert">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\Basic_Transparent.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LightDeferred.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LightDeferred.vert">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
-    </None>
-    <None Include="Assets\Shader\GLSL\LightDeferred_Directional.frag">
-      <Filter>Graphics\Device\OpenGL\Shader</Filter>
     </None>
     <None Include="Assets\Shader\SPIRV-Source\LightDeferred.frag">
       <Filter>Graphics\Device\Vulkan\GLSL Source</Filter>
@@ -139,12 +85,6 @@
     <Filter Include="Graphics\Device">
       <UniqueIdentifier>{df664d4d-a53d-4a37-b447-ce1178ed630e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Device\OpenGL">
-      <UniqueIdentifier>{8c142bd4-2ac9-41d8-803e-49968c0492f9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Device\OpenGL\Shader">
-      <UniqueIdentifier>{99e15d24-d3fe-402f-bccf-f281df5dc1cb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Graphics\Device\Vulkan">
       <UniqueIdentifier>{58bf0e6d-2ebe-4977-8765-9d69248d1619}</UniqueIdentifier>
     </Filter>
@@ -165,9 +105,6 @@
     </Filter>
     <Filter Include="Third-party\ImGui">
       <UniqueIdentifier>{6453977b-e77a-401c-b305-e37611907f09}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Third-party\GLAD">
-      <UniqueIdentifier>{c4a84d85-f6e9-4a92-bbee-0b26eb036f47}</UniqueIdentifier>
     </Filter>
     <Filter Include="Graphics\Resources\Mesh">
       <UniqueIdentifier>{2b3a6956-b120-42a5-9533-e4121cb9ce8e}</UniqueIdentifier>
@@ -202,12 +139,6 @@
     <Filter Include="Graphics\Device\Vulkan\Source">
       <UniqueIdentifier>{ffff8db1-8021-4fa6-9c6b-5ec45a914140}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Graphics\Device\OpenGL\Header">
-      <UniqueIdentifier>{1e4804e1-0153-4a2c-9a5d-43685ba4c1d7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Graphics\Device\OpenGL\Source">
-      <UniqueIdentifier>{f0209827-4e91-4cae-9a6d-88fc1caff900}</UniqueIdentifier>
-    </Filter>
     <Filter Include="System\Header">
       <UniqueIdentifier>{d721bdae-73ca-470a-bcb7-074f0d7b7e97}</UniqueIdentifier>
     </Filter>
@@ -222,6 +153,9 @@
     </Filter>
     <Filter Include="Third-party\Volk">
       <UniqueIdentifier>{cfd218d7-3ed6-41d0-bc86-d6eb9fa1ec70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics\Device\D3D12">
+      <UniqueIdentifier>{bec303c8-b4e1-44f6-93c6-cb8fa906f0c6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -309,9 +243,6 @@
     <ClInclude Include="Third-party\ImGui\imstb_truetype.h">
       <Filter>Third-party\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Third-party\glad\glad.h">
-      <Filter>Third-party\GLAD</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Resources\RenderTexture.h">
       <Filter>Graphics\Resources\Texture</Filter>
     </ClInclude>
@@ -375,12 +306,6 @@
     <ClInclude Include="Third-party\imgui\imgui_impl_glfw.h">
       <Filter>Third-party\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3.h">
-      <Filter>Third-party\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3_loader.h">
-      <Filter>Third-party\ImGui</Filter>
-    </ClInclude>
     <ClInclude Include="Script\BaseScript.h">
       <Filter>Script</Filter>
     </ClInclude>
@@ -425,21 +350,6 @@
     </ClInclude>
     <ClInclude Include="Graphics\Device\Vulkan\UploadAllocator_VK.h">
       <Filter>Graphics\Device\Vulkan\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h">
-      <Filter>Graphics\Device\OpenGL\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h">
-      <Filter>Graphics\Device\OpenGL\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Shaders_GL.h">
-      <Filter>Graphics\Device\OpenGL\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\Textures_GL.h">
-      <Filter>Graphics\Device\OpenGL\Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.h">
       <Filter>Graphics\Device\Vulkan</Filter>
@@ -501,9 +411,6 @@
     <ClInclude Include="Common\MemoryAllocator.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\OpenGLIncludes.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="Graphics\Device\Vulkan\VulkanIncludes.h">
       <Filter>Graphics\Device\Vulkan</Filter>
     </ClInclude>
@@ -519,11 +426,11 @@
     <ClInclude Include="Graphics\Device\Vulkan\GHIUtilities_VK.h">
       <Filter>Graphics\Device\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h">
-      <Filter>Graphics\Device\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="System\AudioSystem.h">
       <Filter>System\Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\Device\D3D12\GraphicsHardwareInterface_D3D12.h">
+      <Filter>Graphics\Device\D3D12</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -590,9 +497,6 @@
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp">
       <Filter>Third-party\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Third-party\glad\glad.c">
-      <Filter>Third-party\GLAD</Filter>
-    </ClCompile>
     <ClCompile Include="Graphics\Resources\RenderTexture.cpp">
       <Filter>Graphics\Resources\Texture</Filter>
     </ClCompile>
@@ -636,9 +540,6 @@
       <Filter>Third-party\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Third-party\imgui\imgui_tables.cpp">
-      <Filter>Third-party\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Third-party\imgui\imgui_impl_opengl3.cpp">
       <Filter>Third-party\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Script\BaseScript.cpp">
@@ -685,21 +586,6 @@
     </ClCompile>
     <ClCompile Include="Graphics\Device\Vulkan\UploadAllocator_VK.cpp">
       <Filter>Graphics\Device\Vulkan\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Buffers_GL.cpp">
-      <Filter>Graphics\Device\OpenGL\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Pipelines_GL.cpp">
-      <Filter>Graphics\Device\OpenGL\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Shaders_GL.cpp">
-      <Filter>Graphics\Device\OpenGL\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\Textures_GL.cpp">
-      <Filter>Graphics\Device\OpenGL\Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.cpp">
-      <Filter>Graphics\Device\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\Device\Vulkan\GraphicsHardwareInterface_VK.cpp">
       <Filter>Graphics\Device\Vulkan</Filter>

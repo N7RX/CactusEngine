@@ -56,6 +56,8 @@ namespace Engine
 		void Initialize() override;
 		void ShutDown() override;
 
+		EGraphicsAPIType GetGraphicsAPIType() const override;
+
 		ShaderProgram* CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) override;
 
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, VertexBuffer*& pOutput) override;
@@ -66,20 +68,6 @@ namespace Engine
 		void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) override;
 		void CopyTexture2D(Texture2D* pSrcTexture, Texture2D* pDstTexture, GraphicsCommandBuffer* pCmdBuffer) override;
 
-		void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
-		void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
-
-		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
-		void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer) override;
-
-		EGraphicsAPIType GetGraphicsAPIType() const override;
-
-		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override;
-		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override;
-		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override;
-		GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) override;
-
-		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput) override;
 		bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput) override;
 		bool CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput) override;
 		bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, PipelineVertexInputState*& pOutput) override;
@@ -94,7 +82,11 @@ namespace Engine
 		void TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override;
 		void TransitionImageLayout(GraphicsCommandBuffer* pCommandBuffer, Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override;
 		void TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) override;
-		void ResizeSwapchain(uint32_t width, uint32_t height) override;
+
+		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override;
+		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override;
+		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override;
+		GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) override;
 
 		void BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer) override;
 		void BeginRenderPass(const RenderPassObject* pRenderPass, const FrameBuffer* pFrameBuffer, GraphicsCommandBuffer* pCommandBuffer) override;
@@ -103,7 +95,12 @@ namespace Engine
 		void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override;
 		void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) override;
 
-		void Present(uint32_t frameIndex) override;
+		void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
+		void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
+
+		void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) override;
+		void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer) override;
+
 		void FlushCommands(bool waitExecution, bool flushImplicitCommands) override;
 		void FlushTransferCommands(bool waitExecution) override;
 		void WaitSemaphore(GraphicsSemaphore* pSemaphore) override;
@@ -111,7 +108,10 @@ namespace Engine
 
 		void GetSwapchainImages(std::vector<Texture2D*>& outImages) const override;
 		uint32_t GetSwapchainPresentImageIndex() const override;
+		void Present(uint32_t frameIndex) override;
+		void ResizeSwapchain(uint32_t width, uint32_t height) override;
 
+		bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput) override;
 		void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) override;
 		void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) override;
 		void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) override;

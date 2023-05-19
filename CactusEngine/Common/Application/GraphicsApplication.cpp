@@ -33,18 +33,13 @@ namespace Engine
 		auto pRenderingSystem = (RenderingSystem*)(m_pECSWorld->GetSystem(ESystemType::Rendering));
 		DEBUG_ASSERT_CE(pRenderingSystem);
 		m_pWindow->SetRenderingSystem(pRenderingSystem);
-		pRenderingSystem->SetDeviceWindow(m_pWindow);
 
 		InitECS();
-
-		pRenderingSystem->AcquireRenderContextOwnership();
 
 		if (m_pSetupFunc)
 		{
 			m_pSetupFunc(this);
 		}
-
-		pRenderingSystem->ReleaseRenderContextOwnership();
 
 		Timer::Initialize();
 	}

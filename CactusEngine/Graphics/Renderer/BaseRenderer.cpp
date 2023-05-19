@@ -22,14 +22,14 @@ namespace Engine
 		}
 	}
 
-	void BaseRenderer::Draw(const RenderContext& renderContext, uint32_t frameIndex)
+	void BaseRenderer::Draw(const RenderContext& renderContext, uint32_t frameIndex, bool parallelExecution)
 	{
 		if (!renderContext.pCamera)
 		{
 			return;
 		}
 
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
+		if (parallelExecution)
 		{
 			for (auto& item : m_commandRecordReadyList)
 			{
@@ -111,7 +111,7 @@ namespace Engine
 				std::this_thread::yield();
 			}
 		}
-		else // OpenGL
+		else
 		{
 			m_pRenderGraph->BeginRenderPassesSequential(renderContext, frameIndex);
 		}
@@ -119,11 +119,7 @@ namespace Engine
 
 	void BaseRenderer::WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		if (!pCommandBuffer)
-		{
-			DEBUG_ASSERT_CE(m_eGraphicsDeviceType == EGraphicsAPIType::OpenGL);
-			return;
-		}
+		DEBUG_ASSERT_CE(pCommandBuffer);
 
 		{
 			std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);

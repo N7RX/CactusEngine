@@ -7,18 +7,7 @@ namespace Engine
 {
 	void InitImGui(GLFWwindow* window)
 	{
-		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
-		{
-			const char* glsl_version = "#version 130";
-
-			ImGui::SetCurrentContext(ImGui::CreateContext());
-			ImGui_ImplGlfw_InitForOpenGL(window, true);
-			ImGui_ImplOpenGL3_Init(glsl_version);
-		}
-		else
-		{
-
-		}
+		LOG_ERROR("InitImGui not implemented.");
 	}
 
 	void DestroyImGui()
@@ -28,7 +17,7 @@ namespace Engine
 
 	void DrawImGui()
 	{
-		ImGui_ImplOpenGL3_NewFrame();
+		//ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -60,6 +49,6 @@ namespace Engine
 		ImGui::End();
 
 		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData());
 	}
 }

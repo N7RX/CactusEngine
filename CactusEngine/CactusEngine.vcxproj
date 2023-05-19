@@ -76,11 +76,11 @@
     <IncludePath>.\Third-party;.\Graphics\Device;.\Graphics\Device\OpenGL;.\Interface;.\System;.\Component;.\Common;.\Common\Math;.\Entity;.\Util;.\Graphics\FrameGraph;.\Graphics\Resources;.\Common\Application;.\Graphics\Renderer;.\GUI;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\D3D12;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Debug;.\Third-party\jsoncpp\lib\Debug;.\Third-party\spirv_cross\lib\Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Graphics\Device\OpenGL;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)CactusEngine\Third-party\spirv_cross\include;$(SolutionDir)CactusEngine\Third-party\vma;$(SolutionDir)CactusEngine\IO;$(SolutionDir)CactusEngine\Third-party\assimp;$(SolutionDir)CactusEngine\Third-party\vulkan\include;$(SolutionDir)CactusEngine\Third-party;$(SolutionDir)CactusEngine\Graphics\Device;$(SolutionDir)CactusEngine\Graphics\Device\D3D12;$(SolutionDir)CactusEngine\Graphics\Device\Vulkan;$(SolutionDir)CactusEngine\Interface;$(SolutionDir)CactusEngine\System;$(SolutionDir)CactusEngine\Component;$(SolutionDir)CactusEngine\Common;$(SolutionDir)CactusEngine\Common\Math;$(SolutionDir)CactusEngine\Entity;$(SolutionDir)CactusEngine\Utilities;$(SolutionDir)CactusEngine\Graphics\RenderGraph\Nodes;$(SolutionDir)CactusEngine\Graphics\RenderGraph;$(SolutionDir)CactusEngine\Graphics\Resources;$(SolutionDir)CactusEngine\Common\Application;$(SolutionDir)CactusEngine\Graphics\Renderer;$(SolutionDir)CactusEngine\GUI;$(SolutionDir)CactusEngine\Script;$(SolutionDir)CactusEngine\Third-party\jsoncpp\include;$(IncludePath)</IncludePath>
     <LibraryPath>.\Third-party\assimp\lib\Release;.\Third-party\jsoncpp\lib\Release;.\Third-party\spirv_cross\lib\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -136,24 +136,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="Assets\Shader\GLSL\Basic_Transparent.frag" />
-    <None Include="Assets\Shader\GLSL\Basic_Transparent.vert" />
-    <None Include="Assets\Shader\GLSL\DepthOfField.frag" />
-    <None Include="Assets\Shader\GLSL\LightDeferred.frag" />
-    <None Include="Assets\Shader\GLSL\LightDeferred.vert" />
-    <None Include="Assets\Shader\GLSL\LightDeferred_Directional.frag" />
-    <None Include="Assets\Shader\GLSL\AnimeStyle.frag" />
-    <None Include="Assets\Shader\GLSL\AnimeStyle.vert" />
-    <None Include="Assets\Shader\GLSL\Basic.frag" />
-    <None Include="Assets\Shader\GLSL\Basic.vert" />
-    <None Include="Assets\Shader\GLSL\DepthBased_ColorBlend_2.frag" />
-    <None Include="Assets\Shader\GLSL\FullScreenQuad.vert" />
-    <None Include="Assets\Shader\GLSL\GBuffer.frag" />
-    <None Include="Assets\Shader\GLSL\GBuffer.vert" />
-    <None Include="Assets\Shader\GLSL\ShadowMap.frag" />
-    <None Include="Assets\Shader\GLSL\ShadowMap.vert" />
-    <None Include="Assets\Shader\GLSL\Water_Basic.frag" />
-    <None Include="Assets\Shader\GLSL\Water_Basic.vert" />
     <None Include="Assets\Shader\SPIRV-Source\AnimeStyle.frag" />
     <None Include="Assets\Shader\SPIRV-Source\AnimeStyle.vert" />
     <None Include="Assets\Shader\SPIRV-Source\Basic.frag" />
@@ -195,14 +177,8 @@
     <ClInclude Include="Entity\BaseEntity.h" />
     <ClInclude Include="Entity\EntityProperties.h" />
     <ClInclude Include="Entity\StandardEntity.h" />
+    <ClInclude Include="Graphics\Device\D3D12\GraphicsHardwareInterface_D3D12.h" />
     <ClInclude Include="Graphics\Device\GraphicsDevice.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\Buffers_GL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\GHIUtilities_GL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\OpenGLIncludes.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\Pipelines_GL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\Shaders_GL.h" />
-    <ClInclude Include="Graphics\Device\OpenGL\Textures_GL.h" />
     <ClInclude Include="Graphics\Device\Vulkan\Buffers_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\CommandManager_VK.h" />
     <ClInclude Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.h" />
@@ -258,12 +234,9 @@
     <ClInclude Include="System\EventSystem.h" />
     <ClInclude Include="System\InputSystem.h" />
     <ClInclude Include="System\ScriptSystem.h" />
-    <ClInclude Include="Third-party\glad\glad.h" />
     <ClInclude Include="Third-party\ImGui\imconfig.h" />
     <ClInclude Include="Third-party\ImGui\imgui.h" />
     <ClInclude Include="Third-party\imgui\imgui_impl_glfw.h" />
-    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3.h" />
-    <ClInclude Include="Third-party\imgui\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="Third-party\ImGui\imgui_internal.h" />
     <ClInclude Include="Third-party\ImGui\imstb_rectpack.h" />
     <ClInclude Include="Third-party\ImGui\imstb_textedit.h" />
@@ -294,11 +267,6 @@
     <ClCompile Include="Entity\BaseEntity.cpp" />
     <ClCompile Include="Entity\StandardEntity.cpp" />
     <ClCompile Include="Graphics\Device\GraphicsDevice.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\Buffers_GL.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\GraphicsHardwareInterface_GL.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\Pipelines_GL.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\Shaders_GL.cpp" />
-    <ClCompile Include="Graphics\Device\OpenGL\Textures_GL.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\Buffers_VK.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\CommandManager_VK.cpp" />
     <ClCompile Include="Graphics\Device\Vulkan\DescriptorAllocator_VK.cpp" />
@@ -345,12 +313,10 @@
     <ClCompile Include="System\EventSystem.cpp" />
     <ClCompile Include="System\InputSystem.cpp" />
     <ClCompile Include="System\ScriptSystem.cpp" />
-    <ClCompile Include="Third-party\glad\glad.c" />
     <ClCompile Include="Third-party\ImGui\imgui.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_demo.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_draw.cpp" />
     <ClCompile Include="Third-party\imgui\imgui_impl_glfw.cpp" />
-    <ClCompile Include="Third-party\imgui\imgui_impl_opengl3.cpp" />
     <ClCompile Include="Third-party\imgui\imgui_tables.cpp" />
     <ClCompile Include="Third-party\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Utilities\LogUtility.cpp" />

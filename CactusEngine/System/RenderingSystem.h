@@ -39,12 +39,6 @@ namespace Engine
 		void RemoveRenderer(ERendererType type);
 		void SetActiveRenderer(ERendererType type);
 
-		void SetDeviceWindow(BaseWindow* pWindow);
-
-		// For OpenGL only; takes context ownership from render thread and may cause a stall
-		void AcquireRenderContextOwnership();
-		void ReleaseRenderContextOwnership();
-
 		void UpdateResolution();
 
 	private:
@@ -94,7 +88,5 @@ namespace Engine
 
 		bool m_pendingResolutionUpdate;
 		bool m_pauseRendering;
-
-		BaseWindow* m_pCurrentWindow;
 	};
 }

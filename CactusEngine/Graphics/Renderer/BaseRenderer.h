@@ -28,7 +28,7 @@ namespace Engine
 
 		virtual void BuildRenderGraph() = 0;
 
-		void Draw(const RenderContext& renderContext, uint32_t frameIndex);
+		void Draw(const RenderContext& renderContext, uint32_t frameIndex, bool parallelExecution = true);
 		void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer);
 
 		ERendererType GetRendererType() const;

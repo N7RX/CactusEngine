@@ -424,12 +424,8 @@ namespace Engine
 	{
 		m_configuration.maxDrawCall = count;
 
-		// No need to resize buffers if using OpenGL
-		if (m_eGraphicsDeviceType != EGraphicsAPIType::OpenGL)
-		{
-			DestroyMutableBuffers();
-			CreateMutableBuffers(m_configuration);
-		}
+		DestroyMutableBuffers();
+		CreateMutableBuffers(m_configuration);
 	}
 
 	void DeferredLightingRenderNode::DestroyMutableResources()

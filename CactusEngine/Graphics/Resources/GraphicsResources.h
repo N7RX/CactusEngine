@@ -105,7 +105,7 @@ namespace Engine
 		ETextureType   textureType;
 		bool		   generateMipmap;
 		bool		   reserveMipmapMemory; // Reserve memory space for mipmap, but not generate at creation. Useful for render textures
-											// If generateMipmap is true, this will be ignored as if always true. Also always ignored by OpenGL
+											// If generateMipmap is true, this will be ignored as if always true
 		TextureSampler* pSampler;
 		EImageLayout   initialLayout;
 	};
@@ -229,7 +229,7 @@ namespace Engine
 	struct UniformBufferCreateInfo
 	{
 		uint32_t sizeInBytes;			// Per drawcall size
-		uint32_t maxSubAllocationCount;	// Ignored by OpenGL; In Vulkan actual buffer size is sizeInBytes * maxSubAllocationCount
+		uint32_t maxSubAllocationCount;	// Actual buffer size is sizeInBytes * maxSubAllocationCount
 		uint32_t appliedStages;			// Bitmask, required for push constant
 	};
 
@@ -322,7 +322,6 @@ namespace Engine
 			Clear();
 		}
 		
-		// For high-level APIs like OpenGL
 		struct ShaderParameterTableEntry
 		{
 			ShaderParameterTableEntry(uint32_t binding, EDescriptorType descType, RawResource* pRes)

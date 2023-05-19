@@ -58,9 +58,9 @@ namespace Engine
 	{
 		Graphics = 0,
 		Transfer,
-		Compute,	
-		COUNT,
-		Present
+		Compute,
+		Present,
+		COUNT
 	};
 
 	enum class EConfigurationType
@@ -72,8 +72,8 @@ namespace Engine
 
 	enum class EGraphicsAPIType
 	{
-		OpenGL = 0,
-		Vulkan,
+		Vulkan = 0,
+		D3D12, // Not supported yet
 		COUNT
 	};
 

@@ -76,6 +76,11 @@ namespace Engine
 		}
 	}
 
+	EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
+	{
+		return EGraphicsAPIType::Vulkan;
+	}
+
 	ShaderProgram* GraphicsHardwareInterface_VK::CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath)
 	{
 		VkShaderModule vertexModule = VK_NULL_HANDLE;
@@ -349,191 +354,6 @@ namespace Engine
 		pCmdBufferVK->CopyTexture2DToTexture2D(pSrc, pDst, copyRegions);
 		pCmdBufferVK->TransitionImageLayout(pSrc, oldSrcLayout, oldSrcStages);
 		pCmdBufferVK->TransitionImageLayout(pDst, oldDstLayout, oldDstStages);
-	}
-
-	void GraphicsHardwareInterface_VK::UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		auto pVkShader = (ShaderProgram_VK*)pShaderProgram;
-
-		std::vector<DesciptorUpdateInfo_VK> updateInfos;
-		DescriptorSet_VK* pTargetDescriptorSet = pVkShader->GetDescriptorSet();
-
-		for (auto& item : pTable->m_table)
-		{
-			DesciptorUpdateInfo_VK updateInfo{};
-			updateInfo.hasContent = true;
-			updateInfo.infoType = VulkanDescriptorResourceType(item.type);
-			updateInfo.dstDescriptorType = VulkanDescriptorType(item.type);
-			updateInfo.dstDescriptorBinding = item.binding;
-			updateInfo.dstDescriptorSet = pTargetDescriptorSet->m_descriptorSet;
-			updateInfo.dstArrayElement = 0; // Alert: incorrect if it contains array
-
-			switch (updateInfo.infoType)
-			{
-			case EDescriptorResourceType_VK::Buffer:
-			{
-				VkDescriptorBufferInfo bufferInfo{};
-				GetBufferInfoByDescriptorType(item.type, item.pResource, bufferInfo);
-
-				updateInfo.bufferInfos.emplace_back(bufferInfo);
-
-				break;
-			}
-			case EDescriptorResourceType_VK::Image:
-			{
-				Texture2D_VK* pImage = nullptr;
-				switch (((Texture2D*)item.pResource)->QuerySource())
-				{
-				case ETexture2DSource::ImageTexture:
-					pImage = (Texture2D_VK*)(((ImageTexture*)item.pResource)->GetTexture());
-					break;
-
-				case ETexture2DSource::RenderTexture:
-					pImage = (Texture2D_VK*)(((RenderTexture*)item.pResource)->GetTexture());
-					break;
-
-				case ETexture2DSource::RawDeviceTexture:
-					pImage = (Texture2D_VK*)item.pResource;
-					break;
-
-				default:
-					throw std::runtime_error("Vulkan: Unhandled texture 2D source type.");
-					return;
-				}
-
-				VkDescriptorImageInfo imageInfo{};
-				imageInfo.imageView = pImage->m_imageView;
-				imageInfo.imageLayout = pImage->m_layout;
-				if (pImage->HasSampler())
-				{
-					imageInfo.sampler = ((Sampler_VK*)pImage->GetSampler())->m_sampler;
-				}
-				else
-				{
-					imageInfo.sampler = VK_NULL_HANDLE;
-				}
-
-				updateInfo.imageInfos.emplace_back(imageInfo);
-
-				break;
-			}
-			case EDescriptorResourceType_VK::TexelBuffer:
-			{
-				LOG_ERROR("Vulkan: TexelBuffer is unhandled.");
-				updateInfo.hasContent = false;
-
-				break;
-			}
-			default:
-				LOG_ERROR("Vulkan: Unhandled descriptor resource type: " + std::to_string((uint32_t)updateInfo.infoType));
-				updateInfo.hasContent = false;
-				break;
-			}
-
-			updateInfos.emplace_back(updateInfo);
-		}
-
-		pVkShader->UpdateDescriptorSets(updateInfos);
-
-		std::vector<DescriptorSet_VK*> descSets = { pTargetDescriptorSet };
-		((CommandBuffer_VK*)pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
-	}
-
-	void GraphicsHardwareInterface_VK::SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		auto pBuffer = (VertexBuffer_VK*)pVertexBuffer;
-
-		static VkDeviceSize defaultOffset = 0;
-
-		((CommandBuffer_VK*)pCommandBuffer)->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
-		((CommandBuffer_VK*)pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
-	}
-
-	void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer)
-	{
-		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
-	}
-
-	void GraphicsHardwareInterface_VK::DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer)
-	{
-		// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
-		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
-		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitive(4, 1);
-	}
-
-	EGraphicsAPIType GraphicsHardwareInterface_VK::GetGraphicsAPIType() const
-	{
-		return EGraphicsAPIType::Vulkan;
-	}
-
-	GraphicsCommandPool* GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
-	{
-		auto pDevice = m_pMainDevice;
-
-		switch (queueType)
-		{
-		case EQueueType::Graphics:
-			return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
-
-		case EQueueType::Transfer:
-			if (pDevice->pTransferCommandManager != nullptr)
-			{
-				return pDevice->pTransferCommandManager->RequestExternalCommandPool();
-			}
-			else
-			{
-				LOG_ERROR("Vulkan: Transfer command pool requested but transfer queue is not supported.");
-				return nullptr;
-			}
-
-		default:
-			LOG_ERROR("Vulkan: Unhandled queue type: " + std::to_string((uint32_t)queueType));
-			return nullptr;
-		}
-	}
-
-	GraphicsCommandBuffer* GraphicsHardwareInterface_VK::RequestCommandBuffer(GraphicsCommandPool* pCommandPool)
-	{
-		auto pCmdBuffer = ((CommandPool_VK*)pCommandPool)->RequestPrimaryCommandBuffer();
-		pCmdBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit;
-		pCmdBuffer->m_isExternal = true;
-		return pCmdBuffer;
-	}
-
-	void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
-	{
-		((CommandBuffer_VK*)pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer((CommandBuffer_VK*)pCommandBuffer);
-	}
-
-	GraphicsSemaphore* GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
-	{
-		auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
-		pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
-		return pSemaphore;
-	}
-
-	bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput)
-	{
-		RawBufferCreateInfo_VK vkBufferCreateInfo{};
-		vkBufferCreateInfo.size = createInfo.size;
-		vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
-		vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
-
-		auto pDevice = m_pMainDevice;
-
-		CE_NEW(pOutput, DataTransferBuffer_VK, pDevice->pUploadAllocator, vkBufferCreateInfo);
-
-		if (createInfo.cpuMapped)
-		{
-			auto pVkBuffer = (DataTransferBuffer_VK*)pOutput;
-			pDevice->pUploadAllocator->MapMemory(pVkBuffer->m_pBufferImpl->m_allocation, &pVkBuffer->m_ppMappedData);
-			pVkBuffer->m_constantlyMapped = true;
-		}
-
-		return true;
 	}
 
 	bool GraphicsHardwareInterface_VK::CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput)
@@ -852,10 +672,55 @@ namespace Engine
 		m_pMainDevice->pGraphicsCommandManager->SubmitSingleCommandBuffer_Immediate(pCmdBuffer);
 	}
 
-	void GraphicsHardwareInterface_VK::ResizeSwapchain(uint32_t width, uint32_t height)
+	GraphicsCommandPool* GraphicsHardwareInterface_VK::RequestExternalCommandPool(EQueueType queueType)
 	{
-		DestroySwapchain();
-		SetupSwapchain(width, height);
+		auto pDevice = m_pMainDevice;
+
+		switch (queueType)
+		{
+		case EQueueType::Graphics:
+		{
+			return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
+		}
+
+		case EQueueType::Transfer:
+		{
+			if (pDevice->pTransferCommandManager != nullptr)
+			{
+				return pDevice->pTransferCommandManager->RequestExternalCommandPool();
+			}
+			else
+			{
+				LOG_WARNING("Vulkan: Transfer command pool requested but transfer queue is not supported.");
+				return pDevice->pGraphicsCommandManager->RequestExternalCommandPool();
+			}
+		}
+		default:
+		{
+			LOG_ERROR("Vulkan: Unhandled queue type: " + std::to_string((uint32_t)queueType));
+			return nullptr;
+		}
+		}
+	}
+
+	GraphicsCommandBuffer* GraphicsHardwareInterface_VK::RequestCommandBuffer(GraphicsCommandPool* pCommandPool)
+	{
+		auto pCmdBuffer = ((CommandPool_VK*)pCommandPool)->RequestPrimaryCommandBuffer();
+		pCmdBuffer->m_usageFlags = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit;
+		pCmdBuffer->m_isExternal = true;
+		return pCmdBuffer;
+	}
+
+	void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
+	{
+		((CommandBuffer_VK*)pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer((CommandBuffer_VK*)pCommandBuffer);
+	}
+
+	GraphicsSemaphore* GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
+	{
+		auto pSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
+		pSemaphore->waitStage = VulkanSemaphoreWaitStage(waitStage);
+		return pSemaphore;
 	}
 
 	void GraphicsHardwareInterface_VK::BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer)
@@ -906,51 +771,117 @@ namespace Engine
 		((CommandBuffer_VK*)pCommandBuffer)->SignalSemaphore((TimelineSemaphore_VK*)pSemaphore);
 	}
 
-	void GraphicsHardwareInterface_VK::Present(uint32_t frameIndex)
+	void GraphicsHardwareInterface_VK::UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
+		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
+		auto pVkShader = (ShaderProgram_VK*)pShaderProgram;
 
-		// Present current frame
+		std::vector<DesciptorUpdateInfo_VK> updateInfos;
+		DescriptorSet_VK* pTargetDescriptorSet = pVkShader->GetDescriptorSet();
 
-		uint32_t cmdBufferSubmitMask = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit | (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
-
-		auto pRenderFinishSemaphore = m_pMainDevice->pSyncObjectManager->RequestSemaphore();
-		m_pMainDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
-		m_renderFinishSemaphores.push(pRenderFinishSemaphore);
-
-		auto pFrameSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
-		m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask, &m_commandSubmissionSemaphore);
-		m_frameSemaphores.push(pFrameSemaphore);
-
-		if (m_frameSemaphores.size() >= m_pSwapchain->GetMaxFramesInFlight())
+		for (auto& item : pTable->m_table)
 		{
-			if (m_frameSemaphores.front()->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+			DesciptorUpdateInfo_VK updateInfo{};
+			updateInfo.hasContent = true;
+			updateInfo.infoType = VulkanDescriptorResourceType(item.type);
+			updateInfo.dstDescriptorType = VulkanDescriptorType(item.type);
+			updateInfo.dstDescriptorBinding = item.binding;
+			updateInfo.dstDescriptorSet = pTargetDescriptorSet->m_descriptorSet;
+			updateInfo.dstArrayElement = 0; // Alert: incorrect if it contains array
+
+			switch (updateInfo.infoType)
 			{
-				throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
+			case EDescriptorResourceType_VK::Buffer:
+			{
+				VkDescriptorBufferInfo bufferInfo{};
+				GetBufferInfoByDescriptorType(item.type, item.pResource, bufferInfo);
+
+				updateInfo.bufferInfos.emplace_back(bufferInfo);
+
+				break;
 			}
-			m_frameSemaphores.pop();
+			case EDescriptorResourceType_VK::Image:
+			{
+				Texture2D_VK* pImage = nullptr;
+				switch (((Texture2D*)item.pResource)->QuerySource())
+				{
+				case ETexture2DSource::ImageTexture:
+					pImage = (Texture2D_VK*)(((ImageTexture*)item.pResource)->GetTexture());
+					break;
 
-			m_pMainDevice->pSyncObjectManager->ReturnSemaphore(m_renderFinishSemaphores.front());
-			m_renderFinishSemaphores.pop();
-			DEBUG_ASSERT_CE(m_frameSemaphores.size() == m_renderFinishSemaphores.size());
+				case ETexture2DSource::RenderTexture:
+					pImage = (Texture2D_VK*)(((RenderTexture*)item.pResource)->GetTexture());
+					break;
+
+				case ETexture2DSource::RawDeviceTexture:
+					pImage = (Texture2D_VK*)item.pResource;
+					break;
+
+				default:
+					throw std::runtime_error("Vulkan: Unhandled texture 2D source type.");
+					return;
+				}
+
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageView = pImage->m_imageView;
+				imageInfo.imageLayout = pImage->m_layout;
+				if (pImage->HasSampler())
+				{
+					imageInfo.sampler = ((Sampler_VK*)pImage->GetSampler())->m_sampler;
+				}
+				else
+				{
+					imageInfo.sampler = VK_NULL_HANDLE;
+				}
+
+				updateInfo.imageInfos.emplace_back(imageInfo);
+
+				break;
+			}
+			case EDescriptorResourceType_VK::TexelBuffer:
+			{
+				LOG_ERROR("Vulkan: TexelBuffer is unhandled.");
+				updateInfo.hasContent = false;
+
+				break;
+			}
+			default:
+				LOG_ERROR("Vulkan: Unhandled descriptor resource type: " + std::to_string((uint32_t)updateInfo.infoType));
+				updateInfo.hasContent = false;
+				break;
+			}
+
+			updateInfos.emplace_back(updateInfo);
 		}
 
-		// Becasue command buffers are submitted on a separate thread, we need to make sure pRenderFinishSemaphore
-		// is submitted before we present the frame
-		m_commandSubmissionSemaphore.Wait();
+		pVkShader->UpdateDescriptorSets(updateInfos);
 
-		std::vector<Semaphore_VK*> presentWaitSemaphores = { pRenderFinishSemaphore };
-		bool presentSuccess = m_pSwapchain->Present(presentWaitSemaphores);
+		std::vector<DescriptorSet_VK*> descSets = { pTargetDescriptorSet };
+		((CommandBuffer_VK*)pCommandBuffer)->BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, descSets);
+	}
 
-		// Preparation for next frame
+	void GraphicsHardwareInterface_VK::SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer)
+	{
+		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
+		auto pBuffer = (VertexBuffer_VK*)pVertexBuffer;
 
-		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+		static VkDeviceSize defaultOffset = 0;
 
-		if (presentSuccess)
-		{
-			m_pSwapchain->UpdateBackBuffer(frameIndex);
-			m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(frameIndex));
-		}
+		((CommandBuffer_VK*)pCommandBuffer)->BindVertexBuffer(0, 1, &pBuffer->GetBufferImpl()->m_buffer, &defaultOffset);
+		((CommandBuffer_VK*)pCommandBuffer)->BindIndexBuffer(pBuffer->GetIndexBufferImpl()->m_buffer, 0, pBuffer->GetIndexFormat());
+	}
+
+	void GraphicsHardwareInterface_VK::DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer)
+	{
+		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
+		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitiveIndexed(indicesCount, 1, baseIndex, baseVertex);
+	}
+
+	void GraphicsHardwareInterface_VK::DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer)
+	{
+		// Graphics pipelines should be properly setup in renderer, this function is only responsible for issuing draw call
+		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
+		((CommandBuffer_VK*)pCommandBuffer)->DrawPrimitive(4, 1);
 	}
 
 	void GraphicsHardwareInterface_VK::FlushCommands(bool waitExecution, bool flushImplicitCommands)
@@ -1024,6 +955,80 @@ namespace Engine
 	{
 		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
 		return m_pSwapchain->GetTargetImageIndex();
+	}
+
+	void GraphicsHardwareInterface_VK::Present(uint32_t frameIndex)
+	{
+		DEBUG_ASSERT_CE(m_pSwapchain != nullptr);
+
+		// Present current frame
+
+		uint32_t cmdBufferSubmitMask = (uint32_t)ECommandBufferUsageFlagBits_VK::Explicit | (uint32_t)ECommandBufferUsageFlagBits_VK::Implicit;
+
+		auto pRenderFinishSemaphore = m_pMainDevice->pSyncObjectManager->RequestSemaphore();
+		m_pMainDevice->pImplicitCmdBuffer->SignalPresentationSemaphore(pRenderFinishSemaphore);
+		m_renderFinishSemaphores.push(pRenderFinishSemaphore);
+
+		auto pFrameSemaphore = m_pMainDevice->pSyncObjectManager->RequestTimelineSemaphore();
+		m_pMainDevice->pGraphicsCommandManager->SubmitCommandBuffers(pFrameSemaphore, cmdBufferSubmitMask, &m_commandSubmissionSemaphore);
+		m_frameSemaphores.push(pFrameSemaphore);
+
+		if (m_frameSemaphores.size() >= m_pSwapchain->GetMaxFramesInFlight())
+		{
+			if (m_frameSemaphores.front()->Wait(FRAME_TIMEOUT) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Vulkan: Frame timeline semaphore timeout.");
+			}
+			m_frameSemaphores.pop();
+
+			m_pMainDevice->pSyncObjectManager->ReturnSemaphore(m_renderFinishSemaphores.front());
+			m_renderFinishSemaphores.pop();
+			DEBUG_ASSERT_CE(m_frameSemaphores.size() == m_renderFinishSemaphores.size());
+		}
+
+		// Becasue command buffers are submitted on a separate thread, we need to make sure pRenderFinishSemaphore
+		// is submitted before we present the frame
+		m_commandSubmissionSemaphore.Wait();
+
+		std::vector<Semaphore_VK*> presentWaitSemaphores = { pRenderFinishSemaphore };
+		bool presentSuccess = m_pSwapchain->Present(presentWaitSemaphores);
+
+		// Preparation for next frame
+
+		m_pMainDevice->pImplicitCmdBuffer = m_pMainDevice->pGraphicsCommandManager->RequestPrimaryCommandBuffer();
+
+		if (presentSuccess)
+		{
+			m_pSwapchain->UpdateBackBuffer(frameIndex);
+			m_pMainDevice->pImplicitCmdBuffer->WaitPresentationSemaphore(m_pSwapchain->GetImageAvailableSemaphore(frameIndex));
+		}
+	}
+
+	void GraphicsHardwareInterface_VK::ResizeSwapchain(uint32_t width, uint32_t height)
+	{
+		DestroySwapchain();
+		SetupSwapchain(width, height);
+	}
+
+	bool GraphicsHardwareInterface_VK::CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput)
+	{
+		RawBufferCreateInfo_VK vkBufferCreateInfo{};
+		vkBufferCreateInfo.size = createInfo.size;
+		vkBufferCreateInfo.usage = VulkanDataTransferBufferUsage(createInfo.usageFlags);
+		vkBufferCreateInfo.memoryUsage = VulkanMemoryUsage(createInfo.memoryType);
+
+		auto pDevice = m_pMainDevice;
+
+		CE_NEW(pOutput, DataTransferBuffer_VK, pDevice->pUploadAllocator, vkBufferCreateInfo);
+
+		if (createInfo.cpuMapped)
+		{
+			auto pVkBuffer = (DataTransferBuffer_VK*)pOutput;
+			pDevice->pUploadAllocator->MapMemory(pVkBuffer->m_pBufferImpl->m_allocation, &pVkBuffer->m_ppMappedData);
+			pVkBuffer->m_constantlyMapped = true;
+		}
+
+		return true;
 	}
 
 	void GraphicsHardwareInterface_VK::CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer)

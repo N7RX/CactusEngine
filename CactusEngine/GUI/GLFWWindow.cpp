@@ -36,38 +36,13 @@ namespace Engine
 		{
 			if (!glfwVulkanSupported())
 			{
-				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::OpenGL);
-				LOG_WARNING("Vulkan is not supported on current device. Fall back to OpenGL.");
+				gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->SetGraphicsAPIType(EGraphicsAPIType::D3D12);
+				LOG_WARNING("Vulkan is not supported on current device. Fall back to D3D12.");
 			}
 		}
 
 		switch (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType())
 		{
-		case EGraphicsAPIType::OpenGL:
-		{
-			// Using OpenGL 4.6
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-			glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-			glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-			m_pGLFWWindowHandle = glfwCreateWindow(m_windowWidth, m_windowHeight, m_windowName, NULL, NULL);
-			if (m_pGLFWWindowHandle == NULL)
-			{
-				throw std::runtime_error("Failed to create GLFW window");
-				glfwTerminate();
-			}
-
-			glfwMakeContextCurrent(m_pGLFWWindowHandle);
-			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
-
-			if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-			{
-				throw std::runtime_error("Failed to initialize GLAD");
-			}
-
-			gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
-			break;
-		}
 		case EGraphicsAPIType::Vulkan:
 		{
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -82,6 +57,11 @@ namespace Engine
 			glfwSetFramebufferSizeCallback(m_pGLFWWindowHandle, GLFWFramebufferSizeCallback);
 
 			gpGlobal->MarkGlobalState(EGlobalStateQueryType::GLFWInit, true);
+			break;
+		}
+		case EGraphicsAPIType::D3D12:
+		{
+			throw std::runtime_error("D3D12 device is not implemented.");
 			break;
 		}
 		default:
@@ -99,11 +79,8 @@ namespace Engine
 
 	void GLFWWindow_CE::Tick()
 	{
-		// TODO: Vulkan backend support
-		//if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::OpenGL)
-		//{
-		//	DrawImGui();
-		//}
+		// TODO: Vulkan ImGui support
+		//DrawImGui();
 
 		if (s_windowSizeUpdated)
 		{

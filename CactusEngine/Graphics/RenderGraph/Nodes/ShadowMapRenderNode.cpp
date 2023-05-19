@@ -217,19 +217,12 @@ namespace Engine
 
 		Matrix4x4 lightProjection;
 		Matrix4x4 lightView;
+
 		// TODO: resolve this workaround and get from light source
-		if (m_eGraphicsDeviceType == EGraphicsAPIType::Vulkan)
-		{
-			Vector3 lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
-			lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -30.0f, 30.0f);
-			lightView = glm::lookAt(lightDir, Vector3(0), UP);
-		}
-		else
-		{
-			Vector3 lightDir(0.0f, 0.8660254f, -0.5f);
-			lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -15.0f, 15.0f);
-			lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
-		}
+		Vector3 lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
+		lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -30.0f, 30.0f);
+		lightView = glm::lookAt(lightDir, Vector3(0), UP);
+
 		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
@@ -322,11 +315,8 @@ namespace Engine
 	{
 		m_configuration.maxDrawCall = count;
 
-		if (m_eGraphicsDeviceType != EGraphicsAPIType::OpenGL)
-		{
-			DestroyMutableBuffers();
-			CreateMutableBuffers(m_configuration);
-		}
+		DestroyMutableBuffers();
+		CreateMutableBuffers(m_configuration);
 	}
 
 	void ShadowMapRenderNode::DestroyMutableResources()

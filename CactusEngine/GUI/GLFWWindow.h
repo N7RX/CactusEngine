@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseWindow.h"
-#include "OpenGLIncludes.h" // Needs to be included before GLFW include
 
 #include <GLFW/glfw3.h>
 

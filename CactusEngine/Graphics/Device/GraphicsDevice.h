@@ -13,12 +13,14 @@ namespace Engine
 	public:
 		virtual ~GraphicsDevice();
 
-		// Generic functions for all devices
+		// Graphics device management
 
 		virtual void Initialize();
 		virtual void ShutDown();
 
-		virtual void SetCurrentWindow(BaseWindow* pWindow);
+		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
+
+		// Generic graphics resource management
 
 		virtual ShaderProgram* CreateShaderProgramFromFile(const char* vertexShaderFilePath, const char* fragmentShaderFilePath) = 0;
 
@@ -30,28 +32,6 @@ namespace Engine
 		virtual void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
 		virtual void CopyTexture2D(Texture2D* pSrcTexture, Texture2D*pDstTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
 
-		virtual void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
-		virtual void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
-
-		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
-		virtual void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
-
-		virtual EGraphicsAPIType GetGraphicsAPIType() const = 0;
-
-		// For legacy devices, e.g. OpenGL
-
-		virtual void AcquireContextThreadOwnership() {};
-		virtual void ReleaseContextThreadOwnership() {};
-
-		// For low-level devices, e.g. Vulkan
-
-		// For multithreading
-		virtual GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) = 0;
-		virtual GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) = 0;
-		virtual void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) = 0;
-		virtual GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) = 0;
-
-		virtual bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput) = 0;
 		virtual bool CreateRenderPassObject(const RenderPassCreateInfo& createInfo, RenderPassObject*& pOutput) = 0;
 		virtual bool CreateSampler(const TextureSamplerCreateInfo& createInfo, TextureSampler*& pOutput) = 0;
 		virtual bool CreatePipelineVertexInputState(const PipelineVertexInputStateCreateInfo& createInfo, PipelineVertexInputState*& pOutput) = 0;
@@ -66,7 +46,13 @@ namespace Engine
 		virtual void TransitionImageLayout(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void TransitionImageLayout(GraphicsCommandBuffer* pCommandBuffer, Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
 		virtual void TransitionImageLayout_Immediate(Texture2D* pImage, EImageLayout newLayout, uint32_t appliedStages) = 0;
-		virtual void ResizeSwapchain(uint32_t width, uint32_t height) = 0;
+
+		// Command and draw call management
+
+		virtual GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) = 0;
+		virtual GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) = 0;
+		virtual void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) = 0;
+		virtual GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) = 0;
 
 		virtual void BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void BeginRenderPass(const RenderPassObject* pRenderPass, const FrameBuffer* pFrameBuffer, GraphicsCommandBuffer* pCommandBuffer) = 0;
@@ -75,7 +61,12 @@ namespace Engine
 		virtual void CommandWaitSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) = 0;
 		virtual void CommandSignalSemaphore(GraphicsCommandBuffer* pCommandBuffer, GraphicsSemaphore* pSemaphore) = 0;
 
-		virtual void Present(uint32_t frameIndex) = 0;
+		virtual void UpdateShaderParameter(ShaderProgram* pShaderProgram, const ShaderParameterTable* pTable, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+		virtual void SetVertexBuffer(const VertexBuffer* pVertexBuffer, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+
+		virtual void DrawPrimitive(uint32_t indicesCount, uint32_t baseIndex, uint32_t baseVertex, GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+		virtual void DrawFullScreenQuad(GraphicsCommandBuffer* pCommandBuffer = nullptr) = 0;
+
 		virtual void FlushCommands(bool waitExecution, bool flushImplicitCommands) = 0;
 		virtual void FlushTransferCommands(bool waitExecution) = 0;
 		virtual void WaitSemaphore(GraphicsSemaphore* pSemaphore) = 0;
@@ -83,10 +74,16 @@ namespace Engine
 
 		virtual TextureSampler* GetTextureSampler(ESamplerAnisotropyLevel level);
 
+		// Swapchain management
+
 		virtual void GetSwapchainImages(std::vector<Texture2D*>& outImages) const = 0;
 		virtual uint32_t GetSwapchainPresentImageIndex() const = 0;
+		virtual void Present(uint32_t frameIndex) = 0;
+		virtual void ResizeSwapchain(uint32_t width, uint32_t height) = 0;
 
 		// For host-device data transfer
+
+		virtual bool CreateDataTransferBuffer(const DataTransferBufferCreateInfo& createInfo, DataTransferBuffer*& pOutput) = 0;
 		virtual void CopyTexture2DToDataTransferBuffer(Texture2D* pSrcTexture, DataTransferBuffer* pDstBuffer, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyDataTransferBufferToTexture2D(DataTransferBuffer* pSrcBuffer, Texture2D* pDstTexture, GraphicsCommandBuffer* pCommandBuffer) = 0;
 		virtual void CopyHostDataToDataTransferBuffer(void* pData, DataTransferBuffer* pDstBuffer, size_t size) = 0;
@@ -99,6 +96,7 @@ namespace Engine
 		void CreateDefaultSamplers();
 
 	public:
+		// Shader vertex attribute locations
 		static const uint32_t ATTRIB_POSITION_LOCATION = 0;
 		static const uint32_t ATTRIB_NORMAL_LOCATION = 1;
 		static const uint32_t ATTRIB_TEXCOORD_LOCATION = 2;
@@ -107,8 +105,6 @@ namespace Engine
 
 	protected:
 		std::unordered_map<ESamplerAnisotropyLevel, TextureSampler*> m_DefaultSamplers;
-
-		BaseWindow* m_pCurrentWindow;
 	};
 
 	template<EGraphicsAPIType>

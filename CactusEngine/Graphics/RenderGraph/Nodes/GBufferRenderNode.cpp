@@ -366,11 +366,8 @@ namespace Engine
 	{
 		m_configuration.maxDrawCall = count;
 
-		if (m_eGraphicsDeviceType != EGraphicsAPIType::OpenGL)
-		{
-			DestroyMutableBuffers();
-			CreateMutableBuffers(m_configuration);
-		}
+		DestroyMutableBuffers();
+		CreateMutableBuffers(m_configuration);
 	}
 
 	void GBufferRenderNode::DestroyMutableResources()

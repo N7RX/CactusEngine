@@ -3,7 +3,6 @@
 namespace Engine
 {
 	GraphicsDevice::GraphicsDevice()
-		: m_pCurrentWindow(nullptr)
 	{
 
 	}
@@ -24,11 +23,6 @@ namespace Engine
 		{
 			CE_DELETE(pSampler.second);
 		}
-	}
-
-	void GraphicsDevice::SetCurrentWindow(BaseWindow* pWindow)
-	{
-		m_pCurrentWindow = pWindow;
 	}
 
 	TextureSampler* GraphicsDevice::GetTextureSampler(ESamplerAnisotropyLevel level)

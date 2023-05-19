@@ -8,19 +8,18 @@
 
 Engine features:
 
-- Entity-Component-System structure
-- OpenGL and Vulkan support
+- Entity-component-system architecture
+- Vulkan support
 - Multi-thread rendering
 - Deferred shading
 - Render graph
 - Scene saving and reading
-- ImGUI support
 
 Working in progress:
 
-* ImGUI support for Vulkan
+* D3D12 support
+* ImGUI support
 * PBR render graph
-* (and more...)
 
 <br/>
 

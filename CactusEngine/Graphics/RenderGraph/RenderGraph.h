@@ -64,8 +64,8 @@ namespace Engine
 	protected:
 		void Setup(const RenderNodeConfiguration& initInfo);
 
-		void ExecuteSequential(); // For OpenGL
-		void ExecuteParallel();	  // For Vulkan
+		void ExecuteSequential();
+		void ExecuteParallel();
 
 		virtual void CreateConstantResources(const RenderNodeConfiguration& initInfo) = 0; // Pipeline objects that are constant
 		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
