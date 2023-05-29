@@ -661,6 +661,11 @@ namespace Engine
 		m_inUseCommandBuffers.Push(pCmdBuffer);
 	}
 
+	void CommandManager_VK::ReturnMultipleExternalCommandBuffer(std::vector<CommandBuffer_VK*>& cmdBuffers)
+	{
+		m_inUseCommandBuffers.PushMultiple(cmdBuffers);
+	}
+
 	VkCommandPool CommandManager_VK::CreateCommandPool()
 	{
 		VkCommandPool newPool = VK_NULL_HANDLE;

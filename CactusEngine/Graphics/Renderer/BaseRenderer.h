@@ -15,6 +15,8 @@ namespace Engine
 	class GraphicsCommandBuffer;
 	class RenderGraphResource;
 	class Texture2D;
+	class UniformBufferManager;
+
 	struct RenderContext;
 
 	class BaseRenderer
@@ -28,7 +30,7 @@ namespace Engine
 
 		virtual void BuildRenderGraph() = 0;
 
-		void Draw(const RenderContext& renderContext, uint32_t frameIndex, bool parallelExecution = true);
+		void Draw(const RenderContext& renderContext, uint32_t frameIndex);
 		void WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer);
 
 		ERendererType GetRendererType() const;
@@ -39,9 +41,9 @@ namespace Engine
 		RenderGraph* GetRenderGraph() const;
 		GraphicsDevice* GetGraphicsDevice() const;
 		RenderingSystem* GetRenderingSystem() const;
+		UniformBufferManager* GetBufferManager() const;
 
 		void UpdateResolution(uint32_t width, uint32_t height);
-		void UpdateMaxDrawCallCount(uint32_t count);
 
 	protected:
 		void ObtainSwapchainImages();
@@ -57,12 +59,13 @@ namespace Engine
 		std::vector<RenderGraphResource*> m_graphResources;
 		std::vector<Texture2D*> m_swapchainImages;
 
-		std::unordered_map<uint32_t, GraphicsCommandBuffer*> m_commandRecordReadyList; // Submit Priority - Recorded Command Buffer
-		std::unordered_map<uint32_t, bool> m_commandRecordReadyListFlag; // Submit Priority - Ready to submit or has been submitted
+		std::vector<GraphicsCommandBuffer*> m_commandRecordReadyList;
 
 		std::mutex m_commandRecordListWriteMutex;
 		std::condition_variable m_commandRecordListCv;
-		std::queue<uint32_t> m_writtenCommandPriorities;
-		bool m_newCommandRecorded;
+		uint32_t m_finishedNodeCount;
+		bool m_commandRecordFinished;
+
+		UniformBufferManager* m_pBufferManager;
 	};
 }

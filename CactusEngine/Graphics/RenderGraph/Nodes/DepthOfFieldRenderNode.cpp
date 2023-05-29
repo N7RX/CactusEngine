@@ -16,6 +16,9 @@ namespace Engine
 	{
 		m_inputResourceNames[INPUT_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
+
+		// Reserve 2 KB; more than enough for this node
+		CE_NEW(m_pUniformBufferAllocator, UniformBufferConcurrentAllocator, pRenderer->GetBufferManager(), 2 * 1024);
 	}
 
 	void DepthOfFieldRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -113,7 +116,12 @@ namespace Engine
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
-		CreateMutableBuffers(initInfo);
+	}
+
+	void DepthOfFieldRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
 	}
 
 	void DepthOfFieldRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
@@ -162,26 +170,6 @@ namespace Engine
 		}
 	}
 
-	void DepthOfFieldRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
-	{
-		// Uniform buffers
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
-		}
-	}
-
 	void DepthOfFieldRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
 		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
@@ -191,6 +179,7 @@ namespace Engine
 			return;
 		}
 
+		m_pUniformBufferAllocator->ResetReservedRegion();
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
@@ -198,18 +187,21 @@ namespace Engine
 
 		// Prepare uniform buffers
 
+		UniformBuffer cameraMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraMatrices));
+		UniformBuffer cameraProperties_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraProperties));
+
 		UBCameraMatrices ubCameraMatrices{};
 		UBCameraProperties ubCameraProperties{};
 
 		Vector3 cameraPos = pCameraTransform->GetPosition();
 		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
 		ubCameraMatrices.viewMatrix = viewMat;
-		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
+		cameraMatrices_UB.UpdateBufferData(&ubCameraMatrices);
 
 		ubCameraProperties.aperture = pCameraComp->GetAperture();
 		ubCameraProperties.focalDistance = pCameraComp->GetFocalDistance();
 		ubCameraProperties.imageDistance = pCameraComp->GetImageDistance();
-		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
+		cameraProperties_UB.UpdateBufferData(&ubCameraProperties);
 
 		// Generate color input mipmap
 		m_pDevice->CopyTexture2D((Texture2D*)(pGraphResources->Get(m_inputResourceNames.at(INPUT_COLOR_TEXTURE))), frameResources.m_pColorInputMipmap, pCommandBuffer);
@@ -224,8 +216,8 @@ namespace Engine
 
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::DOF);
 
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, &cameraMatrices_UB);
+		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, &cameraProperties_UB);
 
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::COLOR_TEXTURE_1), EDescriptorType::CombinedImageSampler, frameResources.m_pColorInputMipmap);
 		shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GPOSITION_TEXTURE), EDescriptorType::CombinedImageSampler,
@@ -240,9 +232,6 @@ namespace Engine
 		// Submission
 
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
-
-		frameResources.m_pCameraMatrices_UB->FlushToDevice();
-		frameResources.m_pCameraProperties_UB->FlushToDevice();
 
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
@@ -265,20 +254,6 @@ namespace Engine
 		}
 	}
 
-	void DepthOfFieldRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-
-		DestroyMutableBuffers();
-		CreateMutableBuffers(m_configuration);
-	}
-
-	void DepthOfFieldRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
-	}
-
 	void DepthOfFieldRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
@@ -286,15 +261,6 @@ namespace Engine
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
 			CE_DELETE(m_frameResources[i].m_pColorInputMipmap);
 			CE_DELETE(m_frameResources[i].m_pColorOutput);
-		}
-	}
-
-	void DepthOfFieldRenderNode::DestroyMutableBuffers()
-	{
-		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
-		{
-			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
-			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
 		}
 	}
 

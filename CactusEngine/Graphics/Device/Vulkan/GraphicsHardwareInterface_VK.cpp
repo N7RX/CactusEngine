@@ -292,17 +292,9 @@ namespace Engine
 		return vkCreateFramebuffer(m_pMainDevice->logicalDevice, &frameBufferInfo, nullptr, &pFrameBuffer->m_frameBuffer) == VK_SUCCESS;
 	}
 
-	bool GraphicsHardwareInterface_VK::CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput)
+	bool GraphicsHardwareInterface_VK::CreateUniformBufferManager(UniformBufferManager*& pOutput)
 	{
-		DEBUG_ASSERT_MESSAGE_CE(createInfo.maxSubAllocationCount > 0, "Vulkan: UniformBufferCreateInfo.maxSubAllocationCount cannot be 0.");
-
-		UniformBufferCreateInfo_VK vkUniformBufferCreateInfo{};
-		vkUniformBufferCreateInfo.size = createInfo.sizeInBytes * createInfo.maxSubAllocationCount;
-		vkUniformBufferCreateInfo.appliedStages = VulkanShaderStageFlags(createInfo.appliedStages);
-		vkUniformBufferCreateInfo.type = EUniformBufferType_VK::Uniform;
-		vkUniformBufferCreateInfo.requiresFlush = (createInfo.maxSubAllocationCount > 1);
-
-		CE_NEW(pOutput, UniformBuffer_VK, m_pMainDevice->pUploadAllocator, vkUniformBufferCreateInfo);
+		CE_NEW(pOutput, UniformBufferManager_VK, m_pMainDevice->pUploadAllocator);
 
 		return pOutput != nullptr;
 	}
@@ -714,6 +706,18 @@ namespace Engine
 	void GraphicsHardwareInterface_VK::ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer)
 	{
 		((CommandBuffer_VK*)pCommandBuffer)->m_pAllocatedPool->m_pManager->ReturnExternalCommandBuffer((CommandBuffer_VK*)pCommandBuffer);
+	}
+
+	void GraphicsHardwareInterface_VK::ReturnMultipleExternalCommandBuffer(std::vector<GraphicsCommandBuffer*>& commandBuffers)
+	{
+		DEBUG_ASSERT_CE(!commandBuffers.empty());
+		std::vector<CommandBuffer_VK*> commandBuffersVK(commandBuffers.size());
+		for (size_t i = 0; i < commandBuffers.size(); i++)
+		{
+			commandBuffersVK[i] = (CommandBuffer_VK*)commandBuffers[i];
+		}
+
+		((CommandBuffer_VK*)commandBuffers[0])->m_pAllocatedPool->m_pManager->ReturnMultipleExternalCommandBuffer(commandBuffersVK);
 	}
 
 	GraphicsSemaphore* GraphicsHardwareInterface_VK::RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage)
@@ -1568,7 +1572,6 @@ namespace Engine
 		{
 		case EDescriptorType::UniformBuffer:
 		case EDescriptorType::StorageBuffer:
-		case EDescriptorType::SubUniformBuffer:
 			return EDescriptorResourceType_VK::Buffer;
 
 		case EDescriptorType::SampledImage:
@@ -1593,16 +1596,8 @@ namespace Engine
 		{
 		case EDescriptorType::UniformBuffer:
 		{
-			auto pBuffer = (UniformBuffer_VK*)pRes;
-			outInfo.buffer = pBuffer->GetBufferImpl()->m_buffer;
-			outInfo.offset = 0;
-			outInfo.range = VK_WHOLE_SIZE;
-			break;
-		}
-		case EDescriptorType::SubUniformBuffer:
-		{
-			auto pBuffer = (SubUniformBuffer*)pRes;
-			outInfo.buffer = ((UniformBuffer_VK*)(pBuffer->m_pParentBuffer))->GetBufferImpl()->m_buffer;
+			auto pBuffer = (UniformBuffer*)pRes;
+			outInfo.buffer = ((BaseUniformBuffer_VK*)(pBuffer->m_pParentBuffer))->GetBufferImpl()->m_buffer;
 			outInfo.offset = pBuffer->m_offset;
 			outInfo.range = pBuffer->GetSizeInBytes();
 			break;

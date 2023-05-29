@@ -16,7 +16,7 @@ namespace Engine
 	public:
 		virtual ~RawResource() = default;
 
-		virtual uint32_t GetResourceID() const;
+		virtual uint64_t GetResourceID() const;
 
 		virtual void MarkSizeInByte(uint32_t size);
 		virtual uint32_t GetSizeInBytes() const;
@@ -25,11 +25,11 @@ namespace Engine
 		RawResource();
 
 	protected:
-		uint32_t m_resourceID;
+		uint64_t m_resourceID;
 		uint32_t m_sizeInBytes;
 
 	private:
-		static uint32_t m_assignedID;
+		static uint64_t m_assignedID; // Assuming we are generating 3000 resources per frame, 
 	};
 
 	struct VertexBufferCreateInfo
@@ -226,40 +226,116 @@ namespace Engine
 		uint32_t m_height;
 	};
 
-	struct UniformBufferCreateInfo
+	struct UniformBuffer;
+	// Should not be used in render graph directly, managed by UniformBufferManager
+	class BaseUniformBuffer : public RawResource
 	{
-		uint32_t sizeInBytes;			// Per drawcall size
-		uint32_t maxSubAllocationCount;	// Actual buffer size is sizeInBytes * maxSubAllocationCount
-		uint32_t appliedStages;			// Bitmask, required for push constant
+	protected:
+		virtual void UpdateBufferData(const void* pData) = 0; // Update whole buffer; used for push constant
+		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
+
+		virtual UniformBuffer AllocateSubBuffer(uint32_t size) = 0;
+		virtual UniformBuffer AllocateSubBuffer(uint32_t offset, uint32_t size) = 0; // For reserved region only
+		virtual uint32_t ReserveBufferRegion(uint32_t size) = 0; // Return the internal offset of the reserved region
+
+		virtual void ResetSubBufferAllocation() = 0;
+
+	protected:
+		BaseUniformBuffer() = default;
+
+		friend struct UniformBuffer;
+		friend class UniformBufferManager;
 	};
 
-	class UniformBuffer;
-	struct SubUniformBuffer : public RawResource
+	// Sub buffer region allocated from a large base uniform buffer
+	// Because shader update takes RawResource input, it has to inherit from RawResource
+	struct UniformBuffer : public RawResource
 	{
-		SubUniformBuffer(UniformBuffer* pParentBuffer, uint32_t offset, uint32_t size)
+		UniformBuffer()
+			: m_pParentBuffer(nullptr),
+			m_offset(0)
+		{
+			m_sizeInBytes = 0;
+		}
+
+		UniformBuffer(BaseUniformBuffer* pParentBuffer, uint32_t offset, uint32_t size)
 			: m_pParentBuffer(pParentBuffer),
 			m_offset(offset)
+
 		{
 			m_sizeInBytes = size;
 		}
 
-		~SubUniformBuffer() = default;
+		~UniformBuffer() = default;
 
-		UniformBuffer* m_pParentBuffer;
+		bool IsValid() const
+		{
+			return m_pParentBuffer != nullptr;
+		}
+
+		void UpdateBufferData(const void* pData)
+		{
+			m_pParentBuffer->UpdateBufferSubData(pData, m_offset, m_sizeInBytes);
+		}
+
+		BaseUniformBuffer* m_pParentBuffer;
 		uint32_t m_offset;
 	};
 
-	class UniformBuffer : public RawResource
+	struct UniformBufferReservedRegion
+	{
+		// Region identifier
+		uint32_t index;
+		uint32_t offset;
+
+		// Size tracking
+		uint32_t totalSize;
+		uint32_t availableSize;
+	};
+
+	class UniformBufferManager
 	{
 	public:
-		virtual void UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer = nullptr) = 0;
-		virtual void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) = 0;
-		virtual SubUniformBuffer AllocateSubBuffer(uint32_t size) = 0;
-		virtual void ResetSubBufferAllocation() = 0;
-		virtual void FlushToDevice() = 0; // If buffer is updated at sub buffer granularity, this function must be called to flush the changes to device
+		virtual ~UniformBufferManager() = default;
+
+		// Safe to be called concurrently, but slow due to locking
+		virtual UniformBuffer GetUniformBuffer(uint32_t size) = 0;
+
+		// (Almost) Lockless version of GetUniformBuffer, but requires a reserved region
+		virtual UniformBuffer GetUniformBuffer(UniformBufferReservedRegion& region, uint32_t size) = 0;
+		virtual UniformBufferReservedRegion ReserveBufferRegion(uint32_t size) = 0;
+
+		// Unsafe to be called concurrently
+		virtual void ResetBufferAllocation() = 0;
+
+		void SetCurrentFrameIndex(uint32_t index);
 
 	protected:
-		UniformBuffer() = default;
+		UniformBufferManager() = default;
+
+	protected:
+		uint32_t m_currentFrameIndex;
+	};
+
+	// A helper class that speeds up uniform buffer allocation from multiple threads
+	// This is achieved by reducing mutex locking through reserving a region of memory for each thread
+	class UniformBufferConcurrentAllocator
+	{
+	public:
+		// reservedSize is the size of the reserved region each time, and if the current region is full, a new region of the same size will be allocated automatically
+		UniformBufferConcurrentAllocator(UniformBufferManager* pBufferManager, uint32_t reservedSize);
+
+		~UniformBufferConcurrentAllocator() = default;
+
+		UniformBuffer GetUniformBuffer(uint32_t size);
+
+		void ResetReservedRegion();
+
+	private:
+		UniformBufferManager* m_pBufferManager;
+		uint32_t m_reservedSize;
+
+		std::vector<UniformBufferReservedRegion> m_reservedRegions;
 	};
 
 	class Shader

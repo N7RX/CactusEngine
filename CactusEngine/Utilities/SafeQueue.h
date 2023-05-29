@@ -13,6 +13,7 @@ namespace Engine
 		~SafeQueue() = default;
 
 		void Push(T val);
+		void PushMultiple(std::vector<T>& val);
 		void Pop();
 		bool TryPop(T& val);
 		bool TryPopAll(std::queue<T>& allVals);
@@ -39,6 +40,17 @@ namespace Engine
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 		m_queueImpl.push(std::move(val));
+	}
+
+	template<typename T>
+	void SafeQueue<T>::PushMultiple(std::vector<T>& vals)
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		uint32_t length = vals.size();
+		for (uint32_t i = 0; i < length; ++i) // Ensure sequence is maintained
+		{
+			m_queueImpl.push(vals[i]);
+		}
 	}
 
 	template<typename T>

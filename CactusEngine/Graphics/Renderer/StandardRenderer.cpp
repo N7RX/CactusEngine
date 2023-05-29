@@ -5,8 +5,7 @@
 namespace Engine
 {
 	StandardRenderer::StandardRenderer(GraphicsDevice* pDevice, RenderingSystem* pSystem)
-		: BaseRenderer(ERendererType::Standard, pDevice, pSystem),
-		m_renderThreadsCount(4)
+		: BaseRenderer(ERendererType::Standard, pDevice, pSystem)
 	{
 
 	}
@@ -16,7 +15,7 @@ namespace Engine
 #if defined(DEVELOPMENT_MODE_CE)
 		LOG_MESSAGE("Building standard render graph...");
 #endif
-		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice, m_renderThreadsCount);
+		CE_NEW(m_pRenderGraph, RenderGraph, m_pDevice);
 
 		// Create required nodes
 
@@ -70,6 +69,8 @@ namespace Engine
 
 		// Initialize render graph
 
+		m_pRenderGraph->InitExecutionThreads();
+
 		m_pRenderGraph->SetupRenderNodes();
 		m_pRenderGraph->BuildRenderNodePriorities();
 
@@ -78,11 +79,7 @@ namespace Engine
 			m_pRenderGraph->PrebuildPipelines();
 		}
 
-		for (uint32_t i = 0; i < m_pRenderGraph->GetRenderNodeCount(); i++)
-		{
-			m_commandRecordReadyList.emplace(i, nullptr);
-			m_commandRecordReadyListFlag.emplace(i, false);
-		}
+		m_commandRecordReadyList.resize(m_pRenderGraph->GetRenderNodeCount());
 
 #if defined(DEVELOPMENT_MODE_CE)
 		LOG_MESSAGE("Build standard render graph completed.");

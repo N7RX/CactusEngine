@@ -104,6 +104,7 @@ namespace Engine
 
 	void RenderNode::DestroyConstantResources()
 	{
+		CE_SAFE_DELETE(m_pUniformBufferAllocator);
 		CE_SAFE_DELETE(m_pRenderPassObject);
 		DestroyGraphicsPipelines();
 	}
@@ -144,19 +145,12 @@ namespace Engine
 		}
 	}
 
-	RenderGraph::RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount)
+	RenderGraph::RenderGraph(GraphicsDevice* pDevice)
 		: m_pDevice(pDevice),
 		m_isRunning(true),
-		m_executionThreadCount(executionThreadCount),
-		m_estimatedMaxDrawCall(DEFAULT_MAXDRAWCALL)
+		m_executionThreadCount(0)
 	{
-		if (gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetGraphicsAPIType() == EGraphicsAPIType::Vulkan)
-		{
-			for (uint32_t i = 0; i < m_executionThreadCount; i++)
-			{
-				m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodesParallel, this);
-			}
-		}
+
 	}
 
 	RenderGraph::~RenderGraph()
@@ -182,7 +176,6 @@ namespace Engine
 		initInfo.width = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowWidth();
 		initInfo.height = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetWindowHeight();
 		initInfo.framesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
-		initInfo.maxDrawCall = m_estimatedMaxDrawCall;
 		// TODO: read these from configuration
 		initInfo.colorFormat = ETextureFormat::RGBA8_SRGB;
 		initInfo.swapSurfaceFormat = ETextureFormat::BGRA8_SRGB;
@@ -253,32 +246,21 @@ namespace Engine
 		}
 	}
 
-	void RenderGraph::BeginRenderPassesSequential(const RenderContext& context, uint32_t frameIndex)
+	void RenderGraph::InitExecutionThreads()
 	{
-		static CommandContext emptyCmdContext{};
+		m_executionThreadCount = std::min<uint32_t>(std::thread::hardware_concurrency() - 2, m_nodes.size()); // -2 for main thread and render thread
+		m_executionThreadCount = std::max<uint32_t>(m_executionThreadCount, 2);
 
-		for (auto& pNode : m_nodes)
+		for (uint32_t i = 0; i < m_executionThreadCount; i++)
 		{
-			pNode.second->m_renderContext = context;
-			pNode.second->m_cmdContext = emptyCmdContext;
-			pNode.second->m_finishedExecution = false;
-			pNode.second->m_frameIndex = frameIndex;
-
-			if (pNode.second->m_prevNodes.empty())
-			{
-				m_startingNodes.push(pNode.second);
-			}
-		}
-
-		while (!m_startingNodes.empty())
-		{
-			m_startingNodes.front()->ExecuteSequential();
-			m_startingNodes.pop();
+			m_executionThreads.emplace_back(&RenderGraph::ExecuteRenderNodesParallel, this);
 		}
 	}
 
 	void RenderGraph::BeginRenderPassesParallel(const RenderContext& context, uint32_t frameIndex)
 	{
+		DEBUG_ASSERT_MESSAGE_CE(m_executionThreadCount > 0, "Render graph threads are uninitialized.");
+
 		for (auto& pNode : m_nodes)
 		{
 			pNode.second->m_renderContext = context;
@@ -329,33 +311,6 @@ namespace Engine
 		for (auto& pNode : m_nodes)
 		{
 			pNode.second->UpdateResolution(width, height);
-		}
-	}
-
-	void RenderGraph::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		if (count > m_estimatedMaxDrawCall)
-		{
-			// This is empirical
-			m_estimatedMaxDrawCall = count + 128;
-
-			for (auto& pNode : m_nodes)
-			{
-				pNode.second->UpdateMaxDrawCallCount(m_estimatedMaxDrawCall);
-			}
-		}
-	}
-
-	void RenderGraph::ResetMaxDrawCall()
-	{
-		if (m_estimatedMaxDrawCall != DEFAULT_MAXDRAWCALL)
-		{
-			m_estimatedMaxDrawCall = DEFAULT_MAXDRAWCALL;
-
-			for (auto& pNode : m_nodes)
-			{
-				pNode.second->UpdateMaxDrawCallCount(m_estimatedMaxDrawCall);
-			}
 		}
 	}
 

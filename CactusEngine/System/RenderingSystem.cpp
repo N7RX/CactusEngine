@@ -353,36 +353,7 @@ namespace Engine
 		{
 			DEBUG_ASSERT_CE(pRenderer);
 
-			// Estimate max draw call count
-
-			uint32_t maxEstimatedDrawCall = 0;
-			{
-				uint32_t estimatedDrawCall = 0;
-				for (auto& pEntity : m_opaqueDrawList)
-				{
-					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
-				}
-				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
-
-				estimatedDrawCall = 0;
-				for (auto& pEntity : m_transparentDrawList)
-				{
-					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
-				}
-				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
-
-				estimatedDrawCall = 0;
-				for (auto& pEntity : m_lightDrawList)
-				{
-					estimatedDrawCall += pEntity->EstimateMaxDrawCallCount();
-				}
-				maxEstimatedDrawCall = std::max<uint32_t>(maxEstimatedDrawCall, estimatedDrawCall);
-			}
-
-			pRenderer->UpdateMaxDrawCallCount(maxEstimatedDrawCall);
-
 			// Fill context
-
 			RenderContext context{};
 			context.pOpaqueDrawList = &m_opaqueDrawList;
 			context.pTransparentDrawList = &m_transparentDrawList;

@@ -2,6 +2,7 @@
 #include "SharedTypes.h"
 
 #include <cstdint>
+#include <algorithm>
 
 // Macro configurations
 
@@ -35,7 +36,7 @@ namespace Engine
 		AppConfiguration()
 			: m_appName("CE_Application"),
 			m_appVersion("1.0.0"),
-			m_engineVersion("0.1.6")
+			m_engineVersion("0.1.7")
 		{
 
 		}
@@ -132,15 +133,7 @@ namespace Engine
 
 		void SetMaxFramesInFlight(uint32_t val)
 		{
-			if (val > 3)
-			{
-				val = 3;
-			}
-			else if (val == 0)
-			{
-				val = 1;
-			}
-			m_maxFramesInFlight = val;
+			m_maxFramesInFlight = std::clamp<uint32_t>(val, 1, 3);
 		}
 
 		uint32_t GetMaxFramesInFlight() const
@@ -190,15 +183,7 @@ namespace Engine
 
 		void SetRenderScale(float scale)
 		{
-			if (scale > 2.0f)
-			{
-				scale = 2.0f;
-			}
-			else if (scale < 0.5f)
-			{
-				scale = 0.5f;
-			}
-			m_renderScale = scale;
+			m_renderScale = std::clamp<float>(scale, 0.5f, 2.0f);
 		}
 
 		float GetRenderScale() const

@@ -42,7 +42,6 @@ namespace Engine
 	{
 		uint32_t width;
 		uint32_t height;
-		uint32_t maxDrawCall;
 		uint32_t framesInFlight;
 		ETextureFormat colorFormat;
 		ETextureFormat swapSurfaceFormat;
@@ -68,29 +67,29 @@ namespace Engine
 		void ExecuteParallel();
 
 		virtual void CreateConstantResources(const RenderNodeConfiguration& initInfo) = 0; // Pipeline objects that are constant
-		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Buffers, render textures, etc. that can be changed
+		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Render textures, etc. that can be changed depending on external settings
+		virtual void DestroyMutableResources() {}
+		virtual void DestroyConstantResources();
 
 		virtual void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) = 0;
 
 		virtual void UpdateResolution(uint32_t width, uint32_t height) = 0;
-		virtual void UpdateMaxDrawCallCount(uint32_t count) = 0; // May affect the size of uniform buffers
-
-		virtual void DestroyMutableResources() {}
-		virtual void DestroyConstantResources();
 
 		virtual void PrebuildGraphicsPipelines() = 0;
 		virtual GraphicsPipelineObject* GetGraphicsPipeline(uint32_t key);
 		void DestroyGraphicsPipelines();
 
 	protected:
-		const char*					m_pName;
-		BaseRenderer*				m_pRenderer;
-		GraphicsDevice*				m_pDevice;
-		EGraphicsAPIType			m_eGraphicsDeviceType;
+		const char*		 m_pName;
+		BaseRenderer*	 m_pRenderer;
+		GraphicsDevice*	 m_pDevice;
+		EGraphicsAPIType m_eGraphicsDeviceType;
 
-		std::vector<RenderNode*>	m_prevNodes;
-		std::vector<RenderNode*>	m_nextNodes;
-		bool						m_finishedExecution;
+		UniformBufferConcurrentAllocator* m_pUniformBufferAllocator;
+
+		std::vector<RenderNode*> m_prevNodes;
+		std::vector<RenderNode*> m_nextNodes;
+		bool m_finishedExecution;
 
 		std::vector<RenderGraphResource*> m_graphResources;
 		uint32_t m_frameIndex;
@@ -148,23 +147,21 @@ namespace Engine
 	class RenderGraph : public NoCopy
 	{
 	public:
-		RenderGraph(GraphicsDevice* pDevice, uint32_t executionThreadCount);
+		RenderGraph(GraphicsDevice* pDevice);
 		~RenderGraph();
 
 		void AddRenderNode(const char* name, RenderNode* pNode);
 		void SetupRenderNodes();
 		void BuildRenderNodePriorities();
 		void PrebuildPipelines();
+		void InitExecutionThreads();
 
-		void BeginRenderPassesSequential(const RenderContext& context, uint32_t frameIndex);
 		void BeginRenderPassesParallel(const RenderContext& context, uint32_t frameIndex);
 
 		RenderNode* GetNodeByName(const char* name) const;
 		uint32_t GetRenderNodeCount() const;
 
 		void UpdateResolution(uint32_t width, uint32_t height);
-		void UpdateMaxDrawCallCount(uint32_t count);
-		void ResetMaxDrawCall();
 
 	private:
 		void ExecuteRenderNodesParallel();
@@ -187,7 +184,5 @@ namespace Engine
 		std::mutex m_nodeExecutionMutex;
 		std::condition_variable m_nodeExecutionCv;
 		SafeQueue<RenderNode*> m_executionNodeQueue;
-
-		uint32_t m_estimatedMaxDrawCall;
 	};
 }

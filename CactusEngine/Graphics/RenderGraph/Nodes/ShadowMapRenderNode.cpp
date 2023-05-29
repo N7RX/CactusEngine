@@ -11,7 +11,9 @@ namespace Engine
 	ShadowMapRenderNode::ShadowMapRenderNode(std::vector<RenderGraphResource*> graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer)
 	{
-
+		// Reserve by 512 KB; this should be enough for most cases
+		// Assuming each mesh takes up 256 bytes, this would be enough for 2048 meshes until a new region is allocated
+		CE_NEW(m_pUniformBufferAllocator, UniformBufferConcurrentAllocator, pRenderer->GetBufferManager(), 512 * 1024);
 	}
 
 	void ShadowMapRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -142,7 +144,12 @@ namespace Engine
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
-		CreateMutableBuffers(initInfo);
+	}
+
+	void ShadowMapRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
 	}
 
 	void ShadowMapRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
@@ -178,29 +185,9 @@ namespace Engine
 		}
 	}
 
-	void ShadowMapRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
-	{
-		// Uniform buffers
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
-		}
-	}
-
 	void ShadowMapRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
+		m_pUniformBufferAllocator->ResetReservedRegion();
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
@@ -208,17 +195,16 @@ namespace Engine
 		auto pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(EBuiltInShaderProgramType::ShadowMap);
 		ShaderParameterTable shaderParamTable{};
 
-		// Prepare uniform buffers
+		// Prepare uniform buffer
 
-		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		UniformBuffer lightSpaceTransformMatrix_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBLightSpaceTransformMatrix));
 
-		UBTransformMatrices ubTransformMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
 
 		Matrix4x4 lightProjection;
 		Matrix4x4 lightView;
 
-		// TODO: resolve this workaround and get from light source
+		// TODO: remove this workaround and get from light source
 		Vector3 lightDir(0.0f, 0.8660254f * 16, -0.5f * 16);
 		lightProjection = glm::ortho<float>(-15.0f, 15.0f, -15.0f, 15.0f, -30.0f, 30.0f);
 		lightView = glm::lookAt(lightDir, Vector3(0), UP);
@@ -226,7 +212,7 @@ namespace Engine
 		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-		frameResources.m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+		lightSpaceTransformMatrix_UB.UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 		// Bind pipeline and begin draw
 
@@ -251,10 +237,14 @@ namespace Engine
 			}
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);	
 
-			// Update uniforms
+			// Update uniform buffer
+
+			UniformBuffer transformMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBTransformMatrices));
+
+			UBTransformMatrices ubTransformMatrices{};
+
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
-			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
+			transformMatrices_UB.UpdateBufferData(&ubTransformMatrices);
 
 			// Draw submeshes
 			auto pSubMeshes = pMesh->GetSubMeshes();
@@ -272,8 +262,8 @@ namespace Engine
 
 				shaderParamTable.Clear();
 
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, &transformMatrices_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, &lightSpaceTransformMatrix_UB);
 
 				auto pAlbedoTexture = pMaterial->GetTexture(EMaterialTextureType::Albedo);
 				if (pAlbedoTexture)
@@ -294,9 +284,6 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		frameResources.m_pTransformMatrices_UB->FlushToDevice();
-		frameResources.m_pLightSpaceTransformMatrix_UB->FlushToDevice();
-
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
@@ -311,35 +298,12 @@ namespace Engine
 		//CreateMutableTextures(m_configuration);
 	}
 
-	void ShadowMapRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-
-		DestroyMutableBuffers();
-		CreateMutableBuffers(m_configuration);
-	}
-
-	void ShadowMapRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
-	}
-
 	void ShadowMapRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
 		{
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
 			CE_DELETE(m_frameResources[i].m_pDepthOutput);
-		}
-	}
-
-	void ShadowMapRenderNode::DestroyMutableBuffers()
-	{
-		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
-		{
-			CE_DELETE(m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
-			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
 		}
 	}
 

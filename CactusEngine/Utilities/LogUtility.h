@@ -39,7 +39,7 @@ namespace Engine
 
 #define DEBUG_ASSERT_CE(condition) assert(condition);
 #define DEBUG_ASSERT_MESSAGE_CE(condition, message) { \
-	if (!condition) \
+	if (!(condition)) \
 	{ \
 		gLogUtilityInstance.LogError(message); \
 		assert(false); \
@@ -60,7 +60,7 @@ namespace Engine
 
 #define ASSERT_CE(condition) assert(condition);
 #define ASSERT_MESSAGE_CE(condition, message) { \
-	if (!condition) \
+	if (!(condition)) \
 	{ \
 		gLogUtilityInstance.LogError(message); \
 		assert(false); \

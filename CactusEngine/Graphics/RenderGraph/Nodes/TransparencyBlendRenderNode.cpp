@@ -20,6 +20,8 @@ namespace Engine
 		m_inputResourceNames[INPUT_OPQAUE_DEPTH_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_TRANSPARENCY_COLOR_TEXTURE] = nullptr;
 		m_inputResourceNames[INPUT_TRANSPARENCY_DEPTH_TEXTURE] = nullptr;
+
+		// This node does not require UniformBufferAllocator
 	}
 
 	void TransparencyBlendRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -119,6 +121,12 @@ namespace Engine
 		CreateMutableTextures(initInfo);
 	}
 
+	void TransparencyBlendRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
+	}
+
 	void TransparencyBlendRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
 	{
 		uint32_t width = m_outputToSwapchain ? initInfo.width : initInfo.width * initInfo.renderScale;
@@ -215,17 +223,6 @@ namespace Engine
 		{
 			m_defaultPipelineStates.pViewportState->UpdateResolution(width * m_configuration.renderScale, height * m_configuration.renderScale);
 		}
-	}
-
-	void TransparencyBlendRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-	}
-
-	void TransparencyBlendRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
 	}
 
 	void TransparencyBlendRenderNode::DestroyMutableTextures()

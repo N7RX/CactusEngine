@@ -16,8 +16,6 @@ namespace Engine
 		void BuildDummyResources();
 
 	private:
-		uint32_t m_renderThreadsCount;
-
 		ImageTexture* m_pDummyInputTexture;
 	};
 }

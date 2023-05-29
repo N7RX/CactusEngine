@@ -12,7 +12,8 @@ namespace Engine
 		m_pDevice(pDevice),
 		m_pSystem(pSystem),
 		m_eGraphicsDeviceType(pDevice->GetGraphicsAPIType()),
-		m_newCommandRecorded(false)
+		m_finishedNodeCount(0),
+		m_commandRecordFinished(false)
 	{
 		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
 		m_graphResources.resize(maxFramesInFlight);
@@ -20,116 +21,56 @@ namespace Engine
 		{
 			CE_NEW(m_graphResources[i], RenderGraphResource);
 		}
+
+		m_pDevice->CreateUniformBufferManager(m_pBufferManager);
 	}
 
-	void BaseRenderer::Draw(const RenderContext& renderContext, uint32_t frameIndex, bool parallelExecution)
+	void BaseRenderer::Draw(const RenderContext& renderContext, uint32_t frameIndex)
 	{
 		if (!renderContext.pCamera)
 		{
 			return;
 		}
 
-		if (parallelExecution)
+		for (auto& item : m_commandRecordReadyList)
 		{
-			for (auto& item : m_commandRecordReadyList)
-			{
-				item.second = nullptr;
-				m_commandRecordReadyListFlag[item.first] = false;
-			}
-
-			m_pRenderGraph->BeginRenderPassesParallel(renderContext, frameIndex);
-
-			// Submit async recorded command buffers by correct sequence
-
-			uint32_t finishedNodeCount = 0;
-
-			while (finishedNodeCount < m_pRenderGraph->GetRenderNodeCount())
-			{
-				std::vector<std::pair<uint32_t, GraphicsCommandBuffer*>> buffersToReturn;
-
-				{
-					std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
-					m_commandRecordListCv.wait(lock, [this]() { return m_newCommandRecorded; });
-					m_newCommandRecorded = false;
-
-					std::vector<uint32_t> sortedQueueContents;
-					std::queue<uint32_t>  continueWaitQueue; // Command buffers that shouldn't be submitted as dependencies have not finished
-
-					// Eliminate dependency jump
-					while (!m_writtenCommandPriorities.empty())
-					{
-						sortedQueueContents.emplace_back(m_writtenCommandPriorities.front());
-						m_writtenCommandPriorities.pop();
-					}
-					std::sort(sortedQueueContents.begin(), sortedQueueContents.end());
-
-					for (uint32_t i = 0; i < sortedQueueContents.size(); i++)
-					{
-						bool proceed = true;
-						uint32_t currPriority = sortedQueueContents[i];
-						for (uint32_t& id : m_pRenderGraph->m_nodePriorityDependencies[currPriority]) // Check if dependent nodes have finished
-						{
-							if (!m_commandRecordReadyListFlag[id])
-							{
-								continueWaitQueue.push(currPriority);
-								proceed = false;
-								break;
-							}
-						}
-						if (proceed)
-						{
-							m_commandRecordReadyListFlag[currPriority] = true;
-							m_commandRecordReadyList[currPriority]->m_debugID = currPriority;
-							buffersToReturn.emplace_back(currPriority, m_commandRecordReadyList[currPriority]);
-						}
-					}
-
-					while (!continueWaitQueue.empty())
-					{
-						m_writtenCommandPriorities.push(continueWaitQueue.front());
-						continueWaitQueue.pop();
-					}
-				}
-
-				if (buffersToReturn.size() > 0)
-				{
-					std::sort(buffersToReturn.begin(), buffersToReturn.end(),
-						[](const std::pair<uint32_t, GraphicsCommandBuffer*>& lhs, std::pair<uint32_t, GraphicsCommandBuffer*>& rhs)
-						{
-							return lhs.first < rhs.first;
-						});
-
-					for (uint32_t i = 0; i < buffersToReturn.size(); i++)
-					{
-						m_pDevice->ReturnExternalCommandBuffer(buffersToReturn[i].second);
-					}
-
-					finishedNodeCount += buffersToReturn.size();
-					m_pDevice->FlushCommands(false, false);
-				}
-
-				std::this_thread::yield();
-			}
+			item = nullptr;
 		}
-		else
+		m_finishedNodeCount = 0;
+		m_commandRecordFinished = false;
+
+		m_pBufferManager->SetCurrentFrameIndex(frameIndex);
+		m_pBufferManager->ResetBufferAllocation();
+
+		m_pRenderGraph->BeginRenderPassesParallel(renderContext, frameIndex);
+
 		{
-			m_pRenderGraph->BeginRenderPassesSequential(renderContext, frameIndex);
+			std::unique_lock<std::mutex> lock(m_commandRecordListWriteMutex);
+			m_commandRecordListCv.wait(lock, [this]() { return m_commandRecordFinished; });
 		}
+
+		// Submit async recorded command buffers by correct sequence
+		// One batch per frame
+		m_pDevice->ReturnMultipleExternalCommandBuffer(m_commandRecordReadyList);
+		m_pDevice->FlushCommands(false, false);
 	}
 
 	void BaseRenderer::WriteCommandRecordList(const char* pNodeName, GraphicsCommandBuffer* pCommandBuffer)
 	{
-		DEBUG_ASSERT_CE(pCommandBuffer);
-
+		DEBUG_ASSERT_CE(pCommandBuffer != nullptr);
 		{
 			std::lock_guard<std::mutex> guard(m_commandRecordListWriteMutex);
 
 			m_commandRecordReadyList[m_pRenderGraph->m_renderNodePriorities[pNodeName]] = pCommandBuffer;
-			m_writtenCommandPriorities.push(m_pRenderGraph->m_renderNodePriorities[pNodeName]);
-			m_newCommandRecorded = true;
-		}
+			++m_finishedNodeCount;
 
-		m_commandRecordListCv.notify_all();
+			DEBUG_ASSERT_CE(m_finishedNodeCount <= m_pRenderGraph->GetRenderNodeCount()); // Check for overwriting
+			if (m_finishedNodeCount == m_pRenderGraph->GetRenderNodeCount())
+			{
+				m_commandRecordFinished = true;
+				m_commandRecordListCv.notify_one();
+			}
+		}
 	}
 
 	ERendererType BaseRenderer::GetRendererType() const
@@ -162,16 +103,15 @@ namespace Engine
 		return m_pSystem;
 	}
 
+	UniformBufferManager* BaseRenderer::GetBufferManager() const
+	{
+		return m_pBufferManager;
+	}
+
 	void BaseRenderer::UpdateResolution(uint32_t width, uint32_t height)
 	{
 		ObtainSwapchainImages();
 		m_pRenderGraph->UpdateResolution(width, height);
-	}
-
-	void BaseRenderer::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_pDevice->WaitIdle();
-		m_pRenderGraph->UpdateMaxDrawCallCount(count);
 	}
 
 	void BaseRenderer::ObtainSwapchainImages()

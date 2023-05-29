@@ -14,7 +14,9 @@ namespace Engine
 	GBufferRenderNode::GBufferRenderNode(std::vector<RenderGraphResource*>& graphResources, BaseRenderer* pRenderer)
 		: RenderNode(graphResources, pRenderer)
 	{
-
+		// Reserve by 1 MB; this should be enough for most cases
+		// Assuming each mesh takes up 512 bytes, this would be enough for 2048 meshes until a new region is allocated
+		CE_NEW(m_pUniformBufferAllocator, UniformBufferConcurrentAllocator, pRenderer->GetBufferManager(), 1 * 1024 * 1024);
 	}
 
 	void GBufferRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -178,7 +180,12 @@ namespace Engine
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
-		CreateMutableBuffers(initInfo);
+	}
+
+	void GBufferRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
 	}
 
 	void GBufferRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
@@ -233,27 +240,6 @@ namespace Engine
 		}
 	}
 
-	void GBufferRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
-	{
-		// Uniform buffer
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-	}
-
 	void GBufferRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
 		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
@@ -263,6 +249,7 @@ namespace Engine
 			return;
 		}
 
+		m_pUniformBufferAllocator->ResetReservedRegion();
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
@@ -272,9 +259,8 @@ namespace Engine
 
 		// Prepare uniform buffers
 
-		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
+		UniformBuffer cameraMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraMatrices));
 
-		UBTransformMatrices ubTransformMatrices{};
 		UBCameraMatrices ubCameraMatrices{};
 
 		Vector3 cameraPos = pCameraTransform->GetPosition();
@@ -285,7 +271,7 @@ namespace Engine
 
 		ubCameraMatrices.projectionMatrix = projectionMat;
 		ubCameraMatrices.viewMatrix = viewMat;
-		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
+		cameraMatrices_UB.UpdateBufferData(&ubCameraMatrices);
 
 		// Bind pipeline and draw
 		m_pDevice->BeginRenderPass(m_pRenderPassObject, frameResources.m_pFrameBuffer, pCommandBuffer);
@@ -307,18 +293,22 @@ namespace Engine
 			}
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
-			// Update uniform
+			// Update uniform buffer
+
+			UniformBuffer transformMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBTransformMatrices));
+
+			UBTransformMatrices ubTransformMatrices{};
+
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
+			transformMatrices_UB.UpdateBufferData(&ubTransformMatrices);
 
 			// Update shader resources
 
 			shaderParamTable.Clear();
 
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, &transformMatrices_UB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, &cameraMatrices_UB);
 
 			m_pDevice->UpdateShaderParameter(pShaderProgram, &shaderParamTable, pCommandBuffer);
 
@@ -345,9 +335,6 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		frameResources.m_pTransformMatrices_UB->FlushToDevice();
-		frameResources.m_pCameraMatrices_UB->FlushToDevice();
-
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
@@ -362,20 +349,6 @@ namespace Engine
 		m_defaultPipelineStates.pViewportState->UpdateResolution(width * m_configuration.renderScale, height * m_configuration.renderScale);
 	}
 
-	void GBufferRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-
-		DestroyMutableBuffers();
-		CreateMutableBuffers(m_configuration);
-	}
-
-	void GBufferRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
-	}
-
 	void GBufferRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
@@ -384,15 +357,6 @@ namespace Engine
 			CE_DELETE(m_frameResources[i].m_pDepthBuffer);
 			CE_DELETE(m_frameResources[i].m_pNormalOutput);
 			CE_DELETE(m_frameResources[i].m_pPositionOutput);
-		}
-	}
-
-	void GBufferRenderNode::DestroyMutableBuffers()
-	{
-		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
-		{
-			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
-			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
 		}
 	}
 

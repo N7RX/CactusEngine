@@ -262,7 +262,6 @@ namespace Engine
 	enum class EDescriptorType
 	{
 		UniformBuffer = 0,
-		SubUniformBuffer, // Only for descriptor set update, does not exist in shader
 		UniformTexelBuffer,
 		SampledImage,
 		Sampler,

@@ -17,6 +17,10 @@ namespace Engine
 	{
 		m_inputResourceNames[INPUT_GBUFFER_NORMAL] = nullptr;
 		m_inputResourceNames[INPUT_SHADOW_MAP] = nullptr;
+
+		// Reserve by 1 MB; this should be enough for most cases
+		// Assuming each mesh takes up 512 bytes, this would be enough for 2048 meshes until a new region is allocated
+		CE_NEW(m_pUniformBufferAllocator, UniformBufferConcurrentAllocator, pRenderer->GetBufferManager(), 1 * 1024 * 1024);
 	}
 
 	void OpaqueContentRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -163,7 +167,12 @@ namespace Engine
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
-		CreateMutableBuffers(initInfo);
+	}
+
+	void OpaqueContentRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
 	}
 
 	void OpaqueContentRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
@@ -219,47 +228,6 @@ namespace Engine
 		}
 	}
 
-	void OpaqueContentRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
-	{
-		// Uniform buffers
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSpaceTransformMatrix);
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBMaterialNumericalProperties);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pMaterialNumericalProperties_UB);
-		}
-	}
-
 	void OpaqueContentRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
 		auto pCameraTransform = (TransformComponent*)renderContext.pCamera->GetComponent(EComponentType::Transform);
@@ -271,6 +239,7 @@ namespace Engine
 
 		// Get resources
 
+		m_pUniformBufferAllocator->ResetReservedRegion();
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		auto pGBufferNormalTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_NORMAL));
@@ -283,16 +252,15 @@ namespace Engine
 		ShaderParameterTable shaderParamTable{};
 		ESamplerAnisotropyLevel samplerAFLevel = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetTextureAnisotropyLevel();
 
-		// Prepare uniform buffers
+		// Prepare camera & light uniform buffers
 
-		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
-		frameResources.m_pMaterialNumericalProperties_UB->ResetSubBufferAllocation();
+		UniformBuffer cameraMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraMatrices));
+		UniformBuffer lightSpaceTransformMatrix_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBLightSpaceTransformMatrix));
+		UniformBuffer cameraProperties_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraProperties));
 
-		UBTransformMatrices ubTransformMatrices{};
 		UBCameraMatrices ubCameraMatrices{};
 		UBLightSpaceTransformMatrix ubLightSpaceTransformMatrix{};
 		UBCameraProperties ubCameraProperties{};
-		UBMaterialNumericalProperties ubMaterialNumericalProperties{};
 
 		Vector3 cameraPos = pCameraTransform->GetPosition();
 		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
@@ -301,7 +269,7 @@ namespace Engine
 			pCameraComp->GetNearClip(), pCameraComp->GetFarClip());
 		ubCameraMatrices.projectionMatrix = projectionMat;
 		ubCameraMatrices.viewMatrix = viewMat;
-		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
+		cameraMatrices_UB.UpdateBufferData(&ubCameraMatrices);
 
 		// TODO: remove these and get from light source
 		Vector3   lightDir(0.0f, 0.8660254f, -0.5f);
@@ -309,10 +277,10 @@ namespace Engine
 		Matrix4x4 lightView = glm::lookAt(glm::normalize(lightDir), Vector3(0), UP);
 		Matrix4x4 lightSpaceMatrix = lightProjection * lightView;
 		ubLightSpaceTransformMatrix.lightSpaceMatrix = lightSpaceMatrix;
-		frameResources.m_pLightSpaceTransformMatrix_UB->UpdateBufferData(&ubLightSpaceTransformMatrix);
+		lightSpaceTransformMatrix_UB.UpdateBufferData(&ubLightSpaceTransformMatrix);
 
 		ubCameraProperties.cameraPosition = cameraPos;
-		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
+		cameraProperties_UB.UpdateBufferData(&ubCameraProperties);
 
 		// Begin drawing
 
@@ -339,12 +307,15 @@ namespace Engine
 			}
 			m_pDevice->SetVertexBuffer(pMesh->GetVertexBuffer(), pCommandBuffer);
 
-			// Update per mesh uniforms
+			// Update per mesh uniform
+
+			UniformBuffer transformMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBTransformMatrices));
+
+			UBTransformMatrices ubTransformMatrices{};
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
 			ubTransformMatrices.normalMatrix = pTransformComp->GetNormalMatrix();
-			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
+			transformMatrices_UB.UpdateBufferData(&ubTransformMatrices);
 
 			// Draw submeshes
 			auto pSubMeshes = pMesh->GetSubMeshes();
@@ -361,30 +332,34 @@ namespace Engine
 				// Bind pipeline
 				if (lastUsedShaderProgramType != pMaterial->GetShaderProgramType())
 				{
-					// TODO: implement missing pipeline building
-					m_pDevice->BindGraphicsPipeline(GetGraphicsPipeline((uint32_t)pMaterial->GetShaderProgramType()), pCommandBuffer);
-					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(pMaterial->GetShaderProgramType());
-					lastUsedShaderProgramType = pMaterial->GetShaderProgramType();
+					EBuiltInShaderProgramType shaderType = pMaterial->GetShaderProgramType();
+					m_pDevice->BindGraphicsPipeline(GetGraphicsPipeline((uint32_t)shaderType), pCommandBuffer);
+					pShaderProgram = (m_pRenderer->GetRenderingSystem())->GetShaderProgramByType(shaderType);
+					lastUsedShaderProgramType = shaderType;
 				}
 
-				// Update per submesh uniforms
+				// Update per submesh uniform
+
+				UniformBuffer materialNumericalProperties_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBMaterialNumericalProperties));
+
+				UBMaterialNumericalProperties ubMaterialNumericalProperties{};
+
 				ubMaterialNumericalProperties.albedoColor = pMaterial->GetAlbedoColor();
 				ubMaterialNumericalProperties.roughness = pMaterial->GetRoughness();
 				ubMaterialNumericalProperties.anisotropy = pMaterial->GetAnisotropy();
-				SubUniformBuffer subMaterialNumericalPropertiesUB = frameResources.m_pMaterialNumericalProperties_UB->AllocateSubBuffer(sizeof(UBMaterialNumericalProperties));
-				frameResources.m_pMaterialNumericalProperties_UB->UpdateBufferData(&ubMaterialNumericalProperties, &subMaterialNumericalPropertiesUB);
+				materialNumericalProperties_UB.UpdateBufferData(&ubMaterialNumericalProperties);
 
 				// Update shader resources
 
 				shaderParamTable.Clear();
 				DEBUG_ASSERT_CE(pShaderProgram != nullptr);
+				
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, &cameraMatrices_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, &cameraProperties_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, &lightSpaceTransformMatrix_UB);
 
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSPACE_TRANSFORM_MATRIX), EDescriptorType::UniformBuffer, frameResources.m_pLightSpaceTransformMatrix_UB);
-
-				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::SubUniformBuffer, &subMaterialNumericalPropertiesUB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, &transformMatrices_UB);
+				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::MATERIAL_NUMERICAL_PROPERTIES), EDescriptorType::UniformBuffer, &materialNumericalProperties_UB);
 
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
 				shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::SHADOWMAP_DEPTH_TEXTURE), EDescriptorType::CombinedImageSampler, pShadowMapTexture);
@@ -418,12 +393,6 @@ namespace Engine
 		m_pDevice->EndRenderPass(pCommandBuffer);
 		m_pDevice->EndCommandBuffer(pCommandBuffer);
 
-		frameResources.m_pTransformMatrices_UB->FlushToDevice();
-		frameResources.m_pCameraMatrices_UB->FlushToDevice();
-		frameResources.m_pLightSpaceTransformMatrix_UB->FlushToDevice();
-		frameResources.m_pCameraProperties_UB->FlushToDevice();
-		frameResources.m_pMaterialNumericalProperties_UB->FlushToDevice();
-
 		m_pRenderer->WriteCommandRecordList(m_pName, pCommandBuffer);
 	}
 
@@ -445,20 +414,6 @@ namespace Engine
 		}
 	}
 
-	void OpaqueContentRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-
-		DestroyMutableBuffers();
-		CreateMutableBuffers(m_configuration);
-	}
-
-	void OpaqueContentRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
-	}
-
 	void OpaqueContentRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
@@ -466,18 +421,6 @@ namespace Engine
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
 			CE_SAFE_DELETE(m_frameResources[i].m_pColorOutput);
 			CE_DELETE(m_frameResources[i].m_pDepthOutput);
-		}
-	}
-
-	void OpaqueContentRenderNode::DestroyMutableBuffers()
-	{
-		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
-		{
-			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
-			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
-			CE_DELETE(m_frameResources[i].m_pLightSpaceTransformMatrix_UB);
-			CE_DELETE(m_frameResources[i].m_pMaterialNumericalProperties_UB);
-			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
 		}
 	}
 

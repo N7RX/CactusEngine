@@ -11,21 +11,17 @@ namespace Engine
 	protected:
 		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
 		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
+		void DestroyMutableResources() override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
-		void UpdateMaxDrawCallCount(uint32_t count) override;
-
-		void DestroyMutableResources() override;
 
 		void PrebuildGraphicsPipelines() override;
 
 	private:
 		void CreateMutableTextures(const RenderNodeConfiguration& initInfo);
-		void CreateMutableBuffers(const RenderNodeConfiguration& initInfo);
 		void DestroyMutableTextures();
-		void DestroyMutableBuffers();
 
 	public:
 		static const char* OUTPUT_NORMAL_GBUFFER;
@@ -38,9 +34,7 @@ namespace Engine
 				: m_pFrameBuffer(nullptr),
 				m_pDepthBuffer(nullptr),
 				m_pNormalOutput(nullptr),
-				m_pPositionOutput(nullptr),
-				m_pTransformMatrices_UB(nullptr),
-				m_pCameraMatrices_UB(nullptr)
+				m_pPositionOutput(nullptr)
 			{
 
 			}
@@ -51,8 +45,6 @@ namespace Engine
 				CE_SAFE_DELETE(m_pDepthBuffer);
 				CE_SAFE_DELETE(m_pNormalOutput);
 				CE_SAFE_DELETE(m_pPositionOutput);
-				CE_SAFE_DELETE(m_pTransformMatrices_UB);
-				CE_SAFE_DELETE(m_pCameraMatrices_UB);
 			}
 
 			FrameBuffer* m_pFrameBuffer;
@@ -60,9 +52,6 @@ namespace Engine
 			Texture2D* m_pDepthBuffer;
 			Texture2D* m_pNormalOutput;
 			Texture2D* m_pPositionOutput;
-
-			UniformBuffer* m_pTransformMatrices_UB;
-			UniformBuffer* m_pCameraMatrices_UB;
 		};
 		std::vector<FrameResources> m_frameResources;
 	};

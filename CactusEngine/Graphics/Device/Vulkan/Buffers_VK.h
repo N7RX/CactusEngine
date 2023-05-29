@@ -2,6 +2,8 @@
 #include "GraphicsResources.h"
 #include "UploadAllocator_VK.h"
 
+#include <mutex>
+
 namespace Engine
 {
 	class CommandBuffer_VK;
@@ -22,7 +24,7 @@ namespace Engine
 		friend class CommandBuffer_VK;
 		friend class UploadAllocator_VK;
 		friend class GraphicsHardwareInterface_VK;
-		friend class UniformBuffer_VK;
+		friend class BaseUniformBuffer_VK;
 		friend class DataTransferBuffer_VK;
 	};
 
@@ -67,29 +69,32 @@ namespace Engine
 		COUNT
 	};
 
-	struct UniformBufferCreateInfo_VK
+	struct BaseUniformBufferCreateInfo_VK
 	{
 		EUniformBufferType_VK	type;
 		uint32_t				size;
 		VkShaderStageFlags		appliedStages;
-		bool					requiresFlush;
 	};
 
-	class UniformBuffer_VK : public UniformBuffer
+	class BaseUniformBuffer_VK : public BaseUniformBuffer
 	{
 	public:
-		UniformBuffer_VK(UploadAllocator_VK* pAllocator, const UniformBufferCreateInfo_VK& createInfo);
-		~UniformBuffer_VK();
+		BaseUniformBuffer_VK(UploadAllocator_VK* pAllocator, const BaseUniformBufferCreateInfo_VK& createInfo);
+		~BaseUniformBuffer_VK();
 
-		void UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer = nullptr) override;
+		void UpdateBufferData(const void* pData) override;
 		void UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size) override;
-		SubUniformBuffer AllocateSubBuffer(uint32_t size) override;
-		void ResetSubBufferAllocation() override;
-		void FlushToDevice() override;
 
+		UniformBuffer AllocateSubBuffer(uint32_t size) override;
+		UniformBuffer AllocateSubBuffer(uint32_t offset, uint32_t size) override;
+		uint32_t ReserveBufferRegion(uint32_t size) override;
+
+		void ResetSubBufferAllocation() override;
 		void UpdateToDevice(CommandBuffer_VK* pCmdBuffer = nullptr);
+
 		RawBuffer_VK* GetBufferImpl() const;
 		EUniformBufferType_VK GetType() const;
+		uint32_t GetFreeSpace() const;
 
 	private:
 		RawBuffer_VK* m_pBufferImpl;
@@ -100,8 +105,26 @@ namespace Engine
 		void* m_pHostData; // Pointer to mapped host memory location
 
 		uint32_t m_subAllocatedSize;
+	};
 
-		std::vector<unsigned char> m_localData; // Cache changes locally to reduce the number of copies to the device
-		bool m_requiresFlush;
+	class UniformBufferManager_VK : public UniformBufferManager
+	{
+	public:
+		UniformBufferManager_VK(UploadAllocator_VK* pAllocator);
+		~UniformBufferManager_VK();
+
+		UniformBuffer GetUniformBuffer(uint32_t size) override;
+		UniformBuffer GetUniformBuffer(UniformBufferReservedRegion& region, uint32_t size) override;
+		UniformBufferReservedRegion ReserveBufferRegion(uint32_t size) override;
+
+		void ResetBufferAllocation() override;
+
+	private:
+		UploadAllocator_VK* m_pAllocator;
+		std::vector<std::vector<BaseUniformBuffer_VK*>> m_baseUniformBuffers;
+
+		const uint32_t DEFAULT_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB per base buffer
+
+		std::mutex m_bufferPoolMutex;
 	};
 }

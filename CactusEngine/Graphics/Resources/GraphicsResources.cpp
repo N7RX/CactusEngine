@@ -2,7 +2,7 @@
 
 namespace Engine
 {
-	uint32_t RawResource::m_assignedID = 0;
+	uint64_t RawResource::m_assignedID = 0;
 
 	RawResource::RawResource()
 		: m_sizeInBytes(0),
@@ -11,7 +11,7 @@ namespace Engine
 		
 	}
 
-	uint32_t RawResource::GetResourceID() const
+	uint64_t RawResource::GetResourceID() const
 	{
 		return m_resourceID;
 	}
@@ -141,6 +141,46 @@ namespace Engine
 	ETexture2DSource Texture2D::QuerySource() const
 	{
 		return m_source;
+	}
+
+	void UniformBufferManager::SetCurrentFrameIndex(uint32_t index)
+	{
+		m_currentFrameIndex = index;
+	}
+
+	UniformBufferConcurrentAllocator::UniformBufferConcurrentAllocator(UniformBufferManager* pBufferManager, uint32_t reservedSize)
+		: m_pBufferManager(pBufferManager),
+		m_reservedSize(reservedSize)
+	{
+
+	}
+
+	UniformBuffer UniformBufferConcurrentAllocator::GetUniformBuffer(uint32_t size)
+	{
+		// Fast path: try to allocate in thread reserved regions
+		for (auto& region : m_reservedRegions)
+		{
+			if (region.availableSize >= size)
+			{
+				UniformBuffer buffer = m_pBufferManager->GetUniformBuffer(region, size);
+				// Region's available size is updated in GetUniformBuffer
+				return buffer;
+			}
+		}
+
+		// Slow path: no suitable region found, reserve a new one
+
+		UniformBufferReservedRegion region = m_pBufferManager->ReserveBufferRegion(m_reservedSize);
+		UniformBuffer buffer = m_pBufferManager->GetUniformBuffer(region, size);
+
+		m_reservedRegions.push_back(std::move(region));
+
+		return buffer;
+	}
+
+	void UniformBufferConcurrentAllocator::ResetReservedRegion()
+	{
+		m_reservedRegions.clear();
 	}
 
 	Shader::Shader(EShaderType type)

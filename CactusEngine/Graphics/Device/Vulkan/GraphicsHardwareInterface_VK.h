@@ -63,7 +63,7 @@ namespace Engine
 		bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, VertexBuffer*& pOutput) override;
 		bool CreateTexture2D(const Texture2DCreateInfo& createInfo, Texture2D*& pOutput) override;
 		bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, FrameBuffer*& pOutput) override;
-		bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput) override;
+		bool CreateUniformBufferManager(UniformBufferManager*& pOutput) override;
 
 		void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) override;
 		void CopyTexture2D(Texture2D* pSrcTexture, Texture2D* pDstTexture, GraphicsCommandBuffer* pCmdBuffer) override;
@@ -86,6 +86,7 @@ namespace Engine
 		GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) override;
 		GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) override;
 		void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) override;
+		void ReturnMultipleExternalCommandBuffer(std::vector<GraphicsCommandBuffer*>& commandBuffers) override;
 		GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) override;
 
 		void BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer) override;

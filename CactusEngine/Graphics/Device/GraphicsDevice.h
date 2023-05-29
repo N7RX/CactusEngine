@@ -27,7 +27,7 @@ namespace Engine
 		virtual bool CreateVertexBuffer(const VertexBufferCreateInfo& createInfo, VertexBuffer*& pOutput) = 0;
 		virtual bool CreateTexture2D(const Texture2DCreateInfo& createInfo, Texture2D*& pOutput) = 0;
 		virtual bool CreateFrameBuffer(const FrameBufferCreateInfo& createInfo, FrameBuffer*& pOutput) = 0;
-		virtual bool CreateUniformBuffer(const UniformBufferCreateInfo& createInfo, UniformBuffer*& pOutput) = 0;
+		virtual bool CreateUniformBufferManager(UniformBufferManager*& pOutput) = 0;
 
 		virtual void GenerateMipmap(Texture2D* pTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
 		virtual void CopyTexture2D(Texture2D* pSrcTexture, Texture2D*pDstTexture, GraphicsCommandBuffer* pCmdBuffer) = 0;
@@ -52,6 +52,7 @@ namespace Engine
 		virtual GraphicsCommandPool* RequestExternalCommandPool(EQueueType queueType) = 0;
 		virtual GraphicsCommandBuffer* RequestCommandBuffer(GraphicsCommandPool* pCommandPool) = 0;
 		virtual void ReturnExternalCommandBuffer(GraphicsCommandBuffer* pCommandBuffer) = 0;
+		virtual void ReturnMultipleExternalCommandBuffer(std::vector<GraphicsCommandBuffer*>& commandBuffers) = 0;
 		virtual GraphicsSemaphore* RequestGraphicsSemaphore(ESemaphoreWaitStage waitStage) = 0;
 
 		virtual void BindGraphicsPipeline(const GraphicsPipelineObject* pPipeline, GraphicsCommandBuffer* pCommandBuffer) = 0;

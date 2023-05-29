@@ -11,13 +11,11 @@ namespace Engine
 	protected:
 		void CreateConstantResources(const RenderNodeConfiguration& initInfo) override;
 		void CreateMutableResources(const RenderNodeConfiguration& initInfo) override;
+		void DestroyMutableResources() override;
 
 		void RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext) override;
 
 		void UpdateResolution(uint32_t width, uint32_t height) override;
-		void UpdateMaxDrawCallCount(uint32_t count) override;
-
-		void DestroyMutableResources() override;
 
 		void PrebuildGraphicsPipelines() override;
 

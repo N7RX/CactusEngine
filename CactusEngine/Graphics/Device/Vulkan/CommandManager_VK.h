@@ -180,6 +180,7 @@ namespace Engine
 		// For multithreading													// Additionally, DO NOT use this function for frequently called operations (e.g. per frame)
 		CommandPool_VK* RequestExternalCommandPool();
 		void ReturnExternalCommandBuffer(CommandBuffer_VK* pCmdBuffer);
+		void ReturnMultipleExternalCommandBuffer(std::vector<CommandBuffer_VK*>& cmdBuffers);
 
 	private:
 		VkCommandPool CreateCommandPool();

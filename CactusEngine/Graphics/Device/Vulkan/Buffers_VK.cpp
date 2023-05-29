@@ -72,13 +72,12 @@ namespace Engine
 		return m_indexType;
 	}
 
-	UniformBuffer_VK::UniformBuffer_VK(UploadAllocator_VK* pAllocator, const UniformBufferCreateInfo_VK& createInfo)
+	BaseUniformBuffer_VK::BaseUniformBuffer_VK(UploadAllocator_VK* pAllocator, const BaseUniformBufferCreateInfo_VK& createInfo)
 		: m_eType(createInfo.type),
 		m_appliedShaderStage(createInfo.appliedStages),
 		m_pRawData(nullptr),
 		m_pHostData(nullptr),
-		m_subAllocatedSize(0),
-		m_requiresFlush(createInfo.requiresFlush)
+		m_subAllocatedSize(0)
 	{
 		RawBufferCreateInfo_VK bufferImplCreateInfo{};
 		bufferImplCreateInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -95,14 +94,9 @@ namespace Engine
 				LOG_ERROR("Vulkan: Failed to map uniform buffer memory.");
 			}
 		}
-
-		if (m_requiresFlush)
-		{
-			m_localData.resize(m_sizeInBytes);
-		}
 	}
 
-	UniformBuffer_VK::~UniformBuffer_VK()
+	BaseUniformBuffer_VK::~BaseUniformBuffer_VK()
 	{
 		if (m_eType == EUniformBufferType_VK::Uniform)
 		{
@@ -111,37 +105,25 @@ namespace Engine
 		}
 	}
 
-	void UniformBuffer_VK::UpdateBufferData(const void* pData, const SubUniformBuffer* pSubBuffer)
+	void BaseUniformBuffer_VK::UpdateBufferData(const void* pData)
 	{
-		if (!pSubBuffer)
-		{
-			m_pRawData = pData; // ERROR: for push constant, the pointer may go wild before it's updated to the device
+		m_pRawData = pData; // WARNING: for push constant, the pointer may go wild before it's updated to the device
 
-			if (m_eType == EUniformBufferType_VK::Uniform)
-			{
-				UpdateToDevice();
-			}
+		if (m_eType == EUniformBufferType_VK::Uniform)
+		{
+			UpdateToDevice();
 		}
 		else
 		{
-			UpdateBufferSubData(pData, pSubBuffer->m_offset, pSubBuffer->GetSizeInBytes());
+			LOG_ERROR("Vulkan: Shouldn't call UpdateBufferData on push constant buffer.");
 		}
 	}
 
-	void UniformBuffer_VK::UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size)
+	void BaseUniformBuffer_VK::UpdateBufferSubData(const void* pData, uint32_t offset, uint32_t size)
 	{
 		if (m_eType == EUniformBufferType_VK::Uniform)
 		{
-			void* start = nullptr;
-			if (m_requiresFlush)
-			{
-				start = m_localData.data() + offset;
-			}
-			else
-			{
-				start = (unsigned char*)m_pHostData + offset;
-			}
-
+			void* start = (unsigned char*)m_pHostData + offset;
 			memcpy(start, pData, size);
 		}
 		else
@@ -150,31 +132,42 @@ namespace Engine
 		}
 	}
 
-	SubUniformBuffer UniformBuffer_VK::AllocateSubBuffer(uint32_t size)
+	UniformBuffer BaseUniformBuffer_VK::AllocateSubBuffer(uint32_t size)
 	{
 		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
 
-		SubUniformBuffer subBuffer(this, m_subAllocatedSize, size);
+		UniformBuffer subBuffer(this, m_subAllocatedSize, size);
 		m_subAllocatedSize += size;
 
 		return subBuffer;
 	}
 
-	void UniformBuffer_VK::ResetSubBufferAllocation()
+	UniformBuffer BaseUniformBuffer_VK::AllocateSubBuffer(uint32_t offset, uint32_t size)
+	{
+		DEBUG_ASSERT_CE(offset + size <= m_sizeInBytes);
+
+		UniformBuffer subBuffer(this, offset, size);
+		// This call comes from reserved region, so m_subAllocatedSize is already updated
+
+		return subBuffer;
+	}
+
+	uint32_t BaseUniformBuffer_VK::ReserveBufferRegion(uint32_t size)
+	{
+		DEBUG_ASSERT_CE(m_subAllocatedSize + size <= m_sizeInBytes);
+
+		uint32_t offset = m_subAllocatedSize;
+		m_subAllocatedSize += size;
+
+		return offset;
+	}
+
+	void BaseUniformBuffer_VK::ResetSubBufferAllocation()
 	{
 		m_subAllocatedSize = 0;
 	}
 
-	void UniformBuffer_VK::FlushToDevice()
-	{
-		if (m_requiresFlush)
-		{
-			DEBUG_ASSERT_CE(m_eType == EUniformBufferType_VK::Uniform);
-			memcpy(m_pHostData, m_localData.data(), m_sizeInBytes);
-		}
-	}
-
-	void UniformBuffer_VK::UpdateToDevice(CommandBuffer_VK* pCmdBuffer)
+	void BaseUniformBuffer_VK::UpdateToDevice(CommandBuffer_VK* pCmdBuffer)
 	{
 		DEBUG_ASSERT_CE(m_pBufferImpl->m_pAllocator);
 		DEBUG_ASSERT_CE(m_pRawData != nullptr);
@@ -196,13 +189,142 @@ namespace Engine
 		}
 	}
 
-	RawBuffer_VK* UniformBuffer_VK::GetBufferImpl() const
+	RawBuffer_VK* BaseUniformBuffer_VK::GetBufferImpl() const
 	{
 		return m_pBufferImpl;
 	}
 
-	EUniformBufferType_VK UniformBuffer_VK::GetType() const
+	EUniformBufferType_VK BaseUniformBuffer_VK::GetType() const
 	{
 		return m_eType;
+	}
+
+	uint32_t BaseUniformBuffer_VK::GetFreeSpace() const
+	{
+		return m_sizeInBytes - m_subAllocatedSize;
+	}
+
+	UniformBufferManager_VK::UniformBufferManager_VK(UploadAllocator_VK* pAllocator)
+		: m_pAllocator(pAllocator)
+	{
+		// Create one buffer in each pool by default
+
+		BaseUniformBufferCreateInfo_VK createInfo{};
+		createInfo.size = DEFAULT_BUFFER_SIZE;
+		createInfo.type = EUniformBufferType_VK::Uniform;
+		createInfo.appliedStages = VK_SHADER_STAGE_ALL_GRAPHICS;
+
+		uint32_t maxFramesInFlight = gpGlobal->GetConfiguration<GraphicsConfiguration>(EConfigurationType::Graphics)->GetMaxFramesInFlight();
+		m_baseUniformBuffers.resize(maxFramesInFlight);
+
+		for (uint32_t i = 0; i < maxFramesInFlight; i++)
+		{
+			BaseUniformBuffer_VK* pBuffer = nullptr;
+			CE_NEW(pBuffer, BaseUniformBuffer_VK, m_pAllocator, createInfo);
+			m_baseUniformBuffers[i].push_back(pBuffer);
+		}
+	}
+
+	UniformBufferManager_VK::~UniformBufferManager_VK()
+	{
+		for (auto& bufferPool : m_baseUniformBuffers)
+		{
+			for (auto& pBuffer : bufferPool)
+			{
+				CE_DELETE(pBuffer);
+			}
+		}
+	}
+
+	UniformBuffer UniformBufferManager_VK::GetUniformBuffer(uint32_t size)
+	{
+		UniformBuffer buffer{};
+		auto& bufferPool = m_baseUniformBuffers[m_currentFrameIndex];
+
+		std::lock_guard<std::mutex> lock(m_bufferPoolMutex);
+
+		for (auto& pBuffer : bufferPool)
+		{
+			if (pBuffer->GetFreeSpace() >= size)
+			{
+				buffer = pBuffer->AllocateSubBuffer(size);
+				break;
+			}
+		}
+
+		if (!buffer.IsValid())
+		{
+			BaseUniformBufferCreateInfo_VK createInfo{};
+			createInfo.size = DEFAULT_BUFFER_SIZE;
+			createInfo.type = EUniformBufferType_VK::Uniform;
+			createInfo.appliedStages = VK_SHADER_STAGE_ALL_GRAPHICS;
+
+			BaseUniformBuffer_VK* pBuffer = nullptr;
+			CE_NEW(pBuffer, BaseUniformBuffer_VK, m_pAllocator, createInfo);
+			bufferPool.push_back(pBuffer);
+
+			buffer = pBuffer->AllocateSubBuffer(size);
+		}
+
+		return buffer;
+	}
+
+	UniformBuffer UniformBufferManager_VK::GetUniformBuffer(UniformBufferReservedRegion& region, uint32_t size)
+	{
+		DEBUG_ASSERT_MESSAGE_CE(size <= region.availableSize, "Reserved buffer region does not have enough space.");
+		auto& bufferPool = m_baseUniformBuffers[m_currentFrameIndex];
+
+		uint32_t internalOffset = region.totalSize - region.availableSize;
+		auto buffer = bufferPool[region.index]->AllocateSubBuffer(region.offset + internalOffset, size);
+		region.availableSize -= size;
+
+		return buffer;
+	}
+
+	UniformBufferReservedRegion UniformBufferManager_VK::ReserveBufferRegion(uint32_t size)
+	{
+		DEBUG_ASSERT_MESSAGE_CE(size <= DEFAULT_BUFFER_SIZE, "Invalid buffer region reservation size.");
+		auto& bufferPool = m_baseUniformBuffers[m_currentFrameIndex];
+
+		UniformBufferReservedRegion region{};
+		region.totalSize = size;
+		region.availableSize = size;
+
+		std::lock_guard<std::mutex> lock(m_bufferPoolMutex);
+
+		for (uint32_t i = 0; i < bufferPool.size(); ++i)
+		{
+			if (bufferPool[i]->GetFreeSpace() >= size)
+			{
+				region.index = i;
+				region.offset = bufferPool[i]->ReserveBufferRegion(size);
+				return region;
+			}
+		}
+
+		// No buffer has enough space, create a new one
+
+		BaseUniformBufferCreateInfo_VK createInfo{};
+		createInfo.size = DEFAULT_BUFFER_SIZE;
+		createInfo.type = EUniformBufferType_VK::Uniform;
+		createInfo.appliedStages = VK_SHADER_STAGE_ALL_GRAPHICS;
+
+		BaseUniformBuffer_VK* pBuffer = nullptr;
+		CE_NEW(pBuffer, BaseUniformBuffer_VK, m_pAllocator, createInfo);
+		bufferPool.push_back(pBuffer);
+
+		region.index = bufferPool.size() - 1;
+		region.offset = pBuffer->ReserveBufferRegion(size);
+
+		return region;
+	}
+
+	void UniformBufferManager_VK::ResetBufferAllocation()
+	{
+		auto& bufferPool = m_baseUniformBuffers[m_currentFrameIndex];
+		for (auto& pBuffer : bufferPool)
+		{
+			pBuffer->ResetSubBufferAllocation();
+		}
 	}
 }

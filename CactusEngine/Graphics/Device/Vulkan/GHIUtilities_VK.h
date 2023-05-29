@@ -562,7 +562,6 @@ namespace Engine
 		switch (type)
 		{
 		case EDescriptorType::UniformBuffer:
-		case EDescriptorType::SubUniformBuffer:
 			return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 		case EDescriptorType::StorageBuffer:

@@ -24,6 +24,10 @@ namespace Engine
 		m_inputResourceNames[INPUT_GBUFFER_NORMAL] = nullptr;
 		m_inputResourceNames[INPUT_GBUFFER_POSITION] = nullptr;
 		m_inputResourceNames[INPUT_DEPTH_TEXTURE] = nullptr;
+
+		// Reserve by 512 KB; this should be enough for most cases
+		// Assuming each light source takes up 512 bytes, this would be enough for 1024 light sources until a new region is allocated
+		CE_NEW(m_pUniformBufferAllocator, UniformBufferConcurrentAllocator, pRenderer->GetBufferManager(), 512 * 1024);
 	}
 
 	void DeferredLightingRenderNode::CreateConstantResources(const RenderNodeConfiguration& initInfo)
@@ -183,7 +187,12 @@ namespace Engine
 	{
 		m_frameResources.resize(initInfo.framesInFlight);
 		CreateMutableTextures(initInfo);
-		CreateMutableBuffers(initInfo);
+	}
+
+	void DeferredLightingRenderNode::DestroyMutableResources()
+	{
+		m_frameResources.clear();
+		m_frameResources.resize(0);
 	}
 
 	void DeferredLightingRenderNode::CreateMutableTextures(const RenderNodeConfiguration& initInfo)
@@ -226,43 +235,9 @@ namespace Engine
 		}
 	}
 
-	void DeferredLightingRenderNode::CreateMutableBuffers(const RenderNodeConfiguration& initInfo)
-	{
-		// Uniform buffer
-
-		UniformBufferCreateInfo ubCreateInfo{};
-		ubCreateInfo.sizeInBytes = sizeof(UBTransformMatrices);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Vertex | (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pTransformMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraMatrices);
-		ubCreateInfo.maxSubAllocationCount = 1;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraMatrices_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBCameraProperties);
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pCameraProperties_UB);
-		}
-
-		ubCreateInfo.sizeInBytes = sizeof(UBLightSourceProperties);
-		ubCreateInfo.maxSubAllocationCount = initInfo.maxDrawCall;
-		ubCreateInfo.appliedStages = (uint32_t)EShaderType::Fragment;
-		for (uint32_t i = 0; i < initInfo.framesInFlight; ++i)
-		{
-			m_pDevice->CreateUniformBuffer(ubCreateInfo, m_frameResources[i].m_pLightSourceProperties_UB);
-		}
-	}
-
 	void DeferredLightingRenderNode::RenderPassFunction(RenderGraphResource* pGraphResources, const RenderContext& renderContext, const CommandContext& cmdContext)
 	{
+		m_pUniformBufferAllocator->ResetReservedRegion();
 		auto& frameResources = m_frameResources[m_frameIndex];
 
 		GraphicsCommandBuffer* pCommandBuffer = m_pDevice->RequestCommandBuffer(cmdContext.pCommandPool);
@@ -309,15 +284,13 @@ namespace Engine
 		auto pGBufferPositionTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_GBUFFER_POSITION));
 		auto pSceneDepthTexture = (Texture2D*)pGraphResources->Get(m_inputResourceNames.at(INPUT_DEPTH_TEXTURE));
 
-		// Prepare uniform buffers
+		// Update camera uniform buffers
 
-		frameResources.m_pTransformMatrices_UB->ResetSubBufferAllocation();
-		frameResources.m_pLightSourceProperties_UB->ResetSubBufferAllocation();
+		UniformBuffer cameraMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraMatrices));
+		UniformBuffer cameraProperties_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBCameraProperties));
 
-		UBTransformMatrices ubTransformMatrices{};
 		UBCameraMatrices ubCameraMatrices{};
 		UBCameraProperties ubCameraProperties{};
-		UBLightSourceProperties ubLightSourceProperties{};
 
 		Vector3 cameraPos = pCameraTransform->GetPosition();
 		Matrix4x4 viewMat = glm::lookAt(cameraPos, cameraPos + pCameraTransform->GetForwardDirection(), UP);
@@ -327,10 +300,10 @@ namespace Engine
 
 		ubCameraMatrices.projectionMatrix = projectionMat;
 		ubCameraMatrices.viewMatrix = viewMat;
-		frameResources.m_pCameraMatrices_UB->UpdateBufferData(&ubCameraMatrices);
+		cameraMatrices_UB.UpdateBufferData(&ubCameraMatrices);
 
 		ubCameraProperties.cameraPosition = cameraPos;
-		frameResources.m_pCameraProperties_UB->UpdateBufferData(&ubCameraProperties);
+		cameraProperties_UB.UpdateBufferData(&ubCameraProperties);
 
 		// Bind pipeline and get shader
 
@@ -352,18 +325,22 @@ namespace Engine
 				continue;
 			}
 
-			// Update uniforms
+			// Update uniform buffers
+
+			UniformBuffer transformMatrices_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBTransformMatrices));
+			UniformBuffer lightSourceProperties_UB = m_pUniformBufferAllocator->GetUniformBuffer(sizeof(UBLightSourceProperties));
+
+			UBTransformMatrices ubTransformMatrices{};
+			UBLightSourceProperties ubLightSourceProperties{};
 
 			ubTransformMatrices.modelMatrix = pTransformComp->GetModelMatrix();
-			SubUniformBuffer subTransformMatricesUB = frameResources.m_pTransformMatrices_UB->AllocateSubBuffer(sizeof(UBTransformMatrices));
-			frameResources.m_pTransformMatrices_UB->UpdateBufferData(&ubTransformMatrices, &subTransformMatricesUB);
+			transformMatrices_UB.UpdateBufferData(&ubTransformMatrices);
 
 			ubLightSourceProperties.source = Vector4(pTransformComp->GetPosition(), (int)lightProfile.sourceType);
 			ubLightSourceProperties.color = Color4(lightProfile.lightColor, 1.0f);
 			ubLightSourceProperties.intensity = lightProfile.lightIntensity;
 			ubLightSourceProperties.radius = lightProfile.radius;
-			SubUniformBuffer subLightSourcePropertiesUB = frameResources.m_pLightSourceProperties_UB->AllocateSubBuffer(sizeof(UBLightSourceProperties));
-			frameResources.m_pLightSourceProperties_UB->UpdateBufferData(&ubLightSourceProperties, &subLightSourcePropertiesUB);
+			lightSourceProperties_UB.UpdateBufferData(&ubLightSourceProperties);
 
 			// Bind vertex buffer
 
@@ -373,11 +350,11 @@ namespace Engine
 
 			shaderParamTable.Clear();
 
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, frameResources.m_pCameraMatrices_UB);
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, frameResources.m_pCameraProperties_UB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_MATRICES), EDescriptorType::UniformBuffer, &cameraMatrices_UB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::CAMERA_PROPERTIES), EDescriptorType::UniformBuffer, &cameraProperties_UB);
 
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::SubUniformBuffer, &subTransformMatricesUB);
-			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::SubUniformBuffer, &subLightSourcePropertiesUB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::TRANSFORM_MATRICES), EDescriptorType::UniformBuffer, &transformMatrices_UB);
+			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::LIGHTSOURCE_PROPERTIES), EDescriptorType::UniformBuffer, &lightSourceProperties_UB);
 
 			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GCOLOR_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferColorTexture);
 			shaderParamTable.AddEntry(pShaderProgram->GetParamBinding(ShaderParamNames::GNORMAL_TEXTURE), EDescriptorType::CombinedImageSampler, pGBufferNormalTexture);
@@ -394,12 +371,6 @@ namespace Engine
 				m_pDevice->DrawPrimitive(pSubMeshes->at(i).m_numIndices, pSubMeshes->at(i).m_baseIndex, pSubMeshes->at(i).m_baseVertex, pCommandBuffer);
 			}
 		}
-
-		// Flush local buffer data to device
-		frameResources.m_pTransformMatrices_UB->FlushToDevice();
-		frameResources.m_pCameraMatrices_UB->FlushToDevice();
-		frameResources.m_pCameraProperties_UB->FlushToDevice();
-		frameResources.m_pLightSourceProperties_UB->FlushToDevice();
 	}
 
 	void DeferredLightingRenderNode::UpdateResolution(uint32_t width, uint32_t height)
@@ -420,37 +391,12 @@ namespace Engine
 		}
 	}
 
-	void DeferredLightingRenderNode::UpdateMaxDrawCallCount(uint32_t count)
-	{
-		m_configuration.maxDrawCall = count;
-
-		DestroyMutableBuffers();
-		CreateMutableBuffers(m_configuration);
-	}
-
-	void DeferredLightingRenderNode::DestroyMutableResources()
-	{
-		m_frameResources.clear();
-		m_frameResources.resize(0);
-	}
-
 	void DeferredLightingRenderNode::DestroyMutableTextures()
 	{
 		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
 		{
 			CE_DELETE(m_frameResources[i].m_pFrameBuffer);
 			CE_SAFE_DELETE(m_frameResources[i].m_pColorOutput);
-		}
-	}
-
-	void DeferredLightingRenderNode::DestroyMutableBuffers()
-	{
-		for (uint32_t i = 0; i < m_frameResources.size(); ++i)
-		{
-			CE_DELETE(m_frameResources[i].m_pCameraMatrices_UB);
-			CE_DELETE(m_frameResources[i].m_pCameraProperties_UB);
-			CE_DELETE(m_frameResources[i].m_pLightSourceProperties_UB);
-			CE_DELETE(m_frameResources[i].m_pTransformMatrices_UB);
 		}
 	}
 

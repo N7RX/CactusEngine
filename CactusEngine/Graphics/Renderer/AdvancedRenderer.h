@@ -10,8 +10,5 @@ namespace Engine
 		~AdvancedRenderer() = default;
 
 		void BuildRenderGraph() override;
-
-	private:
-		uint32_t m_renderThreadsCount;
 	};
 }
