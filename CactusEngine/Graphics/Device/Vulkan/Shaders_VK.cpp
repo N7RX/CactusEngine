@@ -150,16 +150,6 @@ namespace Engine
 		return m_pipelineShaderStageCreateInfos.data();
 	}
 
-	uint32_t ShaderProgram_VK::GetPushConstantRangeCount() const
-	{
-		return (uint32_t)m_pushConstantRanges.size();
-	}
-
-	const VkPushConstantRange* ShaderProgram_VK::GetPushConstantRanges() const
-	{
-		return m_pushConstantRanges.data();
-	}
-
 	DescriptorSet_VK* ShaderProgram_VK::GetDescriptorSet()
 	{
 		std::lock_guard<std::mutex> lock(m_descriptorSetGetMutex);
@@ -225,19 +215,10 @@ namespace Engine
 			m_resourceTable.emplace(desc.name, desc);
 		}
 
-		uint32_t accumulatePushConstSize = 0;
-		for (auto& constant : shaderRes.push_constant_buffers)
+		if (!shaderRes.push_constant_buffers.empty())
 		{
-			accumulatePushConstSize += (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
-
-			ResourceDescription desc{};
-			desc.type = EShaderResourceType_VK::PushConstant;
-			desc.binding = spvCompiler.get_decoration(constant.id, spv::DecorationBinding);
-			desc.name = MatchShaderParamName(spvCompiler.get_name(constant.id).c_str());
-
-			m_resourceTable.emplace(desc.name, desc);
+			LOG_ERROR("Vulkan: Push constant is not supported but is used in a shader.");
 		}
-		DEBUG_ASSERT_CE(accumulatePushConstSize < m_pLogicalDevice->deviceProperties.limits.maxPushConstantsSize);
 
 		for (auto& separateImage : shaderRes.separate_images)
 		{
@@ -282,7 +263,6 @@ namespace Engine
 		LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 		LoadSeparateImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
 		LoadImageSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-		LoadPushConstantBuffer(spvCompiler, shaderRes, shaderType, m_pushConstantRanges);
 
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
@@ -458,19 +438,6 @@ namespace Engine
 			{
 				descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
 			}
-		}
-	}
-
-	void ShaderProgram_VK::LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, std::vector<VkPushConstantRange>& outRanges)
-	{
-		for (auto& constant : shaderRes.push_constant_buffers)
-		{
-			VkPushConstantRange range{};
-			range.offset = spvCompiler.get_decoration(constant.id, spv::DecorationOffset);
-			range.size = (uint32_t)spvCompiler.get_declared_struct_size(spvCompiler.get_type(constant.base_type_id));
-			range.stageFlags = ShaderTypeConvertToStageBits(shaderType); // ERROR: this would be incorrect if the push constant is bind with multiple shader stages
-
-			outRanges.emplace_back(range);
 		}
 	}
 

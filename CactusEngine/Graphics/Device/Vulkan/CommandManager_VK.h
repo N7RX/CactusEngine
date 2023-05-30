@@ -61,7 +61,6 @@ namespace Engine
 		void BeginRenderPass(const VkRenderPass renderPass, const VkFramebuffer frameBuffer, const std::vector<VkClearValue>& clearValues, const VkExtent2D& areaExtent, const VkOffset2D& areaOffset = { 0, 0 });
 		void BindPipeline(const VkPipelineBindPoint bindPoint, const VkPipeline pipeline);
 		void BindPipelineLayout(const VkPipelineLayout pipelineLayout); // TODO: integrate this function with BindPipeline
-		void UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset = 0);
 		void BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<DescriptorSet_VK*>& descriptorSets, uint32_t firstSet = 0);
 		void SetViewport(const VkViewport* pViewport, const VkRect2D* pScissor);
 		void DrawPrimitiveIndexed(uint32_t indexCount, uint32_t instanceCount = 1, uint32_t firstIndex = 0, uint32_t vertexOffset = 0, uint32_t firstInstance = 0);

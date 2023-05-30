@@ -29,7 +29,7 @@ namespace Engine
 		uint32_t m_sizeInBytes;
 
 	private:
-		static uint64_t m_assignedID; // Assuming we are generating 3000 resources per frame, 
+		static uint64_t m_assignedID;
 	};
 
 	struct VertexBufferCreateInfo

@@ -126,12 +126,6 @@ namespace Engine
 		m_pipelineLayout = pipelineLayout;
 	}
 
-	void CommandBuffer_VK::UpdatePushConstant(const VkShaderStageFlags shaderStage, uint32_t size, const void* pData, uint32_t offset)
-	{
-		DEBUG_ASSERT_CE(m_isRecording);
-		vkCmdPushConstants(m_commandBuffer, m_pipelineLayout, shaderStage, offset, size, pData);
-	}
-
 	void CommandBuffer_VK::BindDescriptorSets(const VkPipelineBindPoint bindPoint, const std::vector<DescriptorSet_VK*>& descriptorSets, uint32_t firstSet)
 	{
 		DEBUG_ASSERT_CE(m_isRecording);

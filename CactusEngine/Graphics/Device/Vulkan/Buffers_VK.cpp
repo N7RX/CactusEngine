@@ -107,7 +107,7 @@ namespace Engine
 
 	void BaseUniformBuffer_VK::UpdateBufferData(const void* pData)
 	{
-		m_pRawData = pData; // WARNING: for push constant, the pointer may go wild before it's updated to the device
+		m_pRawData = pData; // WARNING: the pointer may go wild before it's updated to the device
 
 		if (m_eType == EUniformBufferType_VK::Uniform)
 		{
@@ -174,18 +174,16 @@ namespace Engine
 
 		switch (m_eType)
 		{
-		case EUniformBufferType_VK::PushConstant:
-			assert(pCmdBuffer);
-			pCmdBuffer->UpdatePushConstant(m_appliedShaderStage, m_sizeInBytes, m_pRawData);
-			break;
-
 		case EUniformBufferType_VK::Uniform:
+		{
 			memcpy(m_pHostData, m_pRawData, m_sizeInBytes);
 			break;
-
+		}
 		default:
+		{
 			throw std::runtime_error("Vulkan: Unhandled uniform buffer type.");
 			return;
+		}
 		}
 	}
 

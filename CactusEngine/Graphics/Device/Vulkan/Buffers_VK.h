@@ -63,9 +63,8 @@ namespace Engine
 
 	enum class EUniformBufferType_VK
 	{
-		Undefined = 0,
-		Uniform,
-		PushConstant,
+		Undefined = -1,
+		Uniform = 0,
 		COUNT
 	};
 
@@ -123,7 +122,7 @@ namespace Engine
 		UploadAllocator_VK* m_pAllocator;
 		std::vector<std::vector<BaseUniformBuffer_VK*>> m_baseUniformBuffers;
 
-		const uint32_t DEFAULT_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB per base buffer
+		const uint32_t DEFAULT_BUFFER_SIZE = 8 * 1024 * 1024; // 8 MB per base buffer
 
 		std::mutex m_bufferPoolMutex;
 	};

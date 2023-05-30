@@ -16,7 +16,7 @@ namespace Engine
 
 	struct DesciptorUpdateInfo_VK
 	{
-		EDescriptorResourceType_VK		infoType;
+		EDescriptorResourceType_VK			infoType;
 		bool								hasContent;
 		VkDescriptorSet						dstDescriptorSet;
 		uint32_t							dstDescriptorBinding;

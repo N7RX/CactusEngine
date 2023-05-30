@@ -18,11 +18,11 @@ namespace Engine
 		~RawShader_VK();
 
 	private:
-		LogicalDevice_VK* m_pDevice;
-		VkShaderModule			m_shaderModule;
-		VkShaderStageFlagBits	m_shaderStage;
-		const char* m_entryName;
-		std::vector<char>		m_rawCode; // For reflection
+		LogicalDevice_VK*	  m_pDevice;
+		VkShaderModule		  m_shaderModule;
+		VkShaderStageFlagBits m_shaderStage;
+		const char*			  m_entryName;
+		std::vector<char>	  m_rawCode; // For reflection
 
 		friend class ShaderProgram_VK;
 		friend class VertexShader_VK;
@@ -56,7 +56,6 @@ namespace Engine
 	enum class EShaderResourceType_VK
 	{
 		Uniform = 0,
-		PushConstant,
 		SeparateSampler,
 		SeparateImage,
 		SampledImage,
@@ -79,9 +78,6 @@ namespace Engine
 		uint32_t GetStageCount() const;
 		const VkPipelineShaderStageCreateInfo* GetShaderStageCreateInfos() const;
 
-		uint32_t GetPushConstantRangeCount() const;
-		const VkPushConstantRange* GetPushConstantRanges() const;
-
 		DescriptorSet_VK* GetDescriptorSet();
 		const DescriptorSetLayout_VK* GetDescriptorSetLayout() const;
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_VK>& updateInfos);
@@ -99,9 +95,9 @@ namespace Engine
 
 		struct DescriptorSetCreateInfo
 		{
-			std::vector<VkDescriptorSetLayoutBinding>	descSetLayoutBindings;
-			std::vector<VkDescriptorPoolSize>			descSetPoolSizes;
-			uint32_t									maxDescSetCount;
+			std::vector<VkDescriptorSetLayoutBinding> descSetLayoutBindings;
+			std::vector<VkDescriptorPoolSize>		  descSetPoolSizes;
+			uint32_t								  maxDescSetCount;
 
 			// For duplicate removal
 			std::unordered_map<uint32_t, uint32_t> recordedLayoutBindings; // binding - vector index
@@ -117,7 +113,6 @@ namespace Engine
 		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
 		void LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadPushConstantBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, std::vector<VkPushConstantRange>& outRanges);
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
@@ -138,7 +133,6 @@ namespace Engine
 
 		// Using char pointer as key would benefit runtime performance, but would reduce initialization speed as we need to match pointer by string contents
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
-		std::vector<VkPushConstantRange> m_pushConstantRanges;
 
 		DescriptorSetLayout_VK* m_pDescriptorSetLayout;
 		DescriptorPool_VK* m_pDescriptorPool;

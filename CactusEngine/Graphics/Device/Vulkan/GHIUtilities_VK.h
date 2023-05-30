@@ -34,7 +34,6 @@ namespace Engine
 		LOG_MESSAGE("API Version: " + std::to_string(properties.apiVersion));
 		LOG_MESSAGE("Driver Version: " + std::to_string(properties.driverVersion));
 
-		LOG_MESSAGE("Max PushConstants Size: " + std::to_string(properties.limits.maxPushConstantsSize));
 		// Print extra limits and sparse properties here
 		// ...
 	}
