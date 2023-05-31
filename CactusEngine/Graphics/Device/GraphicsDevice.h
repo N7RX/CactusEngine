@@ -102,7 +102,6 @@ namespace Engine
 		static const uint32_t ATTRIB_NORMAL_LOCATION = 1;
 		static const uint32_t ATTRIB_TEXCOORD_LOCATION = 2;
 		static const uint32_t ATTRIB_TANGENT_LOCATION = 3;
-		static const uint32_t ATTRIB_BITANGENT_LOCATION = 4;
 
 	protected:
 		std::unordered_map<ESamplerAnisotropyLevel, TextureSampler*> m_DefaultSamplers;

@@ -53,11 +53,7 @@ namespace Engine
 		uint32_t tangentDataCount;
 		static const uint32_t tangentOffset = 8 * sizeof(float);
 
-		float*	 pBitangentData;
-		uint32_t bitangentDataCount;
-		static const uint32_t bitangentOffset = 11 * sizeof(float);
-
-		static const uint32_t interleavedStride = 14 * sizeof(float); // 3 + 3 + 2 + 3 + 3
+		static const uint32_t interleavedStride = 11 * sizeof(float); // 3 + 3 + 2 + 3
 
 		std::vector<float> ConvertToInterleavedData() const; // This would not pack index
 	};

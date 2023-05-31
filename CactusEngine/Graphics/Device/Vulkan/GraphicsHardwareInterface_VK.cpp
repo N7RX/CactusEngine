@@ -119,8 +119,7 @@ namespace Engine
 		vertexBufferCreateInfo.size = sizeof(float) * createInfo.positionDataCount
 			+ sizeof(float) * createInfo.normalDataCount
 			+ sizeof(float) * createInfo.texcoordDataCount
-			+ sizeof(float) * createInfo.tangentDataCount
-			+ sizeof(float) * createInfo.bitangentDataCount;
+			+ sizeof(float) * createInfo.tangentDataCount;
 		vertexBufferCreateInfo.stride = createInfo.interleavedStride * sizeof(float);
 
 		RawBufferCreateInfo_VK indexBufferCreateInfo{};

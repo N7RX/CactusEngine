@@ -42,7 +42,7 @@ namespace Engine
 		return m_planeDimension;
 	}
 
-	void Mesh::CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<float>& tangents, std::vector<float>& bitangents, std::vector<int>& indices)
+	void Mesh::CreateVertexBufferFromVertices(std::vector<float>& positions, std::vector<float>& normals, std::vector<float>& texcoords, std::vector<float>& tangents, std::vector<int>& indices)
 	{
 		if (!m_pDevice)
 		{
@@ -62,8 +62,6 @@ namespace Engine
 		createInfo.texcoordDataCount = static_cast<uint32_t>(texcoords.size());
 		createInfo.pTangentData = tangents.data();
 		createInfo.tangentDataCount = static_cast<uint32_t>(tangents.size());
-		createInfo.pBitangentData = bitangents.data();
-		createInfo.bitangentDataCount = static_cast<uint32_t>(bitangents.size());
 
 		m_pDevice->CreateVertexBuffer(createInfo, m_pVertexBuffer);
 	}

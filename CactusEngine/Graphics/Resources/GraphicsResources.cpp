@@ -45,10 +45,10 @@ namespace Engine
 
 	std::vector<float> VertexBufferCreateInfo::ConvertToInterleavedData() const
 	{
-		uint32_t elementStride = 14;
+		uint32_t elementStride = 11; // Keep in sync with the layout below
 		std::vector<float> interleavedVertices(elementStride * (size_t)(positionDataCount / 3));
 
-		// Layout : [ position | normal | texcoord | tangent | bitengent ]
+		// Layout : [ position | normal | texcoord | tangent ]
 
 		// TODO: optimize this process
 
@@ -77,13 +77,6 @@ namespace Engine
 			interleavedVertices[(size_t)elementStride * i + 8] = pTangentData[i * 3];
 			interleavedVertices[(size_t)elementStride * i + 9] = pTangentData[i * 3 + 1];
 			interleavedVertices[(size_t)elementStride * i + 10] = pTangentData[i * 3 + 2];
-		}
-
-		for (uint32_t i = 0; i < bitangentDataCount / 3; i++)
-		{
-			interleavedVertices[(size_t)elementStride * i + 11] = pBitangentData[i * 3];
-			interleavedVertices[(size_t)elementStride * i + 12] = pBitangentData[i * 3 + 1];
-			interleavedVertices[(size_t)elementStride * i + 13] = pBitangentData[i * 3 + 2];
 		}
 
 		return interleavedVertices;

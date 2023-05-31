@@ -107,15 +107,9 @@ namespace Engine
 		tangentAttributeDesc.offset = VertexBufferCreateInfo::tangentOffset;
 		tangentAttributeDesc.format = ETextureFormat::RGB32F;
 
-		VertexInputAttributeDescription bitangentAttributeDesc{};
-		bitangentAttributeDesc.binding = vertexInputBindingDesc.binding;
-		bitangentAttributeDesc.location = GraphicsDevice::ATTRIB_BITANGENT_LOCATION;
-		bitangentAttributeDesc.offset = VertexBufferCreateInfo::bitangentOffset;
-		bitangentAttributeDesc.format = ETextureFormat::RGB32F;
-
 		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
 		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
-		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc, bitangentAttributeDesc };
+		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc };
 
 		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, m_defaultPipelineStates.pVertexInputState);
 

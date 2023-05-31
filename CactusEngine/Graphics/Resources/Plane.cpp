@@ -10,7 +10,6 @@ namespace Engine
 		std::vector<float> normals((dimLength + 1) * (dimWidth + 1) * 3, 0);
 		std::vector<float> texcoords((dimLength + 1) * (dimWidth + 1) * 2, 0);
 		std::vector<float> tangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
-		std::vector<float> bitangents((dimLength + 1) * (dimWidth + 1) * 3, 0);
 		std::vector<int>   vertexIndices(dimLength * dimWidth * 6, 0);
 
 		float gridLength = 1.0f / dimLength;
@@ -26,7 +25,6 @@ namespace Engine
 
 				normals[(i * (dimLength + 1) + j) * 3 + 2] = 1.0f;  // Facing towards positive z
 				tangents[(i * (dimLength + 1) + j) * 3 + 1] = 1.0f; // Facing towards positive y
-				bitangents[(i * (dimLength + 1) + j) * 3] = 1.0f;	// Facing towards positive x
 
 				texcoords[(i * (dimLength + 1) + j) * 2] = j * gridLength; // This works when plane size is exactly [1.0, 1.0]
 				texcoords[(i * (dimLength + 1) + j) * 2 + 1] = i * gridWidth;
@@ -58,6 +56,6 @@ namespace Engine
 
 		m_type = EBuiltInMeshType::Plane;
 		m_planeDimension = Vector2(dimLength, dimWidth);
-		CreateVertexBufferFromVertices(positions, normals, texcoords, tangents, bitangents, vertexIndices);
+		CreateVertexBufferFromVertices(positions, normals, texcoords, tangents, vertexIndices);
 	}
 }

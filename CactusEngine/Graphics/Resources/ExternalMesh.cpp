@@ -51,14 +51,12 @@ namespace Engine
 		std::vector<float> normals(totalNumVertices * 3);
 		std::vector<float> texcoords(totalNumVertices * 2);
 		std::vector<float> tangents(totalNumVertices * 3);
-		std::vector<float> bitangents(totalNumVertices * 3);
 
 		uint32_t faceIndex = 0;
 		uint32_t vertexOffset = 0;
 		uint32_t normalOffset = 0;
 		uint32_t texcoordOffset = 0;
 		uint32_t tangentOffset = 0;
-		uint32_t bitangentOffset = 0;
 
 		// Buffer data
 		for (uint32_t i = 0; i < totalNumSubMeshes; ++i)
@@ -107,18 +105,10 @@ namespace Engine
 				memcpy(&tangents[tangentOffset], mesh->mTangents, size);
 				tangentOffset += 3 * mesh->mNumVertices;
 			}
-
-			// Bitangents
-			if (mesh->HasTangentsAndBitangents())
-			{
-				const size_t size = 3 * sizeof(float) * mesh->mNumVertices;
-				memcpy(&bitangents[bitangentOffset], mesh->mBitangents, size);
-				bitangentOffset += 3 * mesh->mNumVertices;
-			}
 		}
 
 		m_filePath.assign(filePath);
 		m_type = EBuiltInMeshType::External;
-		CreateVertexBufferFromVertices(vertices, normals, texcoords, tangents, bitangents, indices);
+		CreateVertexBufferFromVertices(vertices, normals, texcoords, tangents, indices);
 	}
 }
