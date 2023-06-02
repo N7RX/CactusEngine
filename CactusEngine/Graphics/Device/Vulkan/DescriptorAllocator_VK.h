@@ -77,6 +77,8 @@ namespace Engine
 		DescriptorPool_VK(LogicalDevice_VK* pDevice, uint32_t maxSets);
 		~DescriptorPool_VK();
 
+		uint32_t RemainingCapacity() const;
+
 		bool AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<DescriptorSet_VK*>& outSets, bool clearPrev = false);
 		void UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_VK>& updateInfos);
 		// TODO: add set copy support
@@ -98,7 +100,9 @@ namespace Engine
 		~DescriptorAllocator_VK() = default;
 
 		DescriptorPool_VK* CreateDescriptorPool(uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes);
-		// TODO: add pool deletion support
+		void DestroyDescriptorPool(DescriptorPool_VK* pPool);
+
+		uint32_t GetDescriptorPoolCount() const;
 
 	private:
 		LogicalDevice_VK* m_pDevice;

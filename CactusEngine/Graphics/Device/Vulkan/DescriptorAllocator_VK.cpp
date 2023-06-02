@@ -39,7 +39,10 @@ namespace Engine
 	}
 
 	DescriptorPool_VK::DescriptorPool_VK(LogicalDevice_VK* pDevice, uint32_t maxSets)
-		: m_pDevice(pDevice), m_descriptorPool(VK_NULL_HANDLE), MAX_SETS(maxSets), m_allocatedSetsCount(0)
+		: m_pDevice(pDevice),
+		m_descriptorPool(VK_NULL_HANDLE),
+		MAX_SETS(maxSets),
+		m_allocatedSetsCount(0)
 	{
 
 	}
@@ -50,6 +53,11 @@ namespace Engine
 		{
 			vkDestroyDescriptorPool(m_pDevice->logicalDevice, m_descriptorPool, nullptr);
 		}
+	}
+
+	uint32_t DescriptorPool_VK::RemainingCapacity() const
+	{
+		return MAX_SETS - m_allocatedSetsCount;
 	}
 
 	bool DescriptorPool_VK::AllocateDescriptorSets(const std::vector<VkDescriptorSetLayout>& layouts, std::vector<DescriptorSet_VK*>& outSets, bool clearPrev)
@@ -166,5 +174,24 @@ namespace Engine
 			throw std::runtime_error("Vulkan: failed to create new descriptor pool.");
 			return nullptr;
 		}
+	}
+
+	void DescriptorAllocator_VK::DestroyDescriptorPool(DescriptorPool_VK* pPool)
+	{
+		auto it = std::find(m_descriptorPools.begin(), m_descriptorPools.end(), pPool);
+		if (it != m_descriptorPools.end())
+		{
+			vkDestroyDescriptorPool(m_pDevice->logicalDevice, pPool->m_descriptorPool, nullptr);
+			m_descriptorPools.erase(it);
+		}
+		else
+		{
+			throw std::runtime_error("Vulkan: failed to destroy descriptor pool.");
+		}
+	}
+
+	uint32_t DescriptorAllocator_VK::GetDescriptorPoolCount() const
+	{
+		return (uint32_t)m_descriptorPools.size();
 	}
 }

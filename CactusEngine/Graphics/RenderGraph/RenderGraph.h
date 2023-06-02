@@ -66,6 +66,8 @@ namespace Engine
 		void ExecuteSequential();
 		void ExecuteParallel();
 
+		PipelineVertexInputStateCreateInfo GetDefaultVertexInputStateCreateInfo() const;
+
 		virtual void CreateConstantResources(const RenderNodeConfiguration& initInfo) = 0; // Pipeline objects that are constant
 		virtual void CreateMutableResources(const RenderNodeConfiguration& initInfo) = 0;  // Render textures, etc. that can be changed depending on external settings
 		virtual void DestroyMutableResources() {}

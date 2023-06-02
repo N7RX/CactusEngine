@@ -44,7 +44,11 @@ namespace Engine
 	}
 
 	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, const RawShader_VK* pShader...)
-		: ShaderProgram(0), m_pLogicalDevice(pLogicalDevice), m_descriptorSetAccessIndex(0)
+		: ShaderProgram(0),
+		m_pLogicalDevice(pLogicalDevice),
+		m_pDescriptorSetLayout(nullptr),
+		m_descriptorPoolCreateInfo{},
+		m_descriptorSetAccessIndex(0)
 	{
 		m_pDevice = pDevice;
 
@@ -52,8 +56,7 @@ namespace Engine
 		va_start(vaShaders, shaderCount); // shaderCount is the parameter preceding the first variable parameter 
 		RawShader_VK* shaderPtr = nullptr;
 
-		DescriptorSetCreateInfo descSetCreateInfo{};
-		descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
+		m_descriptorPoolCreateInfo.maxDescSetCount = DESCRIPTOR_POOL_CAPACITY;
 
 		m_shaderStages = 0;
 		while (shaderCount > 0)
@@ -62,7 +65,7 @@ namespace Engine
 
 			m_shaderStages |= (uint32_t)ShaderStageBitsConvert(shaderPtr->m_shaderStage);
 
-			ReflectResources(shaderPtr, descSetCreateInfo);
+			ReflectResources(shaderPtr, m_descriptorPoolCreateInfo);
 
 			VkPipelineShaderStageCreateInfo shaderStageInfo{};
 			shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -76,15 +79,17 @@ namespace Engine
 
 		va_end(vaShaders);
 
-		CreateDescriptorSetLayout(descSetCreateInfo);
-		CreateDescriptorPool(descSetCreateInfo);
+		CreateDescriptorSetLayout(m_descriptorPoolCreateInfo);
+		CreateNewDescriptorPool();
 
-		AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT / 2); // TODO: figure out the optimal allocation count in here
+		AllocateDescriptorSet(1);
 	}
 
 	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader)
 		: ShaderProgram(0),
 		m_pLogicalDevice(pLogicalDevice),
+		m_pDescriptorSetLayout(nullptr),
+		m_descriptorPoolCreateInfo{},
 		m_descriptorSetAccessIndex(0)
 	{
 		m_pDevice = pDevice;
@@ -93,10 +98,9 @@ namespace Engine
 		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_VERTEX_BIT);
 		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_FRAGMENT_BIT);
 
-		DescriptorSetCreateInfo descSetCreateInfo{};
-		descSetCreateInfo.maxDescSetCount = MAX_DESCRIPTOR_SET_COUNT;
+		m_descriptorPoolCreateInfo.maxDescSetCount = DESCRIPTOR_POOL_CAPACITY;
 
-		ReflectResources(pVertexShader, descSetCreateInfo);
+		ReflectResources(pVertexShader, m_descriptorPoolCreateInfo);
 
 		VkPipelineShaderStageCreateInfo shaderStageInfo{};
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -105,7 +109,7 @@ namespace Engine
 		shaderStageInfo.pName = pVertexShader->m_entryName;
 		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
 
-		ReflectResources(pFragmentShader, descSetCreateInfo);
+		ReflectResources(pFragmentShader, m_descriptorPoolCreateInfo);
 
 		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shaderStageInfo.stage = pFragmentShader->m_shaderStage;
@@ -113,10 +117,10 @@ namespace Engine
 		shaderStageInfo.pName = pFragmentShader->m_entryName;
 		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
 
-		CreateDescriptorSetLayout(descSetCreateInfo);
-		CreateDescriptorPool(descSetCreateInfo);
+		CreateDescriptorSetLayout(m_descriptorPoolCreateInfo);
+		CreateNewDescriptorPool();
 
-		AllocateDescriptorSet(MAX_DESCRIPTOR_SET_COUNT / 2); // TODO: figure out the optimal allocation count in here
+		AllocateDescriptorSet(1);
 	}
 
 	ShaderProgram_VK::~ShaderProgram_VK()
@@ -127,6 +131,11 @@ namespace Engine
 			{
 				vkDestroyShaderModule(m_pLogicalDevice->logicalDevice, stageInfo.module, nullptr);
 			}
+		}
+
+		for (auto& pPool : m_descriptorPools)
+		{
+			m_pLogicalDevice->pDescriptorAllocator->DestroyDescriptorPool(pPool);
 		}
 	}
 
@@ -160,7 +169,7 @@ namespace Engine
 			if (!flag && i == m_descriptorSetAccessIndex)
 			{
 				// No available set found, allocate new one
-				AllocateDescriptorSet(1); // ERROR: this would cause threading error if multiple threads are accessing the same descriptor pool
+				AllocateDescriptorSet(1);
 
 				m_descriptorSetAccessIndex = 0;
 				m_descriptorSets[m_descriptorSets.size() - 1]->m_isInUse = true;
@@ -185,7 +194,7 @@ namespace Engine
 		return m_pDescriptorSetLayout;
 	}
 
-	void ShaderProgram_VK::ReflectResources(const RawShader_VK* pShader, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::ReflectResources(const RawShader_VK* pShader, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		size_t wordCount = pShader->m_rawCode.size() * sizeof(char) / sizeof(uint32_t);
 		DEBUG_ASSERT_CE(wordCount > 0);
@@ -200,7 +209,7 @@ namespace Engine
 		spvCompiler.set_enabled_interface_variables(std::move(activeVars));
 
 		LoadResourceBinding(spvCompiler, shaderRes);
-		LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), descSetCreateInfo);
+		LoadResourceDescriptor(spvCompiler, shaderRes, ShaderStageBitsConvert(pShader->m_shaderStage), descPoolCreateInfo);
 	}
 
 	void ShaderProgram_VK::LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes)
@@ -255,21 +264,21 @@ namespace Engine
 		// TODO: handle subpass inputs
 	}
 
-	void ShaderProgram_VK::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		// TODO: eliminate duplicate descriptor set create info
 
-		LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-		LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-		LoadSeparateImage(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
-		LoadImageSampler(spvCompiler, shaderRes, shaderType, descSetCreateInfo);
+		LoadUniformBuffer(spvCompiler, shaderRes, shaderType, descPoolCreateInfo);
+		LoadSeparateSampler(spvCompiler, shaderRes, shaderType, descPoolCreateInfo);
+		LoadSeparateImage(spvCompiler, shaderRes, shaderType, descPoolCreateInfo);
+		LoadImageSampler(spvCompiler, shaderRes, shaderType, descPoolCreateInfo);
 
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
 	}
 
-	void ShaderProgram_VK::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		uint32_t count = 0;
 
@@ -282,37 +291,37 @@ namespace Engine
 			binding.binding = spvCompiler.get_decoration(buffer.id, spv::DecorationBinding);
 			binding.pImmutableSamplers = nullptr;
 
-			if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+			if (descPoolCreateInfo.recordedLayoutBindings.find(binding.binding) == descPoolCreateInfo.recordedLayoutBindings.end())
 			{
-				descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
-				descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+				descPoolCreateInfo.recordedLayoutBindings.emplace(binding.binding, descPoolCreateInfo.descSetLayoutBindings.size());
+				descPoolCreateInfo.descSetLayoutBindings.emplace_back(binding);
 				count++;
 			}
 			else // Update stage flags
 			{
-				descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+				descPoolCreateInfo.descSetLayoutBindings[descPoolCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
 			}
 		}
 
 		if (count > 0)
 		{
-			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) == descSetCreateInfo.recordedPoolSizes.end())
+			if (descPoolCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) == descPoolCreateInfo.recordedPoolSizes.end())
 			{
 				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+				poolSize.descriptorCount = descPoolCreateInfo.maxDescSetCount * count;
 
-				descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
-				descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+				descPoolCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER] = descPoolCreateInfo.descSetPoolSizes.size(); // Record index
+				descPoolCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 			}
 			else
 			{
-				descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+				descPoolCreateInfo.descSetPoolSizes[descPoolCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)].descriptorCount += descPoolCreateInfo.maxDescSetCount * count;
 			}
 		}
 	}
 
-	void ShaderProgram_VK::LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		uint32_t count = 0;
 
@@ -325,37 +334,37 @@ namespace Engine
 			binding.binding = spvCompiler.get_decoration(sampler.id, spv::DecorationBinding);
 			binding.pImmutableSamplers = nullptr;
 
-			if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+			if (descPoolCreateInfo.recordedLayoutBindings.find(binding.binding) == descPoolCreateInfo.recordedLayoutBindings.end())
 			{
-				descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
-				descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+				descPoolCreateInfo.recordedLayoutBindings.emplace(binding.binding, descPoolCreateInfo.descSetLayoutBindings.size());
+				descPoolCreateInfo.descSetLayoutBindings.emplace_back(binding);
 				count++;
 			}
 			else
 			{
-				descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+				descPoolCreateInfo.descSetLayoutBindings[descPoolCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
 			}
 		}
 
 		if (count > 0)
 		{
-			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
+			if (descPoolCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLER) == descPoolCreateInfo.recordedPoolSizes.end())
 			{
 				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+				poolSize.descriptorCount = descPoolCreateInfo.maxDescSetCount * count;
 
-				descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
-				descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+				descPoolCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLER] = descPoolCreateInfo.descSetPoolSizes.size(); // Record index
+				descPoolCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 			}
 			else
 			{
-				descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+				descPoolCreateInfo.descSetPoolSizes[descPoolCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLER)].descriptorCount += descPoolCreateInfo.maxDescSetCount * count;
 			}
 		}
 	}
 
-	void ShaderProgram_VK::LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		uint32_t count = 0;
 
@@ -368,37 +377,37 @@ namespace Engine
 			binding.binding = spvCompiler.get_decoration(image.id, spv::DecorationBinding);
 			binding.pImmutableSamplers = nullptr;
 
-			if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+			if (descPoolCreateInfo.recordedLayoutBindings.find(binding.binding) == descPoolCreateInfo.recordedLayoutBindings.end())
 			{
-				descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
-				descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+				descPoolCreateInfo.recordedLayoutBindings.emplace(binding.binding, descPoolCreateInfo.descSetLayoutBindings.size());
+				descPoolCreateInfo.descSetLayoutBindings.emplace_back(binding);
 				count++;
 			}
 			else
 			{
-				descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+				descPoolCreateInfo.descSetLayoutBindings[descPoolCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
 			}
 		}
 
 		if (count > 0)
 		{
-			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) == descSetCreateInfo.recordedPoolSizes.end())
+			if (descPoolCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) == descPoolCreateInfo.recordedPoolSizes.end())
 			{
 				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+				poolSize.descriptorCount = descPoolCreateInfo.maxDescSetCount * count;
 
-				descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
-				descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+				descPoolCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE] = descPoolCreateInfo.descSetPoolSizes.size(); // Record index
+				descPoolCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 			}
 			else
 			{
-				descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+				descPoolCreateInfo.descSetPoolSizes[descPoolCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)].descriptorCount += descPoolCreateInfo.maxDescSetCount * count;
 			}
 		}
 	}
 
-	void ShaderProgram_VK::LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
 		uint32_t count = 0;
 
@@ -411,59 +420,73 @@ namespace Engine
 			binding.binding = spvCompiler.get_decoration(sampledImage.id, spv::DecorationBinding);
 			binding.pImmutableSamplers = nullptr;
 
-			if (descSetCreateInfo.recordedLayoutBindings.find(binding.binding) == descSetCreateInfo.recordedLayoutBindings.end())
+			if (descPoolCreateInfo.recordedLayoutBindings.find(binding.binding) == descPoolCreateInfo.recordedLayoutBindings.end())
 			{
-				descSetCreateInfo.recordedLayoutBindings.emplace(binding.binding, descSetCreateInfo.descSetLayoutBindings.size());
-				descSetCreateInfo.descSetLayoutBindings.emplace_back(binding);
+				descPoolCreateInfo.recordedLayoutBindings.emplace(binding.binding, descPoolCreateInfo.descSetLayoutBindings.size());
+				descPoolCreateInfo.descSetLayoutBindings.emplace_back(binding);
 				count++;
 			}
 			else // Update stage flags
 			{
-				descSetCreateInfo.descSetLayoutBindings[descSetCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
+				descPoolCreateInfo.descSetLayoutBindings[descPoolCreateInfo.recordedLayoutBindings.at(binding.binding)].stageFlags |= binding.stageFlags;
 			}
 		}
 
 		if (count > 0)
 		{
-			if (descSetCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) == descSetCreateInfo.recordedPoolSizes.end())
+			if (descPoolCreateInfo.recordedPoolSizes.find(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) == descPoolCreateInfo.recordedPoolSizes.end())
 			{
 				VkDescriptorPoolSize poolSize{};
 				poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				poolSize.descriptorCount = descSetCreateInfo.maxDescSetCount * count;
+				poolSize.descriptorCount = descPoolCreateInfo.maxDescSetCount * count;
 
-				descSetCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = descSetCreateInfo.descSetPoolSizes.size(); // Record index
-				descSetCreateInfo.descSetPoolSizes.emplace_back(poolSize);
+				descPoolCreateInfo.recordedPoolSizes[VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER] = descPoolCreateInfo.descSetPoolSizes.size(); // Record index
+				descPoolCreateInfo.descSetPoolSizes.emplace_back(poolSize);
 			}
 			else
 			{
-				descSetCreateInfo.descSetPoolSizes[descSetCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)].descriptorCount += descSetCreateInfo.maxDescSetCount * count;
+				descPoolCreateInfo.descSetPoolSizes[descPoolCreateInfo.recordedPoolSizes.at(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)].descriptorCount += descPoolCreateInfo.maxDescSetCount * count;
 			}
 		}
 	}
 
-	void ShaderProgram_VK::CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::CreateDescriptorSetLayout(const DescriptorPoolCreateInfo& descPoolCreateInfo)
 	{
-		CE_NEW(m_pDescriptorSetLayout, DescriptorSetLayout_VK, m_pLogicalDevice, descSetCreateInfo.descSetLayoutBindings);
+		CE_NEW(m_pDescriptorSetLayout, DescriptorSetLayout_VK, m_pLogicalDevice, descPoolCreateInfo.descSetLayoutBindings);
 	}
 
-	void ShaderProgram_VK::CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo)
+	void ShaderProgram_VK::CreateNewDescriptorPool()
 	{
-		m_pDescriptorPool = m_pLogicalDevice->pDescriptorAllocator->CreateDescriptorPool(descSetCreateInfo.maxDescSetCount, descSetCreateInfo.descSetPoolSizes);
+		auto pNewPool = m_pLogicalDevice->pDescriptorAllocator->CreateDescriptorPool(m_descriptorPoolCreateInfo.maxDescSetCount, m_descriptorPoolCreateInfo.descSetPoolSizes);
+		m_descriptorPools.push_back(pNewPool);
 	}
 
 	void ShaderProgram_VK::AllocateDescriptorSet(uint32_t count)
 	{
-		DEBUG_ASSERT_CE(m_pDescriptorPool);
-		DEBUG_ASSERT_CE(m_descriptorSets.size() + count <= MAX_DESCRIPTOR_SET_COUNT);
+		// m_descriptorSetGetMutex is already locked in GetDescriptorSet, so we don't need to lock it here
 
 		std::vector<VkDescriptorSetLayout> layouts(count, *m_pDescriptorSetLayout->GetDescriptorSetLayout());
 
-		m_pDescriptorPool->AllocateDescriptorSets(layouts, m_descriptorSets);
+		for (auto& pPool : m_descriptorPools)
+		{
+			if (pPool->RemainingCapacity() >= count)
+			{
+				pPool->AllocateDescriptorSets(layouts, m_descriptorSets);
+				return;
+			}
+		}
+
+		// All pools are full, create a new one
+
+		CreateNewDescriptorPool();
+		m_descriptorPools.back()->AllocateDescriptorSets(layouts, m_descriptorSets);
 	}
 
 	void ShaderProgram_VK::UpdateDescriptorSets(const std::vector<DesciptorUpdateInfo_VK>& updateInfos)
 	{
-		m_pDescriptorPool->UpdateDescriptorSets(updateInfos);
+		DEBUG_ASSERT_CE(!m_descriptorPools.empty());
+
+		m_descriptorPools[0]->UpdateDescriptorSets(updateInfos); // UpdateDescriptorSets does not use pool data, thus we can use any pool
 	}
 
 	uint32_t ShaderProgram_VK::GetParamTypeSize(const spirv_cross::SPIRType& type)

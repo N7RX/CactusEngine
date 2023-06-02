@@ -69,38 +69,7 @@ namespace Engine
 
 		// Vertex input state
 
-		VertexInputBindingDescription vertexInputBindingDesc{};
-		vertexInputBindingDesc.binding = 0;
-		vertexInputBindingDesc.stride = VertexBufferCreateInfo::interleavedStride;
-		vertexInputBindingDesc.inputRate = EVertexInputRate::PerVertex;
-
-		VertexInputAttributeDescription positionAttributeDesc{};
-		positionAttributeDesc.binding = vertexInputBindingDesc.binding;
-		positionAttributeDesc.location = GraphicsDevice::ATTRIB_POSITION_LOCATION;
-		positionAttributeDesc.offset = VertexBufferCreateInfo::positionOffset;
-		positionAttributeDesc.format = ETextureFormat::RGB32F;
-
-		VertexInputAttributeDescription normalAttributeDesc{};
-		normalAttributeDesc.binding = vertexInputBindingDesc.binding;
-		normalAttributeDesc.location = GraphicsDevice::ATTRIB_NORMAL_LOCATION;
-		normalAttributeDesc.offset = VertexBufferCreateInfo::normalOffset;
-		normalAttributeDesc.format = ETextureFormat::RGB32F;
-
-		VertexInputAttributeDescription texcoordAttributeDesc{};
-		texcoordAttributeDesc.binding = vertexInputBindingDesc.binding;
-		texcoordAttributeDesc.location = GraphicsDevice::ATTRIB_TEXCOORD_LOCATION;
-		texcoordAttributeDesc.offset = VertexBufferCreateInfo::texcoordOffset;
-		texcoordAttributeDesc.format = ETextureFormat::RG32F;
-
-		VertexInputAttributeDescription tangentAttributeDesc{};
-		tangentAttributeDesc.binding = vertexInputBindingDesc.binding;
-		tangentAttributeDesc.location = GraphicsDevice::ATTRIB_TANGENT_LOCATION;
-		tangentAttributeDesc.offset = VertexBufferCreateInfo::tangentOffset;
-		tangentAttributeDesc.format = ETextureFormat::RGB32F;
-
-		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
-		vertexInputStateCreateInfo.bindingDescs = { vertexInputBindingDesc };
-		vertexInputStateCreateInfo.attributeDescs = { positionAttributeDesc, normalAttributeDesc, texcoordAttributeDesc, tangentAttributeDesc };
+		PipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = GetDefaultVertexInputStateCreateInfo();
 
 		m_pDevice->CreatePipelineVertexInputState(vertexInputStateCreateInfo, m_defaultPipelineStates.pVertexInputState);
 

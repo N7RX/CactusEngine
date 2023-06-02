@@ -84,42 +84,42 @@ namespace Engine
 
 	private:
 
-		const uint32_t MAX_DESCRIPTOR_SET_COUNT = 1024; // TODO: figure out the proper value for this limit
+		const uint32_t DESCRIPTOR_POOL_CAPACITY = 512; // Maximal number of descriptor sets that can be allocated from a single pool
 
 		struct ResourceDescription
 		{
-			EShaderResourceType_VK	type;
-			uint32_t				binding;
+			EShaderResourceType_VK type;
+			uint32_t binding;
 			const char* name;
 		};
 
-		struct DescriptorSetCreateInfo
+		struct DescriptorPoolCreateInfo
 		{
 			std::vector<VkDescriptorSetLayoutBinding> descSetLayoutBindings;
 			std::vector<VkDescriptorPoolSize>		  descSetPoolSizes;
 			uint32_t								  maxDescSetCount;
 
-			// For duplicate removal
+			// For duplication removal
 			std::unordered_map<uint32_t, uint32_t> recordedLayoutBindings; // binding - vector index
 			std::unordered_map<VkDescriptorType, uint32_t> recordedPoolSizes; // type - vector index
 		};
 
 	private:
 		// Shader reflection functions
-		void ReflectResources(const RawShader_VK* pShader, DescriptorSetCreateInfo& descSetCreateInfo);
+		void ReflectResources(const RawShader_VK* pShader, DescriptorPoolCreateInfo& descPoolCreateInfo);
 		void LoadResourceBinding(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes);
-		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
-		void LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorSetCreateInfo& descSetCreateInfo);
+		void LoadResourceDescriptor(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo);
+		void LoadUniformBuffer(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo);
+		void LoadSeparateSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo);
+		void LoadSeparateImage(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo);
+		void LoadImageSampler(const spirv_cross::Compiler& spvCompiler, const spirv_cross::ShaderResources& shaderRes, EShaderType shaderType, DescriptorPoolCreateInfo& descPoolCreateInfo);
 		// TODO: handle storage buffers
 		// TODO: handle storage textures
 		// TODO: handle subpass inputs
 
-		// Descriptor functions
-		void CreateDescriptorSetLayout(const DescriptorSetCreateInfo& descSetCreateInfo);
-		void CreateDescriptorPool(const DescriptorSetCreateInfo& descSetCreateInfo);
+		// Descriptor pool functions
+		void CreateDescriptorSetLayout(const DescriptorPoolCreateInfo& descPoolCreateInfo);
+		void CreateNewDescriptorPool();
 		void AllocateDescriptorSet(uint32_t count);
 
 		// Converter functions
@@ -135,8 +135,11 @@ namespace Engine
 		std::unordered_map<const char*, ResourceDescription> m_resourceTable;
 
 		DescriptorSetLayout_VK* m_pDescriptorSetLayout;
-		DescriptorPool_VK* m_pDescriptorPool;
-		std::vector<DescriptorSet_VK*> m_descriptorSets;
+		DescriptorPoolCreateInfo m_descriptorPoolCreateInfo;
+
+		std::vector<DescriptorPool_VK*> m_descriptorPools;
+		std::vector<DescriptorSet_VK*> m_descriptorSets; // Descriptor sets are allocated from pools, and are recycled when they are no longer in use
+
 		uint32_t m_descriptorSetAccessIndex;
 		mutable std::mutex m_descriptorSetGetMutex;
 
