@@ -97,13 +97,8 @@ namespace Engine
 		FragmentShader_VK* pFragmentShader;
 		CE_NEW(pFragmentShader, FragmentShader_VK, m_pMainDevice, fragmentModule, fragmentRawCode);
 
-	#if defined(DEBUG_MODE_CE)
 		ShaderProgram_VK* pShaderProgram;
 		CE_NEW(pShaderProgram, ShaderProgram_VK, this, m_pMainDevice, 2, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-	#else
-		ShaderProgram_VK* pShaderProgram;
-		CE_NEW(pShaderProgram, ShaderProgram_VK, this, m_pMainDevice, pVertexShader->GetShaderImpl(), pFragmentShader->GetShaderImpl());
-	#endif
 
 		return pShaderProgram;
 	}

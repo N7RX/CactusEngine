@@ -69,8 +69,7 @@ namespace Engine
 	class ShaderProgram_VK : public ShaderProgram
 	{
 	public:
-		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, const RawShader_VK* pShader...); // Could also use a pointer array instead of variadic arguments
-		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader);
+		ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, ...); // Could also use a pointer array instead of variadic arguments
 		~ShaderProgram_VK();
 
 		uint32_t GetParamBinding(const char* paramName) const override;

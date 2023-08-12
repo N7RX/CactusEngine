@@ -228,18 +228,18 @@ namespace Engine
 
 		bool extensionsSupported = CheckDeviceExtensionsSupport_VK(device, deviceExtensions);
 
-		bool swapChainAdequate = false;
+		bool swapchainAdequate = false;
 		if (extensionsSupported)
 		{
-			SwapchainSupportDetails_VK swapChainSupport = QuerySwapchainSupport_VK(device, surface);
-			swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+			SwapchainSupportDetails_VK swapchainSupport = QuerySwapchainSupport_VK(device, surface);
+			swapchainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentModes.empty();
 		}
 
 		// Add extra selection criteria here
 		// ...
 
 		//return indices.isComplete() && extensionsSupported && swapChainAdequate;
-		return extensionsSupported && swapChainAdequate;
+		return extensionsSupported && swapchainAdequate;
 	}
 
 	QueueFamilyIndices_VK FindQueueFamilies_VK(const VkPhysicalDevice& device, const VkSurfaceKHR& surface)

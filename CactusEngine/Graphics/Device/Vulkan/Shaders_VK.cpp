@@ -43,7 +43,7 @@ namespace Engine
 		return m_pShaderImpl;
 	}
 
-	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, const RawShader_VK* pShader...)
+	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, uint32_t shaderCount, ...)
 		: ShaderProgram(0),
 		m_pLogicalDevice(pLogicalDevice),
 		m_pDescriptorSetLayout(nullptr),
@@ -78,44 +78,6 @@ namespace Engine
 		}
 
 		va_end(vaShaders);
-
-		CreateDescriptorSetLayout(m_descriptorPoolCreateInfo);
-		CreateNewDescriptorPool();
-
-		AllocateDescriptorSet(1);
-	}
-
-	ShaderProgram_VK::ShaderProgram_VK(GraphicsHardwareInterface_VK* pDevice, LogicalDevice_VK* pLogicalDevice, const RawShader_VK* pVertexShader, const RawShader_VK* pFragmentShader)
-		: ShaderProgram(0),
-		m_pLogicalDevice(pLogicalDevice),
-		m_pDescriptorSetLayout(nullptr),
-		m_descriptorPoolCreateInfo{},
-		m_descriptorSetAccessIndex(0)
-	{
-		m_pDevice = pDevice;
-
-		m_shaderStages = 0;
-		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_VERTEX_BIT);
-		m_shaderStages |= (uint32_t)ShaderStageBitsConvert(VK_SHADER_STAGE_FRAGMENT_BIT);
-
-		m_descriptorPoolCreateInfo.maxDescSetCount = DESCRIPTOR_POOL_CAPACITY;
-
-		ReflectResources(pVertexShader, m_descriptorPoolCreateInfo);
-
-		VkPipelineShaderStageCreateInfo shaderStageInfo{};
-		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStageInfo.stage = pVertexShader->m_shaderStage;
-		shaderStageInfo.module = pVertexShader->m_shaderModule;
-		shaderStageInfo.pName = pVertexShader->m_entryName;
-		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
-
-		ReflectResources(pFragmentShader, m_descriptorPoolCreateInfo);
-
-		shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStageInfo.stage = pFragmentShader->m_shaderStage;
-		shaderStageInfo.module = pFragmentShader->m_shaderModule;
-		shaderStageInfo.pName = pFragmentShader->m_entryName;
-		m_pipelineShaderStageCreateInfos.emplace_back(shaderStageInfo);
 
 		CreateDescriptorSetLayout(m_descriptorPoolCreateInfo);
 		CreateNewDescriptorPool();

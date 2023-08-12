@@ -286,8 +286,15 @@ namespace Engine
 
 	void RenderGraph::InitExecutionThreads()
 	{
-		m_executionThreadCount = std::min<uint32_t>(std::thread::hardware_concurrency() - 2, m_nodes.size()); // -2 for main thread and render thread
-		m_executionThreadCount = std::max<uint32_t>(m_executionThreadCount, 2);
+		m_executionThreadCount = 4; // Default max 4 threads
+		m_executionThreadCount = std::min<uint32_t>(std::thread::hardware_concurrency() - 2, m_executionThreadCount); // -2 for main thread and render thread
+		m_executionThreadCount = std::max<uint32_t>(m_executionThreadCount, 1);
+#if defined(DEBUG_MODE_CE)
+		if (m_executionThreadCount == 1)
+		{
+			LOG_MESSAGE("Hardware concurrency is very low, render graph execution will be suboptimal.");
+		}
+#endif
 
 		for (uint32_t i = 0; i < m_executionThreadCount; i++)
 		{
